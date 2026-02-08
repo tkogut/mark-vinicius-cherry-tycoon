@@ -1,5 +1,5 @@
-import Map "mo:core/Map";
-import Principal "mo:core/Principal";
+import HashMap "mo:base/HashMap";
+import Principal "mo:base/Principal";
 import Runtime "mo:core/Runtime";
 
 module {
@@ -11,34 +11,34 @@ module {
 
   public type AccessControlState = {
     var adminAssigned : Bool;
-    userRoles : Map.Map<Principal, UserRole>;
+    userRoles : HashMap.HashMap<Principal, UserRole>;
   };
 
   public func initState() : AccessControlState {
     {
       var adminAssigned = false;
-      userRoles = Map.empty<Principal, UserRole>();
+      userRoles = HashMap.HashMap<Principal, UserRole>(10, Principal.equal, Principal.hash);
     };
   };
 
   // First principal that calls this function becomes admin, all other principals become users.
   public func initialize(state : AccessControlState, caller : Principal, adminToken : Text, userProvidedToken : Text) {
-    if (caller.isAnonymous()) { return };
+    if (Principal.isAnonymous(caller)) { return };
     switch (state.userRoles.get(caller)) {
       case (?_) {};
       case (null) {
         if (not state.adminAssigned and userProvidedToken == adminToken) {
-          state.userRoles.add(caller, #admin);
+          state.userRoles.put(caller, #admin);
           state.adminAssigned := true;
         } else {
-          state.userRoles.add(caller, #user);
+          state.userRoles.put(caller, #user);
         };
       };
     };
   };
 
   public func getUserRole(state : AccessControlState, caller : Principal) : UserRole {
-    if (caller.isAnonymous()) { return #guest };
+    if (Principal.isAnonymous(caller)) { return #guest };
     switch (state.userRoles.get(caller)) {
       case (?role) { role };
       case (null) {
@@ -51,7 +51,7 @@ module {
     if (not (isAdmin(state, caller))) {
       Runtime.trap("Unauthorized: Only admins can assign user roles");
     };
-    state.userRoles.add(user, role);
+    state.userRoles.put(user, role);
   };
 
   public func hasPermission(state : AccessControlState, caller : Principal, requiredRole : UserRole) : Bool {

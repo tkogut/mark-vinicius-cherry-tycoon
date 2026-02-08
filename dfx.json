@@ -3,12 +3,23 @@
     "backend": {
       "type": "motoko",
       "main": "backend/main.mo",
-      "dependencies": []
+      "declarations": {
+        "output": "frontend/src/declarations",
+        "bindings": [
+          "js",
+          "ts",
+          "did"
+        ]
+      }
     },
     "frontend": {
       "type": "assets",
-      "source": ["frontend/dist"],
-      "dependencies": ["backend"]
+      "source": [
+        "frontend/dist"
+      ],
+      "dependencies": [
+        "backend"
+      ]
     }
   },
   "defaults": {

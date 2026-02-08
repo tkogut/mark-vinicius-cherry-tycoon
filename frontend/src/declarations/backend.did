@@ -1,0 +1,178 @@
+type UserRole = 
+ variant {
+   admin;
+   guest;
+   user;
+ };
+type Time = int;
+type Statistics = 
+ record {
+   averageYieldPerHa: float64;
+   bestSeasonProfit: nat;
+   seasonsPlayed: nat;
+   totalCosts: nat;
+   totalHarvested: nat;
+   totalRevenue: nat;
+   totalSold: nat;
+ };
+type SoilType = 
+ variant {
+   Clay;
+   Sandy;
+   SandyClay;
+   Waterlogged;
+ };
+type Season = 
+ variant {
+   Autumn;
+   Spring;
+   Summer;
+   Winter;
+ };
+type Result_4 = 
+ variant {
+   Err: text;
+   Ok: Inventory;
+ };
+type Result_3 = 
+ variant {
+   Err: text;
+   Ok: PlayerFarm;
+ };
+type Result_2 = 
+ variant {
+   Err: text;
+   Ok: Statistics;
+ };
+type Result_1 = 
+ variant {
+   Err: text;
+   Ok: nat;
+ };
+type Result = 
+ variant {
+   Err: text;
+   Ok: text;
+ };
+type Region = 
+ record {
+   commune: text;
+   communeType: CommuneType;
+   county: text;
+   laborCostMultiplier: float64;
+   marketSize: float64;
+   population: nat;
+   province: Province;
+ };
+type Province = 
+ variant {
+   Dolnoslaskie;
+   Kujawsko_Pomorskie;
+   Lodzkie;
+   Lubelskie;
+   Lubuskie;
+   Malopolskie;
+   Mazowieckie;
+   Opolskie;
+   Podkarpackie;
+   Podlaskie;
+   Pomorskie;
+   Slaskie;
+   Swietokrzyskie;
+   Warminsko_Mazurskie;
+   Wielkopolskie;
+   Zachodniopomorskie;
+ };
+type PlayerFarm = 
+ record {
+   cash: nat;
+   currentSeason: Season;
+   experience: nat;
+   infrastructure: vec Infrastructure;
+   inventory: Inventory;
+   lastActive: Time;
+   level: nat;
+   owner: principal;
+   parcels: vec CherryParcel;
+   playerId: text;
+   playerName: text;
+   reputation: nat;
+   seasonNumber: nat;
+   statistics: Statistics;
+ };
+type Inventory = 
+ record {
+   cherries: nat;
+   fertilizers: nat;
+   organicCherries: nat;
+   organicTreatments: nat;
+   pesticides: nat;
+ };
+type InfrastructureType = 
+ variant {
+   ColdStorage;
+   ProcessingFacility;
+   Shaker;
+   SocialFacilities;
+   Sprayer;
+   Tractor;
+   Warehouse;
+ };
+type Infrastructure = 
+ record {
+   infraType: InfrastructureType;
+   level: nat;
+   maintenanceCost: nat;
+   purchasedSeason: nat;
+ };
+type CommuneType = 
+ variant {
+   Mixed;
+   Rural;
+   Urban;
+ };
+type CherryParcel = 
+ record {
+   fertility: float64;
+   humidity: float64;
+   id: text;
+   isOrganic: bool;
+   lastFertilized: nat;
+   lastHarvest: nat;
+   organicCertified: bool;
+   organicConversionSeason: nat;
+   ownerId: text;
+   pH: float64;
+   permeability: float64;
+   plantedTrees: nat;
+   quality: nat;
+   region: Region;
+   size: float64;
+   soilType: SoilType;
+   treeAge: nat;
+   waterLevel: float64;
+ };
+service : {
+  _initializeAccessControlWithSecret: (userSecret: text) -> ();
+  advanceSeason: (_weatherEvent: opt text) -> (Result);
+  assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  assignParcelToPlayer: (parcelId: text, playerId: text) -> (Result);
+  buyParcel: (parcelId: text, price: nat) -> (Result);
+  fertilizeParcel: (parcelId: text, _fertilizerType: text) -> (Result);
+  getCallerUserRole: () -> (UserRole) query;
+  getCashBalance: () -> (Result_1) query;
+  getGlobalSeason: () -> (nat) query;
+  getInventory: () -> (Result_4) query;
+  getPlayerFarm: () -> (Result_3) query;
+  getPlayerStats: () -> (Result_2) query;
+  getTotalPlayers: () -> (nat) query;
+  harvestCherries: (parcelId: text) -> (Result_1);
+  initializePlayer: (playerId: text, playerName: text) -> (Result);
+  isCallerAdmin: () -> (bool) query;
+  plantTrees: (parcelId: text, quantity: nat) -> (Result);
+  purchaseParcel: (province: Province, size: float64) -> (Result);
+  sellCherries: (quantity: nat, saleType: text) -> (Result_1);
+  startOrganicConversion: (parcelId: text) -> (Result);
+  upgradeInfrastructure: (infraTypeString: text) -> (Result);
+  waterParcel: (parcelId: text) -> (Result);
+}

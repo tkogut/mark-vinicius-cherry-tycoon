@@ -2,9 +2,9 @@ import AccessControl "./access-control";
 import Prim "mo:prim";
 import Runtime "mo:core/Runtime";
 
-mixin(accessControlState : AccessControl.AccessControlState) {
+module {
   // Initialize auth (first caller becomes admin, others become users)
-  public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
+  public func _initializeAccessControlWithSecret(accessControlState : AccessControl.AccessControlState, caller : Principal, userSecret : Text) : async () {
     switch (Prim.envVar<system>("CAFFEINE_ADMIN_TOKEN")) {
       case (null) {
         Runtime.trap("CAFFEINE_ADMIN_TOKEN environment variable is not set");
@@ -15,16 +15,16 @@ mixin(accessControlState : AccessControl.AccessControlState) {
     };
   };
 
-  public query ({ caller }) func getCallerUserRole() : async AccessControl.UserRole {
+  public func getCallerUserRole(accessControlState : AccessControl.AccessControlState, caller : Principal) : AccessControl.UserRole {
     AccessControl.getUserRole(accessControlState, caller);
   };
 
-  public shared ({ caller }) func assignCallerUserRole(user : Principal, role : AccessControl.UserRole) : async () {
+  public func assignCallerUserRole(accessControlState : AccessControl.AccessControlState, caller : Principal, user : Principal, role : AccessControl.UserRole) {
     // Admin-only check happens inside
     AccessControl.assignRole(accessControlState, caller, user, role);
   };
 
-  public query ({ caller }) func isCallerAdmin() : async Bool {
+  public func isCallerAdmin(accessControlState : AccessControl.AccessControlState, caller : Principal) : Bool {
     AccessControl.isAdmin(accessControlState, caller);
   };
 };

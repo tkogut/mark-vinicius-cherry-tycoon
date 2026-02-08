@@ -261,7 +261,7 @@ module {
     if (parcel.organicCertified) { return true };
     
     // Need 2 seasons of conversion
-    let seasonsSinceConversion = currentSeason - parcel.organicConversionSeason;
+    let seasonsSinceConversion = (currentSeason : Int) - (parcel.organicConversionSeason : Int);
     seasonsSinceConversion >= 2
   };
 

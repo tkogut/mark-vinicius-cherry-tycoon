@@ -8,16 +8,16 @@ import Nat "mo:base/Nat";
 import Array "mo:base/Array";
 import Iter "mo:base/Iter";
 import Time "mo:base/Time";
-import Random "mo:base/Random";
-import Blob "mo:base/Blob";
 import Result "mo:base/Result";
+import Float "mo:base/Float";
+import Int "mo:base/Int";
 
 import Types "types";
 import GameLogic "game_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-actor CherryTycoon {
+persistent actor CherryTycoon {
   
   // Type aliases
   type PlayerFarm = Types.PlayerFarm;
@@ -28,32 +28,51 @@ actor CherryTycoon {
   type Season = Types.Season;
   type Weather = Types.Weather;
   type SaleType = Types.SaleType;
+  type SoilType = Types.SoilType;
+  type Province = Types.Province;
+  type Region = Types.Region;
+  type CommuneType = Types.CommuneType;
+  type InfrastructureType = Types.InfrastructureType;
   type Result<T, E> = Types.Result<T, E>;
   type GameError = Types.GameError;
 
   // Authorization system
-  let accessControlState = AccessControl.initState();
-  include MixinAuthorization(accessControlState);
+  flexible let accessControlState = AccessControl.initState();
+
+  public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
+    await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
+  };
+
+  public query ({ caller }) func getCallerUserRole() : async AccessControl.UserRole {
+    MixinAuthorization.getCallerUserRole(accessControlState, caller);
+  };
+
+  public shared ({ caller }) func assignCallerUserRole(user : Principal, role : AccessControl.UserRole) : async () {
+    MixinAuthorization.assignCallerUserRole(accessControlState, caller, user, role);
+  };
+
+  public query ({ caller }) func isCallerAdmin() : async Bool {
+    MixinAuthorization.isCallerAdmin(accessControlState, caller);
+  };
 
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
 
   // Player farms storage
-  private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+  private flexible var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
     10,
     Principal.equal,
     Principal.hash
   );
 
   // Global game state
-  private stable var globalSeasonNumber : Nat = 1;
-  private stable var baseRetailPrice : Nat = 15; // PLN per kg
-  private stable var baseWholesalePrice : Nat = 10; // PLN per kg
-  private stable var totalMarketSupply : Nat = 0; // affects prices
+  private var globalSeasonNumber : Nat = 1;
+  private var baseRetailPrice : Nat = 15; // PLN per kg
+  private var baseWholesalePrice : Nat = 10; // PLN per kg
 
   // Stable storage for upgrades
-  private stable var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
+  private var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
 
   system func preupgrade() {
     stablePlayerFarms := Iter.toArray(playerFarms.entries());
@@ -77,11 +96,11 @@ actor CherryTycoon {
   public shared({ caller }) func initializePlayer(
     playerId: Text,
     playerName: Text
-  ) : async Result<Text, Text> {
+  ) : async Result<Text, GameError> {
     
     // Check if player already exists
     switch (playerFarms.get(caller)) {
-      case (?_) { return #Err("Player already initialized") };
+      case (?_) { return #Err(#AlreadyExists("Player already initialized")) };
       case null {};
     };
 
@@ -152,18 +171,18 @@ actor CherryTycoon {
   };
 
   // Get player's farm
-  public shared query({ caller }) func getPlayerFarm() : async Result<PlayerFarm, Text> {
+  public shared query({ caller }) func getPlayerFarm() : async Result<PlayerFarm, GameError> {
     switch (playerFarms.get(caller)) {
       case (?farm) { #Ok(farm) };
-      case null { #Err("Player not found. Please initialize first.") };
+      case null { #Err(#NotFound("Player not found. Please initialize first.")) };
     }
   };
 
   // Get player statistics
-  public shared query({ caller }) func getPlayerStats() : async Result<Statistics, Text> {
+  public shared query({ caller }) func getPlayerStats() : async Result<Statistics, GameError> {
     switch (playerFarms.get(caller)) {
       case (?farm) { #Ok(farm.statistics) };
-      case null { #Err("Player not found") };
+      case null { #Err(#NotFound("Player not found")) };
     }
   };
 
@@ -172,31 +191,27 @@ actor CherryTycoon {
   // ============================================================================
 
   // Harvest cherries from a parcel
-  public shared({ caller }) func harvestCherries(parcelId: Text) : async Result<Nat, Text> {
+  public shared({ caller }) func harvestCherries(parcelId: Text) : async Result<Nat, GameError> {
     switch (playerFarms.get(caller)) {
-      case null { return #Err("Player not found") };
+      case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
         // Find the parcel
-        let parcelIndex = Array.indexOf<CherryParcel>(
-          { id = parcelId; ownerId = ""; region = farm.parcels[0].region; soilType = #SandyClay; pH = 0.0; fertility = 0.0; permeability = 0.0; humidity = 0.0; size = 0.0; plantedTrees = 0; treeAge = 0; isOrganic = false; organicConversionSeason = 0; organicCertified = false; lastHarvest = 0; quality = 0; waterLevel = 0.0; lastFertilized = 0 },
-          farm.parcels,
-          func(a: CherryParcel, b: CherryParcel) : Bool { a.id == b.id }
-        );
+        let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
-        switch (parcelIndex) {
-          case null { return #Err("Parcel not found") };
+        switch (indexOpt) {
+          case null { return #Err(#NotFound("Parcel not found")) };
           case (?index) {
             let parcel = farm.parcels[index];
             
             // Check if trees are planted
             if (parcel.plantedTrees == 0) {
-              return #Err("No trees planted on this parcel");
+              return #Err(#InvalidOperation("No trees planted on this parcel"));
             };
             
             // Check if already harvested this season
             if (parcel.lastHarvest == farm.seasonNumber) {
-              return #Err("Parcel already harvested this season");
+              return #Err(#SeasonalRestriction("Parcel already harvested this season"));
             };
 
             // Calculate yield (returns null if trees are dead)
@@ -206,7 +221,7 @@ actor CherryTycoon {
             );
 
             let harvestedAmount = switch (harvestedAmountOpt) {
-              case null { return #Err("Trees are too old (>40 years) and have died. Please replant.") };
+              case null { return #Err(#InvalidOperation("Trees are too old (>40 years) and have died. Please replant.")) };
               case (?amount) { amount };
             };
 
@@ -267,26 +282,22 @@ actor CherryTycoon {
   };
 
   // Water a parcel
-  public shared({ caller }) func waterParcel(parcelId: Text) : async Result<Text, Text> {
+  public shared({ caller }) func waterParcel(parcelId: Text) : async Result<Text, GameError> {
     switch (playerFarms.get(caller)) {
-      case null { return #Err("Player not found") };
+      case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        let parcelIndex = Array.indexOf<CherryParcel>(
-          { id = parcelId; ownerId = ""; region = farm.parcels[0].region; soilType = #SandyClay; pH = 0.0; fertility = 0.0; permeability = 0.0; humidity = 0.0; size = 0.0; plantedTrees = 0; treeAge = 0; isOrganic = false; organicConversionSeason = 0; organicCertified = false; lastHarvest = 0; quality = 0; waterLevel = 0.0; lastFertilized = 0 },
-          farm.parcels,
-          func(a: CherryParcel, b: CherryParcel) : Bool { a.id == b.id }
-        );
+        let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
-        switch (parcelIndex) {
-          case null { return #Err("Parcel not found") };
+        switch (indexOpt) {
+          case null { return #Err(#NotFound("Parcel not found")) };
           case (?index) {
             let parcel = farm.parcels[index];
             
             // Cost of watering
             let waterCost = 200; // PLN
             if (farm.cash < waterCost) {
-              return #Err("Insufficient funds");
+              return #Err(#InsufficientFunds { required = waterCost; available = farm.cash });
             };
 
             // Update parcel water level
@@ -306,7 +317,7 @@ actor CherryTycoon {
             let updatedFarm = {
               farm with
               parcels = updatedParcels;
-              cash = farm.cash - waterCost;
+              cash = Int.abs((farm.cash : Int) - (waterCost : Int));
             };
 
             playerFarms.put(caller, updatedFarm);
@@ -320,24 +331,20 @@ actor CherryTycoon {
   // Fertilize a parcel
   public shared({ caller }) func fertilizeParcel(
     parcelId: Text,
-    fertilizerType: Text
-  ) : async Result<Text, Text> {
+    _fertilizerType: Text
+  ) : async Result<Text, GameError> {
     switch (playerFarms.get(caller)) {
-      case null { return #Err("Player not found") };
+      case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
         // Check if has fertilizers
         if (farm.inventory.fertilizers == 0) {
-          return #Err("No fertilizers in inventory");
+          return #Err(#InvalidOperation("No fertilizers in inventory"));
         };
 
-        let parcelIndex = Array.indexOf<CherryParcel>(
-          { id = parcelId; ownerId = ""; region = farm.parcels[0].region; soilType = #SandyClay; pH = 0.0; fertility = 0.0; permeability = 0.0; humidity = 0.0; size = 0.0; plantedTrees = 0; treeAge = 0; isOrganic = false; organicConversionSeason = 0; organicCertified = false; lastHarvest = 0; quality = 0; waterLevel = 0.0; lastFertilized = 0 },
-          farm.parcels,
-          func(a: CherryParcel, b: CherryParcel) : Bool { a.id == b.id }
-        );
+        let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
-        switch (parcelIndex) {
+        switch (indexOpt) {
           case null { return #Err("Parcel not found") };
           case (?index) {
             let parcel = farm.parcels[index];
@@ -362,7 +369,7 @@ actor CherryTycoon {
 
             let updatedInventory = {
               farm.inventory with
-              fertilizers = farm.inventory.fertilizers - 1;
+              fertilizers = Int.abs((farm.inventory.fertilizers : Int) - (1 : Int));
             };
 
             let updatedFarm = {
@@ -383,25 +390,21 @@ actor CherryTycoon {
   public shared({ caller }) func plantTrees(
     parcelId: Text,
     quantity: Nat
-  ) : async Result<Text, Text> {
+  ) : async Result<Text, GameError> {
     switch (playerFarms.get(caller)) {
-      case null { return #Err("Player not found") };
+      case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
         let costPerTree = 50; // PLN
         let totalCost = quantity * costPerTree;
         
         if (farm.cash < totalCost) {
-          return #Err("Insufficient funds");
+          return #Err(#InsufficientFunds { required = totalCost; available = farm.cash });
         };
 
-        let parcelIndex = Array.indexOf<CherryParcel>(
-          { id = parcelId; ownerId = ""; region = farm.parcels[0].region; soilType = #SandyClay; pH = 0.0; fertility = 0.0; permeability = 0.0; humidity = 0.0; size = 0.0; plantedTrees = 0; treeAge = 0; isOrganic = false; organicConversionSeason = 0; organicCertified = false; lastHarvest = 0; quality = 0; waterLevel = 0.0; lastFertilized = 0 },
-          farm.parcels,
-          func(a: CherryParcel, b: CherryParcel) : Bool { a.id == b.id }
-        );
+        let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
-        switch (parcelIndex) {
+        switch (indexOpt) {
           case null { return #Err("Parcel not found") };
           case (?index) {
             let parcel = farm.parcels[index];
@@ -411,7 +414,7 @@ actor CherryTycoon {
             let currentTrees = parcel.plantedTrees;
             
             if (currentTrees + quantity > maxTrees) {
-              return #Err("Exceeds maximum tree density (400 trees per hectare). Max: " # Nat.toText(maxTrees) # ", Current: " # Nat.toText(currentTrees));
+              return #Err(#InvalidOperation("Exceeds maximum tree density (400 trees per hectare). Max: " # Nat.toText(maxTrees) # ", Current: " # Nat.toText(currentTrees)));
             };
             
             let updatedParcels = Array.tabulate<CherryParcel>(
@@ -436,7 +439,7 @@ actor CherryTycoon {
             let updatedFarm = {
               farm with
               parcels = updatedParcels;
-              cash = farm.cash - totalCost;
+              cash = Int.abs((farm.cash : Int) - (totalCost : Int));
               experience = newXp;
               level = newLevel;
             };
@@ -457,19 +460,24 @@ actor CherryTycoon {
   public shared({ caller }) func sellCherries(
     quantity: Nat,
     saleType: Text
-  ) : async Result<Nat, Text> {
+  ) : async Result<Nat, GameError> {
     switch (playerFarms.get(caller)) {
-      case null { return #Err("Player not found") };
+      case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
         if (farm.inventory.cherries < quantity) {
-          return #Err("Insufficient cherries in inventory");
+          return #Err(#InvalidOperation("Insufficient cherries in inventory"));
         };
 
         // Calculate price based on sale type
         let pricePerKg = if (saleType == "retail") {
+          // Calculate average quality score across all parcels
+          var totalQuality = 0;
+          for (p in farm.parcels.vals()) {
+            totalQuality += GameLogic.calculateQualityScore(p, farm.infrastructure);
+          };
           let avgQuality = if (farm.parcels.size() > 0) {
-            GameLogic.calculateQualityScore(farm.parcels[0], farm.infrastructure)
+            totalQuality / farm.parcels.size()
           } else { 50 };
           
           GameLogic.calculateRetailPrice(
@@ -491,7 +499,7 @@ actor CherryTycoon {
         // Update inventory and statistics
         let updatedInventory = {
           farm.inventory with
-          cherries = farm.inventory.cherries - quantity;
+          cherries = Int.abs((farm.inventory.cherries : Int) - (quantity : Int));
         };
 
         let updatedStats = {
@@ -521,18 +529,18 @@ actor CherryTycoon {
   };
 
   // Get cash balance
-  public shared query({ caller }) func getCashBalance() : async Result<Nat, Text> {
+  public shared query({ caller }) func getCashBalance() : async Result<Nat, GameError> {
     switch (playerFarms.get(caller)) {
       case (?farm) { #Ok(farm.cash) };
-      case null { #Err("Player not found") };
+      case null { #Err(#NotFound("Player not found")) };
     }
   };
 
   // Get inventory
-  public shared query({ caller }) func getInventory() : async Result<Inventory, Text> {
+  public shared query({ caller }) func getInventory() : async Result<Inventory, GameError> {
     switch (playerFarms.get(caller)) {
       case (?farm) { #Ok(farm.inventory) };
-      case null { #Err("Player not found") };
+      case null { #Err(#NotFound("Player not found")) };
     }
   };
 
@@ -542,10 +550,10 @@ actor CherryTycoon {
 
   // Advance to next season
   public shared({ caller }) func advanceSeason(
-    weatherEvent: ?Text
-  ) : async Result<Text, Text> {
+    _weatherEvent: ?Text
+  ) : async Result<Text, GameError> {
     switch (playerFarms.get(caller)) {
-      case null { return #Err("Player not found") };
+      case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
         // Calculate costs for the season
@@ -558,7 +566,7 @@ actor CherryTycoon {
         let totalCosts = fixedCosts + variableCosts;
 
         if (farm.cash < totalCosts) {
-          return #Err("Insufficient funds to cover seasonal costs");
+          return #Err(#InsufficientFunds { required = totalCosts; available = farm.cash });
         };
 
         // Age trees by 1 year every 4 seasons
@@ -593,7 +601,7 @@ actor CherryTycoon {
           farm with
           currentSeason = nextSeason;
           seasonNumber = farm.seasonNumber + 1;
-          cash = farm.cash - totalCosts;
+          cash = Int.abs((farm.cash : Int) - (totalCosts : Int));
           parcels = updatedParcels;
           statistics = updatedStats;
         };
@@ -606,21 +614,38 @@ actor CherryTycoon {
 
   // Upgrade infrastructure
   public shared({ caller }) func upgradeInfrastructure(
-    infraType: Text
-  ) : async Result<Text, Text> {
+    infraTypeString: Text
+  ) : async Result<Text, GameError> {
     switch (playerFarms.get(caller)) {
-      case null { return #Err("Player not found") };
+      case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
         let cost = 10000; // Base cost for infrastructure
         
         if (farm.cash < cost) {
-          return #Err("Insufficient funds");
+          return #Err(#InsufficientFunds { required = cost; available = farm.cash });
+        };
+
+        // Parse infrastructure type
+        let infraTypeOpt : ?InfrastructureType = switch (infraTypeString) {
+          case ("SocialFacilities") { ?#SocialFacilities };
+          case ("Warehouse") { ?#Warehouse };
+          case ("ColdStorage") { ?#ColdStorage };
+          case ("Tractor") { ?#Tractor };
+          case ("Shaker") { ?#Shaker };
+          case ("Sprayer") { ?#Sprayer };
+          case ("ProcessingFacility") { ?#ProcessingFacility };
+          case (_) { null };
+        };
+
+        let infraType = switch (infraTypeOpt) {
+          case (?t) { t };
+          case (null) { return #Err(#InvalidOperation("Invalid infrastructure type: " # infraTypeString)) };
         };
 
         // Create new infrastructure
         let newInfra : Infrastructure = {
-          infraType = #Warehouse; // TODO: parse infraType string
+          infraType = infraType;
           level = 1;
           purchasedSeason = farm.seasonNumber;
           maintenanceCost = 500;
@@ -639,7 +664,7 @@ actor CherryTycoon {
         let updatedFarm = {
           farm with
           infrastructure = updatedInfrastructure;
-          cash = farm.cash - cost;
+          cash = Int.abs((farm.cash : Int) - (cost : Int));
           experience = newXp;
           level = newLevel;
         };
@@ -688,17 +713,17 @@ actor CherryTycoon {
   public shared({ caller }) func purchaseParcel(
     province: Province,
     size: Float
-  ) : async Result<Text, Text> {
+  ) : async Result<Text, GameError> {
     
     switch (playerFarms.get(caller)) {
-      case null { return #Err("Player not found") };
+      case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
         // Calculate cost: 60,000 PLN per hectare (from Caffeine)
         let cost = Int.abs(Float.toInt(size * 60000.0));
         
         if (farm.cash < cost) {
-          return #Err("Insufficient funds. Need " # Nat.toText(cost) # " PLN");
+          return #Err(#InsufficientFunds { required = cost; available = farm.cash });
         };
         
         // Generate unique parcel ID
@@ -739,7 +764,7 @@ actor CherryTycoon {
         let updatedFarm = {
           farm with
           parcels = updatedParcels;
-          cash = farm.cash - cost;
+          cash = Int.abs((farm.cash : Int) - (cost : Int));
         };
         
         playerFarms.put(caller, updatedFarm);
@@ -748,23 +773,94 @@ actor CherryTycoon {
     }
   };
 
+  // Buy a parcel (Priority 2)
+  public shared({ caller }) func buyParcel(
+    parcelId: Text,
+    price: Nat
+  ) : async Result<Text, GameError> {
+    
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        
+        if (farm.cash < price) {
+          return #Err(#InsufficientFunds { required = price; available = farm.cash });
+        };
+        
+        // In a real scenario, we would check if the parcel belongs to another player or bank
+        // For now, we simulate finding the parcel and "buying" it.
+        // We'll create a new parcel with this ID if it doesn't exist, 
+        // or just add it to the player's collection.
+        
+        // Check if player already owns it
+        let (existingOpt, _) = findParcelIndex(farm.parcels, parcelId);
+        switch (existingOpt) {
+          case (?_) { return #Err(#AlreadyExists("You already own this parcel")) };
+          case null {};
+        };
+        
+        // Implementation note: In this simple version, we'll generate a parcel 
+        // if it's not already owned, simulating a purchase from the bank.
+        let newParcel : CherryParcel = {
+          id = parcelId;
+          ownerId = farm.playerId;
+          region = {
+            province = #Opolskie;
+            county = "Opole";
+            commune = "Opole";
+            communeType = #Mixed;
+            population = 120000;
+            marketSize = 0.8;
+            laborCostMultiplier = 1.0;
+          };
+          soilType = #SandyClay;
+          pH = 6.5;
+          fertility = 0.7;
+          permeability = 0.8;
+          humidity = 0.6;
+          size = 1.0;
+          plantedTrees = 0;
+          treeAge = 0;
+          isOrganic = false;
+          organicConversionSeason = 0;
+          organicCertified = false;
+          lastHarvest = 0;
+          quality = 50;
+          waterLevel = 0.5;
+          lastFertilized = 0;
+        };
+        
+        let updatedParcels = Array.append(farm.parcels, [newParcel]);
+        
+        let updatedFarm = {
+          farm with
+          parcels = updatedParcels;
+          cash = Int.abs((farm.cash : Int) - (price : Int));
+        };
+        
+        playerFarms.put(caller, updatedFarm);
+        #Ok("Successfully bought parcel " # parcelId)
+      };
+    }
+  };
+
   // Start organic conversion (from Caffeine AI)
   public shared({ caller }) func startOrganicConversion(
     parcelId: Text
-  ) : async Result<Text, Text> {
+  ) : async Result<Text, GameError> {
     
     switch (playerFarms.get(caller)) {
-      case null { return #Err("Player not found") };
+      case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
         let (parcelOpt, indexOpt) = findParcelIndex(farm.parcels, parcelId);
         
         switch (parcelOpt, indexOpt) {
-          case (null, _) { return #Err("Parcel not found") };
+          case (null, _) { return #Err(#NotFound("Parcel not found")) };
           case (?parcel, ?index) {
             
             if (parcel.isOrganic) {
-              return #Err("Parcel is already in organic conversion");
+              return #Err(#AlreadyExists("Parcel is already in organic conversion"));
             };
             
             let updatedParcel = {
@@ -789,6 +885,48 @@ actor CherryTycoon {
             #Ok("Organic conversion started. Certification will be granted after 2 seasons.")
           };
           case (?_, null) { return #Err("Parcel not found") };
+        };
+      };
+    }
+  };
+
+  // Assign a parcel to a player (GDD Section 1)
+  public shared({ caller }) func assignParcelToPlayer(
+    parcelId: Text,
+    playerId: Text
+  ) : async Result<Text, GameError> {
+    
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        
+        let (parcelOpt, indexOpt) = findParcelIndex(farm.parcels, parcelId);
+        
+        switch (parcelOpt, indexOpt) {
+          case (null, _) { return #Err(#NotFound("Parcel not found")) };
+          case (?parcel, ?index) {
+            
+            let updatedParcel = {
+              parcel with
+              ownerId = playerId;
+            };
+            
+            let updatedParcels = Array.tabulate<CherryParcel>(
+              farm.parcels.size(),
+              func(i: Nat) : CherryParcel {
+                if (i == index) { updatedParcel } else { farm.parcels[i] }
+              }
+            );
+            
+            let updatedFarm = {
+              farm with
+              parcels = updatedParcels;
+            };
+            
+            playerFarms.put(caller, updatedFarm);
+            #Ok("Parcel " # parcelId # " assigned to player " # playerId # " successfully")
+          };
+          case (?_, null) { return #Err(#NotFound("Parcel not found")) };
         };
       };
     }
