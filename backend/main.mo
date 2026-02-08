@@ -163,7 +163,7 @@ persistent actor CherryTycoon {
       };
       currentSeason = #Spring;
       seasonNumber = 1;
-      lastActive = Time.now();
+      lastActive = Int.abs(Time.now());
     };
 
     playerFarms.put(caller, newFarm);
@@ -207,6 +207,11 @@ persistent actor CherryTycoon {
             // Check if trees are planted
             if (parcel.plantedTrees == 0) {
               return #Err(#InvalidOperation("No trees planted on this parcel"));
+            };
+            
+            // Check if it's harvest season (Summer only for cherries)
+            if (farm.currentSeason != #Summer) {
+              return #Err(#SeasonalRestriction("Cherries can only be harvested in Summer"));
             };
             
             // Check if already harvested this season
@@ -345,7 +350,7 @@ persistent actor CherryTycoon {
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
         switch (indexOpt) {
-          case null { return #Err("Parcel not found") };
+          case null { return #Err(#NotFound("Parcel not found")) };
           case (?index) {
             let parcel = farm.parcels[index];
             
@@ -405,7 +410,7 @@ persistent actor CherryTycoon {
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
         switch (indexOpt) {
-          case null { return #Err("Parcel not found") };
+          case null { return #Err(#NotFound("Parcel not found")) };
           case (?index) {
             let parcel = farm.parcels[index];
             
@@ -884,7 +889,7 @@ persistent actor CherryTycoon {
             playerFarms.put(caller, updatedFarm);
             #Ok("Organic conversion started. Certification will be granted after 2 seasons.")
           };
-          case (?_, null) { return #Err("Parcel not found") };
+          case (?_, null) { return #Err(#NotFound("Parcel not found")) };
         };
       };
     }

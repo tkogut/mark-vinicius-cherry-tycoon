@@ -1,7 +1,7 @@
 # MASTER PLAN: Mark Vinicius Cherry Tycoon [COORDINATOR]
 
-> **Current Status**: **Active: Phase 2 MVP Development**
-> **Current Focus**: Internet Identity & Dashboard Integration.
+> **Current Status**: **CRITICAL: Phase 2.5 - Integration Verification**
+> **Current Focus**: Debugging core farming loop. All Phase 3 work paused.
 > **Last Updated**: 2026-02-08
 
 ## High-Level Roadmap
@@ -14,20 +14,26 @@
 - [x] **Economy**: `buyParcel`, `sellCherries` implemented.
 - [x] **Persistence**: Stable storage verified.
 
-### Phase 2: MVP Development (Active)
+### Phase 2.5: Integration Verification (ACTIVE - CRITICAL)
+- [ ] **Backend Verification**: Test all functions via `dfx canister call`
+- [x] **Frontend Debugging**: Fixed JSON-RPC serialization error (Time.Time → Nat)
+- [ ] **End-to-End Testing**: User can plant, water, and harvest successfully
+- [ ] **Error Handling**: All errors properly surfaced to UI
+
+### Phase 2: MVP Development (Complete)
 - [x] **Auth Layer**: Implement `useAuth` hook with `@dfinity/auth-client`.
 - [x] **Canister Integration**: Connect UI to backend canister.
-- [/] **Core Dashboard Components**:
-    - [/] `Sidebar`: Navigation and User Level.
-    - [ ] `FarmGrid`: 3x3 grid display of `CherryParcel`s.
-    - [ ] `InventoryBar`: Cash and harvested fruit.
-- [ ] **Action Modals**:
-    - [ ] "Planted Trees" status.
-    - [ ] "Water / Fertilize" buttons with loading states.
-- [ ] **State Management**: Implement React Query for optimistic updates on farm state.
+- [x] **Core Dashboard Components**:
+    - [x] `Sidebar`: Navigation and User Level.
+    - [x] `FarmGrid`: 3x3 grid display of `CherryParcel`s.
+    - [x] `InventoryBar`: Cash and harvested fruit.
+- [x] **Action Modals**:
+    - [x] "Planted Trees" status.
+    - [x] "Water / Fertilize" buttons with loading states.
+    - [x] `State Management`: Implement React Query for optimistic updates on farm state.
 
-### Phase 3: Advanced Features (Week 4-6)
-- [ ] **Weather System**: Seasons, events.
+### Phase 3: Advanced Features (PAUSED)
+- [/] **Weather System**: Seasons, events.
 - [ ] **Market Dynamics**: Fluctuating prices.
 - [ ] **Sports Management**: Team creation, recruitment.
 - [ ] **Web3**: NFT integration.
@@ -36,9 +42,9 @@
 
 | Domain | Assigned To | Current Directive File | Status |
 | :--- | :--- | :--- | :--- |
-| **Backend** | Backend Agent | `directives/01_backend_backlog.md` | **IDLE** - All core logic and bug fixes completed. |
-| **Frontend** | Frontend Agent | `directives/02_frontend_backlog.md` | **ACTIVE** - Dashboard & Auth implementation done. Proceeding to backend integration. |
-| **QA** | QA Agent | `directives/03_qa_checklist.md` | **ACTIVE** - Found lookup bug. Verifying core systems. |
+| **Backend** | Backend Agent | `directives/01_backend_backlog.md` | **ACTIVE** - Verifying core functions work via CLI. |
+| **Frontend** | Frontend Agent | `directives/02_frontend_backlog.md` | **ACTIVE** - Debugging actor initialization and mutations. |
+| **QA** | QA Agent | `directives/03_qa_checklist.md` | **ACTIVE** - Running integration tests and documenting issues. |
 
 ## Inter-Agent Communication
 - **Coordinator**: Monitor this file. Update roadmap. Assign tasks to domain backlogs.

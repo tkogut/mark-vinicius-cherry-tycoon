@@ -5,7 +5,7 @@ import { _SERVICE } from "../declarations/backend.did";
 const canisterId = import.meta.env.VITE_BACKEND_CANISTER_ID;
 
 export const createBackendActor = async (identity?: Identity) => {
-    const host = import.meta.env.DEV ? "http://127.0.0.1:4943" : "https://ic0.app";
+    const host = import.meta.env.DEV ? "http://127.0.0.1:8000" : "https://ic0.app";
 
     const agent = new HttpAgent({
         host,

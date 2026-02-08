@@ -10,9 +10,10 @@ interface FarmGridProps {
     onAction: (action: 'plant' | 'water' | 'harvest', parcelId: string) => void;
     onBuyParcel: () => void;
     loading?: boolean;
+    currentSeason?: any; // Season type from backend
 }
 
-export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParcel, loading }) => {
+export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParcel, loading, currentSeason }) => {
     if (loading) {
         return (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-pulse">
@@ -47,6 +48,7 @@ export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParc
                         key={parcel.id}
                         parcel={parcel}
                         onAction={onAction}
+                        currentSeason={currentSeason}
                     />
                 ))}
 

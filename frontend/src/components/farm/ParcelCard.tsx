@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CherryParcel } from '@/declarations/backend.did';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,9 @@ import {
     Droplets,
     Leaf,
     Shovel,
-    AlertCircle
+    AlertCircle,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -17,21 +19,48 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ParcelDetailsPanel } from './ParcelDetailsPanel';
 
 interface ParcelCardProps {
     parcel: CherryParcel;
     onAction: (action: 'plant' | 'water' | 'harvest', parcelId: string) => void;
+    currentSeason?: any; // Season type from backend
 }
 
-export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction }) => {
+export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason }) => {
+    const [showDetails, setShowDetails] = useState(false);
     const isPlanted = Number(parcel.plantedTrees) > 0;
-    // TODO: Add actual growth calculation based on age/season
-    const isReadyToHarvest = isPlanted && Number(parcel.treeAge) > 5;
+    // Harvest allowed from year 5 onwards (> 4 seasons)
+    const isReadyToHarvest = isPlanted && Number(parcel.treeAge) > 4;
+
+    // Determine specific season
+    const isSpring = currentSeason && 'Spring' in currentSeason;
+    const isSummer = currentSeason && 'Summer' in currentSeason;
+    const isAutumn = currentSeason && 'Autumn' in currentSeason;
+    const isWinter = currentSeason && 'Winter' in currentSeason;
+
+    const canHarvest = isReadyToHarvest && isSummer;
+    const isDormant = isAutumn || isWinter;
+
+    const getStatusLabel = () => {
+        if (!isPlanted) return "EMPTY";
+        if (canHarvest) return "HARVEST";
+        if (isDormant) return "DORMANT"; // Or "AFTER SEASON"
+        return "GROWING";
+    };
 
     const getStatusColor = () => {
         if (!isPlanted) return "border-slate-700 bg-slate-900/50";
-        if (isReadyToHarvest) return "border-rose-500/50 bg-rose-950/10 shadow-[0_0_15px_rgba(244,63,94,0.1)]";
+        if (canHarvest) return "border-rose-500/50 bg-rose-950/10 shadow-[0_0_15px_rgba(244,63,94,0.1)]";
+        if (isDormant) return "border-blue-500/30 bg-blue-950/10 opacity-75";
         return "border-emerald-500/30 bg-emerald-950/10";
+    };
+
+    const getBadgeVariant = () => {
+        if (!isPlanted) return "bg-slate-700/50 text-slate-400";
+        if (canHarvest) return "bg-rose-500 text-white animate-pulse";
+        if (isDormant) return "bg-blue-900/50 text-blue-300 border-blue-800";
+        return "bg-emerald-500/20 text-emerald-400";
     };
 
     const getSoilIcon = () => {
@@ -76,11 +105,9 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction }) => {
 
                     <Badge variant="outline" className={cn(
                         "text-[10px] border-none",
-                        isReadyToHarvest ? "bg-rose-500 text-white animate-pulse" :
-                            isPlanted ? "bg-emerald-500/20 text-emerald-400" :
-                                "bg-slate-700/50 text-slate-400"
+                        getBadgeVariant()
                     )}>
-                        {isReadyToHarvest ? "HARVEST" : isPlanted ? "GROWING" : "EMPTY"}
+                        {getStatusLabel()}
                     </Badge>
                 </div>
             </CardHeader>
@@ -147,17 +174,62 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction }) => {
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className={cn("h-8 px-0", isReadyToHarvest ? "bg-rose-600 hover:bg-rose-700 text-white" : "opacity-50")}
-                                    disabled={!isReadyToHarvest}
+                                    className={cn("h-8 px-0", canHarvest ? "bg-rose-600 hover:bg-rose-700 text-white" : "opacity-50")}
+                                    disabled={!canHarvest}
                                     onClick={() => onAction('harvest', parcel.id)}
                                 >
                                     <Leaf className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Harvest</TooltipContent>
+                            <TooltipContent>
+                                {!isReadyToHarvest ? (
+                                    "Trees not ready to harvest"
+                                ) : canHarvest ? (
+                                    "Harvest Cherries"
+                                ) : (
+                                    <div className="text-center">
+                                        <div>
+                                            {isDormant ? "❄️ Season Over (Dormant)" : "🌱 Growing Season"}
+                                        </div>
+                                        <div className="text-xs text-slate-400 mt-1">
+                                            Characters harvest in Summer
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 mt-0.5">
+                                            Current: {currentSeason && Object.keys(currentSeason)[0]}
+                                        </div>
+                                    </div>
+                                )}
+                            </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
                 </div>
+
+                {/* Details Toggle Button */}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="w-full mt-2 h-7 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                >
+                    {showDetails ? (
+                        <>
+                            <ChevronUp className="h-3 w-3 mr-1" />
+                            Hide Details
+                        </>
+                    ) : (
+                        <>
+                            <ChevronDown className="h-3 w-3 mr-1" />
+                            Show Details
+                        </>
+                    )}
+                </Button>
+
+                {/* Expandable Details Panel */}
+                {showDetails && (
+                    <div className="mt-3 pt-3 border-t border-slate-800/50">
+                        <ParcelDetailsPanel parcel={parcel} />
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

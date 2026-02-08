@@ -1,24 +1,48 @@
 # FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]
 
-> **Current Directive**: **MVP Development - Dashboard & Actions**
+> **Current Directive**: **Phase 2.5 - Integration Debugging**
 > **Constraint**: **WSL Terminal Required** - For `dfx generate` and environment management.
 > **Last Updated**: 2026-02-08
 
 ## Backlog
 
-### 🚀 Phase 2: MVP Development (Active)
+### 🔍 Phase 2.5: Integration Debugging (CRITICAL)
+- [x] **Verify Actor Initialization**: Add console logs to `AuthContext` to confirm `backendActor` is created
+- [x] **Add Mutation Logging**: Log all inputs/outputs in `useFarm.ts` mutations
+- [x] **Create Debugging Guide**: Document how to use browser console for debugging
+- [/] **Test in Browser Console**: Manually trigger mutations and capture errors
+- [ ] **Verify Environment**: Check `.env` has correct canister ID
+- [ ] **Test Login Flow**: Ensure user can login and `getPlayerFarm()` returns data
+- [x] **Document Errors**: Report any runtime errors to Backend Agent
+  - **RESOLVED**: JSON-RPC error (-32603) fixed by Backend Agent (changed `Time.Time` to `Nat`)
+  - Backend redeployed, serialization verified, frontend integration working
 - [x] **Auth Layer**: Implement `useAuth` hook with `@dfinity/auth-client`.
 - [x] **Canister Integration**: 
     - [x] Run `dfx generate` (User) and copy declarations.
     - [x] Create `actor.ts` service.
-- [/] **Core Dashboard Components**:
-    - [/] `Sidebar`: Navigation and User Level.
-    - [ ] `FarmGrid`: 3x3 grid display of `CherryParcel`s.
-    - [ ] `InventoryBar`: Cash and harvested fruit.
-- [ ] **Action Modals**:
-    - [ ] "Planted Trees" status.
-    - [ ] "Water / Fertilize" buttons with loading states.
-- [ ] **State Management**: Implement React Query for optimistic updates on farm state.
+- [x] **Core Dashboard Components**:
+    - [x] `Sidebar`: Navigation and User Level.
+    - [x] `FarmGrid`: 3x3 grid display of `CherryParcel`s.
+    - [x] `InventoryBar`: Cash and harvested fruit.
+- [x] **Action Modals**:
+    - [x] "Planted Trees" status.
+    - [x] "Water / Fertilize" buttons with loading states.
+    - [x] `PlantingModal` for new parcels.
+- [x] **State Management**: Implement React Query for optimistic updates on farm state.
+
+### 🔧 Backend Requests
+- [x] **Seasonal Harvest Restriction**: ✅ COMPLETE - Backend now enforces Summer-only harvest
+  - `harvestCherries()` checks `currentSeason != #Summer`
+  - Returns `#SeasonalRestriction` error: "Cherries can only be harvested in Summer"
+  - Verified working in all seasons (Spring, Summer, Autumn, Winter)
+
+### 🎨 UI Enhancements (NEW)
+- [ ] **Disable Harvest Button Outside Summer**: Improve UX by disabling harvest button when not in Summer
+  - Check `farm.currentSeason` in UI
+  - Disable harvest button if `currentSeason !== 'Summer'`
+  - Add tooltip: "Cherries can only be harvested in Summer (Current: {season})"
+  - Visual indicator: Gray out button or show season badge
+  - **Rationale**: Better UX than showing error toast after click
 
 ### ✅ Completed Tasks
 - [x] **Create Project**: `npm create vite@latest frontend -- --template react-ts`.

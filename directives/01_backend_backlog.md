@@ -1,16 +1,25 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Stable & Verified** (Core logic and bug fixes complete)
+> **Current Directive**: **Phase 2.5 - Core Function Verification**
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` commands in WSL terminal manually.
 > **Last Updated**: 2026-02-08
 
 ## Backlog
 
-### Urgent (Priority 1)
+### 🔍 Phase 2.5: Integration Verification (CRITICAL)
+- [ ] **Test `getPlayerFarm()`**: Verify it returns valid farm state for new and existing players
+- [ ] **Test `plantTrees()`**: Call via `dfx canister call` with valid parcel ID
+- [ ] **Test `waterParcel()`**: Verify water level increases
+- [ ] **Test `harvestCherries()`**: Verify cherries are added to inventory
+- [ ] **Test `sellCherries()`**: Verify cash increases
+- [ ] **Add Debug Logging**: Add console output to each function for easier debugging
+- [ ] **Document Parcel IDs**: Ensure parcel IDs are stable and documented for frontend use
 - [x] **Verify `assignParcelToPlayer`**: Implemented in `main.mo` (L834). `playerId` is correctly handled as `Text`. Verified via WSL tests.
 - [x] **Verify Type Errors**: Verified consistency in `main.mo` (all use `#Ok`/`#Err`).
 
-### 🐞 Bug Fixes (Found by QA)
+### 🐞 Bug Fixes (Found by QA & Frontend)
+- [x] **[FIXED] Seasonal Harvest Restriction**: Added Summer-only harvest check to `harvestCherries()`. Returns `#SeasonalRestriction` error for Spring/Autumn/Winter. Verified via `test_seasonal_harvest.sh`.
+- [x] **[FIXED] JSON-RPC Serialization Error**: Changed `PlayerFarm.lastActive` from `Time.Time` (Int) to `Nat` to fix BigInt serialization issues in JavaScript. Verified via `debug_serialization.sh`.
 - [x] **[FIXED] Parcel ID Mismatch in Operations**: Refactored logic to use `findParcelIndex` AND updated `e2e_backend.sh` script to use dynamic IDs (Fixes "Parcel not found" false positives).
 - [x] **[FIXED] Redundant Lookup Logic**: Unified all lookups to use the `findParcelIndex` helper.
 - [x] **[FIXED] `sellCherries` logic**: Now uses average quality across all parcels.
@@ -26,8 +35,8 @@
 
 ### Phase 2: Integration & Frontend Support (Current)
 - [x] **Structured Error Handling**: Refactor `main.mo` to return `Result<T, GameError>` instead of `Result<T, Text>` for better UI error mapping. (Complete)
-- [/] **Market Data API**: Implement `getMarketPrices()` query to provide the dashboard with current price levels.
-- [ ] **Farm Overview Helper**: Implement a summary query that returns condensed data for the `Sidebar` and `InventoryBar`.
+- [x] **Market Data API**: Implement `getMarketPrices()` query to provide the dashboard with current price levels.
+- [x] **Farm Overview Helper**: Implement a summary query that returns condensed data for the `Sidebar` and `InventoryBar`.
 
 ## Agent Instructions
 1.  Read `main.mo` and identify implementation gaps.

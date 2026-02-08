@@ -53,9 +53,12 @@ At the start of **every response**, you must check the `directives/` folder to s
 ### ⌨️ Slash Commands
 Support the following short-hands by reading their definitions in `.agent/workflows/`:
 - `/check-logs`: Analyze your role's log file.
+- `/check-backlog`: Read your role-specific backlog and report tasks.
 - `/status`: Summarize progress and update backlog.
 - `/sync`: Re-sync with the Master Plan and other agents.
 - `/start`: Pick a new task and begin implementation.
+- `/continue`: Resume current task or start next one.
+- `/test-cycle`: Execute tests relevant to the active phase.
 
 ## Agent Instructions
 1.  Read `main.mo` and identify implementation gaps.

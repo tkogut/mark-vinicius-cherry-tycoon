@@ -153,7 +153,7 @@ module {
     // Game state
     currentSeason: Season;
     seasonNumber: Nat;
-    lastActive: Time.Time;
+    lastActive: Nat;  // Timestamp in nanoseconds (converted from Time.Time)
   };
 
   // ============================================================================
@@ -283,5 +283,17 @@ module {
     #InvalidOperation: Text;
     #SeasonalRestriction: Text;
     #AlreadyExists: Text;
+  };
+  public type FarmOverview = {
+    playerId: Text;
+    playerName: Text;
+    cash: Nat;
+    level: Nat;
+    experience: Nat;
+    parcelCount: Nat;
+    totalTrees: Nat;
+    inventory: Inventory;
+    currentSeason: Season;
+    seasonNumber: Nat;
   };
 }

@@ -27,7 +27,13 @@ describe('Backend Integration', () => {
         if ('Ok' in result) {
             expect(result.Ok).toBeDefined();
         } else {
-            expect(result.Err).toMatch(/already initialized/);
+            // result.Err is now GameError variant
+            if ('AlreadyExists' in result.Err) {
+                expect(result.Err.AlreadyExists).toMatch(/already initialized/i);
+            } else {
+                // Fail on unexpected errors
+                throw new Error('Unexpected error during initialization: ' + JSON.stringify(result.Err));
+            }
         }
     });
 

@@ -16,16 +16,16 @@ check_ok() {
         exit 1
     fi
 }
+# 0. Clean Slate
+echo "Test 0: Reset Player State (Debug)"
+dfx canister call backend debugResetPlayer '()'
 
 # 1. Initialize Player
 echo "Test 1: Initialize Player"
-# Use a random player ID to ensure fresh state if possible, or just ignore "already initialized"
-RESP=$(dfx canister call backend initializePlayer '("player_e2e", "E2E Farmer")')
-if [[ "$RESP" == *"AlreadyExists"* ]]; then
-    echo "⚠️  Player already initialized, continuing with existing state."
-else
-    check_ok "$RESP" "Initialize Player"
-fi
+# Use a static ID since we are resetting state anyway
+PLAYER_ID="player_e2e"
+RESP=$(dfx canister call backend initializePlayer "(\"$PLAYER_ID\", \"E2E Farmer\")")
+check_ok "$RESP" "Initialize Player"
 
 # 2. Get Player Farm to find starter parcel ID
 echo "Test 2: Retrieving Starter Parcel ID"

@@ -1,73 +1,113 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User } from "lucide-react"
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/context/AuthContext"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { FarmGrid } from "@/components/farm/FarmGrid"
-import { CherryParcel } from "@/declarations/backend.did"
+import { PlantingModal } from "@/components/farm/modals/PlantingModal"
+import { Toaster } from "@/components/ui/toaster"
+import { InventoryBar } from "@/components/layout/InventoryBar"
+import { useFarm } from "@/hooks/useFarm"
+import { SeasonDisplay } from "@/components/season/SeasonDisplay"
+import { AdvanceSeasonButton } from "@/components/season/AdvanceSeasonButton"
 
 function App() {
-    const { backendActor, isAuthenticated } = useAuth();
-    const [loading, setLoading] = useState(false);
+    const { isAuthenticated } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [parcels, setParcels] = useState<CherryParcel[]>([]);
-    const [stats, setStats] = useState({
-        totalCherries: 0,
-        activeParcels: 0,
+    const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null);
+    const [plantingModalOpen, setPlantingModalOpen] = useState(false);
+
+    const { farm, isLoading, refetch, plant, water, harvest, buyParcel, advanceSeason, sellCherries } = useFarm();
+
+    // Derived state
+    const stats = {
+        totalCherries: farm ? Number(farm.inventory.cherries) : 0,
+        activeParcels: farm ? farm.parcels.length : 0,
         productionRate: 0,
-        level: 1,
-        xp: 0,
-        nextLevelXp: 1000,
-    });
+        level: farm ? Number(farm.level) : 1,
+        xp: farm ? Number(farm.experience) : 0,
+        nextLevelXp: farm ? Number(farm.level) * 1000 : 1000,
+        cash: farm ? farm.cash : 0n,
+        currentSeason: farm ? farm.currentSeason : { Spring: null },
+        seasonNumber: farm ? Number(farm.seasonNumber) : 1,
+    };
 
-    const fetchFarmState = useCallback(async () => {
-        if (!backendActor) return;
-        setLoading(true);
-        try {
-            const response = await backendActor.getPlayerFarm();
-            if ('Ok' in response) {
-                const farm = response.Ok;
-                setParcels(farm.parcels);
-                setStats({
-                    totalCherries: Number(farm.inventory.cherries),
-                    activeParcels: farm.parcels.length,
-                    productionRate: 0, // Calculate or fetch separately if needed
-                    level: Number(farm.level),
-                    xp: Number(farm.experience),
-                    nextLevelXp: Number(farm.level) * 1000, // Placeholder calculation
-                });
-            }
-        } catch (error) {
-            console.error("Failed to fetch farm state:", error);
-        } finally {
-            setLoading(false);
+    const parcels = farm ? farm.parcels : [];
+
+    const handleParcelAction = (action: 'plant' | 'water' | 'harvest', parcelId: string) => {
+        if (action === 'plant') {
+            setSelectedParcelId(parcelId);
+            setPlantingModalOpen(true);
+            return;
         }
-    }, [backendActor]);
 
-    const handleParcelAction = async (action: 'plant' | 'water' | 'harvest', parcelId: string) => {
-        console.log(`Action: ${action} on parcel ${parcelId}`);
-        // TODO: Implement backend calls for actions
-        // if (action === 'plant') await backendActor.plantTrees(parcelId, 50n);
-        // await fetchFarmState();
+        if (action === 'water') {
+            water.mutate(parcelId);
+        } else if (action === 'harvest') {
+            harvest.mutate(parcelId);
+        }
+    };
+
+    const handlePlantConfirm = async (amount: number) => {
+        if (selectedParcelId) {
+            await plant.mutateAsync({ parcelId: selectedParcelId, amount });
+        }
     };
 
     const handleBuyParcel = async () => {
         console.log("Buying new parcel...");
-        // TODO: Implement backend call
-        // await backendActor.buyParcel("PL-MX", 100n);
-        // await fetchFarmState();
+        // TODO: Get parcel ID and price from UI/modal
+        // For now, using placeholder values
+        const parcelId = `parcel_new_${Date.now()}`;
+        const price = 10000; // Default parcel price
+
+        try {
+            await buyParcel.mutateAsync({ parcelId, price });
+        } catch (error) {
+            console.error("Failed to buy parcel:", error);
+        }
     }
 
-    useEffect(() => {
-        if (isAuthenticated) {
-            fetchFarmState();
+    const handleSellCherries = async () => {
+        console.log("Selling cherries...");
+        if (!farm || stats.totalCherries === 0) {
+            return;
         }
-    }, [isAuthenticated, fetchFarmState]);
+
+        try {
+            // Sell all cherries at retail price
+            await sellCherries.mutateAsync({
+                amount: stats.totalCherries,
+                marketType: "retail"
+            });
+        } catch (error) {
+            console.error("Failed to sell cherries:", error);
+        }
+    }
+
+    // Calculate max trees based on cash (50 per tree)
+    const maxAffordableTrees = Number(stats.cash / 50n);
+    const maxPlantable = Math.max(0, Math.min(200, maxAffordableTrees));
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex relative">
+            <Toaster />
+            <PlantingModal
+                isOpen={plantingModalOpen}
+                onClose={() => setPlantingModalOpen(false)}
+                onConfirm={handlePlantConfirm}
+                maxTrees={maxPlantable}
+            />
+
+            {/* Mobile Inventory Bar (Fixed Bottom) */}
+            <InventoryBar
+                cash={stats.cash}
+                cherries={stats.totalCherries}
+                className="md:hidden"
+            />
+
             <Sidebar
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
@@ -76,7 +116,7 @@ function App() {
                 nextLevelXp={stats.nextLevelXp}
             />
 
-            <div className="flex-1 flex flex-col md:ml-64 lg:ml-72 min-h-screen transition-all duration-300 bg-slate-950">
+            <div className="flex-1 flex flex-col md:ml-64 lg:ml-72 min-h-screen transition-all duration-300 bg-slate-950 pb-20 md:pb-0">
 
                 {/* Mobile/Tablet Header */}
                 <header className="sticky top-0 z-30 w-full border-b border-slate-800 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 md:hidden h-16 flex items-center justify-between px-4">
@@ -98,14 +138,48 @@ function App() {
                         </div>
 
                         <div className="flex items-center gap-3 w-full md:w-auto">
+                            {/* Desktop Inventory Bar */}
+                            <InventoryBar
+                                cash={stats.cash}
+                                cherries={stats.totalCherries}
+                                className="hidden md:flex"
+                            />
+
+                            {/* Season Display */}
+                            <SeasonDisplay
+                                currentSeason={stats.currentSeason}
+                                seasonNumber={stats.seasonNumber}
+                                className="hidden md:flex"
+                            />
+
+                            {/* Advance Season Button */}
+                            <AdvanceSeasonButton
+                                onAdvance={async () => { await advanceSeason.mutateAsync(); }}
+                                isLoading={advanceSeason.isPending}
+                                disabled={!isAuthenticated}
+                                className="hidden md:flex"
+                            />
+
+                            {/* Sell Cherries Button */}
+                            <Button
+                                onClick={handleSellCherries}
+                                disabled={!isAuthenticated || stats.totalCherries === 0 || sellCherries.isPending}
+                                variant="default"
+                                size="sm"
+                                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white hidden md:flex"
+                            >
+                                <Cherry className="h-4 w-4" />
+                                Sell Cherries ({stats.totalCherries})
+                            </Button>
+
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={fetchFarmState}
-                                disabled={loading || !isAuthenticated}
+                                onClick={() => refetch()}
+                                disabled={isLoading || !isAuthenticated}
                                 className="gap-2 ml-auto text-slate-900 md:text-border md:bg-transparent md:text-slate-100 hover:bg-slate-800"
                             >
-                                <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                                 Refresh
                             </Button>
                             <div className="hidden md:block">
@@ -122,7 +196,7 @@ function App() {
                                 <Cherry className="h-4 w-4 text-rose-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-slate-100">{loading ? "..." : stats.totalCherries.toLocaleString()}</div>
+                                <div className="text-2xl font-bold text-slate-100">{isLoading ? "..." : stats.totalCherries.toLocaleString()}</div>
                                 <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
                                     +20.1% <span className="text-slate-500">from last hour</span>
                                 </p>
@@ -135,7 +209,7 @@ function App() {
                                 <LayoutDashboard className="h-4 w-4 text-rose-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-slate-100">{loading ? "..." : stats.activeParcels}</div>
+                                <div className="text-2xl font-bold text-slate-100">{isLoading ? "..." : stats.activeParcels}</div>
                                 <p className="text-xs text-slate-500 mt-1">9 parcels max capacity</p>
                             </CardContent>
                         </Card>
@@ -146,7 +220,7 @@ function App() {
                                 <Settings className="h-4 w-4 text-rose-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-slate-100">{loading ? "..." : stats.productionRate}/hr</div>
+                                <div className="text-2xl font-bold text-slate-100">{isLoading ? "..." : stats.productionRate}/hr</div>
                                 <p className="text-xs text-emerald-400 mt-1">+5% <span className="text-slate-500">efficiency</span></p>
                             </CardContent>
                         </Card>
@@ -157,7 +231,8 @@ function App() {
                             parcels={parcels}
                             onAction={handleParcelAction}
                             onBuyParcel={handleBuyParcel}
-                            loading={loading}
+                            loading={isLoading}
+                            currentSeason={stats.currentSeason}
                         />
                     ) : (
                         <section className="mt-12">

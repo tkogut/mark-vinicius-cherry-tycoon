@@ -16,7 +16,10 @@
 
 ### Test Scripts needed
 - [x] Create `execution/tests/e2e_backend.sh` using `dfx canister call`.
+- [x] Create `execution/tests/e2e_backend.sh` using `dfx canister call`.
 - [x] Create `tests/integration_tests.ts` using `vitest` + `@dfinity/agent`.
+    - [x] Fixed `GameError` type mismatch in declarations and test suite.
+- [x] Verify `useAuth.test.tsx` React hook tests (6/6 passing).
 
 ## Agent Instructions
 1.  Monitor Backend Agent progress.
