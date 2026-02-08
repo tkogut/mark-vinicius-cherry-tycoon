@@ -1,13 +1,18 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Cherry, User, Settings, RefreshCcw } from "lucide-react"
+import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User } from "lucide-react"
 import React, { useState, useEffect, useCallback } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/context/AuthContext"
+import { Sidebar } from "@/components/layout/Sidebar"
+import { FarmGrid } from "@/components/farm/FarmGrid"
+import { CherryParcel } from "@/declarations/backend.did"
 
 function App() {
     const { backendActor, isAuthenticated } = useAuth();
     const [loading, setLoading] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [parcels, setParcels] = useState<CherryParcel[]>([]);
     const [stats, setStats] = useState({
         totalCherries: 0,
         activeParcels: 0,
@@ -24,6 +29,7 @@ function App() {
             const response = await backendActor.getPlayerFarm();
             if ('Ok' in response) {
                 const farm = response.Ok;
+                setParcels(farm.parcels);
                 setStats({
                     totalCherries: Number(farm.inventory.cherries),
                     activeParcels: farm.parcels.length,
@@ -40,6 +46,20 @@ function App() {
         }
     }, [backendActor]);
 
+    const handleParcelAction = async (action: 'plant' | 'water' | 'harvest', parcelId: string) => {
+        console.log(`Action: ${action} on parcel ${parcelId}`);
+        // TODO: Implement backend calls for actions
+        // if (action === 'plant') await backendActor.plantTrees(parcelId, 50n);
+        // await fetchFarmState();
+    };
+
+    const handleBuyParcel = async () => {
+        console.log("Buying new parcel...");
+        // TODO: Implement backend call
+        // await backendActor.buyParcel("PL-MX", 100n);
+        // await fetchFarmState();
+    }
+
     useEffect(() => {
         if (isAuthenticated) {
             fetchFarmState();
@@ -47,122 +67,114 @@ function App() {
     }, [isAuthenticated, fetchFarmState]);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-            <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-                <div className="container flex h-16 items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Cherry className="h-8 w-8 text-red-600 animate-pulse" />
-                        <span className="text-xl font-bold tracking-tight">Cherry Tycoon</span>
-                    </div>
-                    <nav className="flex items-center gap-6">
-                        <Button variant="ghost" size="sm" className="gap-2">
-                            <LayoutDashboard className="h-4 w-4" />
-                            Dashboard
-                        </Button>
-                        <Button variant="ghost" size="sm" className="gap-2">
-                            <User className="h-4 w-4" />
-                            Profile
-                        </Button>
-                        <LoginButton />
-                    </nav>
-                </div>
-            </header>
+        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex relative">
+            <Sidebar
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                level={stats.level}
+                xp={stats.xp}
+                nextLevelXp={stats.nextLevelXp}
+            />
 
-            <main className="container py-8">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-3xl font-bold tracking-tight">Farm Overview</h2>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchFarmState}
-                        disabled={loading || !isAuthenticated}
-                        className="gap-2"
-                    >
-                        <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
+            <div className="flex-1 flex flex-col md:ml-64 lg:ml-72 min-h-screen transition-all duration-300 bg-slate-950">
+
+                {/* Mobile/Tablet Header */}
+                <header className="sticky top-0 z-30 w-full border-b border-slate-800 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 md:hidden h-16 flex items-center justify-between px-4">
+                    <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+                        <Menu className="h-6 w-6 text-slate-400" />
                     </Button>
-                </div>
+                    <div className="flex items-center gap-2">
+                        <Cherry className="h-6 w-6 text-rose-600 animate-pulse" />
+                        <span className="font-bold text-lg tracking-tight text-slate-100">Cherry Tycoon</span>
+                    </div>
+                    <LoginButton />
+                </header>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="hover:shadow-md transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Cherries</CardTitle>
-                            <Cherry className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{loading ? "..." : stats.totalCherries.toLocaleString()}</div>
-                            <p className="text-xs text-muted-foreground">+20.1% from last hour</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-md transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Active Parcels</CardTitle>
-                            <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{loading ? "..." : stats.activeParcels}</div>
-                            <p className="text-xs text-muted-foreground">3 parcels available</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="hover:shadow-md transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Production Rate</CardTitle>
-                            <Settings className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{loading ? "..." : stats.productionRate}/hr</div>
-                            <p className="text-xs text-muted-foreground">+5% since upgrade</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-gradient-to-br from-red-500 to-rose-600 text-white border-none shadow-lg">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Level {stats.level} Farmer</CardTitle>
-                            <User className="h-4 w-4 text-red-100" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold tracking-tight">
-                                {stats.level >= 5 ? "Expert" : "Beginner"}
-                            </div>
-                            <div className="mt-2 h-1.5 w-full bg-red-200/30 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-white transition-all duration-500"
-                                    style={{ width: `${(stats.xp / stats.nextLevelXp) * 100}%` }}
-                                />
-                            </div>
-                            <p className="text-xs mt-1 text-red-50/80">
-                                {stats.nextLevelXp - stats.xp} XP to next level
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <section className="mt-12">
-                    {!isAuthenticated ? (
-                        <div className="h-64 rounded-xl border border-dashed flex flex-col items-center justify-center bg-white/50 space-y-4">
-                            <User className="h-12 w-12 text-slate-300" />
-                            <div className="text-center">
-                                <p className="text-slate-600 font-medium">Auth Required</p>
-                                <p className="text-sm text-slate-400">Please login with Internet Identity to see your farm.</p>
-                            </div>
-                            <LoginButton />
+                <main className="flex-1 p-4 md:p-8 lg:p-10 pb-20 md:pb-8 text-slate-100">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight text-white">Farm Overview</h1>
+                            <p className="text-slate-400 mt-1">Manage your parcels and production.</p>
                         </div>
+
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={fetchFarmState}
+                                disabled={loading || !isAuthenticated}
+                                className="gap-2 ml-auto text-slate-900 md:text-border md:bg-transparent md:text-slate-100 hover:bg-slate-800"
+                            >
+                                <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                Refresh
+                            </Button>
+                            <div className="hidden md:block">
+                                <LoginButton />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Stats Row */}
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+                        <Card className="bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-rose-500/30 transition-all">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-400">Total Cherries</CardTitle>
+                                <Cherry className="h-4 w-4 text-rose-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-slate-100">{loading ? "..." : stats.totalCherries.toLocaleString()}</div>
+                                <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                                    +20.1% <span className="text-slate-500">from last hour</span>
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-rose-500/30 transition-all">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-400">Active Parcels</CardTitle>
+                                <LayoutDashboard className="h-4 w-4 text-rose-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-slate-100">{loading ? "..." : stats.activeParcels}</div>
+                                <p className="text-xs text-slate-500 mt-1">9 parcels max capacity</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-rose-500/30 transition-all">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-slate-400">Production Rate</CardTitle>
+                                <Settings className="h-4 w-4 text-rose-500" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-slate-100">{loading ? "..." : stats.productionRate}/hr</div>
+                                <p className="text-xs text-emerald-400 mt-1">+5% <span className="text-slate-500">efficiency</span></p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {isAuthenticated ? (
+                        <FarmGrid
+                            parcels={parcels}
+                            onAction={handleParcelAction}
+                            onBuyParcel={handleBuyParcel}
+                            loading={loading}
+                        />
                     ) : (
-                        <div className="h-96 rounded-xl border border-dashed flex flex-col items-center justify-center bg-white/50 space-y-4">
-                            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
-                                <Cherry className="h-6 w-6 text-slate-400" />
+                        <section className="mt-12">
+                            <div className="h-64 rounded-xl border-2 border-dashed border-slate-700/50 flex flex-col items-center justify-center bg-slate-800/30 space-y-4">
+                                <div className="h-16 w-16 bg-slate-800 rounded-full flex items-center justify-center border border-slate-700">
+                                    <User className="h-8 w-8 text-slate-400" />
+                                </div>
+                                <div className="text-center max-w-sm px-4">
+                                    <h3 className="text-lg font-semibold text-slate-200">Authentication Required</h3>
+                                    <p className="text-sm text-slate-400 mt-1">Connect with Internet Identity to access your farm and start growing.</p>
+                                </div>
+                                <LoginButton />
                             </div>
-                            <div className="text-center">
-                                <p className="text-slate-600 font-medium">No parcels planted yet</p>
-                                <p className="text-sm text-slate-400">Select a parcel from the map to start your tycoon!</p>
-                            </div>
-                            <Button size="sm">Explore Map</Button>
-                        </div>
+                        </section>
                     )}
-                </section>
-            </main>
+                </main>
+            </div>
         </div>
     )
 }

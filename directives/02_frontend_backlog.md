@@ -8,11 +8,11 @@
 
 ### 🚀 Phase 2: MVP Development (Active)
 - [x] **Auth Layer**: Implement `useAuth` hook with `@dfinity/auth-client`.
-- [/] **Canister Integration**: 
+- [x] **Canister Integration**: 
     - [x] Run `dfx generate` (User) and copy declarations.
-    - [/] Create `actor.ts` service.
-- [ ] **Core Dashboard Components**:
-    - [ ] `Sidebar`: Navigation and User Level.
+    - [x] Create `actor.ts` service.
+- [/] **Core Dashboard Components**:
+    - [/] `Sidebar`: Navigation and User Level.
     - [ ] `FarmGrid`: 3x3 grid display of `CherryParcel`s.
     - [ ] `InventoryBar`: Cash and harvested fruit.
 - [ ] **Action Modals**:

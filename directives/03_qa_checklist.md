@@ -16,7 +16,7 @@
 
 ### Test Scripts needed
 - [x] Create `execution/tests/e2e_backend.sh` using `dfx canister call`.
-- [ ] Create `tests/integration_tests.ts` using `vitest` + `@dfinity/agent` (later).
+- [x] Create `tests/integration_tests.ts` using `vitest` + `@dfinity/agent`.
 
 ## Agent Instructions
 1.  Monitor Backend Agent progress.

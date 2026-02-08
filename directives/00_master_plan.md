@@ -14,13 +14,11 @@
 - [x] **Economy**: `buyParcel`, `sellCherries` implemented.
 - [x] **Persistence**: Stable storage verified.
 
-### 🚀 Phase 2: MVP Development (Active)
-- [ ] **Auth Layer**: Implement `useAuth` hook with `@dfinity/auth-client`.
-- [ ] **Canister Integration**:
-    - [ ] Run `dfx generate` (User) and copy declarations.
-    - [ ] Create `actor.ts` service.
-- [ ] **Core Dashboard Components**:
-    - [ ] `Sidebar`: Navigation and User Level.
+### Phase 2: MVP Development (Active)
+- [x] **Auth Layer**: Implement `useAuth` hook with `@dfinity/auth-client`.
+- [x] **Canister Integration**: Connect UI to backend canister.
+- [/] **Core Dashboard Components**:
+    - [/] `Sidebar`: Navigation and User Level.
     - [ ] `FarmGrid`: 3x3 grid display of `CherryParcel`s.
     - [ ] `InventoryBar`: Cash and harvested fruit.
 - [ ] **Action Modals**:

@@ -25,8 +25,8 @@
 - [x] **Implement Stable Storage**: Use `preupgrade` and `postupgrade` hooks to persist `playerMap`, `parcelMap`. Verified.
 
 ### Phase 2: Integration & Frontend Support (Current)
-- [/] **Structured Error Handling**: Refactor `main.mo` to return `Result<T, GameError>` instead of `Result<T, Text>` for better UI error mapping.
-- [ ] **Market Data API**: Implement `getMarketPrices()` query to provide the dashboard with current price levels.
+- [x] **Structured Error Handling**: Refactor `main.mo` to return `Result<T, GameError>` instead of `Result<T, Text>` for better UI error mapping. (Complete)
+- [/] **Market Data API**: Implement `getMarketPrices()` query to provide the dashboard with current price levels.
 - [ ] **Farm Overview Helper**: Implement a summary query that returns condensed data for the `Sidebar` and `InventoryBar`.
 
 ## Agent Instructions
