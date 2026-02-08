@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 9,
+  "summary": "Draft Version 3 reviewed positively; Web3 & ICP Architecture section now includes all 5 canisters with data models, responsibilities, and inter-canister communication flows. Phase 1 is considered largely complete, but user requested an expansion/confirmation pass on the \"Competition & Market Dynamics\" section (shared market pricing effects, AI competitor personalities, ranking metrics, auction-based wholesale contracts, Cherry Festival event mechanics) before proceeding to Phase 2 canister schema implementation.",
+  "architectural_notes": [
+    "Platform: browser-based, mobile-first.",
+    "Genre: simulation/tycoon combining farming and sports management.",
+    "Includes web3 components (details TBD from attached plan).",
+    "Adopt Option B phased delivery: Phase 1 (GDD as technical spec) → Phase 2 (canister schemas/architecture) → Phase 3 (incremental mechanics implementation).",
+    "Backend target architecture: 5 Motoko canisters (world, farms, clubs, market, ranking) with inter-canister communication (details to be designed in Phase 2).",
+    "Phase 1 GDD must include Section 9 (Web3 & ICP) defining the 5-canister architecture (world, farms, clubs, market, ranking) with responsibilities and data models (user marked as CRITICAL).",
+    "Organic/eco farming conversion parameters for GDD: 2-season transition; certification cost 1300–2100 PLN/year; +30–50% price premium; −15–25% yield impact.",
+    "GDD Web3 & ICP Architecture section now defines all 5 canisters (world, farms, clubs, market, ranking) with data models, responsibilities, and inter-canister communication flows (as of Draft Version 3)."
+  ],
+  "known_issues": [
+    "Referenced \"attached plan\" not provided in conversation context.",
+    "Caffeine_Master_Prompt.md (source of required concrete formulas/specs) is referenced but not available in the current conversation context."
+  ],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-create-a-mobile-first-game-design-document-gdd-ui-for-mark-vinicius-cherry-tycoon-that-contains-a-comprehensive-well-structured-gdd-template-with-the-main-sections-prefilled-with-sensible-defaults-and-clearly-marked-placeholders-for-anything-that-depends-on-the-user-s-missing-attached-plan",
+      "title": "Create a mobile-first Game Design Document (GDD) UI for “Mark Vinicius Cherry Tycoon” that contains a comprehensive, well-structured GDD template with the main sections prefilled with sensible defaults and clearly marked placeholders for anything that depends on the user’s missing “attached plan”.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-in-app-plan-input-editor-that-lets-the-user-paste-or-type-the-missing-attached-plan-content-and-map-it-to-key-fields-setting-lore-economy-constraints-crop-list-sports-league-format-token-nft-intentions-progression-goals-use-this-input-to-populate-override-corresponding-gdd-sections-on-the-client",
+      "title": "Add an in-app “Plan Input” editor that lets the user paste or type the missing “attached plan” content and map it to key fields (setting/lore, economy constraints, crop list, sports league format, token/NFT intentions, progression goals). Use this input to populate/override corresponding GDD sections on the client.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-support-exporting-the-gdd-as-a-print-friendly-document-browser-print-pdf-and-as-a-single-downloadable-markdown-md-file-with-english-user-facing-text",
+      "title": "Support exporting the GDD as a print-friendly document (browser print/PDF) and as a single downloadable Markdown (.md) file with English user-facing text.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-define-and-apply-a-coherent-visual-theme-for-a-mobile-first-tycoon-sim-document-experience-distinct-colors-typography-spacing-and-component-styling-and-enforce-it-consistently-across-the-gdd-and-plan-input-screens-avoid-blue-purple-as-primary-brand-colors",
+      "title": "Define and apply a coherent visual theme for a mobile-first tycoon/sim document experience (distinct colors, typography, spacing, and component styling) and enforce it consistently across the GDD and Plan Input screens. Avoid blue/purple as primary brand colors.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-minimal-backend-data-model-and-api-to-persist-the-user-s-plan-input-and-the-resulting-gdd-draft-so-the-document-is-available-across-sessions-for-the-same-authenticated-internet-identity-user",
+      "title": "Add a minimal backend data model and API to persist the user’s Plan Input and the resulting GDD draft so the document is available across sessions for the same authenticated Internet Identity user.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-gdd-template-content-frontend-src-lib-gddtemplate-ts-to-replace-placeholders-with-concrete-specifications-from-caffeine-master-prompt-md-for-the-following-topics-1-parcel-attributes-and-the-yield-potential-formula-2-profit-calculation-formulas-for-retail-vs-wholesale-3-cost-structure-detailing-fixed-costs-variable-costs-and-capex-with-specific-line-items-4-competition-mechanics-5-football-club-investment-formulas-6-geographic-layer-structure-voivodeships-counties-communes-7-eco-farming-conversion-mechanics-2-seasons-costs-risks",
+      "title": "Update the GDD template content (frontend/src/lib/gddTemplate.ts) to replace placeholders with concrete specifications from Caffeine_Master_Prompt.md for the following topics: (1) Parcel attributes and the Yield Potential formula; (2) Profit calculation formulas for Retail vs Wholesale; (3) Cost structure detailing Fixed costs, Variable costs, and CAPEX with specific line items; (4) Competition mechanics; (5) Football club investment formulas; (6) Geographic layer structure (Voivodeships → Counties → Communes); (7) Eco farming conversion mechanics (2 seasons, costs, risks).",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-gdd-no-longer-displays-plan-input-needed-for-any-of-the-phase-1-scope-topics-even-when-the-plan-input-editor-fields-are-empty-by-making-phase-1-content-fully-specified-in-the-template-rather-than-dependent-on-plan-input-merging",
+      "title": "Ensure the GDD no longer displays \"[Plan Input Needed]\" for any of the Phase 1 scope topics, even when the Plan Input editor fields are empty, by making Phase 1 content fully specified in the template rather than dependent on Plan Input merging.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-src-lib-gddtemplate-ts-to-complete-phase-1-by-ensuring-sections-2-5-contain-concrete-internally-consistent-specifications-derived-from-caffeine-master-prompt-md-and-the-user-provided-numeric-parameters-with-no-remaining-plan-input-placeholders-for-these-sections-2-competition-market-dynamics-shared-market-ai-competitors-rankings-3-sports-management-systems-football-club-investment-formulas-revenue-costs-4-geographic-expansion-system-poland-structure-voivodeships-counties-communes-5-organic-farming-conversion-2-season-transition-certification-costs-1300-2100-pln-year-organic-price-premium-30-50-organic-yield-impact-15-25",
+      "title": "Update `frontend/src/lib/gddTemplate.ts` to complete Phase 1 by ensuring Sections 2–5 contain concrete, internally consistent specifications derived from `Caffeine_Master_Prompt.md` and the user-provided numeric parameters, with no remaining plan-input placeholders for these sections: (2) Competition & Market Dynamics (shared market, AI competitors, rankings), (3) Sports Management Systems (football club investment formulas + revenue/costs), (4) Geographic Expansion System (Poland structure: Voivodeships → Counties → Communes), (5) Organic Farming Conversion (2-season transition; certification costs 1300–2100 PLN/year; organic price premium +30–50%; organic yield impact −15–25%).",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-complete-gdd-section-9-web3-icp-in-frontend-src-lib-gddtemplate-ts-with-a-critical-definition-of-the-5-canister-architecture-world-farms-clubs-market-ranking-including-each-canister-s-responsibilities-and-high-level-data-models-types-described-in-clear-english",
+      "title": "Add/complete GDD Section 9 \"Web3 & ICP\" in `frontend/src/lib/gddTemplate.ts` with a CRITICAL definition of the 5-canister architecture—`world`, `farms`, `clubs`, `market`, `ranking`—including each canister’s responsibilities and high-level data models/types described in clear English.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-gdd-template-section-competition-market-dynamics-id-competition-mechanics-in-frontend-src-lib-gddtemplate-ts-to-explicitly-include-and-clearly-describe-1-shared-market-mechanics-showing-how-combined-player-ai-supply-impacts-retail-wholesale-prices-2-ai-competitor-behavior-patterns-for-the-three-rival-personalities-traditionalist-innovator-businessman-beyond-brief-labels-i-e-their-decision-priorities-and-how-they-react-to-prices-events-3-a-ranking-system-definition-that-includes-farm-value-season-profit-and-efficiency-metrics-and-how-each-is-calculated-at-a-high-level-4-auction-based-wholesale-contracts-how-auctions-run-bid-logic-at-a-design-spec-level-contract-duration-fulfillment-and-how-winning-affects-revenue-prices-and-5-cherry-festival-event-mechanics-timing-objectives-scoring-rewards-and-how-it-interacts-with-market-prices-and-rankings-all-user-facing-text-must-be-english",
+      "title": "Update the GDD template section \"Competition & Market Dynamics\" (id: `competition-mechanics`) in `frontend/src/lib/gddTemplate.ts` to explicitly include and clearly describe: (1) shared market mechanics showing how combined player+AI supply impacts retail/wholesale prices; (2) AI competitor behavior patterns for the three rival personalities (Traditionalist, Innovator, Businessman) beyond brief labels (i.e., their decision priorities and how they react to prices/events); (3) a ranking system definition that includes Farm Value, Season Profit, and Efficiency metrics (and how each is calculated at a high level); (4) auction-based wholesale contracts (how auctions run, bid logic at a design-spec level, contract duration/fulfillment, and how winning affects revenue/prices); and (5) Cherry Festival event mechanics (timing, objectives, scoring, rewards, and how it interacts with market prices and rankings). All user-facing text must be English.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Create a comprehensive game design document (GDD) for Mark Vinicius Cherry Tycoon based on the attached plan",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Phase 1: Update/complete the GDD by replacing all placeholders with concrete specifications from Caffeine_Master_Prompt.md (formulas, Polish localization/terminology, numeric parameters, cost & profit structures, competition, club investment, geography, eco conversion).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Phase 2: Design and validate the 5-canister backend architecture (world, farms, clubs, market, ranking) including schemas/types and inter-canister interaction plan before implementation.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Phase 3: Implement core game mechanics incrementally in Motoko (farming/yield, market dynamics, club mechanics, geography, eco conversion, seasons/weather) with system-by-system testing.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Add the source specification file \"Caffeine_Master_Prompt.md\" into the repository so Phase 1 GDD updates can be implemented directly from it.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Phase 1: Complete remaining GDD sections (Competition/Market, Sports Management, Geographic Expansion, Organic Conversion) with concrete specs from Caffeine_Master_Prompt.md and add Section 9 Web3 & ICP defining 5-canister architecture responsibilities and data models (world, farms, clubs, market, ranking) prior to Phase 1 verification.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Add the missing source specification file `Caffeine_Master_Prompt.md` to the repository so Phase 1 GDD template content can be updated directly from it.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Phase 1 final verification: Expand/confirm \"Competition & Market Dynamics\" to include shared market price mechanics, AI competitor personality patterns (Traditionalist/Innovator/Businessman), ranking system metrics (farm value/season profit/efficiency), auction-based wholesale contracts, and Cherry Festival event mechanics before proceeding to Phase 2.",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Mark Vinicius Cherry Tycoon",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

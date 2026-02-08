@@ -1,0 +1,24 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-update-the-gdd-template-section-competition-market-dynamics-id-competition-mechanics-in-frontend-src-lib-gddtemplate-ts-to-explicitly-include-and-clearly-describe-1-shared-market-mechanics-showing-how-combined-player-ai-supply-impacts-retail-wholesale-prices-2-ai-competitor-behavior-patterns-for-the-three-rival-personalities-traditionalist-innovator-businessman-beyond-brief-labels-i-e-their-decision-priorities-and-how-they-react-to-prices-events-3-a-ranking-system-definition-that-includes-farm-value-season-profit-and-efficiency-metrics-and-how-each-is-calculated-at-a-high-level-4-auction-based-wholesale-contracts-how-auctions-run-bid-logic-at-a-design-spec-level-contract-duration-fulfillment-and-how-winning-affects-revenue-prices-and-5-cherry-festival-event-mechanics-timing-objectives-scoring-rewards-and-how-it-interacts-with-market-prices-and-rankings-all-user-facing-text-must-be-english",
+      "featureTitle": "Update the GDD template section \"Competition & Market Dynamics\" (id: `competition-mechanics`) in `frontend/src/lib/gddTemplate.ts` to explicitly include and clearly describe: (1) shared market mechanics showing how combined player+AI supply impacts retail/wholesale prices; (2) AI competitor behavior patterns for the three rival personalities (Traditionalist, Innovator, Businessman) beyond brief labels (i.e., their decision priorities and how they react to prices/events); (3) a ranking system definition that includes Farm Value, Season Profit, and Efficiency metrics (and how each is calculated at a high level); (4) auction-based wholesale contracts (how auctions run, bid logic at a design-spec level, contract duration/fulfillment, and how winning affects revenue/prices); and (5) Cherry Festival event mechanics (timing, objectives, scoring, rewards, and how it interacts with market prices and rankings). All user-facing text must be English.",
+      "files": [
+        "frontend/src/lib/gddTemplate.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-12"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "kind": "build_request",
+  "title": "Expand GDD Section: Competition & Market Dynamics (shared market, AI rivals, rankings, auctions, Cherry Festival)",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-12",
+      "text": "Update the GDD template section \"Competition & Market Dynamics\" (id: `competition-mechanics`) in `frontend/src/lib/gddTemplate.ts` to explicitly include and clearly describe: (1) shared market mechanics showing how combined player+AI supply impacts retail/wholesale prices; (2) AI competitor behavior patterns for the three rival personalities (Traditionalist, Innovator, Businessman) beyond brief labels (i.e., their decision priorities and how they react to prices/events); (3) a ranking system definition that includes Farm Value, Season Profit, and Efficiency metrics (and how each is calculated at a high level); (4) auction-based wholesale contracts (how auctions run, bid logic at a design-spec level, contract duration/fulfillment, and how winning affects revenue/prices); and (5) Cherry Festival event mechanics (timing, objectives, scoring, rewards, and how it interacts with market prices and rankings). All user-facing text must be English.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Please expand the \"Competition & Market Dynamics\" section to confirm it includes:\n- Shared market mechanics (how player and AI supply affects prices)\n- AI competitor behavior patterns (Traditionalist, Innovator, Businessman personalities)\n- Ranking system (Farm value, Season profit, Efficiency metrics)\n- Auction-based wholesale contracts\n- Cherry Festival event mechanics"
+        ]
+      },
+      "acceptanceCriteria": [
+        "`frontend/src/lib/gddTemplate.ts` section with `id: 'competition-mechanics'` includes dedicated subsections (or clearly labeled paragraphs) for: Shared Market Mechanics, AI Competitor Behavior Patterns (Traditionalist/Innovator/Businessman), Ranking System (Farm Value / Season Profit / Efficiency), Auction-based Wholesale Contracts, and Cherry Festival mechanics.",
+        "Ranking metrics explicitly mention Farm Value, Season Profit, and Efficiency and provide high-level calculation definitions in the section content (not just a list item).",
+        "Auction-based wholesale contracts are described as an auction system (not a fixed-price sale), including at minimum: when auctions occur, what is bid on, how winners are selected, and what obligations/rewards the contract creates.",
+        "Cherry Festival is explicitly named \"Cherry Festival\" (not only \"Harvest Festival\") and includes mechanics (timing, goals, rewards) and at least one stated interaction with market prices and/or rankings.",
+        "GDD rendering pages continue to display the updated section without layout/markdown rendering regressions (no broken formatting in the accordion view or Markdown export)."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify any files under `frontend/src/components/ui` (read-only UI components).",
+    "Keep the backend as a single Motoko actor in `backend/main.mo`; no backend changes are required for this request.",
+    "Use English for any user-facing text."
+  ],
+  "nonGoals": [
+    "Do not start Phase 2 canister schema implementation in Motoko as part of this change.",
+    "Do not introduce new backend APIs or persistence changes for competition systems; this is a GDD/spec text update only.",
+    "Do not redesign the UI; only update GDD template content."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

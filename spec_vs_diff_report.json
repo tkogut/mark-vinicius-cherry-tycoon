@@ -1,0 +1,23 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-06T20:08:51.162Z",
+  "summary": "Diff indicates updates to the GDD template and related project metadata. The file summary explicitly claims the \"Competition & Market Dynamics\" section (id: 'competition-mechanics') was expanded with the requested dedicated subsections and details. Due to truncation of `gddTemplate.ts`, the exact content cannot be directly verified from the provided excerpt, but the diff summary supports that REQ-12 was implemented.",
+  "missing_requirements": [],
+  "hallucinated_features": [
+    {
+      "description": "Updated project metadata/summaries beyond the requested GDD template content change (e.g., project state/version text and frontend file summaries).",
+      "reason": "BuildRequest only asked for a GDD/spec text update in `frontend/src/lib/gddTemplate.ts` (section id `competition-mechanics`) and explicitly said no UI redesign/backend changes; modifying metadata summary files was not requested.",
+      "evidence": [
+        "frontend-file-summaries.txt",
+        "project_state.json"
+      ]
+    }
+  ],
+  "confidence": 0.66,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/lib/gddTemplate.ts",
+    "project_state.json"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-06T20:08:51.165Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 1,
+    "implemented": 1,
+    "items": [
+      {
+        "id": "REQ-12",
+        "summary": "Update the GDD template section \"Competition & Market Dynamics\" (id: `competition-mechanics`) in `frontend/src/lib/gddTemplate.ts` to explicitly include and clearly describe: (1) shared market mechanics showing how combined player+AI supply impacts retail/wholesale prices; (2) AI competitor behavior patterns for the three rival personalities (Traditionalist, Innovator, Businessman) beyond brief labels (i.e., their decision priorities and how they react to prices/events); (3) a ranking system definition that includes Farm Value, Season Profit, and Efficiency metrics (and how each is calculated at a high level); (4) auction-based wholesale contracts (how auctions run, bid logic at a design-spec level, contract duration/fulfillment, and how winning affects revenue/prices); and (5) Cherry Festival event mechanics (timing, objectives, scoring, rewards, and how it interacts with market prices and rankings). All user-facing text must be English.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/lib/gddTemplate.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/lib/gddTemplate.ts"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/lib/gddTemplate.ts",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

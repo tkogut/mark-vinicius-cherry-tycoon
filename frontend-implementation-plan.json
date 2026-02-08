@@ -1,0 +1,25 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Expand GDD: Competition & Market Dynamics section content",
+  "requirements": [
+    {
+      "id": "REQ-12",
+      "summary": "Expand the GDD template's \"Competition & Market Dynamics\" section to include detailed shared market mechanics, AI rival behavior patterns, ranking metrics definitions, auction-based wholesale contracts, and Cherry Festival event mechanics (English-only).",
+      "acceptanceCriteria": [
+        "`frontend/src/lib/gddTemplate.ts` section with `id: 'competition-mechanics'` includes dedicated subsections (or clearly labeled paragraphs) for: Shared Market Mechanics, AI Competitor Behavior Patterns (Traditionalist/Innovator/Businessman), Ranking System (Farm Value / Season Profit / Efficiency), Auction-based Wholesale Contracts, and Cherry Festival mechanics.",
+        "Ranking metrics explicitly mention Farm Value, Season Profit, and Efficiency and provide high-level calculation definitions in the section content (not just a list item).",
+        "Auction-based wholesale contracts are described as an auction system (not a fixed-price sale), including at minimum: when auctions occur, what is bid on, how winners are selected, and what obligations/rewards the contract creates.",
+        "Cherry Festival is explicitly named \"Cherry Festival\" (not only \"Harvest Festival\") and includes mechanics (timing, goals, rewards) and at least one stated interaction with market prices and/or rankings.",
+        "GDD rendering pages continue to display the updated section without layout/markdown rendering regressions (no broken formatting in the accordion view or Markdown export)."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/lib/gddTemplate.ts",
+          "operation": "modify",
+          "description": "Rewrite/expand the `competition-mechanics` section content to add clearly labeled subsections for: (1) Shared Market Mechanics (combined player+AI supply impacts retail/wholesale prices), (2) AI Competitor Behavior Patterns with detailed decision priorities and reactions for the three rival personalities (Traditionalist, Innovator, Businessman), (3) Ranking System definitions with high-level calculation descriptions for Farm Value, Season Profit, and Efficiency, (4) Auction-based wholesale contracts described as an auction system (timing, what is bid on, winner selection, contract duration/fulfillment, and effects on revenue/prices), and (5) Cherry Festival mechanics (timing, objectives, scoring, rewards, and at least one interaction with market prices and/or rankings). Ensure all user-facing text remains English and preserve existing Markdown-like formatting conventions so the accordion HTML rendering and Markdown export remain stable. Do not modify any files under `frontend/src/components/ui`."
+        }
+      ]
+    }
+  ]
+}
