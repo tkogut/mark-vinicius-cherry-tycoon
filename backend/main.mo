@@ -3,6 +3,7 @@
 
 import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
+import Buffer "mo:base/Buffer";
 import Text "mo:base/Text";
 import Nat "mo:base/Nat";
 import Array "mo:base/Array";
@@ -35,6 +36,7 @@ persistent actor CherryTycoon {
   type InfrastructureType = Types.InfrastructureType;
   type Result<T, E> = Types.Result<T, E>;
   type GameError = Types.GameError;
+  type SeasonReport = Types.SeasonReport;
 
   // Authorization system
   flexible let accessControlState = AccessControl.initState();
@@ -428,7 +430,7 @@ persistent actor CherryTycoon {
               }
             );
 
-            let updatedStats = updateSeasonalReport(farm, func(r) = {
+            let updatedStats = updateSeasonalReport(farm, func(r) {
               { r with 
                 operationalCosts = r.operationalCosts + waterCost;
                 totalCosts = r.totalCosts + waterCost;
@@ -623,7 +625,7 @@ persistent actor CherryTycoon {
             let newXp = farm.experience + xpGain;
             let newLevel = GameLogic.getLevelFromExperience(newXp);
 
-            let updatedSeasonStats = updateSeasonalReport(farm, func(r) = {
+            let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
               { r with 
                 operationalCosts = r.operationalCosts + totalCost;
                 totalCosts = r.totalCosts + totalCost;
@@ -766,7 +768,7 @@ persistent actor CherryTycoon {
         let newLevel = GameLogic.getLevelFromExperience(newXp);
 
         let isRetail = saleType == "retail";
-        let updatedSeasonStats = updateSeasonalReport(farm, func(r) = {
+        let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
           let newRetail = if (isRetail) r.retailRevenue + revenue else r.retailRevenue;
           let newWholesale = if (not isRetail) r.wholesaleRevenue + revenue else r.wholesaleRevenue;
           { r with 
@@ -913,10 +915,10 @@ persistent actor CherryTycoon {
            cherries = newCherries;
         };
 
-        let currentSeasonName = farm.currentSeason;
-        let currentSeasonNum = farm.seasonNumber;
+        let _currentSeasonName = farm.currentSeason;
+        let _currentSeasonNum = farm.seasonNumber;
         
-        let updatedSeasonStats = updateSeasonalReport(farm, func(r) = {
+        let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
           { r with 
             maintenanceCosts = fixedCosts;
             laborCosts = variableCosts; // simplified variableCosts as labor/ops
@@ -1097,7 +1099,7 @@ persistent actor CherryTycoon {
         
         let updatedParcels = Array.append(farm.parcels, [newParcel]);
         
-        let updatedStats = updateSeasonalReport(farm, func(r) = {
+        let updatedStats = updateSeasonalReport(farm, func(r) {
           { r with 
             certificationCosts = r.certificationCosts + cost;
             totalCosts = r.totalCosts + cost;
@@ -1180,19 +1182,19 @@ persistent actor CherryTycoon {
         
         let updatedParcels = Array.append(farm.parcels, [newParcel]);
         
-        let updatedFarm = {
+        let _updatedFarm = {
           farm with
           parcels = updatedParcels;
           cash = Int.abs((farm.cash : Int) - (price : Int));
         };
         
-        playerFarms.put(caller, updatedFarm);
         #Ok("Successfully bought parcel " # parcelId)
       };
     }
+  };
   // Financial Report Helpers
   private func getOrCreateReport(reports: [SeasonReport], seasonNumber: Nat, seasonName: Season) : ([SeasonReport], Nat) {
-    var updatedReports = Array.toBuffer<SeasonReport>(reports);
+    var updatedReports = Buffer.fromArray<SeasonReport>(reports);
     var targetIndex : ?Nat = null;
     
     for (i in Iter.range(0, updatedReports.size() - 1)) {
@@ -1202,7 +1204,7 @@ persistent actor CherryTycoon {
     };
     
     switch (targetIndex) {
-      case (?index) { (Array.fromBuffer(updatedReports), index) };
+      case (?index) { (Buffer.toArray(updatedReports), index) };
       case null {
         let newReport : SeasonReport = {
           seasonNumber = seasonNumber;
@@ -1219,7 +1221,7 @@ persistent actor CherryTycoon {
           netProfit = 0;
         };
         updatedReports.add(newReport);
-        (Array.fromBuffer(updatedReports), updatedReports.size() - 1)
+        (Buffer.toArray(updatedReports), updatedReports.size() - 1)
       };
     };
   };

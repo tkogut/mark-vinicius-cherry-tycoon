@@ -5,7 +5,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     TrendingUp,
     TrendingDown,
@@ -71,7 +70,7 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({ isOp
                     </div>
                 </DialogHeader>
 
-                <ScrollArea className="max-h-[70vh]">
+                <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
                     <div className="p-6 space-y-8">
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
