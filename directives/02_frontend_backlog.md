@@ -11,8 +11,8 @@
 - [x] **Add Mutation Logging**: Log all inputs/outputs in `useFarm.ts` mutations
 - [x] **Create Debugging Guide**: Document how to use browser console for debugging
 - [/] **Test in Browser Console**: Manually trigger mutations and capture errors
-- [ ] **Verify Environment**: Check `.env` has correct canister ID
-- [ ] **Test Login Flow**: Ensure user can login and `getPlayerFarm()` returns data
+- [x] **Verify Environment**: Check `.env` has correct canister ID
+- [x] **Test Login Flow**: Ensure user can login and `getPlayerFarm()` returns data
 - [x] **Document Errors**: Report any runtime errors to Backend Agent
   - **RESOLVED**: JSON-RPC error (-32603) fixed by Backend Agent (changed `Time.Time` to `Nat`)
   - Backend redeployed, serialization verified, frontend integration working
@@ -37,12 +37,17 @@
   - Verified working in all seasons (Spring, Summer, Autumn, Winter)
 
 ### 🎨 UI Enhancements (NEW)
-- [ ] **Disable Harvest Button Outside Summer**: Improve UX by disabling harvest button when not in Summer
+- [x] **Disable Harvest Button Outside Summer**: Improve UX by disabling harvest button when not in Summer
   - Check `farm.currentSeason` in UI
   - Disable harvest button if `currentSeason !== 'Summer'`
   - Add tooltip: "Cherries can only be harvested in Summer (Current: {season})"
   - Visual indicator: Gray out button or show season badge
   - **Rationale**: Better UX than showing error toast after click
+- [x] **Disable Fertilize Button Outside Spring/Autumn**: ✅ COMPLETE - Improved UX
+  - Checks `farm.currentSeason`
+  - Disables fertilize button if `currentSeason !== 'Spring'` AND `currentSeason !== 'Autumn'`
+  - Tooltip: "Effective in Spring & Autumn"
+  - **Implementation**: Added `fertilize` mutation, updated `ParcelCard` with button and logic
 
 ### ✅ Completed Tasks
 - [x] **Create Project**: `npm create vite@latest frontend -- --template react-ts`.

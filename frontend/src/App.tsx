@@ -19,7 +19,7 @@ function App() {
     const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null);
     const [plantingModalOpen, setPlantingModalOpen] = useState(false);
 
-    const { farm, isLoading, refetch, plant, water, harvest, buyParcel, advanceSeason, sellCherries } = useFarm();
+    const { farm, isLoading, refetch, plant, water, fertilize, harvest, buyParcel, advanceSeason, sellCherries } = useFarm();
 
     // Derived state
     const stats = {
@@ -36,7 +36,7 @@ function App() {
 
     const parcels = farm ? farm.parcels : [];
 
-    const handleParcelAction = (action: 'plant' | 'water' | 'harvest', parcelId: string) => {
+    const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest', parcelId: string) => {
         if (action === 'plant') {
             setSelectedParcelId(parcelId);
             setPlantingModalOpen(true);
@@ -47,6 +47,10 @@ function App() {
             water.mutate(parcelId);
         } else if (action === 'harvest') {
             harvest.mutate(parcelId);
+        } else if (action === 'fertilize') {
+            // Default to NPK fertilizer for quick action
+            // TODO: Add fertilizer selection modal
+            fertilize.mutate({ parcelId, fertilizerType: "NPK" });
         }
     };
 
@@ -125,7 +129,10 @@ function App() {
                     </Button>
                     <div className="flex items-center gap-2">
                         <Cherry className="h-6 w-6 text-rose-600 animate-pulse" />
-                        <span className="font-bold text-lg tracking-tight text-slate-100">Cherry Tycoon</span>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-sm leading-tight text-slate-100">Mark Vinicius</span>
+                            <span className="text-[10px] text-slate-400 uppercase tracking-wide">Cherry Tycoon</span>
+                        </div>
                     </div>
                     <LoginButton />
                 </header>

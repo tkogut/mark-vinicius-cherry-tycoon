@@ -347,6 +347,13 @@ persistent actor CherryTycoon {
           return #Err(#InvalidOperation("No fertilizers in inventory"));
         };
 
+        // Seasonal Check: Fertilization only effective in Spring (growth) or Autumn (post-harvest)
+        if (farm.currentSeason != #Spring and farm.currentSeason != #Autumn) {
+          return #Err(#SeasonalRestriction("Fertilization is only effective in Spring or Autumn"));
+        };
+        
+        // TODO: Future enhancement - use _fertilizerType quality parameter to influence productivity
+
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
         switch (indexOpt) {

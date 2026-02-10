@@ -32,9 +32,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                 {/* Logo Area */}
                 <div className="h-16 flex items-center px-6 border-b border-slate-800/50">
                     <Cherry className="h-6 w-6 text-rose-500 animate-pulse mr-2" />
-                    <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent">
-                        Cherry Tycoon
-                    </span>
+                    <div className="flex flex-col">
+                        <span className="font-bold text-lg leading-tight tracking-tight bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent">
+                            Mark Vinicius
+                        </span>
+                        <span className="text-xs font-medium text-slate-400 tracking-wider uppercase">
+                            Cherry Tycoon
+                        </span>
+                    </div>
                 </div>
 
                 {/* Navigation */}

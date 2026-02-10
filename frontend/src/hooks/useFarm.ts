@@ -123,6 +123,40 @@ export function useFarm() {
         },
     });
 
+    const fertilizeMutation = useMutation({
+        mutationFn: async ({ parcelId, fertilizerType }: { parcelId: string; fertilizerType: string }) => {
+            console.log('[useFarm] fertilizeParcel called:', { parcelId, fertilizerType });
+            if (!backendActor) {
+                console.warn('[useFarm] No backend actor for fertilizing');
+                throw new Error('Not authenticated');
+            }
+            const result = await backendActor.fertilizeParcel(parcelId, fertilizerType);
+            if ('Err' in result) {
+                console.error('[useFarm] fertilizeParcel failed:', result.Err);
+                throw new Error(getErrorMessage(result.Err));
+            }
+            console.log('[useFarm] fertilizeParcel succeeded');
+            return result;
+        },
+        onSuccess: () => {
+            console.log('[useFarm] Invalidating farm query after fertilize');
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Fertilization Successful",
+                description: "Nutrients added to the soil!",
+                className: "bg-amber-900 border-amber-800 text-amber-100",
+            });
+        },
+        onError: (error: Error) => {
+            console.error('[useFarm] Fertilize mutation error:', error);
+            toast({
+                variant: "destructive",
+                title: "Fertilization Failed",
+                description: error.message,
+            });
+        },
+    });
+
     const harvestMutation = useMutation({
         mutationFn: async (parcelId: string) => {
             console.log('[useFarm] harvestCherries called:', { parcelId });
@@ -268,6 +302,7 @@ export function useFarm() {
         refetch: farmQuery.refetch,
         plant: plantMutation,
         water: waterMutation,
+        fertilize: fertilizeMutation,
         harvest: harvestMutation,
         buyParcel: buyParcelMutation,
         advanceSeason: advanceSeasonMutation,

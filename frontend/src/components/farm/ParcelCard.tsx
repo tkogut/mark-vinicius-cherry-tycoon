@@ -23,7 +23,7 @@ import { ParcelDetailsPanel } from './ParcelDetailsPanel';
 
 interface ParcelCardProps {
     parcel: CherryParcel;
-    onAction: (action: 'plant' | 'water' | 'harvest', parcelId: string) => void;
+    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest', parcelId: string) => void;
     currentSeason?: any; // Season type from backend
 }
 
@@ -40,6 +40,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
     const isWinter = currentSeason && 'Winter' in currentSeason;
 
     const canHarvest = isReadyToHarvest && isSummer;
+    const canFertilize = (isSpring || isAutumn) && isPlanted;
     const isDormant = isAutumn || isWinter;
 
     const getStatusLabel = () => {
@@ -68,6 +69,20 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
         if ('Clay' in parcel.soilType) return "🧱";
         if ('Waterlogged' in parcel.soilType) return "💧";
         return "🌱";
+    };
+
+    const getTreeVisual = () => {
+        if (!isPlanted) return { icon: <Sprout className="h-8 w-8 mb-2 opacity-50" />, label: "Ready for planting", color: "text-slate-600" };
+
+        if (isWinter) return { icon: <div className="text-4xl">❄️</div>, label: "Dormant", color: "text-blue-300" };
+        if (isAutumn) return { icon: <div className="text-4xl">🍂</div>, label: "After Season", color: "text-amber-500" };
+        if (isSummer) return {
+            icon: <div className="text-4xl">{isReadyToHarvest ? "🍒" : "🌳"}</div>,
+            label: isReadyToHarvest ? "Ready to Harvest" : "Maturing",
+            color: isReadyToHarvest ? "text-rose-500" : "text-emerald-500"
+        };
+        // Spring
+        return { icon: <div className="text-4xl">🌳</div>, label: "Growing", color: "text-emerald-400" };
     };
 
     return (
@@ -115,26 +130,24 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
             <CardContent className="relative z-10 space-y-4">
                 {/* Main Visual/Status */}
                 <div className="h-24 flex items-center justify-center rounded-lg bg-black/20 border border-slate-800/50 backdrop-blur-sm">
-                    {!isPlanted ? (
-                        <div className="flex flex-col items-center text-slate-600">
-                            <Sprout className="h-8 w-8 mb-2 opacity-50" />
-                            <span className="text-xs">Ready for planting</span>
-                        </div>
-                    ) : (
-                        <div className="text-center">
-                            <div className="text-2xl mb-1">{isReadyToHarvest ? "🍒" : "🌳"}</div>
-                            <div className="text-xs font-medium text-slate-400">
-                                {Number(parcel.plantedTrees)} Trees
+                    {(() => {
+                        const visual = getTreeVisual();
+                        return (
+                            <div className={cn("flex flex-col items-center", visual.color)}>
+                                {visual.icon}
+                                <div className="text-xs font-medium mt-1">{visual.label}</div>
+                                {isPlanted && (
+                                    <div className="text-[10px] text-slate-500 mt-0.5">
+                                        {Number(parcel.plantedTrees)} Trees • Age {Number(parcel.treeAge)}
+                                    </div>
+                                )}
                             </div>
-                            <div className="text-[10px] text-slate-500">
-                                Age: {Number(parcel.treeAge)} seasons
-                            </div>
-                        </div>
-                    )}
+                        );
+                    })()}
                 </div>
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-3 gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="grid grid-cols-4 gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -193,6 +206,38 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                         </div>
                                         <div className="text-xs text-slate-400 mt-1">
                                             Characters harvest in Summer
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 mt-0.5">
+                                            Current: {currentSeason && Object.keys(currentSeason)[0]}
+                                        </div>
+                                    </div>
+                                )}
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+                    {/* Fertilize Button */}
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    className={cn("h-8 px-0", canFertilize ? "hover:bg-amber-900/30 hover:text-amber-400" : "opacity-30")}
+                                    disabled={!canFertilize}
+                                    onClick={() => onAction('fertilize', parcel.id)}
+                                >
+                                    <Sprout className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {canFertilize ? (
+                                    "Fertilize Soil"
+                                ) : (
+                                    <div className="text-center">
+                                        <div>Creation of stronger roots</div>
+                                        <div className="text-xs text-slate-400 mt-1">
+                                            Effective in Spring & Autumn
                                         </div>
                                         <div className="text-[10px] text-slate-500 mt-0.5">
                                             Current: {currentSeason && Object.keys(currentSeason)[0]}

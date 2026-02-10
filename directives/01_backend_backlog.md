@@ -18,6 +18,7 @@
 - [x] **Verify Type Errors**: Verified consistency in `main.mo` (all use `#Ok`/`#Err`).
 
 ### 🐞 Bug Fixes (Found by QA & Frontend)
+- [x] **[FIXED] Seasonal Fertilization Restriction**: Added Spring/Autumn only check to `fertilizeParcel()`. Returns `#SeasonalRestriction` error for Summer/Winter.
 - [x] **[FIXED] Seasonal Harvest Restriction**: Added Summer-only harvest check to `harvestCherries()`. Returns `#SeasonalRestriction` error for Spring/Autumn/Winter. Verified via `test_seasonal_harvest.sh`.
 - [x] **[FIXED] JSON-RPC Serialization Error**: Changed `PlayerFarm.lastActive` from `Time.Time` (Int) to `Nat` to fix BigInt serialization issues in JavaScript. Verified via `debug_serialization.sh`.
 - [x] **[FIXED] Parcel ID Mismatch in Operations**: Refactored logic to use `findParcelIndex` AND updated `e2e_backend.sh` script to use dynamic IDs (Fixes "Parcel not found" false positives).
