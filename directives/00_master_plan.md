@@ -17,8 +17,19 @@
 ### Phase 2.5: Integration Verification (ACTIVE - CRITICAL)
 - [ ] **Backend Verification**: Test all functions via `dfx canister call`
 - [x] **Frontend Debugging**: Fixed JSON-RPC serialization error (Time.Time → Nat)
-- [ ] **End-to-End Testing**: User can plant, water, and harvest successfully
-- [ ] **Error Handling**: All errors properly surfaced to UI
+- [/] **End-to-End Testing**: Verify plant/water/harvest loop with new fixes
+- [ ] **Error Handling**: Verify error toasts for seasonal restrictions
+- [ ] **Code Cleanup**: Remove temporary debug logs once stable
+
+### Phase 3: Surface the Simulation (Next)
+- [ ] **Frontend**: Display Soil Type, pH, and Fertility on Parcel Cards
+- [ ] **Backend**: Ensure `getPlayerFarm` returns all parcel attributes
+- [ ] **UI**: Add tooltips explaining yield modifiers
+
+### Phase 4: Economy & Infrastructure (Future)
+- [ ] **Economy**: Split "Sell" into Wholesale (instant) vs Retail (market)
+- [ ] **Infrastructure**: Implement Shop UI for Irrigation/Greenhouses
+
 
 ### Phase 2: MVP Development (Complete)
 - [x] **Auth Layer**: Implement `useAuth` hook with `@dfinity/auth-client`.
@@ -32,11 +43,10 @@
     - [x] "Water / Fertilize" buttons with loading states.
     - [x] `State Management`: Implement React Query for optimistic updates on farm state.
 
-### Phase 3: Advanced Features (PAUSED)
-- [/] **Weather System**: Seasons, events.
-- [ ] **Market Dynamics**: Fluctuating prices.
-- [ ] **Sports Management**: Team creation, recruitment.
-- [ ] **Web3**: NFT integration.
+### Phase 5: Advanced Features (Paused)
+- [ ] **Weather System**: Visuals and logic
+- [ ] **Sports Management**: Team creation
+- [ ] **Web3**: NFT integration
 
 ## Active Directives (Delegate Tasks)
 

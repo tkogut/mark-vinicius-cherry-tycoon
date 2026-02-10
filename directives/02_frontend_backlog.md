@@ -1,6 +1,6 @@
 # FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]
 
-> **Current Directive**: **Phase 2.5 - Integration Debugging**
+> **Current Directive**: **Phase 2.5 - Polish & Phase 3 - UI Depth**
 > **Constraint**: **WSL Terminal Required** - For `dfx generate` and environment management.
 > **Last Updated**: 2026-02-08
 
@@ -40,9 +40,30 @@
 - [x] **Disable Harvest Button Outside Summer**: Improve UX by disabling harvest button when not in Summer
   - Check `farm.currentSeason` in UI
   - Disable harvest button if `currentSeason !== 'Summer'`
-  - Add tooltip: "Cherries can only be harvested in Summer (Current: {season})"
   - Visual indicator: Gray out button or show season badge
   - **Rationale**: Better UX than showing error toast after click
+- [ ] **Disable Fertilize Button Outside Spring/Autumn**: Improve UX by disabling fertilize button
+  - Check `farm.currentSeason`
+  - Disable fertilize button if `currentSeason !== 'Spring'` AND `currentSeason !== 'Autumn'`
+  - Tooltip: "Effective in Spring & Autumn"
+
+### 🔗 Backend Integration
+- [x] **Integrate `getFarmOverview`**:
+  - Implemented `useFarmOverview` hook for lightweight updates.
+  - Type: `FarmOverview` (defined in types.mo).
+- [x] **Integrate `getMarketPrices`**:
+  - Implemented `useMarketPrices` hook.
+  - Created `SellModal` with Wholesale/Retail options.
+  - Integrated into main App workflow.
+
+### 📊 Phase 3: Surface the Simulation (Next)
+- [ ] **Parcel Card Update**: Show Soil Type, pH, and Fertility values
+- [ ] **Yield Tooltip**: Hover over "Expected Yield" to see checking modifiers (e.g. "Sandy Soil: x0.85")
+- [ ] **Season Modifier**: Show how current season affects growth/yield
+
+### 💰 Phase 4: Economy & Infrastructure (Future)
+- [ ] **Split Sales**: Create dedicated "Wholesale" and "Retail" UIs
+- [ ] **Shop UI**: Create interface for buying Irrigation/Greenhouses
 - [x] **Disable Fertilize Button Outside Spring/Autumn**: ✅ COMPLETE - Improved UX
   - Checks `farm.currentSeason`
   - Disables fertilize button if `currentSeason !== 'Spring'` AND `currentSeason !== 'Autumn'`

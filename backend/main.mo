@@ -178,6 +178,42 @@ persistent actor CherryTycoon {
     }
   };
 
+  // Get condensed farm overview (for UI sidebar)
+  public shared query({ caller }) func getFarmOverview() : async Result<Types.FarmOverview, GameError> {
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        
+        // Calculate total trees
+        var trees = 0;
+        for (p in farm.parcels.vals()) {
+          trees += p.plantedTrees;
+        };
+
+        let overview : Types.FarmOverview = {
+            playerId = farm.playerId;
+            playerName = farm.playerName;
+            cash = farm.cash;
+            level = farm.level;
+            experience = farm.experience;
+            parcelCount = farm.parcels.size();
+            totalTrees = trees;
+            inventory = farm.inventory;
+            currentSeason = farm.currentSeason;
+            seasonNumber = farm.seasonNumber;
+        };
+        
+        #Ok(overview)
+      };
+    }
+  };
+
+  // DEBUG ONLY: Reset player state
+  public shared({ caller }) func debugResetPlayer() : async Result<Text, GameError> {
+    let _ = playerFarms.delete(caller);
+    #Ok("Player reset successfully")
+  };
+
   // Get player statistics
   public shared query({ caller }) func getPlayerStats() : async Result<Statistics, GameError> {
     switch (playerFarms.get(caller)) {
@@ -956,5 +992,19 @@ persistent actor CherryTycoon {
   // Get global season
   public query func getGlobalSeason() : async Nat {
     globalSeasonNumber
+  };
+
+  // Get current market prices
+  public query func getMarketPrices() : async Result<Types.MarketPrice, GameError> {
+    // Basic static prices for now, matching GDD
+    let prices : Types.MarketPrice = {
+      retailBasePrice = baseRetailPrice;
+      wholesaleBasePrice = baseWholesalePrice;
+      demandMultiplier = 1.0;
+      seasonMultiplier = 1.0; // TODO: Vary by season
+      qualityBonus = 0.3;     // Max bonus
+      organicPremium = 0.4;   // Max premium
+    };
+    #Ok(prices)
   };
 }

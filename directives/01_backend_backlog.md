@@ -1,21 +1,24 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Phase 2.5 - Core Function Verification**
+> **Current Directive**: **Phase 2.5 - Verification & Phase 3 - Data Exposure**
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` commands in WSL terminal manually.
 > **Last Updated**: 2026-02-08
 
 ## Backlog
 
 ### 🔍 Phase 2.5: Integration Verification (CRITICAL)
-- [ ] **Test `getPlayerFarm()`**: Verify it returns valid farm state for new and existing players
-- [ ] **Test `plantTrees()`**: Call via `dfx canister call` with valid parcel ID
-- [ ] **Test `waterParcel()`**: Verify water level increases
-- [ ] **Test `harvestCherries()`**: Verify cherries are added to inventory
-- [ ] **Test `sellCherries()`**: Verify cash increases
-- [ ] **Add Debug Logging**: Add console output to each function for easier debugging
-- [ ] **Document Parcel IDs**: Ensure parcel IDs are stable and documented for frontend use
+- [x] **Test `getPlayerFarm()`**: Verify it returns valid farm state for new and existing players
+- [x] **Test `plantTrees()`**: Call via `dfx canister call` with valid parcel ID
+- [x] **Test `waterParcel()`**: Verify water level increases
+- [x] **Test `harvestCherries()`**: Verify cherries are added to inventory
+- [x] **Test `sellCherries()`**: Verify cash increases
+- [x] **Add Debug Logging**: Add console output to each function for easier debugging
+- [x] **Document Parcel IDs**: Ensure parcel IDs are stable and documented for frontend use
 - [x] **Verify `assignParcelToPlayer`**: Implemented in `main.mo` (L834). `playerId` is correctly handled as `Text`. Verified via WSL tests.
 - [x] **Verify Type Errors**: Verified consistency in `main.mo` (all use `#Ok`/`#Err`).
+- [x] **Verify `getMarketPrices`**: Returns valid data in manual test.
+- [x] **Verify `getFarmOverview`**: Returns valid data in manual test.
+- [x] **Verify `debugResetPlayer`**: Resets player successfully.
 
 ### 🐞 Bug Fixes (Found by QA & Frontend)
 - [x] **[FIXED] Seasonal Fertilization Restriction**: Added Spring/Autumn only check to `fertilizeParcel()`. Returns `#SeasonalRestriction` error for Summer/Winter.
@@ -32,6 +35,12 @@
 ### Next Steps (Priority 2)
 - [x] **Implement `buyParcel(parcelId: Text, price: Nat)`**: Implemented in `main.mo` (L787).
 - [x] **Implement `sellCherries(quantity: Nat, type: Text)`**: Enhanced with average quality logic.
+### Phase 3: Surface Simulation Data (Next)
+- [ ] **API Update**: Ensure `Parcel` type in `main.mo` exposes `soilType`, `phLevel`, `fertility` publically
+- [ ] **View Function**: Create `getParcelDetails(parcelId)` if needed for detailed modifiers
+- [ ] **Logic**: Verify yield calculation uses these modifiers correctly
+
+### Next Steps (Priority 4)
 - [x] **Implement Stable Storage**: Use `preupgrade` and `postupgrade` hooks to persist `playerMap`, `parcelMap`. Verified.
 
 ### Phase 2: Integration & Frontend Support (Current)

@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { FarmGrid } from "@/components/farm/FarmGrid"
 import { PlantingModal } from "@/components/farm/modals/PlantingModal"
+import { SellModal } from '@/components/farm/modals/SellModal';
 import { Toaster } from "@/components/ui/toaster"
 import { InventoryBar } from "@/components/layout/InventoryBar"
 import { useFarm } from "@/hooks/useFarm"
@@ -18,6 +19,7 @@ function App() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null);
     const [plantingModalOpen, setPlantingModalOpen] = useState(false);
+    const [sellModalOpen, setSellModalOpen] = useState(false);
 
     const { farm, isLoading, refetch, plant, water, fertilize, harvest, buyParcel, advanceSeason, sellCherries } = useFarm();
 
@@ -74,22 +76,21 @@ function App() {
         }
     }
 
-    const handleSellCherries = async () => {
-        console.log("Selling cherries...");
-        if (!farm || stats.totalCherries === 0) {
-            return;
-        }
+    const handleSellCherries = () => {
+        setSellModalOpen(true);
+    };
 
+    const handleConfirmSell = async (amount: number, type: 'wholesale' | 'retail') => {
         try {
-            // Sell all cherries at retail price
             await sellCherries.mutateAsync({
-                amount: stats.totalCherries,
-                marketType: "retail"
+                amount,
+                marketType: type
             });
+            setSellModalOpen(false);
         } catch (error) {
             console.error("Failed to sell cherries:", error);
         }
-    }
+    };
 
     // Calculate max trees based on cash (50 per tree)
     const maxAffordableTrees = Number(stats.cash / 50n);
@@ -103,6 +104,13 @@ function App() {
                 onClose={() => setPlantingModalOpen(false)}
                 onConfirm={handlePlantConfirm}
                 maxTrees={maxPlantable}
+            />
+            <SellModal
+                isOpen={sellModalOpen}
+                onClose={() => setSellModalOpen(false)}
+                onSell={handleConfirmSell}
+                totalCherries={stats.totalCherries}
+                isLoading={sellCherries.isPending}
             />
 
             {/* Mobile Inventory Bar (Fixed Bottom) */}
