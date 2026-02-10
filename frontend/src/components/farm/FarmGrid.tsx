@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface FarmGridProps {
     parcels: CherryParcel[];
-    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest', parcelId: string) => void;
+    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic', parcelId: string) => void;
     onBuyParcel: () => void;
     loading?: boolean;
     currentSeason?: any; // Season type from backend

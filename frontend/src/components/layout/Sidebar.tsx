@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingBag, Trophy, User, Cherry, X, Menu, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Trophy, User, Cherry, X, Menu, LogOut, Coins, Zap, PieChart } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -10,16 +10,21 @@ interface SidebarProps {
     level: number;
     xp: number;
     nextLevelXp: number;
+    activeTab: string;
+    onTabChange: (tab: 'dashboard' | 'marketplace' | 'sports') => void;
+    ownedInfrastructure: any[];
+    parcels: any[];
+    onOpenFinancialReport: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, nextLevelXp }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, nextLevelXp, activeTab, onTabChange, ownedInfrastructure, parcels, onOpenFinancialReport }) => {
     const { logout } = useAuth();
 
     const navItems = [
-        { icon: LayoutDashboard, label: "Dashboard", active: true },
-        { icon: ShoppingBag, label: "Marketplace", active: false },
-        { icon: Trophy, label: "Sports", active: false },
-        { icon: User, label: "Profile", active: false },
+        { id: 'dashboard', icon: LayoutDashboard, label: "Dashboard" },
+        { id: 'marketplace', icon: ShoppingBag, label: "Marketplace" },
+        { id: 'sports', icon: Trophy, label: "Sports" },
+        { id: 'profile', icon: User, label: "Profile" },
     ];
 
     // Width calculation for XP bar
@@ -46,11 +51,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                 <nav className="flex-1 px-4 py-6 space-y-2">
                     {navItems.map((item) => (
                         <Button
-                            key={item.label}
+                            key={item.id}
                             variant="ghost"
+                            onClick={() => {
+                                if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports') {
+                                    onTabChange(item.id as any);
+                                }
+                            }}
                             className={cn(
                                 "w-full justify-start gap-3 h-10 font-medium transition-all duration-200",
-                                item.active
+                                activeTab === item.id
                                     ? "bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
                                     : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
                             )}
@@ -91,6 +101,73 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                         </div>
                     </div>
 
+                    {/* Seasonal Running Costs Summary */}
+                    <div className="mt-4 bg-slate-800/40 rounded-xl p-4 border border-slate-700/30">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                Est. Next Season Cost
+                            </span>
+                            <div className="p-1 bg-amber-500/10 rounded">
+                                <Coins className="h-3 w-3 text-amber-500" />
+                            </div>
+                        </div>
+
+                        {(() => {
+                            // Fixed Costs (Maintenance)
+                            const fixedCosts = ownedInfrastructure.reduce((acc, infra) => acc + Number(infra.maintenanceCost), 0);
+
+                            // Variable Costs Estimate (simplified backend logic)
+                            const totalArea = parcels.reduce((acc, p) => acc + Number(p.size), 0);
+                            const hasOrganic = parcels.some(p => p.isOrganic);
+
+                            // Fertilizer cost estimation
+                            const fertCost = parcels.reduce((acc, p) => {
+                                return acc + (p.isOrganic ? (Number(p.size) * 3000) : (Number(p.size) * 1500));
+                            }, 0);
+
+                            // Organic certification fee
+                            const certFee = hasOrganic ? (totalArea < 5 ? 1500 : totalArea < 20 ? 1800 : 2500) : 0;
+
+                            const totalEst = fixedCosts + fertCost + certFee;
+
+                            return (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-baseline">
+                                        <span className="text-xl font-mono font-bold text-amber-400">
+                                            ${totalEst.toLocaleString()}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500">PLN</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between text-[10px]">
+                                            <span className="text-slate-500">Maintenance</span>
+                                            <span className="text-slate-300 font-mono">${fixedCosts.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px]">
+                                            <span className="text-slate-500">Ops (Fert/Cert)</span>
+                                            <span className="text-slate-300 font-mono">${(fertCost + certFee).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 pt-2 border-t border-slate-700/50 flex items-center gap-1.5 opacity-60">
+                                        <Zap className="h-2.5 w-2.5 text-amber-500/70" />
+                                        <span className="text-[9px] text-slate-500 leading-tight">
+                                            Charged automatically at season end
+                                        </span>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={onOpenFinancialReport}
+                                        className="w-full mt-3 bg-slate-900/50 border-slate-700 text-slate-300 hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-400 gap-2 h-8 text-[11px] font-bold"
+                                    >
+                                        <PieChart className="h-3 w-3" />
+                                        Financial Report
+                                    </Button>
+                                </div>
+                            );
+                        })()}
+                    </div>
+
                     <Button
                         variant="ghost"
                         size="sm"
@@ -107,10 +184,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
             <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 flex items-center justify-around px-2 z-50 safe-area-bottom">
                 {navItems.map((item) => (
                     <button
-                        key={item.label}
+                        key={item.id}
+                        onClick={() => {
+                            if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports') {
+                                onTabChange(item.id as any);
+                            }
+                        }}
                         className={cn(
                             "flex flex-col items-center justify-center p-2 rounded-lg transition-colors",
-                            item.active ? "text-rose-400" : "text-slate-500 hover:text-slate-300"
+                            activeTab === item.id ? "text-rose-400" : "text-slate-500 hover:text-slate-300"
                         )}
                     >
                         <item.icon className="h-5 w-5 mb-1" />
@@ -143,11 +225,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                         <nav className="space-y-4">
                             {navItems.map((item) => (
                                 <Button
-                                    key={item.label}
+                                    key={item.id}
                                     variant="ghost"
+                                    onClick={() => {
+                                        if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports') {
+                                            onTabChange(item.id as any);
+                                            onClose();
+                                        }
+                                    }}
                                     className={cn(
                                         "w-full justify-start gap-3 text-lg font-medium",
-                                        item.active ? "text-rose-400 bg-rose-500/10" : "text-slate-400"
+                                        activeTab === item.id ? "text-rose-400 bg-rose-500/10" : "text-slate-400"
                                     )}
                                 >
                                     <item.icon className="h-5 w-5" />

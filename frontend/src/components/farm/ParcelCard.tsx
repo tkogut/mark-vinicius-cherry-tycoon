@@ -10,7 +10,8 @@ import {
     Shovel,
     AlertCircle,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    ShieldCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -23,7 +24,7 @@ import { ParcelDetailsPanel } from './ParcelDetailsPanel';
 
 interface ParcelCardProps {
     parcel: CherryParcel;
-    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest', parcelId: string) => void;
+    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic', parcelId: string) => void;
     currentSeason?: any; // Season type from backend
 }
 
@@ -104,11 +105,22 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger>
-                                            <Badge variant="secondary" className="bg-green-900/50 text-green-400 hover:bg-green-900/70 border-green-800 text-[10px] px-1 h-5">
-                                                BIO
+                                            <Badge variant="secondary" className={cn(
+                                                "text-[10px] px-1.5 h-5 border shadow-sm transition-all",
+                                                parcel.organicCertified
+                                                    ? "bg-emerald-900/40 text-emerald-400 border-emerald-800/50"
+                                                    : "bg-amber-900/20 text-amber-500 border-amber-800/30 animate-pulse"
+                                            )}>
+                                                {parcel.organicCertified ? "BIO" : "BIO-CONV"}
                                             </Badge>
                                         </TooltipTrigger>
-                                        <TooltipContent><p>Certified Organic</p></TooltipContent>
+                                        <TooltipContent>
+                                            <p className="text-xs">
+                                                {parcel.organicCertified
+                                                    ? "Certified Organic (1.4x Premium)"
+                                                    : "Organic Conversion in Progress (Year 1/2)"}
+                                            </p>
+                                        </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
                             )}
@@ -177,7 +189,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                     <Droplets className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Water Parcel</TooltipContent>
+                            <TooltipContent>Water Parcel (200 PLN)</TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
 
@@ -232,7 +244,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                             </TooltipTrigger>
                             <TooltipContent>
                                 {canFertilize ? (
-                                    "Fertilize Soil"
+                                    "Fertilize Soil (Uses 1 Unit)"
                                 ) : (
                                     <div className="text-center">
                                         <div>Creation of stronger roots</div>
@@ -244,6 +256,31 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                         </div>
                                     </div>
                                 )}
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
+                    {/* Organic Conversion Button */}
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    className={cn(
+                                        "h-8 px-0 transition-all",
+                                        parcel.isOrganic ? "opacity-30 grayscale cursor-not-allowed" : "hover:bg-emerald-900/30 hover:text-emerald-400"
+                                    )}
+                                    disabled={parcel.isOrganic}
+                                    onClick={() => onAction('organic', parcel.id)}
+                                >
+                                    <ShieldCheck className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {parcel.isOrganic
+                                    ? (parcel.organicCertified ? "Already Certified" : "Already in Conversion")
+                                    : "Start Organic Conversion (5000 PLN fee)"}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

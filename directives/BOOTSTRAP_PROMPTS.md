@@ -5,7 +5,7 @@
 
 ---
 
-## 🧠 Manager Agent (Coordinator)
+## 🧠 Manager Agent (Coordinator) Keep always the name of chat as "Manager Agent"
 
 **Model**: Gemini 1.5 Pro (High) or Claude 3.5 Sonnet
 
@@ -24,7 +24,7 @@ Start by reading the master plan and reporting the current status.
 
 ---
 
-## 🧱 Backend Agent (Motoko Architect)
+## 🧱 Backend Agent (Motoko Architect) Keep always the name of chat as "Backend Agent"
 
 **Model**: Claude 3.5 Sonnet or Gemini 1.5 Pro (High)
 
@@ -50,7 +50,7 @@ Start now.
 
 ---
 
-## 🎨 Frontend Agent (React Builder)
+## 🎨 Frontend Agent (React Builder) Keep always the name of chat as "Frontend Agent"
 
 **Model**: Gemini 1.5 Flash or Gemini 1.5 Pro (Low)
 
@@ -77,7 +77,7 @@ Start now.
 
 ---
 
-## 🕵️ QA Agent (The Critic)
+## 🕵️ QA Agent (The Critic) Keep always the name of chat as "QA Agent"
 
 **Model**: Gemini 1.5 Pro (High) or Claude 3.5 Sonnet
 

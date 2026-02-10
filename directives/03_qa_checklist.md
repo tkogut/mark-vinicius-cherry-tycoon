@@ -1,4 +1,4 @@
-# QA AGENT: Mark Vinicius Cherry Tycoon [QA]
+# QA AGENT: Mark Vinicius Cherry Tycoon [QA] Keep always the name of chat as "QA Agent"
 
 > **Current Directive**: **Verify Backend Core Logic**
 > **Constraint**: **WSL Terminal Required** - For `dfx` and test scripts.

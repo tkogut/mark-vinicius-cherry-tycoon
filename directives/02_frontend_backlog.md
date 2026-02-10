@@ -1,5 +1,4 @@
-# FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]
-
+# FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]  
 > **Current Directive**: **Phase 2.5 - Polish & Phase 3 - UI Depth**
 > **Constraint**: **WSL Terminal Required** - For `dfx generate` and environment management.
 > **Last Updated**: 2026-02-08
@@ -16,6 +15,9 @@
 - [x] **Document Errors**: Report any runtime errors to Backend Agent
   - **RESOLVED**: JSON-RPC error (-32603) fixed by Backend Agent (changed `Time.Time` to `Nat`)
   - Backend redeployed, serialization verified, frontend integration working
+- [x] **Fix Missing Dependencies**:
+  - Found errors for `@radix-ui/react-tabs` and `@radix-ui/react-slider`
+  - Installed missing packages to fix build errors
 - [x] **Auth Layer**: Implement `useAuth` hook with `@dfinity/auth-client`.
 - [x] **Canister Integration**: 
     - [x] Run `dfx generate` (User) and copy declarations.
@@ -62,7 +64,8 @@
 - [ ] **Season Modifier**: Show how current season affects growth/yield
 
 ### 💰 Phase 4: Economy & Infrastructure (Future)
-- [ ] **Split Sales**: Create dedicated "Wholesale" and "Retail" UIs
+- [x] **Split Sales**: Create dedicated "Wholesale" and "Retail" UIs (Prototype in Frontend)
+- [ ] **Migrate Pricing Logic**: Move volume/saturation calculations to Backend for Multiplayer security
 - [ ] **Shop UI**: Create interface for buying Irrigation/Greenhouses
 - [x] **Disable Fertilize Button Outside Spring/Autumn**: ✅ COMPLETE - Improved UX
   - Checks `farm.currentSeason`

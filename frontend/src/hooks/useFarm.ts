@@ -294,6 +294,74 @@ export function useFarm() {
         },
     });
 
+    const startOrganicConversionMutation = useMutation({
+        mutationFn: async (parcelId: string) => {
+            console.log('[useFarm] startOrganicConversion called:', { parcelId });
+            if (!backendActor) {
+                console.warn('[useFarm] No backend actor for organic conversion');
+                throw new Error('Not authenticated');
+            }
+            const result = await backendActor.startOrganicConversion(parcelId);
+            if ('Err' in result) {
+                console.error('[useFarm] startOrganicConversion failed:', result.Err);
+                throw new Error(getErrorMessage(result.Err));
+            }
+            console.log('[useFarm] startOrganicConversion succeeded');
+            return result.Ok;
+        },
+        onSuccess: (message) => {
+            console.log('[useFarm] Invalidating farm query after organic conversion');
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Conversion Started",
+                description: message,
+                className: "bg-green-900 border-green-800 text-green-100",
+            });
+        },
+        onError: (error: Error) => {
+            console.error('[useFarm] Organic conversion mutation error:', error);
+            toast({
+                variant: "destructive",
+                title: "Conversion Failed",
+                description: error.message,
+            });
+        },
+    });
+
+    const upgradeInfrastructureMutation = useMutation({
+        mutationFn: async (infraType: string) => {
+            console.log('[useFarm] upgradeInfrastructure called:', { infraType });
+            if (!backendActor) {
+                console.warn('[useFarm] No backend actor for infrastructure upgrade');
+                throw new Error('Not authenticated');
+            }
+            const result = await backendActor.upgradeInfrastructure(infraType);
+            if ('Err' in result) {
+                console.error('[useFarm] upgradeInfrastructure failed:', result.Err);
+                throw new Error(getErrorMessage(result.Err));
+            }
+            console.log('[useFarm] upgradeInfrastructure succeeded');
+            return result.Ok;
+        },
+        onSuccess: (message) => {
+            console.log('[useFarm] Invalidating farm query after infrastructure upgrade');
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Upgrade Successful",
+                description: message,
+                className: "bg-amber-900 border-amber-800 text-amber-100",
+            });
+        },
+        onError: (error: Error) => {
+            console.error('[useFarm] Infrastructure upgrade mutation error:', error);
+            toast({
+                variant: "destructive",
+                title: "Upgrade Failed",
+                description: error.message,
+            });
+        },
+    });
+
     return {
         farm: farmQuery.data,
         isLoading: farmQuery.isLoading,
@@ -307,5 +375,7 @@ export function useFarm() {
         buyParcel: buyParcelMutation,
         advanceSeason: advanceSeasonMutation,
         sellCherries: sellCherriesMutation,
+        startOrganicConversion: startOrganicConversionMutation,
+        upgradeInfrastructure: upgradeInfrastructureMutation,
     };
 }

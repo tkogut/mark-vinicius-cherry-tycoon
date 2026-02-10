@@ -14,9 +14,19 @@ export function useMarketPrices() {
             if (!backendActor) {
                 throw new Error('Not authenticated');
             }
-            const prices = await backendActor.getMarketPrices();
-            console.log('[useMarketPrices] Received:', prices);
-            return prices;
+            // @ts-ignore - Backend returns Result but codegen expects MarketPrice. Runtime is Result.
+            const result = await backendActor.getMarketPrices() as { Ok: MarketPrice } | { Err: object };
+
+            if ('Ok' in result) {
+                console.log('[useMarketPrices] Received:', result.Ok);
+                return result.Ok;
+            } else if ('Err' in result) {
+                console.error('[useMarketPrices] Error:', result.Err);
+                throw new Error(JSON.stringify(result.Err));
+            }
+            // Fallback if structure is unexpected (e.g. actually matches codegen)
+            console.warn('[useMarketPrices] Unexpected structure:', result);
+            return result as unknown as MarketPrice;
         },
         enabled: !!backendActor,
         staleTime: 1000 * 60 * 5, // 5 minutes (prices change seasonally)

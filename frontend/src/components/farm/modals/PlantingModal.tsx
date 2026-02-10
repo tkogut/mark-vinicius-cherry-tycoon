@@ -18,13 +18,15 @@ interface PlantingModalProps {
     onClose: () => void;
     onConfirm: (amount: number) => Promise<void>;
     maxTrees: number; // e.g. based on parcel size or cash
+    userCash: bigint;
 }
 
 export const PlantingModal: React.FC<PlantingModalProps> = ({
     isOpen,
     onClose,
     onConfirm,
-    maxTrees
+    maxTrees,
+    userCash
 }) => {
     const [amount, setAmount] = useState<string>('');
     const [loading, setLoading] = useState(false);
@@ -104,6 +106,15 @@ export const PlantingModal: React.FC<PlantingModalProps> = ({
                             autoFocus
                         />
                     </div>
+
+                    {amount && !isNaN(parseInt(amount)) && (
+                        <div className="flex justify-between items-center px-4 py-2 bg-slate-950/50 rounded-lg border border-slate-800">
+                            <span className="text-xs text-slate-500 uppercase font-bold tracking-wider text-[10px]">Total Cost</span>
+                            <span className={`font-mono font-bold ${parseInt(amount) * 50 > Number(userCash) ? 'text-rose-500' : 'text-amber-400'}`}>
+                                ${(parseInt(amount) * 50).toLocaleString()} PLN
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter>

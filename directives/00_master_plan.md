@@ -1,7 +1,7 @@
 # MASTER PLAN: Mark Vinicius Cherry Tycoon [COORDINATOR]
 
-> **Current Status**: **CRITICAL: Phase 2.5 - Integration Verification**
-> **Current Focus**: Debugging core farming loop. All Phase 3 work paused.
+> **Current Status**: **Phase 2.5 - Integration Verification**
+> **Current Focus**: Phase 5 - Sports Management & Advanced Features. Phase 4 Backend Complete.
 > **Last Updated**: 2026-02-08
 
 ## High-Level Roadmap
@@ -23,11 +23,15 @@
 
 ### Phase 3: Surface the Simulation (Next)
 - [ ] **Frontend**: Display Soil Type, pH, and Fertility on Parcel Cards
-- [ ] **Backend**: Ensure `getPlayerFarm` returns all parcel attributes
+- [x] **Backend**: Ensure `getPlayerFarm` returns all parcel attributes
 - [ ] **UI**: Add tooltips explaining yield modifiers
 
-### Phase 4: Economy & Infrastructure (Future)
-- [ ] **Economy**: Split "Sell" into Wholesale (instant) vs Retail (market)
+### Phase 4: Economy & Infrastructure [DONE]
+- [x] GDD-compliant infrastructure types & costs
+- [x] Labor efficiency and quality modifiers
+- [x] Seasonal spoilage and storage protection
+- [x] Organic certification lifecycle & premiums
+- [x] **Server-Side Economy Logic**: Move volume penalty and saturation logic to backend (Multiplayer Prep)
 - [ ] **Infrastructure**: Implement Shop UI for Irrigation/Greenhouses
 
 
@@ -52,7 +56,7 @@
 
 | Domain | Assigned To | Current Directive File | Status |
 | :--- | :--- | :--- | :--- |
-| **Backend** | Backend Agent | `directives/01_backend_backlog.md` | **ACTIVE** - Verifying core functions work via CLI. |
+| **Backend** | Backend Agent | `directives/01_backend_backlog.md` | **ACTIVE** - Starting Phase 4: Market Saturation. |
 | **Frontend** | Frontend Agent | `directives/02_frontend_backlog.md` | **ACTIVE** - Debugging actor initialization and mutations. |
 | **QA** | QA Agent | `directives/03_qa_checklist.md` | **ACTIVE** - Running integration tests and documenting issues. |
 

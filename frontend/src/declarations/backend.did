@@ -28,15 +28,25 @@ type Season =
    Summer;
    Winter;
  };
-type Result_5 = 
+type Result_7 = 
  variant {
    Err: GameError;
    Ok: FarmOverview;
  };
-type Result_4 = 
+type Result_6 = 
  variant {
    Err: GameError;
    Ok: Inventory;
+ };
+type Result_5 = 
+ variant {
+   Err: GameError;
+   Ok: MarketPrice;
+ };
+type Result_4 = 
+ variant {
+   Err: GameError;
+   Ok: CherryParcel;
  };
 type Result_3 = 
  variant {
@@ -194,16 +204,17 @@ service : {
   _initializeAccessControlWithSecret: (userSecret: text) -> ();
   advanceSeason: (_weatherEvent: opt text) -> (Result);
   assignCallerUserRole: (user: principal, role: UserRole) -> ();
-  assignParcelToPlayer: (parcelId: text, playerId: text) -> (Result);
+  assignParcelToPlayer: (parcelId: text, recipient: principal) -> (Result);
   buyParcel: (parcelId: text, price: nat) -> (Result);
-  debugResetPlayer: () -> ();
+  debugResetPlayer: () -> (Result);
   fertilizeParcel: (parcelId: text, _fertilizerType: text) -> (Result);
   getCallerUserRole: () -> (UserRole) query;
   getCashBalance: () -> (Result_1) query;
-  getFarmOverview: () -> (Result_5) query;
+  getFarmOverview: () -> (Result_7) query;
   getGlobalSeason: () -> (nat) query;
-  getInventory: () -> (Result_4) query;
-  getMarketPrices: () -> (MarketPrice) query;
+  getInventory: () -> (Result_6) query;
+  getMarketPrices: () -> (Result_5) query;
+  getParcelDetails: (parcelId: text) -> (Result_4) query;
   getPlayerFarm: () -> (Result_3) query;
   getPlayerStats: () -> (Result_2) query;
   getTotalPlayers: () -> (nat) query;

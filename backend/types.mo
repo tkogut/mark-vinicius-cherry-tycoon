@@ -117,6 +117,27 @@ module {
     organicTreatments: Nat;  // natural treatments for organic farms
   };
 
+  public type SeasonReport = {
+    seasonNumber: Nat;
+    seasonName: Season;
+    
+    // Income Breakdown
+    retailRevenue: Nat;
+    wholesaleRevenue: Nat;
+    otherRevenue: Nat;
+    
+    // Cost Breakdown
+    maintenanceCosts: Nat;
+    operationalCosts: Nat; // watering, fertilizing, seeds
+    laborCosts: Nat;
+    certificationCosts: Nat;
+    
+    // Summary
+    totalRevenue: Nat;
+    totalCosts: Nat;
+    netProfit: Int;
+  };
+
   public type Statistics = {
     totalHarvested: Nat;     // lifetime kg
     totalSold: Nat;          // lifetime kg
@@ -125,6 +146,7 @@ module {
     seasonsPlayed: Nat;
     bestSeasonProfit: Nat;
     averageYieldPerHa: Float;
+    seasonalReports: [SeasonReport];
   };
 
   // ============================================================================

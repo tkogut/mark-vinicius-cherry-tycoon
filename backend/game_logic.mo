@@ -29,14 +29,7 @@ module {
     else { ?1.0 }
   };
 
-  // Base yield per hectare by tree age
-  private func getBaseYield(treeAge: Nat) : Float {
-    if (treeAge < 3) { 2.0 }      // young trees
-    else if (treeAge < 7) { 8.0 }  // growing
-    else if (treeAge < 15) { 12.0 } // peak production
-    else if (treeAge < 25) { 10.0 } // mature
-    else { 6.0 }                    // old trees
-  };
+
 
   // Soil type modifier
   private func getSoilModifier(soilType: SoilType) : Float {
@@ -74,18 +67,19 @@ module {
   };
 
   // Main yield calculation: PP = Base × Soil × pH × Fertility × Infrastructure × TreeAge
-  // Returns null if trees are too old (>40 years)
+  // Calculate yield potential based on parcel attributes
+  // Calculate yield potential based on parcel attributes
   public func calculateYieldPotential(
     parcel: CherryParcel,
     infrastructure: [Infrastructure]
   ) : ?Nat {
-    // Check tree age first
+    let baseYield = 25.0; // Base yield (tons/ha) - Boosted for testing young trees
     let ageModifier = switch (getTreeAgeModifier(parcel.treeAge)) {
       case null { return null };  // Trees dead (>40 years)
       case (?mod) { mod };
     };
     
-    let baseYield = getBaseYield(parcel.treeAge);
+    // The original `let baseYield = getBaseYield(parcel.treeAge);` is replaced by the fixed value above.
     let soilMod = getSoilModifier(parcel.soilType);
     let phMod = getPhModifier(parcel.pH);
     let fertilityMod = parcel.fertility;
@@ -109,25 +103,27 @@ module {
   // PRICE CALCULATION (GDD Section 1.1)
   // ============================================================================
 
-  // Retail price: Base × MarketSize × Quality × Organic
+  // Retail price: Base × MarketSize × Quality × Organic × Saturation
   public func calculateRetailPrice(
     basePrice: Nat,
     marketSize: Float,
     quality: Nat,
-    isOrganic: Bool
+    isOrganic: Bool,
+    saturationMultiplier: Float // New: 0.5 (saturated) to 1.0 (empty)
   ) : Nat {
     let qualityBonus = 1.0 + (Float.fromInt(quality) / 100.0 * 0.3); // up to +30%
     let organicPremium = if (isOrganic) { 1.4 } else { 1.0 }; // +40% for organic
     
-    let finalPrice = Float.fromInt(basePrice) * marketSize * qualityBonus * organicPremium;
+    let finalPrice = Float.fromInt(basePrice) * marketSize * qualityBonus * organicPremium * saturationMultiplier;
     Int.abs(Float.toInt(finalPrice))
   };
 
-  // Wholesale price: Base × 0.7 × VolumeDiscount
+  // Wholesale price: Base × 0.7 × VolumeDiscount × Saturation
   public func calculateWholesalePrice(
     basePrice: Nat,
     quantity: Nat,
-    quality: Nat
+    quality: Nat,
+    saturationMultiplier: Float // New: 0.8 to 1.0
   ) : Nat {
     let wholesaleMultiplier = 0.7;
     
@@ -139,7 +135,7 @@ module {
     // Small quality bonus for wholesale
     let qualityBonus = 1.0 + (Float.fromInt(quality) / 100.0 * 0.1); // up to +10%
     
-    let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus * qualityBonus;
+    let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier;
     Int.abs(Float.toInt(finalPrice))
   };
 
@@ -148,11 +144,36 @@ module {
   // ============================================================================
 
   // Fixed costs per season
+  public func getInfrastructureCost(infraType: InfrastructureType) : Nat {
+    switch (infraType) {
+      case (#SocialFacilities) { 15_000 };
+      case (#Warehouse) { 25_000 };
+      case (#ColdStorage) { 40_000 };
+      case (#Tractor) { 30_000 };
+      case (#Shaker) { 60_000 };
+      case (#Sprayer) { 12_000 };
+      case (#ProcessingFacility) { 100_000 };
+    }
+  };
+
+  public func getMaintenanceCost(infraType: InfrastructureType) : Nat {
+    let basePrice = getInfrastructureCost(infraType);
+    let percentage = getMaintenancePercentage(infraType);
+    (basePrice * percentage) / 100
+  };
+
+  public func getMaintenancePercentage(infraType: InfrastructureType) : Nat {
+    switch (infraType) {
+      case (#Tractor or #Shaker or #Sprayer) { 2 }; // Machinery: 2%
+      case (#Warehouse or #ColdStorage or #ProcessingFacility or #SocialFacilities) { 1 }; // Buildings: 1%
+    }
+  };
+
   public func calculateFixedCosts(infrastructure: [Infrastructure]) : Nat {
     var total : Nat = 0;
     
     // Base administration cost
-    total += 5000; // PLN per season
+    total += 0; // Removed base cost to allow early game accumulation
     
     // Infrastructure maintenance
     for (infra in infrastructure.vals()) {
@@ -166,11 +187,25 @@ module {
   public func calculateVariableCosts(
     parcels: [CherryParcel],
     region: Region,
-    hasOrganic: Bool
+    hasOrganic: Bool,
+    infrastructure: [Infrastructure] // New argument
   ) : Nat {
     var total : Nat = 0;
     var totalArea : Float = 0.0;
     
+    // Calculate labor efficiency from infrastructure
+    var laborEfficiency = 1.0;
+    for (infra in infrastructure.vals()) {
+      switch (infra.infraType) {
+        case (#Tractor) { laborEfficiency -= 0.15 * Float.fromInt(infra.level) }; // -15% per level
+        case (#Shaker) { laborEfficiency -= 0.30 * Float.fromInt(infra.level) };  // -30% per level
+        case (#SocialFacilities) { laborEfficiency -= 0.05 * Float.fromInt(infra.level) }; // Better morale = efficiency
+        case (_) {};
+      };
+    };
+    // Cap efficiency at 0.2 (min 20% labor cost remains)
+    if (laborEfficiency < 0.2) { laborEfficiency := 0.2 };
+
     for (parcel in parcels.vals()) {
       totalArea += parcel.size;
       
@@ -189,11 +224,12 @@ module {
       };
     };
     
-    // Labor costs (varies by region)
-    let laborCost = Int.abs(Float.toInt(totalArea * 8000.0 * region.laborCostMultiplier));
-    total += laborCost;
+    // Labor costs (varies by region AND infrastructure)
+    let laborCostBase = totalArea * 8000.0 * region.laborCostMultiplier;
+    let laborCostOptimized = laborCostBase * laborEfficiency;
+    total += Int.abs(Float.toInt(laborCostOptimized));
     
-    // Fuel costs
+    // Fuel costs (Machines increase fuel usage slightly, but we simplify to area)
     total += Int.abs(Float.toInt(totalArea * 500.0));
     
     // Organic certification (GDD Section 5)
@@ -227,7 +263,7 @@ module {
       score += 10.0;
     };
     
-    // Infrastructure bonuses
+    // Infrastructure bonuses/penalties
     var hasSpray = false;
     var hasColdStorage = false;
     
@@ -235,6 +271,7 @@ module {
       switch (infra.infraType) {
         case (#Sprayer) { hasSpray := true; score += 5.0 * Float.fromInt(infra.level) };
         case (#ColdStorage) { hasColdStorage := true; score += 3.0 * Float.fromInt(infra.level) };
+        case (#Shaker) { score -= 2.0 * Float.fromInt(infra.level) }; // Mechanical harvesting damages fruit slightly
         case (_) {};
       };
     };

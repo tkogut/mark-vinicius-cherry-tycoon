@@ -120,9 +120,13 @@ export type Result_2 = { 'Ok' : Statistics } |
   { 'Err' : GameError };
 export type Result_3 = { 'Ok' : PlayerFarm } |
   { 'Err' : GameError };
-export type Result_4 = { 'Ok' : Inventory } |
+export type Result_4 = { 'Ok' : CherryParcel } |
   { 'Err' : GameError };
-export type Result_5 = { 'Ok' : FarmOverview } |
+export type Result_5 = { 'Ok' : MarketPrice } |
+  { 'Err' : GameError };
+export type Result_6 = { 'Ok' : Inventory } |
+  { 'Err' : GameError };
+export type Result_7 = { 'Ok' : FarmOverview } |
   { 'Err' : GameError };
 export type Season = { 'Winter' : null } |
   { 'Autumn' : null } |
@@ -148,16 +152,17 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'advanceSeason' : ActorMethod<[[] | [string]], Result>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'assignParcelToPlayer' : ActorMethod<[string, string], Result>,
+  'assignParcelToPlayer' : ActorMethod<[string, Principal], Result>,
   'buyParcel' : ActorMethod<[string, bigint], Result>,
-  'debugResetPlayer' : ActorMethod<[], undefined>,
+  'debugResetPlayer' : ActorMethod<[], Result>,
   'fertilizeParcel' : ActorMethod<[string, string], Result>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCashBalance' : ActorMethod<[], Result_1>,
-  'getFarmOverview' : ActorMethod<[], Result_5>,
+  'getFarmOverview' : ActorMethod<[], Result_7>,
   'getGlobalSeason' : ActorMethod<[], bigint>,
-  'getInventory' : ActorMethod<[], Result_4>,
-  'getMarketPrices' : ActorMethod<[], MarketPrice>,
+  'getInventory' : ActorMethod<[], Result_6>,
+  'getMarketPrices' : ActorMethod<[], Result_5>,
+  'getParcelDetails' : ActorMethod<[string], Result_4>,
   'getPlayerFarm' : ActorMethod<[], Result_3>,
   'getPlayerStats' : ActorMethod<[], Result_2>,
   'getTotalPlayers' : ActorMethod<[], bigint>,

@@ -132,29 +132,34 @@ Each parcel has specific characteristics affecting production:
 - High (61-85%): 1.0× modifier
 - Very High (86-100%): 1.2× modifier
 
-**Infrastructure Upgrades**:
-- No infrastructure: 1.0× modifier
-- Basic irrigation: 1.15× modifier (25,000 PLN, 10 seasons lifespan)
-- Advanced irrigation + greenhouse: 1.35× modifier (105,000 PLN total)
-- Full automation: 1.5× modifier (255,000 PLN total, reduces labor costs by 30%)
+**Infrastructure Upgrades** (Realistic Polish Farming):
+- No infrastructure: 1.0× labor efficiency
+- **Social Facilities**: -5% labor cost (15,000 PLN, improves morale)
+- **Tractors**: -15% labor cost (30,000 PLN, reduces manual work)
+- **Shakers**: -30% labor cost + small quality penalty (60,000 PLN, mechanical harvest)
+- **Sprayers**: Increases Quality Score (12,000 PLN, disease protection)
+- **Cold Storage**: Reduces spoilage by 80% (40,000 PLN, keeps quality high)
+- **Warehouse**: Reduces spoilage by 20% (25,000 PLN, basic storage)
+- **Processing Facility**: Unlocks Processing sales (100,000 PLN, highest margin)
 
 **Yield Potential Formula**:
 \`\`\`
-PP = Base_Yield_ha × Soil_Modifier × pH_Modifier × Fertility_Modifier × Infrastructure_Modifier × Parcel_Size_ha
+PP = Base_Yield_ha × Soil_Modifier × pH_Modifier × Fertility_Modifier × Parcel_Size_ha
 \`\`\`
+*(Infrastructure now affects Costs and Quality instead of raw Yield multiplier)*
 
 Where:
 - Base_Yield_ha = 8,000 kg/ha (cherry orchards)
 - Parcel_Size_ha = 0.5 to 5.0 hectares
 
-**Example**: 2.0 ha parcel, gliniasta soil (1.0), pH 6.5 (1.0), high fertility (1.0), basic irrigation (1.15)
-→ PP = 8,000 × 1.0 × 1.0 × 1.0 × 1.15 × 2.0 = **18,400 kg per season**
+**Example**: 2.0 ha parcel, gliniasta soil (1.0), pH 6.5 (1.0), high fertility (1.0)
+→ PP = 8,000 × 1.0 × 1.0 × 1.0 × 2.0 = **16,000 kg per season**
 
 **Sales Strategies**:
 
 **Retail Sales** (unlocks at Level 5):
 - Price: 12 PLN/kg
-- Quality bonus: 1.0× to 1.5× based on parcel quality
+- Quality bonus: 1.0× to 1.5× based on parcel quality (Sprayers help here)
 - Capacity limit: 30% of yield maximum
 - Requires time investment (selling in batches)
 - Formula: \`Profit_Retail = (Yield × 12 PLN × Quality_Bonus) - Total_Costs\`
@@ -179,15 +184,17 @@ Where:
 - Fertilizer: 0.80 PLN
 - Pest control: 0.50 PLN
 - Water/irrigation: 0.40 PLN
-- Harvest labor: 1.20 PLN
+- Harvest labor: 1.20 PLN (Reduced by Tractors/Shakers/Social)
 - Packaging (retail only): +0.60 PLN
 - **Total: 2.90 PLN/kg (wholesale), 3.50 PLN/kg (retail)**
 
 **CAPEX** (Capital Expenditures):
-- Basic Irrigation: 25,000 PLN (10 seasons, +15% yield)
-- Greenhouse: 80,000 PLN (20 seasons, +20% yield, weather protection)
-- Automation: 150,000 PLN (15 seasons, +15% yield, -30% labor costs)
-- Storage Facility: 50,000 PLN (25 seasons, enables retail sales)
+- Sprayer: 12,000 PLN (Quality Boost)
+- Social Facilities: 15,000 PLN (Efficiency)
+- Warehouse: 25,000 PLN (Basic Storage)
+- Tractor: 30,000 PLN (Labor Reduction)
+- Cold Storage: 40,000 PLN (Advanced Storage)
+- Shaker: 60,000 PLN (Mass Harvest)
 - Tree Planting: 60,000 PLN/ha (400 trees/ha, 40 season lifespan, full production by Season 3)
 
 **Weather & Quality**:

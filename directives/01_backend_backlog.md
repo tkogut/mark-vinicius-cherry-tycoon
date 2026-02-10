@@ -1,6 +1,6 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Phase 2.5 - Verification & Phase 3 - Data Exposure**
+> **Current Directive**: **Phase 4 - Economy & Infrastructure**
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` commands in WSL terminal manually.
 > **Last Updated**: 2026-02-08
 
@@ -14,7 +14,7 @@
 - [x] **Test `sellCherries()`**: Verify cash increases
 - [x] **Add Debug Logging**: Add console output to each function for easier debugging
 - [x] **Document Parcel IDs**: Ensure parcel IDs are stable and documented for frontend use
-- [x] **Verify `assignParcelToPlayer`**: Implemented in `main.mo` (L834). `playerId` is correctly handled as `Text`. Verified via WSL tests.
+- [x] **Verify `assignParcelToPlayer`**: Updated to use `Principal` for recipient and implemented robust transfer logic (moving parcel between farms) to fix logic/type mismatch.
 - [x] **Verify Type Errors**: Verified consistency in `main.mo` (all use `#Ok`/`#Err`).
 - [x] **Verify `getMarketPrices`**: Returns valid data in manual test.
 - [x] **Verify `getFarmOverview`**: Returns valid data in manual test.
@@ -35,10 +35,19 @@
 ### Next Steps (Priority 2)
 - [x] **Implement `buyParcel(parcelId: Text, price: Nat)`**: Implemented in `main.mo` (L787).
 - [x] **Implement `sellCherries(quantity: Nat, type: Text)`**: Enhanced with average quality logic.
-### Phase 3: Surface Simulation Data (Next)
-- [ ] **API Update**: Ensure `Parcel` type in `main.mo` exposes `soilType`, `phLevel`, `fertility` publically
-- [ ] **View Function**: Create `getParcelDetails(parcelId)` if needed for detailed modifiers
-- [ ] **Logic**: Verify yield calculation uses these modifiers correctly
+### Phase 3: Surface Simulation Data (Complete)
+- [x] **API Update**: Ensure `Parcel` type in `main.mo` exposes `soilType`, `phLevel`, `fertility` publically (Verified: CherryParcel type exposes these)
+- [x] **View Function**: Create `getParcelDetails(parcelId)` for detailed modifiers (Implemented)
+- [x] **Logic**: Verify yield calculation uses these modifiers correctly (Verified in game_logic.mo)
+
+### Phase 4: Economy & Infrastructure (Complete)
+- [x] **Implement Market Saturation**: Track sales volume per region with **Time-Based Decay** (5000kg/h). Implemented in `main.mo`.
+- [x] **Implement Infrastructure Costs**: Refactor `upgradeInfrastructure` to support variable CAPEX per GDD (Tractors 30k, Shakers 60k, etc.).
+- [x] **Implement Infrastructure Effects**:
+    - `Tractor`/`Shaker`: Reduce `calculateVariableCosts` (Labor).
+    - `Sprayer`: Increase `calculateQualityScore` (Disease prevention).
+    - `Warehouse`/`ColdStorage`: Implement spoilage logic in `advanceSeason` (only allow carry-over if infra exists).
+- [x] **Update E2E Script**: Created `test_infrastructure_gdd.sh` to verify economy logic and spoilage.
 
 ### Next Steps (Priority 4)
 - [x] **Implement Stable Storage**: Use `preupgrade` and `postupgrade` hooks to persist `playerMap`, `parcelMap`. Verified.

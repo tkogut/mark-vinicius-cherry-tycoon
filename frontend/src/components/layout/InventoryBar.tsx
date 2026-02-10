@@ -5,10 +5,12 @@ import { cn } from '@/lib/utils';
 interface InventoryBarProps {
     cash: bigint;
     cherries: number;
+    organicCherries?: number;
     className?: string;
 }
 
-export const InventoryBar: React.FC<InventoryBarProps> = ({ cash, cherries, className }) => {
+export const InventoryBar: React.FC<InventoryBarProps> = ({ cash, cherries, organicCherries = 0, className }) => {
+    const totalCherries = cherries + organicCherries;
     return (
         <div className={cn(
             // Mobile: Fixed bottom, glassmorphism
@@ -33,15 +35,22 @@ export const InventoryBar: React.FC<InventoryBarProps> = ({ cash, cherries, clas
                 </div>
 
                 {/* Cherries Display */}
-                <div className="flex items-center gap-3 bg-slate-800/50 md:bg-slate-800 px-4 py-2 rounded-full border border-slate-700/50">
+                <div className="flex items-center gap-3 bg-slate-800/50 md:bg-slate-800 px-4 py-2 rounded-full border border-slate-700/50 relative">
                     <div className="p-1.5 bg-rose-500/10 rounded-full">
                         <Cherry className="h-4 w-4 text-rose-500" />
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Harvest</span>
-                        <span className="text-sm font-bold text-slate-100 font-mono">
-                            {cherries.toLocaleString()}
-                        </span>
+                        <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-bold text-slate-100 font-mono">
+                                {totalCherries.toLocaleString()}
+                            </span>
+                            {organicCherries > 0 && (
+                                <span className="text-[10px] text-emerald-500 font-bold">
+                                    BIO
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
 

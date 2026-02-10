@@ -73,9 +73,11 @@ persistent actor CherryTycoon {
 
   // Stable storage for upgrades
   private var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
+  private var stableSaturation : [(Text, (Nat, Int))] = [];
 
   system func preupgrade() {
     stablePlayerFarms := Iter.toArray(playerFarms.entries());
+    stableSaturation := Iter.toArray(regionalMarketSaturation.entries());
   };
 
   system func postupgrade() {
@@ -86,6 +88,62 @@ persistent actor CherryTycoon {
       Principal.hash
     );
     stablePlayerFarms := [];
+
+    regionalMarketSaturation := HashMap.fromIter<Text, (Nat, Int)>(
+      stableSaturation.vals(),
+      16,
+      Text.equal,
+      Text.hash
+    );
+    stableSaturation := [];
+  };
+
+  // Market Saturation (Phase 4)
+  // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
+  private flexible var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+    16, Text.equal, Text.hash
+  );
+
+  // Helper: Get decayed volume based on time passed
+  private func getDecayedVolume(regionName: Text) : Nat {
+    let (storedVol, lastTime) = switch (regionalMarketSaturation.get(regionName)) {
+      case null { (0, Time.now()) };
+      case (?v) { v };
+    };
+
+    if (storedVol == 0) return 0;
+
+    let now = Time.now();
+    let elapsedNs = now - lastTime;
+    // Decay rate: 5,000 kg per hour (approx 1.4 kg per second)
+    // 1 hour = 3,600,000,000,000 ns
+    let hoursPassed = elapsedNs / 3_600_000_000_000;
+    
+    // Only decay if at least 1 hour passed to avoid micro-calculations
+    if (hoursPassed < 1) return storedVol;
+
+    let decayAmount = Int.abs(hoursPassed) * 5_000;
+    
+    if (decayAmount >= storedVol) {
+      0
+    } else {
+      Int.abs((storedVol : Int) - decayAmount)
+    }
+  };
+
+  // Helper: Calculate saturation multiplier (1.0 -> 0.5 as volume increases)
+  private func getSaturationMultiplier(regionName: Text) : Float {
+    let currentVolume = getDecayedVolume(regionName);
+
+    // Saturation threshold: 100,000 kg per region
+    let threshold = 100_000.0;
+    
+    if (Float.fromInt(currentVolume) >= threshold) {
+      0.5 // Maximum saturation penalty
+    } else {
+      // Linear decay from 1.0 to 0.5
+      1.0 - ((Float.fromInt(currentVolume) / threshold) * 0.5)
+    }
   };
 
   // ============================================================================
@@ -160,6 +218,7 @@ persistent actor CherryTycoon {
         seasonsPlayed = 0;
         bestSeasonProfit = 0;
         averageYieldPerHa = 0.0;
+        seasonalReports = [];
       };
       currentSeason = #Spring;
       seasonNumber = 1;
@@ -206,6 +265,20 @@ persistent actor CherryTycoon {
         #Ok(overview)
       };
     }
+  };
+
+  // Get details for a specific parcel
+  public shared query({ caller }) func getParcelDetails(parcelId: Text) : async Result<CherryParcel, GameError> {
+     switch (playerFarms.get(caller)) {
+       case null { #Err(#NotFound("Player not found")) };
+       case (?farm) {
+         let (parcelOpt, _) = findParcelIndex(farm.parcels, parcelId);
+         switch (parcelOpt) {
+           case null { #Err(#NotFound("Parcel not found")) };
+           case (?parcel) { #Ok(parcel) };
+         };
+       };
+     }
   };
 
   // DEBUG ONLY: Reset player state
@@ -355,10 +428,22 @@ persistent actor CherryTycoon {
               }
             );
 
+            let updatedStats = updateSeasonalReport(farm, func(r) = {
+              { r with 
+                operationalCosts = r.operationalCosts + waterCost;
+                totalCosts = r.totalCosts + waterCost;
+                netProfit = r.netProfit - (waterCost : Int);
+              }
+            });
+
             let updatedFarm = {
               farm with
               parcels = updatedParcels;
               cash = Int.abs((farm.cash : Int) - (waterCost : Int));
+              statistics = { farm.statistics with 
+                totalCosts = farm.statistics.totalCosts + waterCost;
+                seasonalReports = updatedStats.seasonalReports;
+              };
             };
 
             playerFarms.put(caller, updatedFarm);
@@ -434,6 +519,60 @@ persistent actor CherryTycoon {
     }
   };
 
+  // Start organic conversion for a parcel (Takes 2 seasons)
+  public shared({ caller }) func startOrganicConversion(
+    parcelId: Text
+  ) : async Result<Text, GameError> {
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
+
+        switch (indexOpt) {
+          case null { return #Err(#NotFound("Parcel not found")) };
+          case (?index) {
+            let parcel = farm.parcels[index];
+            
+            if (parcel.isOrganic or parcel.organicCertified) {
+              return #Err(#InvalidOperation("Parcel is already organic or in conversion"));
+            };
+
+            // Certification cost (GDD Section 5)
+            let conversionCost = 5000; // PLN initial fee
+            if (farm.cash < conversionCost) {
+              return #Err(#InsufficientFunds { required = conversionCost; available = farm.cash });
+            };
+
+            let updatedParcels = Array.tabulate<CherryParcel>(
+              farm.parcels.size(),
+              func(i: Nat) : CherryParcel {
+                if (i == index) {
+                  {
+                    parcel with
+                    isOrganic = true;
+                    organicConversionSeason = farm.seasonNumber;
+                    organicCertified = false;
+                  }
+                } else {
+                  farm.parcels[i]
+                }
+              }
+            );
+
+            let updatedFarm = {
+              farm with
+              parcels = updatedParcels;
+              cash = Int.abs((farm.cash : Int) - (conversionCost : Int));
+            };
+
+            playerFarms.put(caller, updatedFarm);
+            #Ok("Organic conversion started successfully (Certification takes 2 seasons)")
+          };
+        };
+      };
+    }
+  };
+
   // Plant trees on a parcel
   public shared({ caller }) func plantTrees(
     parcelId: Text,
@@ -484,10 +623,22 @@ persistent actor CherryTycoon {
             let newXp = farm.experience + xpGain;
             let newLevel = GameLogic.getLevelFromExperience(newXp);
 
+            let updatedSeasonStats = updateSeasonalReport(farm, func(r) = {
+              { r with 
+                operationalCosts = r.operationalCosts + totalCost;
+                totalCosts = r.totalCosts + totalCost;
+                netProfit = r.netProfit - (totalCost : Int);
+              }
+            });
+
             let updatedFarm = {
               farm with
               parcels = updatedParcels;
               cash = Int.abs((farm.cash : Int) - (totalCost : Int));
+              statistics = { farm.statistics with 
+                totalCosts = farm.statistics.totalCosts + totalCost;
+                seasonalReports = updatedSeasonStats.seasonalReports;
+              };
               experience = newXp;
               level = newLevel;
             };
@@ -513,11 +664,31 @@ persistent actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        if (farm.inventory.cherries < quantity) {
-          return #Err(#InvalidOperation("Insufficient cherries in inventory"));
+        let totalAvailable = farm.inventory.cherries + farm.inventory.organicCherries;
+        if (totalAvailable < quantity) {
+          return #Err(#InvalidOperation("Insufficient cherries in inventory. Total available: " # Nat.toText(totalAvailable)));
         };
 
-        // Calculate price based on sale type
+        // Determine Region (Use first parcel's region as primary market)
+        let regionName = if (farm.parcels.size() > 0) {
+          farm.parcels[0].region.province
+        } else {
+          #Opolskie // Default fallback
+        };
+        // Convert variant to text for map key
+        let regionKey = debug_show(regionName);
+
+        // Calculate Saturation Multiplier
+        let saturationMult = getSaturationMultiplier(regionKey);
+
+        // Check for organic certification (per GDD: if any harvested parcel was organic, or based on inventory)
+        // For simplicity, we check if the player has any organic-certified parcels
+        var hasOrganicCertified = false;
+        for (p in farm.parcels.vals()) {
+           if (p.organicCertified) { hasOrganicCertified := true };
+        };
+
+        // Calculate price based on sale type and saturation
         let pricePerKg = if (saleType == "retail") {
           // Calculate average quality score across all parcels
           var totalQuality = 0;
@@ -530,24 +701,57 @@ persistent actor CherryTycoon {
           
           GameLogic.calculateRetailPrice(
             baseRetailPrice,
-            0.8, // market size
+            if (farm.parcels.size() > 0) farm.parcels[0].region.marketSize else 0.8,
             avgQuality,
-            false // TODO: check if any parcels are organic
+            hasOrganicCertified,
+            saturationMult
           )
         } else {
           GameLogic.calculateWholesalePrice(
             baseWholesalePrice,
             quantity,
-            60 // average quality
+            60, // average quality
+            saturationMult
           )
         };
 
         let revenue = quantity * pricePerKg;
 
+        // Update Market Saturation (add quantity sold to decayed volume)
+        let decayedVol = getDecayedVolume(regionKey);
+        let newVolume = decayedVol + quantity;
+        regionalMarketSaturation.put(regionKey, (newVolume, Time.now()));
+
         // Update inventory and statistics
+        var remainingToDeduct = quantity;
+        var newOrganic = farm.inventory.organicCherries;
+        var newRegular = farm.inventory.cherries;
+
+        // Prioritize organic if selling as organic, otherwise prioritize regular
+        if (hasOrganicCertified) {
+           if (newOrganic >= remainingToDeduct) {
+              newOrganic := Int.abs((newOrganic : Int) - (remainingToDeduct : Int));
+              remainingToDeduct := 0;
+           } else {
+              remainingToDeduct := Int.abs((remainingToDeduct : Int) - (newOrganic : Int));
+              newOrganic := 0;
+              newRegular := Int.abs((newRegular : Int) - (remainingToDeduct : Int));
+           };
+        } else {
+           if (newRegular >= remainingToDeduct) {
+              newRegular := Int.abs((newRegular : Int) - (remainingToDeduct : Int));
+              remainingToDeduct := 0;
+           } else {
+              remainingToDeduct := Int.abs((remainingToDeduct : Int) - (newRegular : Int));
+              newRegular := 0;
+              newOrganic := Int.abs((newOrganic : Int) - (remainingToDeduct : Int));
+           };
+        };
+
         let updatedInventory = {
           farm.inventory with
-          cherries = Int.abs((farm.inventory.cherries : Int) - (quantity : Int));
+          cherries = newRegular;
+          organicCherries = newOrganic;
         };
 
         let updatedStats = {
@@ -561,10 +765,24 @@ persistent actor CherryTycoon {
         let newXp = farm.experience + xpGain;
         let newLevel = GameLogic.getLevelFromExperience(newXp);
 
+        let isRetail = saleType == "retail";
+        let updatedSeasonStats = updateSeasonalReport(farm, func(r) = {
+          let newRetail = if (isRetail) r.retailRevenue + revenue else r.retailRevenue;
+          let newWholesale = if (not isRetail) r.wholesaleRevenue + revenue else r.wholesaleRevenue;
+          { r with 
+            retailRevenue = newRetail;
+            wholesaleRevenue = newWholesale;
+            totalRevenue = r.totalRevenue + revenue;
+            netProfit = r.netProfit + (revenue : Int);
+          }
+        });
+
         let updatedFarm = {
           farm with
           inventory = updatedInventory;
-          statistics = updatedStats;
+          statistics = { updatedStats with 
+            seasonalReports = updatedSeasonStats.seasonalReports;
+          };
           cash = farm.cash + revenue;
           experience = newXp;
           level = newLevel;
@@ -604,32 +822,49 @@ persistent actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
+        // Check for organic parcels and update certification status
+        var anyOrganicCount = 0;
+        let updatedParcels = Array.tabulate<CherryParcel>(
+          farm.parcels.size(),
+          func(i: Nat) : CherryParcel {
+            let p = farm.parcels[i];
+            
+            // Check if certification is complete (2 seasons)
+            let isCertifiedNow = if (p.isOrganic and not p.organicCertified) {
+              if (farm.seasonNumber >= p.organicConversionSeason + 1) { true }
+              else { false };
+            } else { p.organicCertified };
+
+            if (p.isOrganic or isCertifiedNow) { anyOrganicCount += 1 };
+
+            // Age trees by 1 year every 4 seasons
+            let shouldAgeTrees = (farm.seasonNumber + 1) % 4 == 0;
+            let newAge = if (shouldAgeTrees) { p.treeAge + 1 } else { p.treeAge };
+
+            { 
+              p with 
+              organicCertified = isCertifiedNow;
+              treeAge = newAge;
+              waterLevel = p.waterLevel * 0.7; // water depletes
+            }
+          }
+        );
+
+        let hasAnyOrganic = anyOrganicCount > 0;
+
         // Calculate costs for the season
         let fixedCosts = GameLogic.calculateFixedCosts(farm.infrastructure);
         let variableCosts = GameLogic.calculateVariableCosts(
-          farm.parcels,
-          farm.parcels[0].region,
-          false // TODO: check if has organic parcels
+          updatedParcels,
+          updatedParcels[0].region,
+          hasAnyOrganic,
+          farm.infrastructure
         );
         let totalCosts = fixedCosts + variableCosts;
 
         if (farm.cash < totalCosts) {
           return #Err(#InsufficientFunds { required = totalCosts; available = farm.cash });
         };
-
-        // Age trees by 1 year every 4 seasons
-        let shouldAgeTrees = (farm.seasonNumber + 1) % 4 == 0;
-        
-        let updatedParcels = Array.map<CherryParcel, CherryParcel>(
-          farm.parcels,
-          func(parcel: CherryParcel) : CherryParcel {
-            {
-              parcel with
-              treeAge = if (shouldAgeTrees) { parcel.treeAge + 1 } else { parcel.treeAge };
-              waterLevel = parcel.waterLevel * 0.7; // water depletes
-            }
-          }
-        );
 
         // Advance season
         let nextSeason = switch (farm.currentSeason) {
@@ -639,10 +874,62 @@ persistent actor CherryTycoon {
           case (#Winter) { #Spring };
         };
 
+        // Spoilage Logic (Phase 4)
+        // Check for Cold Storage / Warehouse to prevent rotting in Winter
+        var spoiledCherries : Nat = 0;
+        
+        // Use Iter to check for infrastructure presence
+        // We use variables because we need to iterate once
+        var hasColdStorage = false;
+        var hasWarehouse = false;
+        
+        for (infra in farm.infrastructure.vals()) {
+           switch (infra.infraType) {
+             case (#ColdStorage) { hasColdStorage := true };
+             case (#Warehouse) { hasWarehouse := true };
+             case (_) {};
+           };
+        };
+
+        if (farm.currentSeason == #Autumn) {
+           if (not hasColdStorage and not hasWarehouse) {
+              // 100% spoilage without any storage
+              spoiledCherries := farm.inventory.cherries;
+           } else if (hasWarehouse and not hasColdStorage) {
+              // 80% spoilage with just basic warehouse
+              spoiledCherries := (farm.inventory.cherries * 80) / 100;
+           } else {
+              // 20% spoilage with Cold Storage
+              spoiledCherries := (farm.inventory.cherries * 20) / 100;
+           };
+        };
+        
+        let newCherries = if (farm.inventory.cherries >= spoiledCherries) {
+           Int.abs((farm.inventory.cherries : Int) - (spoiledCherries : Int))
+        } else { 0 };
+        
+        let updatedInventory = {
+           farm.inventory with
+           cherries = newCherries;
+        };
+
+        let currentSeasonName = farm.currentSeason;
+        let currentSeasonNum = farm.seasonNumber;
+        
+        let updatedSeasonStats = updateSeasonalReport(farm, func(r) = {
+          { r with 
+            maintenanceCosts = fixedCosts;
+            laborCosts = variableCosts; // simplified variableCosts as labor/ops
+            totalCosts = r.totalCosts + fixedCosts + variableCosts;
+            netProfit = r.netProfit - ((fixedCosts + variableCosts) : Int);
+          }
+        });
+
         let updatedStats = {
           farm.statistics with
           totalCosts = farm.statistics.totalCosts + totalCosts;
           seasonsPlayed = farm.statistics.seasonsPlayed + 1;
+          seasonalReports = updatedSeasonStats.seasonalReports;
         };
 
         let updatedFarm = {
@@ -651,6 +938,7 @@ persistent actor CherryTycoon {
           seasonNumber = farm.seasonNumber + 1;
           cash = Int.abs((farm.cash : Int) - (totalCosts : Int));
           parcels = updatedParcels;
+          inventory = updatedInventory;
           statistics = updatedStats;
         };
 
@@ -668,12 +956,6 @@ persistent actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        let cost = 10000; // Base cost for infrastructure
-        
-        if (farm.cash < cost) {
-          return #Err(#InsufficientFunds { required = cost; available = farm.cash });
-        };
-
         // Parse infrastructure type
         let infraTypeOpt : ?InfrastructureType = switch (infraTypeString) {
           case ("SocialFacilities") { ?#SocialFacilities };
@@ -691,12 +973,18 @@ persistent actor CherryTycoon {
           case (null) { return #Err(#InvalidOperation("Invalid infrastructure type: " # infraTypeString)) };
         };
 
+        let cost = GameLogic.getInfrastructureCost(infraType);
+        
+        if (farm.cash < cost) {
+          return #Err(#InsufficientFunds { required = cost; available = farm.cash });
+        };
+
         // Create new infrastructure
         let newInfra : Infrastructure = {
           infraType = infraType;
           level = 1;
           purchasedSeason = farm.seasonNumber;
-          maintenanceCost = 500;
+          maintenanceCost = GameLogic.getMaintenanceCost(infraType);
         };
 
         let updatedInfrastructure = Array.append<Infrastructure>(
@@ -809,10 +1097,22 @@ persistent actor CherryTycoon {
         
         let updatedParcels = Array.append(farm.parcels, [newParcel]);
         
+        let updatedStats = updateSeasonalReport(farm, func(r) = {
+          { r with 
+            certificationCosts = r.certificationCosts + cost;
+            totalCosts = r.totalCosts + cost;
+            netProfit = r.netProfit - (cost : Int);
+          }
+        });
+
         let updatedFarm = {
           farm with
           parcels = updatedParcels;
           cash = Int.abs((farm.cash : Int) - (cost : Int));
+          statistics = { farm.statistics with 
+            totalCosts = farm.statistics.totalCosts + cost;
+            seasonalReports = updatedStats.seasonalReports;
+          };
         };
         
         playerFarms.put(caller, updatedFarm);
@@ -890,94 +1190,116 @@ persistent actor CherryTycoon {
         #Ok("Successfully bought parcel " # parcelId)
       };
     }
+  // Financial Report Helpers
+  private func getOrCreateReport(reports: [SeasonReport], seasonNumber: Nat, seasonName: Season) : ([SeasonReport], Nat) {
+    var updatedReports = Array.toBuffer<SeasonReport>(reports);
+    var targetIndex : ?Nat = null;
+    
+    for (i in Iter.range(0, updatedReports.size() - 1)) {
+      if (updatedReports.get(i).seasonNumber == seasonNumber) {
+        targetIndex := ?i;
+      };
+    };
+    
+    switch (targetIndex) {
+      case (?index) { (Array.fromBuffer(updatedReports), index) };
+      case null {
+        let newReport : SeasonReport = {
+          seasonNumber = seasonNumber;
+          seasonName = seasonName;
+          retailRevenue = 0;
+          wholesaleRevenue = 0;
+          otherRevenue = 0;
+          maintenanceCosts = 0;
+          operationalCosts = 0;
+          laborCosts = 0;
+          certificationCosts = 0;
+          totalRevenue = 0;
+          totalCosts = 0;
+          netProfit = 0;
+        };
+        updatedReports.add(newReport);
+        (Array.fromBuffer(updatedReports), updatedReports.size() - 1)
+      };
+    };
   };
 
-  // Start organic conversion (from Caffeine AI)
-  public shared({ caller }) func startOrganicConversion(
-    parcelId: Text
-  ) : async Result<Text, GameError> {
+  private func updateSeasonalReport(
+    farm: PlayerFarm,
+    updateFn: (SeasonReport) -> SeasonReport
+  ) : Statistics {
+    let (reports, index) = getOrCreateReport(farm.statistics.seasonalReports, farm.seasonNumber, farm.currentSeason);
+    let updatedReport = updateFn(reports[index]);
     
-    switch (playerFarms.get(caller)) {
-      case null { return #Err(#NotFound("Player not found")) };
-      case (?farm) {
-        
-        let (parcelOpt, indexOpt) = findParcelIndex(farm.parcels, parcelId);
-        
-        switch (parcelOpt, indexOpt) {
-          case (null, _) { return #Err(#NotFound("Parcel not found")) };
-          case (?parcel, ?index) {
-            
-            if (parcel.isOrganic) {
-              return #Err(#AlreadyExists("Parcel is already in organic conversion"));
-            };
-            
-            let updatedParcel = {
-              parcel with
-              isOrganic = true;
-              organicConversionSeason = farm.seasonNumber;
-            };
-            
-            let updatedParcels = Array.tabulate<CherryParcel>(
-              farm.parcels.size(),
-              func(i: Nat) : CherryParcel {
-                if (i == index) { updatedParcel } else { farm.parcels[i] }
-              }
-            );
-            
-            let updatedFarm = {
-              farm with
-              parcels = updatedParcels;
-            };
-            
-            playerFarms.put(caller, updatedFarm);
-            #Ok("Organic conversion started. Certification will be granted after 2 seasons.")
-          };
-          case (?_, null) { return #Err(#NotFound("Parcel not found")) };
-        };
-      };
-    }
+    let finalReports = Array.tabulate<SeasonReport>(reports.size(), func(i) {
+      if (i == index) updatedReport else reports[i]
+    });
+    
+    { farm.statistics with seasonalReports = finalReports }
   };
+
+
 
   // Assign a parcel to a player (GDD Section 1)
   public shared({ caller }) func assignParcelToPlayer(
     parcelId: Text,
-    playerId: Text
+    recipient: Principal
   ) : async Result<Text, GameError> {
     
-    switch (playerFarms.get(caller)) {
-      case null { return #Err(#NotFound("Player not found")) };
-      case (?farm) {
+    // 1. Get Caller Farm (Sender)
+    let callerFarm = switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Caller farm not found")) };
+      case (?f) { f };
+    };
+
+    // 2. Get Recipient Farm
+    let recipientFarm = switch (playerFarms.get(recipient)) {
+      case null { return #Err(#NotFound("Recipient farm not found")) };
+      case (?f) { f };
+    };
+
+    // 3. Find Parcel in Caller Farm
+    let (parcelOpt, indexOpt) = findParcelIndex(callerFarm.parcels, parcelId);
+    
+    switch (parcelOpt, indexOpt) {
+      case (null, _) { return #Err(#NotFound("Parcel not found in caller's farm")) };
+      case (?parcel, ?_) {
         
-        let (parcelOpt, indexOpt) = findParcelIndex(farm.parcels, parcelId);
-        
-        switch (parcelOpt, indexOpt) {
-          case (null, _) { return #Err(#NotFound("Parcel not found")) };
-          case (?parcel, ?index) {
-            
-            let updatedParcel = {
-              parcel with
-              ownerId = playerId;
-            };
-            
-            let updatedParcels = Array.tabulate<CherryParcel>(
-              farm.parcels.size(),
-              func(i: Nat) : CherryParcel {
-                if (i == index) { updatedParcel } else { farm.parcels[i] }
-              }
-            );
-            
-            let updatedFarm = {
-              farm with
-              parcels = updatedParcels;
-            };
-            
-            playerFarms.put(caller, updatedFarm);
-            #Ok("Parcel " # parcelId # " assigned to player " # playerId # " successfully")
-          };
-          case (?_, null) { return #Err(#NotFound("Parcel not found")) };
+        // 4. Remove from Caller Farm
+        let newCallerParcels = Iter.toArray(
+          Iter.filter(
+            callerFarm.parcels.vals(),
+            func(p : CherryParcel) : Bool { p.id != parcelId }
+          )
+        );
+
+        let updatedCallerFarm = {
+          callerFarm with
+          parcels = newCallerParcels;
         };
+        
+        // 5. Update Parcel Ownership
+        let updatedParcel = {
+          parcel with
+          ownerId = recipientFarm.playerId;
+        };
+        
+        // 6. Add to Recipient Farm
+        let newRecipientParcels = Array.append(recipientFarm.parcels, [updatedParcel]);
+        
+        let updatedRecipientFarm = {
+          recipientFarm with
+          parcels = newRecipientParcels;
+        };
+        
+        // 7. Commit Changes
+        playerFarms.put(caller, updatedCallerFarm);
+        playerFarms.put(recipient, updatedRecipientFarm);
+        
+        #Ok("Parcel " # parcelId # " assigned to player " # recipientFarm.playerId # " successfully")
       };
-    }
+      case (?_, null) { return #Err(#NotFound("Parcel not found")) };
+    };
   };
 
   // ============================================================================

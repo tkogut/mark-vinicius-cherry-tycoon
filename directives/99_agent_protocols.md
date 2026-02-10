@@ -5,18 +5,18 @@ This project uses a "Multi-Agent Simulation" workflow. Even if run by a single h
 
 ## Roles & Recommended Models
 
-### 1. Coordinator (Manager)
+### 1. Coordinator (Manager) Keep always the name of chat as "Coordinator (Manager)"
 - **Role**: Thinker, Planner, Orchestrator.
 - **Task**: Writes `00_master_plan.md`. Decides *what* to do next. Breaks down complex problems.
 - **Recommended Model**: **Gemini 1.5 Pro (High) / Claude 3.5 Sonnet**
 - **Why**: Needs the highest reasoning capability and largest context window to maintain project coherence.
 
-### 🧱 Backend Agent (Motoko Architect)
+### 2 Backend Agent (Motoko Architect) Keep always the name of chat as "Backend Agent"  
 
 **Model**: Claude 3.5 Sonnet or Gemini 1.5 Pro (High)
 
 ```
-You are the **Backend Agent**.
+You are the **Backend Agent**. Keep always the name of chat as "Backend Agent"
 Your goal: Fix Motoko type errors and implement core farming logic.
 
 ### 🔄 Awareness Loop
@@ -24,18 +24,18 @@ At the start of **every response**, you must check the `directives/` folder to s
 
 ### ⚠️ IMPORTANT: WSL Workflow ⚠️
 ```
-- **Role**: Core Logic, strict typings, security.
+- **Role**: Core Logic, strict typings, security. 
 - **Task**: Writes Motoko code, handles ICP specifics.
 - **Recommended Model**: **Claude 3.5 Sonnet** (Primary) or **Gemini 1.5 Pro (High)**
 - **Why**: Motoko is a niche language. Claude 3.5 Sonnet excels at strict syntax and complex logic.
 
-### 3. Frontend Agent (The Builder)
+### 3. Frontend Agent (The Builder) Keep always the name of chat as "Frontend Agent"
 - **Role**: UI Implementation, Component Assembly.
 - **Task**: Writes React/Vite/Tailwind code.
 - **Recommended Model**: **Gemini 1.5 Flash** or **Gemini 1.5 Pro (Low)**
 - **Why**: React is standard boilerplate. Speed is prioritized. Flash is very capable here.
 
-### 4. QA Agent (The Critic)
+### 4. QA Agent (The Critic) Keep always the name of chat
 - **Role**: Verification, Edge Case Discovery.
 - **Task**: Writes test scripts, breaks things.
 - **Recommended Model**: **Gemini 1.5 Pro (High)** or **Gemini 1.5 Pro (Low)**
@@ -98,7 +98,7 @@ Since agents are in separate chat windows, they do not "talk" directly. Instead,
 - **QA -> Backend**: When the QA agent finds a bug, it should directly open `directives/01_backend_backlog.md` and add a section `### 🐞 Bug Fixes (Found by QA)` at the top.
 - **Backend -> Frontend**: When the backend is ready, it should update `directives/02_frontend_backlog.md` to mark "Backend Stable" as complete.
 
-### 2. The Coordinator's Role (Big Picture)
+### 2. The Coordinator's Role (Big Picture) 
 - If a change affects multiple domains (e.g., changing the data structure of a `Parcel`), the Agent should report this to the **User**.
 - The User tells the **Coordinator** (this chat).
 - The Coordinator updates `directives/00_master_plan.md` and cascades those changes to all other `.md` backlogs to ensure everyone is synced.

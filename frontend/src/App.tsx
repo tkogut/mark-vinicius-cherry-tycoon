@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User } from "lucide-react"
+import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Trophy, Coins, Zap } from "lucide-react"
 import React, { useState } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/context/AuthContext"
@@ -8,11 +8,13 @@ import { Sidebar } from "@/components/layout/Sidebar"
 import { FarmGrid } from "@/components/farm/FarmGrid"
 import { PlantingModal } from "@/components/farm/modals/PlantingModal"
 import { SellModal } from '@/components/farm/modals/SellModal';
+import { Marketplace } from '@/components/farm/Marketplace';
 import { Toaster } from "@/components/ui/toaster"
 import { InventoryBar } from "@/components/layout/InventoryBar"
 import { useFarm } from "@/hooks/useFarm"
 import { SeasonDisplay } from "@/components/season/SeasonDisplay"
 import { AdvanceSeasonButton } from "@/components/season/AdvanceSeasonButton"
+import { FinancialReportModal } from "@/components/farm/modals/FinancialReportModal"
 
 function App() {
     const { isAuthenticated } = useAuth();
@@ -20,12 +22,16 @@ function App() {
     const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null);
     const [plantingModalOpen, setPlantingModalOpen] = useState(false);
     const [sellModalOpen, setSellModalOpen] = useState(false);
+    const [financialReportOpen, setFinancialReportOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports'>('dashboard');
 
-    const { farm, isLoading, refetch, plant, water, fertilize, harvest, buyParcel, advanceSeason, sellCherries } = useFarm();
+    const { farm, isLoading, refetch, plant, water, fertilize, harvest, buyParcel, advanceSeason, sellCherries, startOrganicConversion, upgradeInfrastructure } = useFarm();
 
     // Derived state
     const stats = {
-        totalCherries: farm ? Number(farm.inventory.cherries) : 0,
+        totalCherries: farm ? Number(farm.inventory.cherries) + Number(farm.inventory.organicCherries) : 0,
+        organicCherries: farm ? Number(farm.inventory.organicCherries) : 0,
+        regularCherries: farm ? Number(farm.inventory.cherries) : 0,
         activeParcels: farm ? farm.parcels.length : 0,
         productionRate: 0,
         level: farm ? Number(farm.level) : 1,
@@ -38,7 +44,7 @@ function App() {
 
     const parcels = farm ? farm.parcels : [];
 
-    const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest', parcelId: string) => {
+    const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic', parcelId: string) => {
         if (action === 'plant') {
             setSelectedParcelId(parcelId);
             setPlantingModalOpen(true);
@@ -53,6 +59,8 @@ function App() {
             // Default to NPK fertilizer for quick action
             // TODO: Add fertilizer selection modal
             fertilize.mutate({ parcelId, fertilizerType: "NPK" });
+        } else if (action === 'organic') {
+            startOrganicConversion.mutate(parcelId);
         }
     };
 
@@ -104,6 +112,7 @@ function App() {
                 onClose={() => setPlantingModalOpen(false)}
                 onConfirm={handlePlantConfirm}
                 maxTrees={maxPlantable}
+                userCash={stats.cash}
             />
             <SellModal
                 isOpen={sellModalOpen}
@@ -116,7 +125,8 @@ function App() {
             {/* Mobile Inventory Bar (Fixed Bottom) */}
             <InventoryBar
                 cash={stats.cash}
-                cherries={stats.totalCherries}
+                cherries={stats.regularCherries}
+                organicCherries={stats.organicCherries}
                 className="md:hidden"
             />
 
@@ -126,6 +136,17 @@ function App() {
                 level={stats.level}
                 xp={stats.xp}
                 nextLevelXp={stats.nextLevelXp}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                ownedInfrastructure={farm?.infrastructure || []}
+                parcels={farm?.parcels || []}
+                onOpenFinancialReport={() => setFinancialReportOpen(true)}
+            />
+
+            <FinancialReportModal
+                isOpen={financialReportOpen}
+                onClose={() => setFinancialReportOpen(false)}
+                reports={farm?.statistics.seasonalReports || []}
             />
 
             <div className="flex-1 flex flex-col md:ml-64 lg:ml-72 min-h-screen transition-all duration-300 bg-slate-950 pb-20 md:pb-0">
@@ -156,7 +177,8 @@ function App() {
                             {/* Desktop Inventory Bar */}
                             <InventoryBar
                                 cash={stats.cash}
-                                cherries={stats.totalCherries}
+                                cherries={stats.regularCherries}
+                                organicCherries={stats.organicCherries}
                                 className="hidden md:flex"
                             />
 
@@ -242,13 +264,30 @@ function App() {
                     </div>
 
                     {isAuthenticated ? (
-                        <FarmGrid
-                            parcels={parcels}
-                            onAction={handleParcelAction}
-                            onBuyParcel={handleBuyParcel}
-                            loading={isLoading}
-                            currentSeason={stats.currentSeason}
-                        />
+                        activeTab === 'dashboard' ? (
+                            <FarmGrid
+                                parcels={parcels}
+                                onAction={handleParcelAction}
+                                onBuyParcel={handleBuyParcel}
+                                loading={isLoading}
+                                currentSeason={stats.currentSeason}
+                            />
+                        ) : activeTab === 'marketplace' ? (
+                            <Marketplace
+                                cash={stats.cash}
+                                ownedInfrastructure={farm?.infrastructure || []}
+                                onPurchase={(id) => upgradeInfrastructure.mutate(id)}
+                                isLoading={upgradeInfrastructure.isPending}
+                            />
+                        ) : (
+                            <div className="h-64 flex items-center justify-center border border-dashed border-slate-700 rounded-xl bg-slate-800/20">
+                                <div className="text-center">
+                                    <Trophy className="h-10 w-10 text-slate-500 mx-auto mb-4" />
+                                    <h3 className="text-lg font-medium">Sports Center Coming Soon</h3>
+                                    <p className="text-sm text-slate-500">Regional football leagues and sponsorships are in development.</p>
+                                </div>
+                            </div>
+                        )
                     ) : (
                         <section className="mt-12">
                             <div className="h-64 rounded-xl border-2 border-dashed border-slate-700/50 flex flex-col items-center justify-center bg-slate-800/30 space-y-4">

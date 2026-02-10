@@ -42,8 +42,8 @@ export const idlFactory = ({ IDL }) => {
     'playerName' : IDL.Text,
     'parcelCount' : IDL.Nat,
   });
-  const Result_5 = IDL.Variant({ 'Ok' : FarmOverview, 'Err' : GameError });
-  const Result_4 = IDL.Variant({ 'Ok' : Inventory, 'Err' : GameError });
+  const Result_7 = IDL.Variant({ 'Ok' : FarmOverview, 'Err' : GameError });
+  const Result_6 = IDL.Variant({ 'Ok' : Inventory, 'Err' : GameError });
   const MarketPrice = IDL.Record({
     'organicPremium' : IDL.Float64,
     'retailBasePrice' : IDL.Nat,
@@ -52,21 +52,7 @@ export const idlFactory = ({ IDL }) => {
     'wholesaleBasePrice' : IDL.Nat,
     'qualityBonus' : IDL.Float64,
   });
-  const InfrastructureType = IDL.Variant({
-    'Sprayer' : IDL.Null,
-    'Shaker' : IDL.Null,
-    'Tractor' : IDL.Null,
-    'Warehouse' : IDL.Null,
-    'ColdStorage' : IDL.Null,
-    'ProcessingFacility' : IDL.Null,
-    'SocialFacilities' : IDL.Null,
-  });
-  const Infrastructure = IDL.Record({
-    'purchasedSeason' : IDL.Nat,
-    'infraType' : InfrastructureType,
-    'maintenanceCost' : IDL.Nat,
-    'level' : IDL.Nat,
-  });
+  const Result_5 = IDL.Variant({ 'Ok' : MarketPrice, 'Err' : GameError });
   const Province = IDL.Variant({
     'Swietokrzyskie' : IDL.Null,
     'Warminsko_Mazurskie' : IDL.Null,
@@ -125,6 +111,22 @@ export const idlFactory = ({ IDL }) => {
     'plantedTrees' : IDL.Nat,
     'treeAge' : IDL.Nat,
   });
+  const Result_4 = IDL.Variant({ 'Ok' : CherryParcel, 'Err' : GameError });
+  const InfrastructureType = IDL.Variant({
+    'Sprayer' : IDL.Null,
+    'Shaker' : IDL.Null,
+    'Tractor' : IDL.Null,
+    'Warehouse' : IDL.Null,
+    'ColdStorage' : IDL.Null,
+    'ProcessingFacility' : IDL.Null,
+    'SocialFacilities' : IDL.Null,
+  });
+  const Infrastructure = IDL.Record({
+    'purchasedSeason' : IDL.Nat,
+    'infraType' : InfrastructureType,
+    'maintenanceCost' : IDL.Nat,
+    'level' : IDL.Nat,
+  });
   const Statistics = IDL.Record({
     'totalCosts' : IDL.Nat,
     'totalHarvested' : IDL.Nat,
@@ -156,16 +158,17 @@ export const idlFactory = ({ IDL }) => {
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'advanceSeason' : IDL.Func([IDL.Opt(IDL.Text)], [Result], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'assignParcelToPlayer' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
+    'assignParcelToPlayer' : IDL.Func([IDL.Text, IDL.Principal], [Result], []),
     'buyParcel' : IDL.Func([IDL.Text, IDL.Nat], [Result], []),
-    'debugResetPlayer' : IDL.Func([], [], []),
+    'debugResetPlayer' : IDL.Func([], [Result], []),
     'fertilizeParcel' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCashBalance' : IDL.Func([], [Result_1], ['query']),
-    'getFarmOverview' : IDL.Func([], [Result_5], ['query']),
+    'getFarmOverview' : IDL.Func([], [Result_7], ['query']),
     'getGlobalSeason' : IDL.Func([], [IDL.Nat], ['query']),
-    'getInventory' : IDL.Func([], [Result_4], ['query']),
-    'getMarketPrices' : IDL.Func([], [MarketPrice], ['query']),
+    'getInventory' : IDL.Func([], [Result_6], ['query']),
+    'getMarketPrices' : IDL.Func([], [Result_5], ['query']),
+    'getParcelDetails' : IDL.Func([IDL.Text], [Result_4], ['query']),
     'getPlayerFarm' : IDL.Func([], [Result_3], ['query']),
     'getPlayerStats' : IDL.Func([], [Result_2], ['query']),
     'getTotalPlayers' : IDL.Func([], [IDL.Nat], ['query']),
