@@ -1197,7 +1197,7 @@ persistent actor CherryTycoon {
     var updatedReports = Buffer.fromArray<SeasonReport>(reports);
     var targetIndex : ?Nat = null;
     
-    for (i in Iter.range(0, updatedReports.size() - 1)) {
+    for (i in Iter.range(0, (updatedReports.size() : Int) - 1)) {
       if (updatedReports.get(i).seasonNumber == seasonNumber) {
         targetIndex := ?i;
       };

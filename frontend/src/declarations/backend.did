@@ -8,6 +8,7 @@ type Statistics =
  record {
    averageYieldPerHa: float64;
    bestSeasonProfit: nat;
+   seasonalReports: vec SeasonReport;
    seasonsPlayed: nat;
    totalCosts: nat;
    totalHarvested: nat;
@@ -20,6 +21,21 @@ type SoilType =
    Sandy;
    SandyClay;
    Waterlogged;
+ };
+type SeasonReport = 
+ record {
+   certificationCosts: nat;
+   laborCosts: nat;
+   maintenanceCosts: nat;
+   netProfit: int;
+   operationalCosts: nat;
+   otherRevenue: nat;
+   retailRevenue: nat;
+   seasonName: Season;
+   seasonNumber: nat;
+   totalCosts: nat;
+   totalRevenue: nat;
+   wholesaleRevenue: nat;
  };
 type Season = 
  variant {

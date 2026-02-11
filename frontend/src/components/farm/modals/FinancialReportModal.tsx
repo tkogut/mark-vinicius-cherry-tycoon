@@ -41,13 +41,11 @@ interface FinancialReportModalProps {
 export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({ isOpen, onClose, reports }) => {
     const latestReport = reports.length > 0 ? reports[reports.length - 1] : null;
 
-    if (!latestReport) return null;
+    const getSeasonName = (name: any) => name ? Object.keys(name)[0] : "N/A";
 
-    const profitMargin = latestReport.totalRevenue > 0n
+    const profitMargin = (latestReport && latestReport.totalRevenue > 0n)
         ? (Number(latestReport.netProfit) / Number(latestReport.totalRevenue)) * 100
         : 0;
-
-    const getSeasonName = (name: any) => Object.keys(name)[0];
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -63,7 +61,9 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({ isOp
                             <div>
                                 <DialogTitle className="text-xl font-bold tracking-tight">Professional Financial Report</DialogTitle>
                                 <p className="text-xs text-slate-500 mt-0.5 font-medium uppercase tracking-wider">
-                                    Season {Number(latestReport.seasonNumber)} • {getSeasonName(latestReport.seasonName)} Analysis
+                                    {latestReport
+                                        ? `Season ${Number(latestReport.seasonNumber)} • ${getSeasonName(latestReport.seasonName)} Analysis`
+                                        : "No Data Available"}
                                 </p>
                             </div>
                         </div>
@@ -71,92 +71,106 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({ isOp
                 </DialogHeader>
 
                 <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
-                    <div className="p-6 space-y-8">
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
-                                <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
-                                    <ArrowUpRight className="h-24 w-24 text-emerald-400" />
+                    {latestReport ? (
+                        <div className="p-6 space-y-8">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
+                                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+                                        <ArrowUpRight className="h-24 w-24 text-emerald-400" />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Total Revenue</span>
+                                    <div className="text-2xl font-mono font-bold text-emerald-400">${Number(latestReport.totalRevenue).toLocaleString()}</div>
+                                    <div className="flex items-center gap-1 mt-1">
+                                        <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                                            <div className="h-full bg-emerald-500" style={{ width: '100%' }} />
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Total Revenue</span>
-                                <div className="text-2xl font-mono font-bold text-emerald-400">${Number(latestReport.totalRevenue).toLocaleString()}</div>
-                                <div className="flex items-center gap-1 mt-1">
-                                    <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-500" style={{ width: '100%' }} />
+
+                                <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
+                                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+                                        <ArrowDownRight className="h-24 w-24 text-rose-400" />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Total Costs</span>
+                                    <div className="text-2xl font-mono font-bold text-rose-400">${Number(latestReport.totalCosts).toLocaleString()}</div>
+                                    <div className="mt-1 flex justify-between items-center">
+                                        <span className="text-[10px] text-slate-500">Efficiency</span>
+                                        <span className="text-[10px] text-slate-400 font-mono">{Math.max(0, 100 - profitMargin).toFixed(1)}%</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
+                                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+                                        <TrendingUp className="h-24 w-24 text-amber-400" />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Net Profit</span>
+                                    <div className={cn(
+                                        "text-2xl font-mono font-bold",
+                                        latestReport.netProfit >= 0n ? "text-amber-400" : "text-rose-500"
+                                    )}>
+                                        ${Number(latestReport.netProfit).toLocaleString()}
+                                    </div>
+                                    <div className="mt-1 flex justify-between items-center">
+                                        <span className="text-[10px] text-slate-500">Margin</span>
+                                        <span className="text-[10px] text-amber-500 font-bold">{profitMargin.toFixed(1)}%</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
-                                <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
-                                    <ArrowDownRight className="h-24 w-24 text-rose-400" />
+                            {/* Breakdown Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Income Breakdown */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 border-l-2 border-emerald-500 pl-3">
+                                        <ArrowUpRight className="h-4 w-4 text-emerald-400" />
+                                        <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Income Streams</h3>
+                                    </div>
+                                    <div className="space-y-3 bg-slate-950/20 p-4 rounded-2xl border border-white/5">
+                                        <IncomeRow label="Retail Sales" value={latestReport.retailRevenue} total={latestReport.totalRevenue} color="bg-emerald-500" />
+                                        <IncomeRow label="Wholesale Deals" value={latestReport.wholesaleRevenue} total={latestReport.totalRevenue} color="bg-sky-500" />
+                                        <IncomeRow label="Misc / Other" value={latestReport.otherRevenue} total={latestReport.totalRevenue} color="bg-slate-600" />
+                                    </div>
                                 </div>
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Total Costs</span>
-                                <div className="text-2xl font-mono font-bold text-rose-400">${Number(latestReport.totalCosts).toLocaleString()}</div>
-                                <div className="mt-1 flex justify-between items-center">
-                                    <span className="text-[10px] text-slate-500">Efficiency</span>
-                                    <span className="text-[10px] text-slate-400 font-mono">{Math.max(0, 100 - profitMargin).toFixed(1)}%</span>
+
+                                {/* Expense Breakdown */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 border-l-2 border-rose-500 pl-3">
+                                        <ArrowDownRight className="h-4 w-4 text-rose-400" />
+                                        <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Expense Details</h3>
+                                    </div>
+                                    <div className="space-y-3 bg-slate-950/20 p-4 rounded-2xl border border-white/5">
+                                        <ExpenseRow label="Infrastructure Maintenance" value={latestReport.maintenanceCosts} total={latestReport.totalCosts} />
+                                        <ExpenseRow label="Operational (Water/Seed)" value={latestReport.operationalCosts} total={latestReport.totalCosts} />
+                                        <ExpenseRow label="Labor & Services" value={latestReport.laborCosts} total={latestReport.totalCosts} />
+                                        <ExpenseRow label="Certification & Fees" value={latestReport.certificationCosts} total={latestReport.totalCosts} />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
-                                <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
-                                    <TrendingUp className="h-24 w-24 text-amber-400" />
+                            {/* History Tip */}
+                            <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-2xl flex items-center gap-4">
+                                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                                    <TrendingUp className="h-4 w-4 text-emerald-400" />
                                 </div>
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Net Profit</span>
-                                <div className={cn(
-                                    "text-2xl font-mono font-bold",
-                                    latestReport.netProfit >= 0n ? "text-amber-400" : "text-rose-500"
-                                )}>
-                                    ${Number(latestReport.netProfit).toLocaleString()}
-                                </div>
-                                <div className="mt-1 flex justify-between items-center">
-                                    <span className="text-[10px] text-slate-500">Margin</span>
-                                    <span className="text-[10px] text-amber-500 font-bold">{profitMargin.toFixed(1)}%</span>
-                                </div>
+                                <p className="text-xs text-slate-400 leading-relaxed italic">
+                                    "Financial data is archived at the end of every season. Reviewing historical reports helps in optimizing labor and maintenance costs for upcoming cycles."
+                                </p>
                             </div>
                         </div>
-
-                        {/* Breakdown Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Income Breakdown */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 border-l-2 border-emerald-500 pl-3">
-                                    <ArrowUpRight className="h-4 w-4 text-emerald-400" />
-                                    <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Income Streams</h3>
-                                </div>
-                                <div className="space-y-3 bg-slate-950/20 p-4 rounded-2xl border border-white/5">
-                                    <IncomeRow label="Retail Sales" value={latestReport.retailRevenue} total={latestReport.totalRevenue} color="bg-emerald-500" />
-                                    <IncomeRow label="Wholesale Deals" value={latestReport.wholesaleRevenue} total={latestReport.totalRevenue} color="bg-sky-500" />
-                                    <IncomeRow label="Misc / Other" value={latestReport.otherRevenue} total={latestReport.totalRevenue} color="bg-slate-600" />
-                                </div>
+                    ) : (
+                        <div className="p-12 flex flex-col items-center justify-center text-center space-y-4">
+                            <div className="p-4 bg-slate-800/50 rounded-full border border-slate-700/50">
+                                <Calendar className="h-8 w-8 text-slate-500" />
                             </div>
-
-                            {/* Expense Breakdown */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 border-l-2 border-rose-500 pl-3">
-                                    <ArrowDownRight className="h-4 w-4 text-rose-400" />
-                                    <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Expense Details</h3>
-                                </div>
-                                <div className="space-y-3 bg-slate-950/20 p-4 rounded-2xl border border-white/5">
-                                    <ExpenseRow label="Infrastructure Maintenance" value={latestReport.maintenanceCosts} total={latestReport.totalCosts} />
-                                    <ExpenseRow label="Operational (Water/Seed)" value={latestReport.operationalCosts} total={latestReport.totalCosts} />
-                                    <ExpenseRow label="Labor & Services" value={latestReport.laborCosts} total={latestReport.totalCosts} />
-                                    <ExpenseRow label="Certification & Fees" value={latestReport.certificationCosts} total={latestReport.totalCosts} />
-                                </div>
+                            <div className="max-w-xs">
+                                <h3 className="text-lg font-bold text-slate-200">No Reports Available Yet</h3>
+                                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                                    Seasonal financial data will appear here once you complete your first full season in Summer.
+                                </p>
                             </div>
                         </div>
-
-                        {/* History Tip */}
-                        <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-2xl flex items-center gap-4">
-                            <div className="p-2 bg-emerald-500/20 rounded-lg">
-                                <TrendingUp className="h-4 w-4 text-emerald-400" />
-                            </div>
-                            <p className="text-xs text-slate-400 leading-relaxed italic">
-                                "Financial data is archived at the end of every season. Reviewing historical reports helps in optimizing labor and maintenance costs for upcoming cycles."
-                            </p>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
                 <div className="p-4 bg-slate-950/50 border-t border-slate-800/50 flex justify-end">
