@@ -25,7 +25,7 @@ jobs:
         run: npm ci
 
       - name: Install DFX
-        uses: aviate-labs/setup-dfx@v1
+        uses: aviate-labs/setup-dfx@v0.3.2
         with:
           dfx-version: '0.24.3'
 
