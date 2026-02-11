@@ -34,11 +34,12 @@ jobs:
           dfx-version: '0.24.3'
 
       - name: Import Deploy Identity
+        if: env.DFX_IDENTITY != ''
         env:
           DFX_IDENTITY: ${{ secrets.DFX_IDENTITY_PEM }}
         run: |
           mkdir -p ~/.config/dfx/identity/deploy
-          echo "$DFX_IDENTITY" | dfx identity import deploy -
+          echo "$DFX_IDENTITY" > ~/.config/dfx/identity/deploy/identity.pem
           dfx identity use deploy
           dfx identity get-principal
 
