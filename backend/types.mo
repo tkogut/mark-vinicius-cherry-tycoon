@@ -140,6 +140,12 @@ module {
     operationalCosts: Nat; // watering, fertilizing, seeds
     laborCosts: Nat;
     certificationCosts: Nat;
+    infrastructureCosts: Nat;
+    parcelCosts: Nat;
+    
+    // Volume Breakdown
+    retailVolume: Nat;
+    wholesaleVolume: Nat;
     
     // Detailed Breakdown
     parcelData: [ParcelEconomics];
@@ -147,6 +153,7 @@ module {
     // Summary
     totalRevenue: Nat;
     totalCosts: Nat;
+    totalHarvested: Nat;
     netProfit: Int;
   };
 
@@ -156,6 +163,22 @@ module {
     totalCosts: Nat;
     netProfit: Int;
     totalHarvested: Nat;
+    
+    // Revenue Breakdown
+    retailRevenue: Nat;
+    wholesaleRevenue: Nat;
+    otherRevenue: Nat;
+    retailVolume: Nat;
+    wholesaleVolume: Nat;
+
+    // Cost Breakdown
+    maintenanceCosts: Nat;
+    operationalCosts: Nat;
+    laborCosts: Nat;
+    certificationCosts: Nat;
+    infrastructureCosts: Nat;
+    parcelCosts: Nat;
+
     seasonalBreakdown: [SeasonReport]; // The 4 seasons of this year
     bestPerformingParcelId: ?Text;
     bestPerformingProvince: ?Province;
@@ -167,7 +190,7 @@ module {
     totalRevenue: Nat;       // lifetime PLN
     totalCosts: Nat;         // lifetime PLN
     seasonsPlayed: Nat;
-    bestSeasonProfit: Nat;
+    bestYearlyProfit: Nat;
     averageYieldPerHa: Float;
     seasonalReports: [SeasonReport];
     yearlyReports: [YearlyReport];

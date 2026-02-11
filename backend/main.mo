@@ -237,7 +237,7 @@ persistent actor CherryTycoon {
         totalRevenue = 0;
         totalCosts = 0;
         seasonsPlayed = 0;
-        bestSeasonProfit = 0;
+        bestYearlyProfit = 0;
         averageYieldPerHa = 0.0;
         seasonalReports = [];
         yearlyReports = [];
@@ -390,9 +390,20 @@ persistent actor CherryTycoon {
               }
             };
 
+            let laborCost = harvestedAmount * 2; // 2 PLN per kg
             let updatedStats = updateSeasonalReport(farm, func(r) {
-              updateParcelEconomics(r, parcelId, parcel.region.province, func(p) {
-                { p with yield = p.yield + harvestedAmount }
+              let updatedReport = { r with
+                laborCosts = r.laborCosts + laborCost;
+                totalCosts = r.totalCosts + laborCost;
+                totalHarvested = r.totalHarvested + harvestedAmount;
+                netProfit = r.netProfit - (laborCost : Int);
+              };
+              updateParcelEconomics(updatedReport, parcelId, parcel.region.province, func(p) {
+                { p with 
+                  yield = p.yield + harvestedAmount;
+                  costs = p.costs + laborCost;
+                  netProfit = p.netProfit - (laborCost : Int);
+                }
               })
             });
 
@@ -405,8 +416,10 @@ persistent actor CherryTycoon {
               farm with
               parcels = updatedParcels;
               inventory = updatedInventory;
+              cash = if (farm.cash >= laborCost) Int.abs((farm.cash : Int) - (laborCost : Int)) else 0;
               statistics = { updatedStats with
                 totalHarvested = farm.statistics.totalHarvested + harvestedAmount;
+                totalCosts = farm.statistics.totalCosts + laborCost;
               };
               experience = newXp;
               level = newLevel;
@@ -435,6 +448,9 @@ persistent actor CherryTycoon {
             
             // Cost of watering
             let waterCost = 200; // PLN
+            let laborShare = 150;
+            let operationalShare = 50;
+            
             if (farm.cash < waterCost) {
               return #Err(#InsufficientFunds { required = waterCost; available = farm.cash });
             };
@@ -455,7 +471,8 @@ persistent actor CherryTycoon {
 
             let updatedStats = updateSeasonalReport(farm, func(r) {
               let updatedReport = { r with 
-                operationalCosts = r.operationalCosts + waterCost;
+                laborCosts = r.laborCosts + laborShare;
+                operationalCosts = r.operationalCosts + operationalShare;
                 totalCosts = r.totalCosts + waterCost;
                 netProfit = r.netProfit - (waterCost : Int);
               };
@@ -536,10 +553,34 @@ persistent actor CherryTycoon {
               fertilizers = Int.abs((farm.inventory.fertilizers : Int) - (1 : Int));
             };
 
+            // Cost of fertilization (Labor + Fertilizer)
+            let laborShare = 300;
+            let operationalShare = 200;
+            let totalCost = laborShare + operationalShare;
+
+            let updatedStats = updateSeasonalReport(farm, func(r) {
+              let updatedReport = { r with 
+                laborCosts = r.laborCosts + laborShare;
+                operationalCosts = r.operationalCosts + operationalShare;
+                totalCosts = r.totalCosts + totalCost;
+                netProfit = r.netProfit - (totalCost : Int);
+              };
+              updateParcelEconomics(updatedReport, parcelId, parcel.region.province, func(p) {
+                { p with 
+                  costs = p.costs + totalCost;
+                  netProfit = p.netProfit - (totalCost : Int);
+                }
+              })
+            });
+
             let updatedFarm = {
               farm with
               parcels = updatedParcels;
               inventory = updatedInventory;
+              cash = if (farm.cash >= totalCost) Int.abs((farm.cash : Int) - (totalCost : Int)) else 0;
+              statistics = { updatedStats with 
+                totalCosts = farm.statistics.totalCosts + totalCost;
+              };
             };
 
             playerFarms.put(caller, updatedFarm);
@@ -806,9 +847,13 @@ persistent actor CherryTycoon {
         let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
           let newRetail = if (isRetail) r.retailRevenue + revenue else r.retailRevenue;
           let newWholesale = if (not isRetail) r.wholesaleRevenue + revenue else r.wholesaleRevenue;
+          let newRetailVol = if (isRetail) r.retailVolume + quantity else r.retailVolume;
+          let newWholesaleVol = if (not isRetail) r.wholesaleVolume + quantity else r.wholesaleVolume;
           { r with 
             retailRevenue = newRetail;
             wholesaleRevenue = newWholesale;
+            retailVolume = newRetailVol;
+            wholesaleVolume = newWholesaleVol;
             totalRevenue = r.totalRevenue + revenue;
             netProfit = r.netProfit + (revenue : Int);
           }
@@ -953,27 +998,45 @@ persistent actor CherryTycoon {
         let _currentSeasonName = farm.currentSeason;
         let _currentSeasonNum = farm.seasonNumber;
         
+        let laborShare = (variableCosts * 80) / 100;
+        let operationalShare = Int.abs((variableCosts : Int) - (laborShare : Int));
+        
         let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
           { r with 
-            maintenanceCosts = fixedCosts;
-            laborCosts = variableCosts; // simplified variableCosts as labor/ops
+            maintenanceCosts = r.maintenanceCosts + fixedCosts;
+            laborCosts = r.laborCosts + laborShare;
+            operationalCosts = r.operationalCosts + operationalShare;
             totalCosts = r.totalCosts + fixedCosts + variableCosts;
             netProfit = r.netProfit - ((fixedCosts + variableCosts) : Int);
           }
         });
 
         let isNewYear = nextSeason == #Spring;
-        
+
+        // Generate yearly report if it's a new year to get the annual profit
+        let yearlyReportOpt = if (isNewYear) {
+            let yearNum = Int.abs(((farm.seasonNumber) : Int) / 4);
+            ?generateYearlyReport(farm, updatedSeasonStats, yearNum)
+        } else {
+            null
+        };
+        let newBestYearlyProfit = switch (yearlyReportOpt) {
+            case (?report) {
+                let yearlyProfit = if (report.netProfit > 0) Int.abs(report.netProfit) else 0;
+                if (yearlyProfit > farm.statistics.bestYearlyProfit) yearlyProfit else farm.statistics.bestYearlyProfit
+            };
+            case (null) { farm.statistics.bestYearlyProfit };
+        };
+
         let updatedStats = {
           farm.statistics with
           totalCosts = farm.statistics.totalCosts + totalCosts;
           seasonsPlayed = farm.statistics.seasonsPlayed + 1;
+          bestYearlyProfit = newBestYearlyProfit;
           seasonalReports = updatedSeasonStats.seasonalReports;
-          yearlyReports = if (isNewYear) {
-            let yearlyRepo = generateYearlyReport({ farm with statistics = updatedSeasonStats; seasonNumber = farm.seasonNumber + 1 });
-            Array.append(farm.statistics.yearlyReports, [yearlyRepo])
-          } else {
-            farm.statistics.yearlyReports
+          yearlyReports = switch (yearlyReportOpt) {
+            case (?report) { Array.append(farm.statistics.yearlyReports, [report]) };
+            case (null) { farm.statistics.yearlyReports };
           };
         };
 
@@ -1042,12 +1105,21 @@ persistent actor CherryTycoon {
         let newXp = farm.experience + xpGain;
         let newLevel = GameLogic.getLevelFromExperience(newXp);
 
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          { r with 
+            infrastructureCosts = r.infrastructureCosts + cost;
+            totalCosts = r.totalCosts + cost;
+            netProfit = r.netProfit - (cost : Int);
+          }
+        });
+
         let updatedFarm = {
           farm with
           infrastructure = updatedInfrastructure;
           cash = Int.abs((farm.cash : Int) - (cost : Int));
           experience = newXp;
           level = newLevel;
+          statistics = { updatedStats with totalCosts = farm.statistics.totalCosts + cost };
         };
 
         playerFarms.put(caller, updatedFarm);
@@ -1154,9 +1226,8 @@ persistent actor CherryTycoon {
           farm with
           parcels = updatedParcels;
           cash = Int.abs((farm.cash : Int) - (cost : Int));
-          statistics = { farm.statistics with 
+          statistics = { updatedStats with 
             totalCosts = farm.statistics.totalCosts + cost;
-            seasonalReports = updatedStats.seasonalReports;
           };
         };
         
@@ -1225,12 +1296,22 @@ persistent actor CherryTycoon {
         
         let updatedParcels = Array.append(farm.parcels, [newParcel]);
         
-        let _updatedFarm = {
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          { r with 
+            parcelCosts = r.parcelCosts + price;
+            totalCosts = r.totalCosts + price;
+            netProfit = r.netProfit - (price : Int);
+          }
+        });
+
+        let updatedFarm = {
           farm with
           parcels = updatedParcels;
           cash = Int.abs((farm.cash : Int) - (price : Int));
+          statistics = { updatedStats with totalCosts = farm.statistics.totalCosts + price };
         };
         
+        playerFarms.put(caller, updatedFarm);
         #Ok("Successfully bought parcel " # parcelId)
       };
     }
@@ -1259,9 +1340,14 @@ persistent actor CherryTycoon {
           operationalCosts = 0;
           laborCosts = 0;
           certificationCosts = 0;
+          infrastructureCosts = 0;
+          parcelCosts = 0;
+          retailVolume = 0;
+          wholesaleVolume = 0;
           parcelData = [];
           totalRevenue = 0;
           totalCosts = 0;
+          totalHarvested = 0;
           netProfit = 0;
         };
         updatedReports.add(newReport);
@@ -1284,13 +1370,12 @@ persistent actor CherryTycoon {
     { farm.statistics with seasonalReports = finalReports }
   };
 
-  private func generateYearlyReport(farm: PlayerFarm) : YearlyReport {
-    let yearNum = Int.abs((farm.seasonNumber : Int - 1) / 4);
-    let startSeason = if (yearNum > 0) Int.abs((yearNum : Int - 1) * 4 + 1) else 1;
-    let endSeason = if (yearNum > 0) yearNum * 4 else 0;
+  private func generateYearlyReport(farm: PlayerFarm, stats: Statistics, yearNum: Nat) : YearlyReport {
+    let endSeason = yearNum * 4;
+    let startSeason = if (endSeason >= 3) Int.abs((endSeason : Int) - 3) else 1;
     
     var seasonalBreakdown = Buffer.Buffer<SeasonReport>(4);
-    for (r in farm.statistics.seasonalReports.vals()) {
+    for (r in stats.seasonalReports.vals()) {
       if (r.seasonNumber >= startSeason and r.seasonNumber <= endSeason) {
         seasonalBreakdown.add(r);
       };
@@ -1301,6 +1386,19 @@ persistent actor CherryTycoon {
     var netProf : Int = 0;
     var totalHarv : Nat = 0;
     
+    var retRev : Nat = 0;
+    var wholRev : Nat = 0;
+    var otherRev : Nat = 0;
+    var retVol : Nat = 0;
+    var wholVol : Nat = 0;
+    
+    var maintCost : Nat = 0;
+    var operCost : Nat = 0;
+    var laborCost : Nat = 0;
+    var certCost : Nat = 0;
+    var infraCost : Nat = 0;
+    var parcCost : Nat = 0;
+    
     // Track parcel performance across the year
     var parcelStats = HashMap.HashMap<Text, (Nat, Int)>(10, Text.equal, Text.hash);
     
@@ -1309,6 +1407,19 @@ persistent actor CherryTycoon {
       totalCost += report.totalCosts;
       netProf += report.netProfit;
       
+      retRev += report.retailRevenue;
+      wholRev += report.wholesaleRevenue;
+      otherRev += report.otherRevenue;
+      retVol += report.retailVolume;
+      wholVol += report.wholesaleVolume;
+      
+      maintCost += report.maintenanceCosts;
+      operCost += report.operationalCosts;
+      laborCost += report.laborCosts;
+      certCost += report.certificationCosts;
+      infraCost += report.infrastructureCosts;
+      parcCost += report.parcelCosts;
+
       for (pData in report.parcelData.vals()) {
         totalHarv += pData.yield;
         let (harv, prof) = switch (parcelStats.get(pData.parcelId)) {
@@ -1344,10 +1455,31 @@ persistent actor CherryTycoon {
       totalCosts = totalCost;
       netProfit = netProf;
       totalHarvested = totalHarv;
+      
+      retailRevenue = retRev;
+      wholesaleRevenue = wholRev;
+      otherRevenue = otherRev;
+      retailVolume = retVol;
+      wholesaleVolume = wholVol;
+
+      maintenanceCosts = maintCost;
+      operationalCosts = operCost;
+      laborCosts = laborCost;
+      certificationCosts = certCost;
+      infrastructureCosts = infraCost;
+      parcelCosts = parcCost;
+
       seasonalBreakdown = Buffer.toArray(seasonalBreakdown);
       bestPerformingParcelId = bestParcelId;
-      bestPerformingProvince = null; // Simplified for now
-    }
+      bestPerformingProvince = if (bestParcelId != null) {
+        // Fallback for province; in a real scenario we'd track this properly
+        // For now, looking up from the best parcel
+        let (pOpt, _) = findParcelIndex(farm.parcels, switch (bestParcelId) { case (?id) id; case null "" });
+        switch (pOpt) { case (?p) ?p.region.province; case null null };
+      } else {
+        null
+      };
+    };
   };
 
   private func updateParcelEconomics(

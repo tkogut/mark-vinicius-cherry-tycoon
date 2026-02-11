@@ -1,4 +1,24 @@
 export const idlFactory = ({ IDL }) => {
+  const Province = IDL.Variant({
+    'Swietokrzyskie': IDL.Null,
+    'Warminsko_Mazurskie': IDL.Null,
+    'Podlaskie': IDL.Null,
+    'Kujawsko_Pomorskie': IDL.Null,
+    'Malopolskie': IDL.Null,
+    'Lubelskie': IDL.Null,
+    'Lodzkie': IDL.Null,
+    'Wielkopolskie': IDL.Null,
+    'Mazowieckie': IDL.Null,
+    'Opolskie': IDL.Null,
+    'Pomorskie': IDL.Null,
+    'Podkarpackie': IDL.Null,
+    'Slaskie': IDL.Null,
+    'Lubuskie': IDL.Null,
+    'Zachodniopomorskie': IDL.Null,
+    'Dolnoslaskie': IDL.Null,
+  });
+
+
   const GameError = IDL.Variant({
     'SeasonalRestriction': IDL.Text,
     'NotFound': IDL.Text,
@@ -39,10 +59,15 @@ export const idlFactory = ({ IDL }) => {
     'netProfit': IDL.Int,
     'operationalCosts': IDL.Nat,
     'otherRevenue': IDL.Nat,
+    'infrastructureCosts': IDL.Nat,
+    'parcelCosts': IDL.Nat,
     'retailRevenue': IDL.Nat,
+    'retailVolume': IDL.Nat,
+    'wholesaleVolume': IDL.Nat,
     'seasonName': Season,
     'seasonNumber': IDL.Nat,
     'totalCosts': IDL.Nat,
+    'totalHarvested': IDL.Nat,
     'totalRevenue': IDL.Nat,
     'wholesaleRevenue': IDL.Nat,
   });
@@ -55,6 +80,17 @@ export const idlFactory = ({ IDL }) => {
     'totalCosts': IDL.Nat,
     'netProfit': IDL.Int,
     'bestPerformingParcelId': IDL.Opt(IDL.Text),
+    'retailRevenue': IDL.Nat,
+    'wholesaleRevenue': IDL.Nat,
+    'otherRevenue': IDL.Nat,
+    'retailVolume': IDL.Nat,
+    'wholesaleVolume': IDL.Nat,
+    'maintenanceCosts': IDL.Nat,
+    'operationalCosts': IDL.Nat,
+    'laborCosts': IDL.Nat,
+    'certificationCosts': IDL.Nat,
+    'infrastructureCosts': IDL.Nat,
+    'parcelCosts': IDL.Nat,
   });
   const Inventory = IDL.Record({
     'fertilizers': IDL.Nat,
@@ -86,24 +122,6 @@ export const idlFactory = ({ IDL }) => {
     'qualityBonus': IDL.Float64,
   });
   const Result_5 = IDL.Variant({ 'Ok': MarketPrice, 'Err': GameError });
-  const Province = IDL.Variant({
-    'Swietokrzyskie': IDL.Null,
-    'Warminsko_Mazurskie': IDL.Null,
-    'Podlaskie': IDL.Null,
-    'Kujawsko_Pomorskie': IDL.Null,
-    'Malopolskie': IDL.Null,
-    'Lubelskie': IDL.Null,
-    'Lodzkie': IDL.Null,
-    'Wielkopolskie': IDL.Null,
-    'Mazowieckie': IDL.Null,
-    'Opolskie': IDL.Null,
-    'Pomorskie': IDL.Null,
-    'Podkarpackie': IDL.Null,
-    'Slaskie': IDL.Null,
-    'Lubuskie': IDL.Null,
-    'Zachodniopomorskie': IDL.Null,
-    'Dolnoslaskie': IDL.Null,
-  });
   const CommuneType = IDL.Variant({
     'Urban': IDL.Null,
     'Rural': IDL.Null,
@@ -165,7 +183,7 @@ export const idlFactory = ({ IDL }) => {
     'totalHarvested': IDL.Nat,
     'totalSold': IDL.Nat,
     'averageYieldPerHa': IDL.Float64,
-    'bestSeasonProfit': IDL.Nat,
+    'bestYearlyProfit': IDL.Nat,
     'seasonalReports': IDL.Vec(SeasonReport),
     'yearlyReports': IDL.Vec(YearlyReport),
     'seasonsPlayed': IDL.Nat,

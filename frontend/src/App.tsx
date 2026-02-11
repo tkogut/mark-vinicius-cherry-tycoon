@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Trophy, Coins, Zap } from "lucide-react"
 import React, { useState } from "react"
 import { LoginButton } from "@/components/LoginButton"
-import { useAuth } from "@/context/AuthContext"
+import { useAuth } from "@/hooks/useAuth"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { FarmGrid } from "@/components/farm/FarmGrid"
 import { PlantingModal } from "@/components/farm/modals/PlantingModal"
@@ -18,7 +18,7 @@ import { FinancialReportModal } from "@/components/farm/modals/FinancialReportMo
 import { OnboardingModal } from "@/components/farm/modals/OnboardingModal"
 
 function App() {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, backendActor } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null);
     const [plantingModalOpen, setPlantingModalOpen] = useState(false);
@@ -28,7 +28,7 @@ function App() {
 
     const { farm, isLoading, refetch, plant, water, fertilize, harvest, buyParcel, advanceSeason, sellCherries, startOrganicConversion, upgradeInfrastructure } = useFarm();
 
-    const showOnboarding = isAuthenticated && !isLoading && !farm;
+    const showOnboarding = isAuthenticated && !!backendActor && !isLoading && !farm;
 
     // Derived state
     const stats = {
@@ -162,7 +162,7 @@ function App() {
                     totalRevenue: farm.statistics.totalRevenue,
                     totalCosts: farm.statistics.totalCosts,
                     totalHarvested: farm.statistics.totalHarvested,
-                    bestSeasonProfit: farm.statistics.bestSeasonProfit,
+                    bestYearlyProfit: farm.statistics.bestYearlyProfit,
                 } : undefined}
             />
 

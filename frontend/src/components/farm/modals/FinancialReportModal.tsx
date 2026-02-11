@@ -4,6 +4,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import {
     TrendingUp,
@@ -22,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { ParcelEconomics, SeasonReport, YearlyReport, Province } from '@/declarations/backend.did.d.ts';
+import type { ParcelEconomics, SeasonReport, YearlyReport, Province } from '@/declarations/backend.did';
 
 interface FinancialReportModalProps {
     isOpen: boolean;
@@ -33,10 +34,32 @@ interface FinancialReportModalProps {
         totalRevenue: bigint;
         totalCosts: bigint;
         totalHarvested: bigint;
-        bestSeasonProfit: bigint;
+        bestYearlyProfit: bigint;
     };
     parcels: any[];
 }
+
+const VolumeBreakdownRow = ({ label, revenue, volume, color }: { label: string, revenue: bigint, volume: bigint, color: string }) => {
+    const unitPrice = volume > 0n ? Number(revenue) / Number(volume) : 0;
+    return (
+        <div className="flex justify-between items-center text-[10px] p-2 bg-white/5 rounded-lg border border-white/5">
+            <div className="flex items-center gap-2">
+                <div className={cn("h-1.5 w-1.5 rounded-full", color)} />
+                <span className="text-slate-400 font-medium">{label}</span>
+            </div>
+            <div className="flex gap-4 items-center">
+                <div className="text-right">
+                    <div className="text-slate-200 font-mono font-bold">{Number(volume).toLocaleString()} kg</div>
+                    <div className="text-slate-500 text-[8px] uppercase font-bold">Volume</div>
+                </div>
+                <div className="text-right border-l border-white/10 pl-4">
+                    <div className="text-emerald-400 font-mono font-bold">${unitPrice.toFixed(2)}/kg</div>
+                    <div className="text-slate-500 text-[8px] uppercase font-bold">Avg Price</div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
     isOpen,
@@ -49,6 +72,7 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
     const [activeTab, setActiveTab] = useState("seasonal");
     const [filterParcelId, setFilterParcelId] = useState<string>("all");
     const [filterProvince, setFilterProvince] = useState<string>("all");
+    const [selectedYear, setSelectedYear] = useState<YearlyReport | null>(null);
 
     const getSeasonName = (name: any) => name ? Object.keys(name)[0] : "N/A";
     const getProvinceName = (p: Province) => p ? Object.keys(p)[0] : "N/A";
@@ -104,9 +128,9 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                             </div>
                             <div>
                                 <DialogTitle className="text-xl font-bold tracking-tight">Financial Performance</DialogTitle>
-                                <p className="text-xs text-slate-500 mt-0.5 font-medium uppercase tracking-wider">
+                                <DialogDescription className="text-xs text-slate-500 mt-0.5 font-medium uppercase tracking-wider">
                                     Analytics & Reporting Dashboard
-                                </p>
+                                </DialogDescription>
                             </div>
                         </div>
 
@@ -173,9 +197,20 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                         </TabsContent>
 
                         <TabsContent value="yearly" className="mt-0 space-y-6">
-                            {yearlyReports.length > 0 ? (
+                            {selectedYear ? (
+                                <div className="space-y-6">
+                                    <button
+                                        onClick={() => setSelectedYear(null)}
+                                        className="flex items-center gap-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-widest"
+                                    >
+                                        <ChevronRight className="h-4 w-4 rotate-180" />
+                                        Back to Yearly History
+                                    </button>
+                                    <ReportContent report={selectedYear} />
+                                </div>
+                            ) : yearlyReports.length > 0 ? (
                                 yearlyReports.map((yr, idx) => (
-                                    <YearlyReportCard key={idx} yr={yr} />
+                                    <YearlyReportCard key={idx} yr={yr} onDetails={() => setSelectedYear(yr)} />
                                 ))
                             ) : (
                                 <EmptyState message="Yearly reports are generated at the start of every Spring." />
@@ -189,7 +224,7 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                                         <StatCard label="Lifetime Revenue" value={overallStatistics.totalRevenue} color="text-emerald-400" icon={<TrendingUp />} />
                                         <StatCard label="Lifetime Costs" value={overallStatistics.totalCosts} color="text-rose-400" icon={<TrendingDown />} />
                                         <StatCard label="Total Harvested" value={overallStatistics.totalHarvested} color="text-sky-400" icon={<Box />} unit="kg" />
-                                        <StatCard label="Best Season Profit" value={overallStatistics.bestSeasonProfit} color="text-amber-400" icon={<TrendingUp />} />
+                                        <StatCard label="Best Yearly Profit" value={overallStatistics.bestYearlyProfit} color="text-amber-400" icon={<TrendingUp />} />
                                     </div>
                                 </div>
                             ) : (
@@ -219,7 +254,7 @@ const ReportContent = ({ report }: { report: any }) => {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Revenue</span>
                     <div className="text-2xl font-mono font-bold text-emerald-400">${Number(report.totalRevenue).toLocaleString()}</div>
@@ -229,6 +264,16 @@ const ReportContent = ({ report }: { report: any }) => {
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Expenses</span>
                     <div className="text-2xl font-mono font-bold text-rose-400">${Number(report.totalCosts).toLocaleString()}</div>
                     <Progress value={Math.min(100, Number(report.totalCosts) / Math.max(1, Number(report.totalRevenue)) * 100)} className="h-1 mt-2 bg-slate-800" indicatorClassName="bg-rose-500" />
+                </div>
+                <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Harvested</span>
+                    <div className="text-2xl font-mono font-bold text-sky-400">{Number(report.totalHarvested).toLocaleString()} kg</div>
+                    <div className="flex justify-between items-center mt-2">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold">Yield</span>
+                        <div className="h-1 w-1/2 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-sky-500" style={{ width: '100%' }} />
+                        </div>
+                    </div>
                 </div>
                 <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Net P&L</span>
@@ -245,17 +290,31 @@ const ReportContent = ({ report }: { report: any }) => {
             {!report.isFiltered && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Revenue Streams</h4>
+                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Revenue Details</h4>
                         <div className="space-y-3 bg-slate-950/20 p-4 rounded-2xl border border-white/5">
-                            <BreakdownRow label="Retail" value={report.retailRevenue} total={report.totalRevenue} color="bg-emerald-500" />
-                            <BreakdownRow label="Wholesale" value={report.wholesaleRevenue} total={report.totalRevenue} color="bg-sky-500" />
+                            <VolumeBreakdownRow label="Retail" revenue={report.retailRevenue} volume={report.retailVolume} color="bg-emerald-500" />
+                            <VolumeBreakdownRow label="Wholesale" revenue={report.wholesaleRevenue} volume={report.wholesaleVolume} color="bg-sky-500" />
+                            {report.otherRevenue > 0n && (
+                                <BreakdownRow label="Other Revenue" value={report.otherRevenue} total={report.totalRevenue} color="bg-amber-400" />
+                            )}
                         </div>
                     </div>
-                    <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Operation Costs</h4>
-                        <div className="space-y-3 bg-slate-950/20 p-4 rounded-2xl border border-white/5">
-                            <BreakdownRow label="Labor" value={report.laborCosts} total={report.totalCosts} color="bg-rose-500" />
-                            <BreakdownRow label="Maintenance" value={report.maintenanceCosts} total={report.totalCosts} color="bg-orange-500" />
+                    <div className="space-y-6">
+                        <div className="space-y-4">
+                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest text-rose-400">Operating Costs</h4>
+                            <div className="space-y-3 bg-slate-950/20 p-4 rounded-2xl border border-white/5">
+                                <BreakdownRow label="Labor" value={report.laborCosts} total={report.totalCosts} color="bg-rose-500" />
+                                <BreakdownRow label="Maintenance" value={report.maintenanceCosts} total={report.totalCosts} color="bg-orange-500" />
+                                <BreakdownRow label="Operations (Water/Fert)" value={report.operationalCosts} total={report.totalCosts} color="bg-amber-500" />
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest text-sky-400">Investment Costs</h4>
+                            <div className="space-y-3 bg-slate-950/20 p-4 rounded-2xl border border-white/5">
+                                <BreakdownRow label="Parcel Purchases" value={report.parcelCosts} total={report.totalCosts} color="bg-sky-500" />
+                                <BreakdownRow label="Infrastructure" value={report.infrastructureCosts} total={report.totalCosts} color="bg-indigo-500" />
+                                <BreakdownRow label="Certifications" value={report.certificationCosts} total={report.totalCosts} color="bg-violet-500" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -264,7 +323,7 @@ const ReportContent = ({ report }: { report: any }) => {
     );
 };
 
-const YearlyReportCard = ({ yr }: { yr: YearlyReport }) => (
+const YearlyReportCard = ({ yr, onDetails }: { yr: YearlyReport, onDetails: () => void }) => (
     <div className="bg-slate-950/40 border border-slate-800 p-6 rounded-2xl space-y-4">
         <div className="flex justify-between items-center">
             <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
@@ -276,6 +335,7 @@ const YearlyReportCard = ({ yr }: { yr: YearlyReport }) => (
             </div>
         </div>
         <div className="grid grid-cols-3 gap-4">
+            {/* Standard stat cards... */}
             <div className="text-center p-3 bg-slate-900 rounded-xl">
                 <div className="text-[8px] text-slate-500 uppercase font-bold">Revenue</div>
                 <div className="text-sm font-mono font-bold text-emerald-400">${Number(yr.totalRevenue).toLocaleString()}</div>
@@ -291,15 +351,23 @@ const YearlyReportCard = ({ yr }: { yr: YearlyReport }) => (
                 </div>
             </div>
         </div>
-        {yr.bestPerformingParcelId.length > 0 && (
-            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium">
-                <TrendingUp className="h-3 w-3 text-emerald-500" />
-                Best Performance: <span className="text-slate-300 uppercase font-bold">{yr.bestPerformingParcelId[0]?.split('_').pop()}</span>
-            </div>
-        )}
+        <div className="flex justify-between items-center">
+            {yr.bestPerformingParcelId.length > 0 && (
+                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium">
+                    <TrendingUp className="h-3 w-3 text-emerald-500" />
+                    Best Performance: <span className="text-slate-300 uppercase font-bold">{yr.bestPerformingParcelId[0]?.split('_').pop()}</span>
+                </div>
+            )}
+            <button
+                onClick={onDetails}
+                className="ml-auto flex items-center gap-2 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-widest"
+            >
+                View Details
+                <ChevronRight className="h-3 w-3" />
+            </button>
+        </div>
     </div>
 );
-
 const BreakdownRow = ({ label, value, total, color }: { label: string, value: bigint, total: bigint, color: string }) => {
     const percent = total > 0n ? (Number(value) / Number(total)) * 100 : 0;
     return (

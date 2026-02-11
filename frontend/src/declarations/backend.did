@@ -8,6 +8,19 @@ type YearlyReport =
    totalHarvested: nat;
    totalRevenue: nat;
    year: nat;
+   
+   retailRevenue: nat;
+   wholesaleRevenue: nat;
+   otherRevenue: nat;
+   retailVolume: nat;
+   wholesaleVolume: nat;
+
+   maintenanceCosts: nat;
+   operationalCosts: nat;
+   laborCosts: nat;
+   certificationCosts: nat;
+   infrastructureCosts: nat;
+   parcelCosts: nat;
  };
 type UserRole = 
  variant {
@@ -18,7 +31,7 @@ type UserRole =
 type Statistics = 
  record {
    averageYieldPerHa: float64;
-   bestSeasonProfit: nat;
+   bestYearlyProfit: nat;
    seasonalReports: vec SeasonReport;
    yearlyReports: vec YearlyReport;
    seasonsPlayed: nat;
@@ -51,11 +64,16 @@ type SeasonReport =
    netProfit: int;
    operationalCosts: nat;
    otherRevenue: nat;
+   infrastructureCosts: nat;
+   parcelCosts: nat;
    parcelData: vec ParcelEconomics;
    retailRevenue: nat;
+   retailVolume: nat;
+   wholesaleVolume: nat;
    seasonName: Season;
    seasonNumber: nat;
    totalCosts: nat;
+   totalHarvested: nat;
    totalRevenue: nat;
    wholesaleRevenue: nat;
  };

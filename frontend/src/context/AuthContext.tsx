@@ -3,6 +3,7 @@ import { AuthClient } from '@dfinity/auth-client';
 import { Identity } from '@dfinity/agent';
 import { createBackendActor } from '@/api/actor';
 import { _SERVICE } from '@/declarations/backend.did';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -14,32 +15,34 @@ interface AuthContextType {
     initTestMode: () => Promise<void>; // For development testing
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [client, setClient] = useState<AuthClient | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [identity, setIdentity] = useState<Identity | null>(null);
     const [backendActor, setBackendActor] = useState<_SERVICE | null>(null);
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         console.log('[AuthContext] Initializing AuthClient...');
         AuthClient.create().then(async (client) => {
             console.log('[AuthContext] AuthClient created successfully');
             setClient(client);
+
             const isAuth = await client.isAuthenticated();
-            console.log('[AuthContext] Authentication status:', isAuth);
-            setIsAuthenticated(isAuth);
             const id = client.getIdentity();
-            console.log('[AuthContext] Identity principal:', id.getPrincipal().toText());
             setIdentity(id);
+
             console.log('[AuthContext] Creating backend actor...');
             const actor = await createBackendActor(id);
             console.log('[AuthContext] Backend actor created:', actor ? 'SUCCESS' : 'FAILED');
-            if (actor) {
-                console.log('[AuthContext] Actor methods available:', Object.keys(actor).slice(0, 5).join(', '), '...');
-            }
+
             setBackendActor(actor);
+            // ONLY set isAuthenticated after we have the actor
+            setIsAuthenticated(isAuth);
+
+            console.log('[AuthContext] Initialization complete. Connected:', !!actor, 'Authenticated:', isAuth);
         }).catch((error) => {
             console.error('[AuthContext] Failed to initialize:', error);
         });
@@ -58,14 +61,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     : 'https://identity.ic0.app',
                 onSuccess: async () => {
                     console.log('[AuthContext] Login successful');
-                    setIsAuthenticated(true);
                     const id = client.getIdentity();
-                    console.log('[AuthContext] New identity principal:', id.getPrincipal().toText());
                     setIdentity(id);
+
                     console.log('[AuthContext] Creating authenticated backend actor...');
                     const actor = await createBackendActor(id);
                     console.log('[AuthContext] Authenticated actor created:', actor ? 'SUCCESS' : 'FAILED');
+
                     setBackendActor(actor);
+                    // ONLY set isAuthenticated after we have the actor
+                    setIsAuthenticated(true);
                     resolve();
                 },
                 onError: (err) => {
@@ -105,35 +110,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         try {
+            // Set authenticated immediately to provide UI feedback
+            setIsAuthenticated(true);
+
             // Use anonymous identity for testing
             const anonymousIdentity = client.getIdentity();
-            console.log('[AuthContext] Using anonymous identity for testing');
-            console.log('[AuthContext] Test principal:', anonymousIdentity.getPrincipal().toText());
-
-            setIsAuthenticated(true);
+            console.log('[AuthContext] Using identity:', anonymousIdentity.getPrincipal().toText());
             setIdentity(anonymousIdentity);
 
             console.log('[AuthContext] Creating backend actor for test mode...');
             const actor = await createBackendActor(anonymousIdentity);
             console.log('[AuthContext] Test mode actor created:', actor ? 'SUCCESS' : 'FAILED');
-            setBackendActor(actor);
-
-            // Initialize test player on backend
+            // Set backend actor
             if (actor) {
-                console.log('[AuthContext] Initializing test player on backend...');
-                try {
-                    const result = await actor.initializePlayer('test_user', 'Test Player');
-                    if ('Ok' in result) {
-                        console.log('[AuthContext] Test player initialized:', result.Ok);
-                    } else {
-                        console.warn('[AuthContext] Test player init returned:', result.Err);
-                    }
-                } catch (error) {
-                    console.error('[AuthContext] Failed to initialize test player:', error);
-                }
+                setBackendActor(actor);
+                console.log('[AuthContext] Test mode actor set successfully');
             }
         } catch (error) {
             console.error('[AuthContext] Test mode initialization failed:', error);
+            setIsAuthenticated(false); // Revert if it failed
+            alert("Test mode failed to initialize. Check console for details.");
         }
     };
 
@@ -142,12 +138,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             {children}
         </AuthContext.Provider>
     );
-};
-
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
 };

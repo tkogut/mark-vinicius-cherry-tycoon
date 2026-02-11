@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { FarmOverview, GameError } from '@/declarations/backend.did';
 
 export const FARM_OVERVIEW_KEY = ['farmOverview'];

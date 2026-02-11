@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { MarketPrice } from '@/declarations/backend.did';
 
 export const MARKET_PRICES_KEY = ['marketPrices'];

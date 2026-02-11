@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Cherry, User, Sprout, Coins } from "lucide-react";
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 import { useToast } from "@/components/ui/use-toast";
 
@@ -151,7 +151,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
                     <Button
                         type="submit"
                         className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold h-11"
-                        disabled={isLoading || !playerName || !playerId}
+                        disabled={isLoading || !playerName || !playerId || !backendActor}
                     >
                         {isLoading ? "Cultivating..." : "Establish Farm"}
                     </Button>

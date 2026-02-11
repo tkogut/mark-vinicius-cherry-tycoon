@@ -2,7 +2,7 @@ import React from 'react';
 import { LayoutDashboard, ShoppingBag, Trophy, User, Cherry, X, Menu, LogOut, Coins, Zap, PieChart } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface SidebarProps {
     isOpen: boolean;
@@ -116,36 +116,76 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                             // Fixed Costs (Maintenance)
                             const fixedCosts = ownedInfrastructure.reduce((acc, infra) => acc + Number(infra.maintenanceCost), 0);
 
-                            // Variable Costs Estimate (simplified backend logic)
-                            const totalArea = parcels.reduce((acc, p) => acc + Number(p.size), 0);
+                            // Variable Costs Estimate (matching backend game_logic.mo)
+                            let totalArea = 0;
+                            let fertilizerCost = 0;
+                            let protectionCost = 0;
+                            let fuelCost = 0;
+                            let laborCostBase = 0;
+
+                            // Calculate labor efficiency from infrastructure
+                            let laborEfficiency = 1.0;
+                            ownedInfrastructure.forEach(infra => {
+                                const type = Object.keys(infra.infraType)[0] || infra.infraType; // Handle variant structure
+                                const level = Number(infra.level);
+
+                                if (type === 'Tractor') laborEfficiency -= 0.15 * level;
+                                else if (type === 'Shaker') laborEfficiency -= 0.30 * level;
+                                else if (type === 'SocialFacilities') laborEfficiency -= 0.05 * level;
+                            });
+                            // Cap efficiency at 0.2 (min 20% labor cost remains)
+                            if (laborEfficiency < 0.2) laborEfficiency = 0.2;
+
+                            parcels.forEach(p => {
+                                const size = Number(p.size);
+                                totalArea += size;
+                                const isOrganic = p.isOrganic;
+
+                                // Fertilizer
+                                fertilizerCost += isOrganic ? (size * 3000) : (size * 1500);
+
+                                // Plant Protection
+                                protectionCost += isOrganic ? (size * 2000) : (size * 1000);
+
+                                // Fuel
+                                fuelCost += size * 500;
+
+                                // Labor Base (8000 * region multiplier)
+                                const laborMultiplier = p.region?.laborCostMultiplier ? Number(p.region.laborCostMultiplier) : 1.0;
+                                laborCostBase += size * 8000 * laborMultiplier;
+                            });
+
+                            const totalLaborCost = laborCostBase * laborEfficiency;
+
+                            // Organic certification fee (GDD Section 5)
                             const hasOrganic = parcels.some(p => p.isOrganic);
+                            let certFee = 0;
+                            if (hasOrganic) {
+                                if (totalArea < 5.0) certFee = 1500;
+                                else if (totalArea < 20.0) certFee = 1800;
+                                else if (totalArea < 50.0) certFee = 2090;
+                                else certFee = 2500;
+                            }
 
-                            // Fertilizer cost estimation
-                            const fertCost = parcels.reduce((acc, p) => {
-                                return acc + (p.isOrganic ? (Number(p.size) * 3000) : (Number(p.size) * 1500));
-                            }, 0);
-
-                            // Organic certification fee
-                            const certFee = hasOrganic ? (totalArea < 5 ? 1500 : totalArea < 20 ? 1800 : 2500) : 0;
-
-                            const totalEst = fixedCosts + fertCost + certFee;
+                            const totalEst = fixedCosts + fertilizerCost + protectionCost + fuelCost + totalLaborCost + certFee;
+                            const operationalCosts = fertilizerCost + protectionCost + fuelCost + totalLaborCost + certFee;
 
                             return (
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-baseline">
                                         <span className="text-xl font-mono font-bold text-amber-400">
-                                            ${totalEst.toLocaleString()}
+                                            ${Math.round(totalEst).toLocaleString()}
                                         </span>
                                         <span className="text-[10px] text-slate-500">PLN</span>
                                     </div>
                                     <div className="space-y-1">
                                         <div className="flex justify-between text-[10px]">
                                             <span className="text-slate-500">Maintenance</span>
-                                            <span className="text-slate-300 font-mono">${fixedCosts.toLocaleString()}</span>
+                                            <span className="text-slate-300 font-mono">${Math.round(fixedCosts).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between text-[10px]">
-                                            <span className="text-slate-500">Ops (Fert/Cert)</span>
-                                            <span className="text-slate-300 font-mono">${(fertCost + certFee).toLocaleString()}</span>
+                                            <span className="text-slate-500">Operational</span>
+                                            <span className="text-slate-300 font-mono">${Math.round(operationalCosts).toLocaleString()}</span>
                                         </div>
                                     </div>
                                     <div className="mt-3 pt-2 border-t border-slate-700/50 flex items-center gap-1.5 opacity-60">
