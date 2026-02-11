@@ -24,24 +24,32 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Build Frontend Assets
+        working-directory: frontend
+        run: npm run build
+
       - name: Install DFX
         uses: aviate-labs/setup-dfx@v0.3.2
         with:
           dfx-version: '0.24.3'
 
-      - name: Confirm DFX Installation
-        run: dfx --version
+      - name: Import Deploy Identity
+        env:
+          DFX_IDENTITY: ${{ secrets.DFX_IDENTITY_PEM }}
+        run: |
+          mkdir -p ~/.config/dfx/identity/deploy
+          echo "$DFX_IDENTITY" | dfx identity import deploy -
+          dfx identity use deploy
+          dfx identity get-principal
 
       - name: Deploy to Playground
-        env:
-          DFX_NETWORK: playground
         run: |
-          # Hack: Unset CI vars to bypass "Cannot reserve playground canister in CI" check
           unset CI
           unset GITHUB_ACTIONS
-          dfx deploy --network playground 
+          dfx deploy --network playground
           
-          echo "Deployment complete."
+          echo "✅ Deployment complete"
           if [ -f .dfx/playground/canister_ids.json ]; then
+            echo "Canister IDs:"
             cat .dfx/playground/canister_ids.json
           fi
