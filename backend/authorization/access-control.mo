@@ -1,6 +1,6 @@
 import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
-import Runtime "mo:core/Runtime";
+import Debug "mo:base/Debug";
 
 module {
   public type UserRole = {
@@ -42,14 +42,14 @@ module {
     switch (state.userRoles.get(caller)) {
       case (?role) { role };
       case (null) {
-        Runtime.trap("User is not registered");
+        Debug.trap("User is not registered");
       };
     };
   };
 
   public func assignRole(state : AccessControlState, caller : Principal, user : Principal, role : UserRole) {
     if (not (isAdmin(state, caller))) {
-      Runtime.trap("Unauthorized: Only admins can assign user roles");
+      Debug.trap("Unauthorized: Only admins can assign user roles");
     };
     state.userRoles.put(user, role);
   };
