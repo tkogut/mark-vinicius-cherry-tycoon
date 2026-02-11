@@ -39,7 +39,7 @@ jobs:
           # Hack: Unset CI vars to bypass "Cannot reserve playground canister in CI" check
           unset CI
           unset GITHUB_ACTIONS
-          dfx deploy --network playground --with-cycles 10000000000 
+          dfx deploy --network playground 
           
           echo "Deployment complete."
           if [ -f .dfx/playground/canister_ids.json ]; then

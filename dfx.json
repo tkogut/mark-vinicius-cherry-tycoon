@@ -31,10 +31,6 @@
     "local": {
       "bind": "127.0.0.1:8000",
       "type": "ephemeral"
-    },
-    "playground": {
-      "providers": ["https://icp0.io"],
-      "type": "ephemeral"
     }
   },
   "version": 1
