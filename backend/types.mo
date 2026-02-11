@@ -117,6 +117,15 @@ module {
     organicTreatments: Nat;  // natural treatments for organic farms
   };
 
+  public type ParcelEconomics = {
+    parcelId: Text;
+    province: Province;
+    revenue: Nat;
+    costs: Nat;
+    yield: Nat; // kg
+    netProfit: Int;
+  };
+
   public type SeasonReport = {
     seasonNumber: Nat;
     seasonName: Season;
@@ -132,10 +141,24 @@ module {
     laborCosts: Nat;
     certificationCosts: Nat;
     
+    // Detailed Breakdown
+    parcelData: [ParcelEconomics];
+    
     // Summary
     totalRevenue: Nat;
     totalCosts: Nat;
     netProfit: Int;
+  };
+
+  public type YearlyReport = {
+    year: Nat; // Derived from (seasonNumber-1)/4 + 1
+    totalRevenue: Nat;
+    totalCosts: Nat;
+    netProfit: Int;
+    totalHarvested: Nat;
+    seasonalBreakdown: [SeasonReport]; // The 4 seasons of this year
+    bestPerformingParcelId: ?Text;
+    bestPerformingProvince: ?Province;
   };
 
   public type Statistics = {
@@ -147,6 +170,7 @@ module {
     bestSeasonProfit: Nat;
     averageYieldPerHa: Float;
     seasonalReports: [SeasonReport];
+    yearlyReports: [YearlyReport];
   };
 
   // ============================================================================

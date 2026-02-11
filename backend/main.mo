@@ -37,6 +37,8 @@ persistent actor CherryTycoon {
   type Result<T, E> = Types.Result<T, E>;
   type GameError = Types.GameError;
   type SeasonReport = Types.SeasonReport;
+  type YearlyReport = Types.YearlyReport;
+  type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
   flexible let accessControlState = AccessControl.initState();
@@ -76,10 +78,16 @@ persistent actor CherryTycoon {
   // Stable storage for upgrades
   private var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
   private var stableSaturation : [(Text, (Nat, Int))] = [];
+  private var stableGlobalSeason : Nat = 1;
+  private var stableUserRoles : [(Principal, AccessControl.UserRole)] = [];
+  private var stableAdminAssigned : Bool = false;
 
   system func preupgrade() {
     stablePlayerFarms := Iter.toArray(playerFarms.entries());
     stableSaturation := Iter.toArray(regionalMarketSaturation.entries());
+    stableGlobalSeason := globalSeasonNumber;
+    stableUserRoles := Iter.toArray(accessControlState.userRoles.entries());
+    stableAdminAssigned := accessControlState.adminAssigned;
   };
 
   system func postupgrade() {
@@ -98,6 +106,17 @@ persistent actor CherryTycoon {
       Text.hash
     );
     stableSaturation := [];
+
+    globalSeasonNumber := stableGlobalSeason;
+
+    accessControlState.adminAssigned := stableAdminAssigned;
+    accessControlState.userRoles := HashMap.fromIter<Principal, AccessControl.UserRole>(
+      stableUserRoles.vals(),
+      10,
+      Principal.equal,
+      Principal.hash
+    );
+    stableUserRoles := [];
   };
 
   // Market Saturation (Phase 4)
@@ -221,6 +240,7 @@ persistent actor CherryTycoon {
         bestSeasonProfit = 0;
         averageYieldPerHa = 0.0;
         seasonalReports = [];
+        yearlyReports = [];
       };
       currentSeason = #Spring;
       seasonNumber = 1;
@@ -370,10 +390,11 @@ persistent actor CherryTycoon {
               }
             };
 
-            let updatedStats = {
-              farm.statistics with
-              totalHarvested = farm.statistics.totalHarvested + harvestedAmount;
-            };
+            let updatedStats = updateSeasonalReport(farm, func(r) {
+              updateParcelEconomics(r, parcelId, parcel.region.province, func(p) {
+                { p with yield = p.yield + harvestedAmount }
+              })
+            });
 
             // Add experience
             let xpGain = GameLogic.calculateExperienceGain("harvest", harvestedAmount);
@@ -384,7 +405,9 @@ persistent actor CherryTycoon {
               farm with
               parcels = updatedParcels;
               inventory = updatedInventory;
-              statistics = updatedStats;
+              statistics = { updatedStats with
+                totalHarvested = farm.statistics.totalHarvested + harvestedAmount;
+              };
               experience = newXp;
               level = newLevel;
             };
@@ -431,11 +454,17 @@ persistent actor CherryTycoon {
             );
 
             let updatedStats = updateSeasonalReport(farm, func(r) {
-              { r with 
+              let updatedReport = { r with 
                 operationalCosts = r.operationalCosts + waterCost;
                 totalCosts = r.totalCosts + waterCost;
                 netProfit = r.netProfit - (waterCost : Int);
-              }
+              };
+              updateParcelEconomics(updatedReport, parcelId, parcel.region.province, func(p) {
+                { p with 
+                  costs = p.costs + waterCost;
+                  netProfit = p.netProfit - (waterCost : Int);
+                }
+              })
             });
 
             let updatedFarm = {
@@ -626,11 +655,17 @@ persistent actor CherryTycoon {
             let newLevel = GameLogic.getLevelFromExperience(newXp);
 
             let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
-              { r with 
+              let updatedReport = { r with 
                 operationalCosts = r.operationalCosts + totalCost;
                 totalCosts = r.totalCosts + totalCost;
                 netProfit = r.netProfit - (totalCost : Int);
-              }
+              };
+              updateParcelEconomics(updatedReport, parcelId, parcel.region.province, func(p) {
+                { p with 
+                  costs = p.costs + totalCost;
+                  netProfit = p.netProfit - (totalCost : Int);
+                }
+              })
             });
 
             let updatedFarm = {
@@ -927,11 +962,19 @@ persistent actor CherryTycoon {
           }
         });
 
+        let isNewYear = nextSeason == #Spring;
+        
         let updatedStats = {
           farm.statistics with
           totalCosts = farm.statistics.totalCosts + totalCosts;
           seasonsPlayed = farm.statistics.seasonsPlayed + 1;
           seasonalReports = updatedSeasonStats.seasonalReports;
+          yearlyReports = if (isNewYear) {
+            let yearlyRepo = generateYearlyReport({ farm with statistics = updatedSeasonStats; seasonNumber = farm.seasonNumber + 1 });
+            Array.append(farm.statistics.yearlyReports, [yearlyRepo])
+          } else {
+            farm.statistics.yearlyReports
+          };
         };
 
         let updatedFarm = {
@@ -1216,6 +1259,7 @@ persistent actor CherryTycoon {
           operationalCosts = 0;
           laborCosts = 0;
           certificationCosts = 0;
+          parcelData = [];
           totalRevenue = 0;
           totalCosts = 0;
           netProfit = 0;
@@ -1238,6 +1282,116 @@ persistent actor CherryTycoon {
     });
     
     { farm.statistics with seasonalReports = finalReports }
+  };
+
+  private func generateYearlyReport(farm: PlayerFarm) : YearlyReport {
+    let yearNum = Int.abs((farm.seasonNumber : Int - 1) / 4);
+    let startSeason = if (yearNum > 0) Int.abs((yearNum : Int - 1) * 4 + 1) else 1;
+    let endSeason = if (yearNum > 0) yearNum * 4 else 0;
+    
+    var seasonalBreakdown = Buffer.Buffer<SeasonReport>(4);
+    for (r in farm.statistics.seasonalReports.vals()) {
+      if (r.seasonNumber >= startSeason and r.seasonNumber <= endSeason) {
+        seasonalBreakdown.add(r);
+      };
+    };
+    
+    var totalRev : Nat = 0;
+    var totalCost : Nat = 0;
+    var netProf : Int = 0;
+    var totalHarv : Nat = 0;
+    
+    // Track parcel performance across the year
+    var parcelStats = HashMap.HashMap<Text, (Nat, Int)>(10, Text.equal, Text.hash);
+    
+    for (report in seasonalBreakdown.vals()) {
+      totalRev += report.totalRevenue;
+      totalCost += report.totalCosts;
+      netProf += report.netProfit;
+      
+      for (pData in report.parcelData.vals()) {
+        totalHarv += pData.yield;
+        let (harv, prof) = switch (parcelStats.get(pData.parcelId)) {
+          case null { (0, 0) };
+          case (?v) { v };
+        };
+        parcelStats.put(pData.parcelId, (harv + pData.yield, prof + pData.netProfit));
+      };
+    };
+    
+    var bestParcelId : ?Text = null;
+    var bestProfit : ?Int = null;
+    
+    for (entry in parcelStats.entries()) {
+      let (id, (_, prof)) = entry;
+      switch (bestProfit) {
+        case null {
+          bestParcelId := ?id;
+          bestProfit := ?prof;
+        };
+        case (?p) {
+          if (prof > p) {
+            bestParcelId := ?id;
+            bestProfit := ?prof;
+          };
+        };
+      };
+    };
+    
+    {
+      year = yearNum;
+      totalRevenue = totalRev;
+      totalCosts = totalCost;
+      netProfit = netProf;
+      totalHarvested = totalHarv;
+      seasonalBreakdown = Buffer.toArray(seasonalBreakdown);
+      bestPerformingParcelId = bestParcelId;
+      bestPerformingProvince = null; // Simplified for now
+    }
+  };
+
+  private func updateParcelEconomics(
+    report: SeasonReport,
+    parcelId: Text,
+    province: Province,
+    updateFn: (ParcelEconomics) -> ParcelEconomics
+  ) : SeasonReport {
+    var updatedParcelData = Buffer.fromArray<ParcelEconomics>(report.parcelData);
+    var targetIndex : ?Nat = null;
+    
+    for (i in Iter.range(0, (updatedParcelData.size() : Int) - 1)) {
+      if (updatedParcelData.get(i).parcelId == parcelId) {
+        targetIndex := ?i;
+      };
+    };
+    
+    let economics = switch (targetIndex) {
+      case (?index) { updatedParcelData.get(index) };
+      case null {
+        let newEcon : ParcelEconomics = {
+          parcelId = parcelId;
+          province = province;
+          revenue = 0;
+          costs = 0;
+          yield = 0;
+          netProfit = 0;
+        };
+        newEcon
+      };
+    };
+    
+    let updatedEcon = updateFn(economics);
+    
+    switch (targetIndex) {
+      case (?index) {
+        updatedParcelData.put(index, updatedEcon);
+      };
+      case null {
+        updatedParcelData.add(updatedEcon);
+      };
+    };
+    
+    { report with parcelData = Buffer.toArray(updatedParcelData) }
   };
 
 

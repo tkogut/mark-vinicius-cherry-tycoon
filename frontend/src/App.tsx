@@ -15,6 +15,7 @@ import { useFarm } from "@/hooks/useFarm"
 import { SeasonDisplay } from "@/components/season/SeasonDisplay"
 import { AdvanceSeasonButton } from "@/components/season/AdvanceSeasonButton"
 import { FinancialReportModal } from "@/components/farm/modals/FinancialReportModal"
+import { OnboardingModal } from "@/components/farm/modals/OnboardingModal"
 
 function App() {
     const { isAuthenticated } = useAuth();
@@ -26,6 +27,8 @@ function App() {
     const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports'>('dashboard');
 
     const { farm, isLoading, refetch, plant, water, fertilize, harvest, buyParcel, advanceSeason, sellCherries, startOrganicConversion, upgradeInfrastructure } = useFarm();
+
+    const showOnboarding = isAuthenticated && !isLoading && !farm;
 
     // Derived state
     const stats = {
@@ -122,6 +125,12 @@ function App() {
                 isLoading={sellCherries.isPending}
             />
 
+            <OnboardingModal
+                isOpen={showOnboarding}
+                onClose={() => { }} // Force onboarding if missing farm
+                onSuccess={() => refetch()}
+            />
+
             {/* Mobile Inventory Bar (Fixed Bottom) */}
             <InventoryBar
                 cash={stats.cash}
@@ -146,7 +155,15 @@ function App() {
             <FinancialReportModal
                 isOpen={financialReportOpen}
                 onClose={() => setFinancialReportOpen(false)}
-                reports={farm?.statistics.seasonalReports || []}
+                seasonalReports={farm?.statistics.seasonalReports || []}
+                yearlyReports={farm?.statistics.yearlyReports || []}
+                parcels={parcels}
+                overallStatistics={farm ? {
+                    totalRevenue: farm.statistics.totalRevenue,
+                    totalCosts: farm.statistics.totalCosts,
+                    totalHarvested: farm.statistics.totalHarvested,
+                    bestSeasonProfit: farm.statistics.bestSeasonProfit,
+                } : undefined}
             />
 
             <div className="flex-1 flex flex-col md:ml-64 lg:ml-72 min-h-screen transition-all duration-300 bg-slate-950 pb-20 md:pb-0">

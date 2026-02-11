@@ -23,8 +23,17 @@ export const idlFactory = ({ IDL }) => {
     'Summer': IDL.Null,
     'Spring': IDL.Null,
   });
+  const ParcelEconomics = IDL.Record({
+    'yield': IDL.Nat,
+    'revenue': IDL.Nat,
+    'costs': IDL.Nat,
+    'parcelId': IDL.Text,
+    'netProfit': IDL.Int,
+    'province': Province,
+  });
   const SeasonReport = IDL.Record({
     'certificationCosts': IDL.Nat,
+    'parcelData': IDL.Vec(ParcelEconomics),
     'laborCosts': IDL.Nat,
     'maintenanceCosts': IDL.Nat,
     'netProfit': IDL.Int,
@@ -36,6 +45,16 @@ export const idlFactory = ({ IDL }) => {
     'totalCosts': IDL.Nat,
     'totalRevenue': IDL.Nat,
     'wholesaleRevenue': IDL.Nat,
+  });
+  const YearlyReport = IDL.Record({
+    'year': IDL.Nat,
+    'totalHarvested': IDL.Nat,
+    'bestPerformingProvince': IDL.Opt(Province),
+    'totalRevenue': IDL.Nat,
+    'seasonalBreakdown': IDL.Vec(SeasonReport),
+    'totalCosts': IDL.Nat,
+    'netProfit': IDL.Int,
+    'bestPerformingParcelId': IDL.Opt(IDL.Text),
   });
   const Inventory = IDL.Record({
     'fertilizers': IDL.Nat,
@@ -148,6 +167,7 @@ export const idlFactory = ({ IDL }) => {
     'averageYieldPerHa': IDL.Float64,
     'bestSeasonProfit': IDL.Nat,
     'seasonalReports': IDL.Vec(SeasonReport),
+    'yearlyReports': IDL.Vec(YearlyReport),
     'seasonsPlayed': IDL.Nat,
     'totalRevenue': IDL.Nat,
   });

@@ -2,6 +2,15 @@ import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 import type { IDL } from '@dfinity/candid';
 
+export interface ParcelEconomics {
+  'yield': bigint,
+  'revenue': bigint,
+  'costs': bigint,
+  'parcelId': string,
+  'netProfit': bigint,
+  'province': Province,
+}
+
 export interface CherryParcel {
   'id': string,
   'pH': number,
@@ -132,8 +141,19 @@ export type Season = { 'Winter': null } |
 { 'Autumn': null } |
 { 'Summer': null } |
 { 'Spring': null };
+export interface YearlyReport {
+  'year': bigint,
+  'totalHarvested': bigint,
+  'bestPerformingProvince': [] | [Province],
+  'totalRevenue': bigint,
+  'seasonalBreakdown': Array<SeasonReport>,
+  'totalCosts': bigint,
+  'netProfit': bigint,
+  'bestPerformingParcelId': [] | [string],
+}
 export interface SeasonReport {
   'certificationCosts': bigint,
+  'parcelData': Array<ParcelEconomics>,
   'laborCosts': bigint,
   'maintenanceCosts': bigint,
   'netProfit': bigint,
@@ -157,6 +177,7 @@ export interface Statistics {
   'averageYieldPerHa': number,
   'bestSeasonProfit': bigint,
   'seasonalReports': Array<SeasonReport>,
+  'yearlyReports': Array<YearlyReport>,
   'seasonsPlayed': bigint,
   'totalRevenue': bigint,
 }

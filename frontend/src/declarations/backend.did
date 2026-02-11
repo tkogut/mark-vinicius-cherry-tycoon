@@ -1,3 +1,14 @@
+type YearlyReport = 
+ record {
+   bestPerformingParcelId: opt text;
+   bestPerformingProvince: opt Province;
+   netProfit: int;
+   seasonalBreakdown: vec SeasonReport;
+   totalCosts: nat;
+   totalHarvested: nat;
+   totalRevenue: nat;
+   year: nat;
+ };
 type UserRole = 
  variant {
    admin;
@@ -9,6 +20,7 @@ type Statistics =
    averageYieldPerHa: float64;
    bestSeasonProfit: nat;
    seasonalReports: vec SeasonReport;
+   yearlyReports: vec YearlyReport;
    seasonsPlayed: nat;
    totalCosts: nat;
    totalHarvested: nat;
@@ -22,6 +34,15 @@ type SoilType =
    SandyClay;
    Waterlogged;
  };
+type ParcelEconomics = 
+ record {
+   costs: nat;
+   netProfit: int;
+   parcelId: text;
+   province: Province;
+   revenue: nat;
+   yield: nat;
+ };
 type SeasonReport = 
  record {
    certificationCosts: nat;
@@ -30,6 +51,7 @@ type SeasonReport =
    netProfit: int;
    operationalCosts: nat;
    otherRevenue: nat;
+   parcelData: vec ParcelEconomics;
    retailRevenue: nat;
    seasonName: Season;
    seasonNumber: nat;

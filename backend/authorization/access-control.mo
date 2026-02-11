@@ -11,13 +11,13 @@ module {
 
   public type AccessControlState = {
     var adminAssigned : Bool;
-    userRoles : HashMap.HashMap<Principal, UserRole>;
+    var userRoles : HashMap.HashMap<Principal, UserRole>;
   };
 
   public func initState() : AccessControlState {
     {
       var adminAssigned = false;
-      userRoles = HashMap.HashMap<Principal, UserRole>(10, Principal.equal, Principal.hash);
+      var userRoles = HashMap.HashMap<Principal, UserRole>(10, Principal.equal, Principal.hash);
     };
   };
 
