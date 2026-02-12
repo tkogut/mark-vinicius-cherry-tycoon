@@ -20,14 +20,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Frontend Dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build Frontend Assets
-        working-directory: frontend
-        run: npm run build
-
       - name: Install DFX
         uses: aviate-labs/setup-dfx@v0.3.2
         with:
@@ -42,6 +34,29 @@ jobs:
           echo "$DFX_IDENTITY" > ~/.config/dfx/identity/deploy/identity.pem
           dfx identity use deploy
           dfx identity get-principal
+
+      - name: Reserve Playground Canisters
+        run: |
+          unset CI
+          unset GITHUB_ACTIONS
+          dfx canister --network playground create --all
+
+      - name: Export Backend Canister ID
+        run: |
+          BACKEND_ID=$(dfx canister --network playground id backend)
+          echo "VITE_BACKEND_CANISTER_ID=$BACKEND_ID" >> $GITHUB_ENV
+          echo "Backend ID: $BACKEND_ID"
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Frontend Assets
+        working-directory: frontend
+        env:
+          VITE_BACKEND_CANISTER_ID: ${{ env.VITE_BACKEND_CANISTER_ID }}
+          VITE_DFX_NETWORK: playground
+        run: npm run build
 
       - name: Deploy to Playground
         run: |
