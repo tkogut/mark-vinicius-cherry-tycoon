@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, ShoppingBag, Trophy, User, Cherry, X, Menu, LogOut, Coins, Zap, PieChart } from 'lucide-react';
+import { RunningCosts } from '../farm/RunningCosts';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -101,118 +102,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                         </div>
                     </div>
 
-                    {/* Seasonal Running Costs Summary */}
-                    <div className="mt-4 bg-slate-800/40 rounded-xl p-4 border border-slate-700/30">
-                        <div className="flex items-center justify-between mb-3">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                Est. Next Season Cost
-                            </span>
-                            <div className="p-1 bg-amber-500/10 rounded">
-                                <Coins className="h-3 w-3 text-amber-500" />
-                            </div>
-                        </div>
+                    <RunningCosts
+                        ownedInfrastructure={ownedInfrastructure}
+                        parcels={parcels}
+                        onOpenFinancialReport={onOpenFinancialReport}
+                    />
+                </div>
 
-                        {(() => {
-                            // Fixed Costs (Maintenance)
-                            const fixedCosts = ownedInfrastructure.reduce((acc, infra) => acc + Number(infra.maintenanceCost), 0);
-
-                            // Variable Costs Estimate (matching backend game_logic.mo)
-                            let totalArea = 0;
-                            let fertilizerCost = 0;
-                            let protectionCost = 0;
-                            let fuelCost = 0;
-                            let laborCostBase = 0;
-
-                            // Calculate labor efficiency from infrastructure
-                            let laborEfficiency = 1.0;
-                            ownedInfrastructure.forEach(infra => {
-                                const type = Object.keys(infra.infraType)[0] || infra.infraType; // Handle variant structure
-                                const level = Number(infra.level);
-
-                                if (type === 'Tractor') laborEfficiency -= 0.15 * level;
-                                else if (type === 'Shaker') laborEfficiency -= 0.30 * level;
-                                else if (type === 'SocialFacilities') laborEfficiency -= 0.05 * level;
-                            });
-                            // Cap efficiency at 0.2 (min 20% labor cost remains)
-                            if (laborEfficiency < 0.2) laborEfficiency = 0.2;
-
-                            parcels.forEach(p => {
-                                const size = Number(p.size);
-                                totalArea += size;
-                                const isOrganic = p.isOrganic;
-
-                                // Fertilizer
-                                fertilizerCost += isOrganic ? (size * 3000) : (size * 1500);
-
-                                // Plant Protection
-                                protectionCost += isOrganic ? (size * 2000) : (size * 1000);
-
-                                // Fuel
-                                fuelCost += size * 500;
-
-                                // Labor Base (8000 * region multiplier)
-                                const laborMultiplier = p.region?.laborCostMultiplier ? Number(p.region.laborCostMultiplier) : 1.0;
-                                laborCostBase += size * 8000 * laborMultiplier;
-                            });
-
-                            const totalLaborCost = laborCostBase * laborEfficiency;
-
-                            // Organic certification fee (GDD Section 5)
-                            const hasOrganic = parcels.some(p => p.isOrganic);
-                            let certFee = 0;
-                            if (hasOrganic) {
-                                if (totalArea < 5.0) certFee = 1500;
-                                else if (totalArea < 20.0) certFee = 1800;
-                                else if (totalArea < 50.0) certFee = 2090;
-                                else certFee = 2500;
-                            }
-
-                            const totalEst = fixedCosts + fertilizerCost + protectionCost + fuelCost + totalLaborCost + certFee;
-                            const operationalCosts = fertilizerCost + protectionCost + fuelCost + totalLaborCost + certFee;
-
-                            return (
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-baseline">
-                                        <span className="text-xl font-mono font-bold text-amber-400">
-                                            ${Math.round(totalEst).toLocaleString()}
-                                        </span>
-                                        <span className="text-[10px] text-slate-500">PLN</span>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-[10px]">
-                                            <span className="text-slate-500">Maintenance</span>
-                                            <span className="text-slate-300 font-mono">${Math.round(fixedCosts).toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex justify-between text-[10px]">
-                                            <span className="text-slate-500">Operational</span>
-                                            <span className="text-slate-300 font-mono">${Math.round(operationalCosts).toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                    <div className="mt-3 pt-2 border-t border-slate-700/50 flex items-center gap-1.5 opacity-60">
-                                        <Zap className="h-2.5 w-2.5 text-amber-500/70" />
-                                        <span className="text-[9px] text-slate-500 leading-tight">
-                                            Charged automatically at season end
-                                        </span>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={onOpenFinancialReport}
-                                        className="w-full mt-3 bg-slate-900/50 border-slate-700 text-slate-300 hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-400 gap-2 h-8 text-[11px] font-bold"
-                                    >
-                                        <PieChart className="h-3 w-3" />
-                                        Financial Report
-                                    </Button>
-                                </div>
-                            );
-                        })()}
-                    </div>
-
+                <div className="p-4 border-t border-slate-800/50">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={logout}
-                        className="w-full mt-4 text-slate-400 hover:text-red-400 hover:bg-red-950/20 gap-2"
+                        className="w-full text-slate-400 hover:text-red-400 hover:bg-red-950/20 gap-2"
                     >
                         <LogOut className="h-4 w-4" />
                         Sign Out
@@ -251,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                     />
 
                     {/* Slide-over Panel */}
-                    <div className="absolute inset-y-0 left-0 w-3/4 max-w-xs bg-slate-900 border-r border-slate-800 p-6 shadow-2xl animate-in slide-in-from-left duration-300">
+                    <div className="absolute inset-y-0 left-0 w-3/4 max-w-xs bg-slate-900 border-r border-slate-800 p-6 shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col">
                         <div className="flex items-center justify-between mb-8">
                             <div className="flex items-center gap-2">
                                 <Cherry className="h-6 w-6 text-rose-500" />
@@ -262,7 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                             </Button>
                         </div>
 
-                        <nav className="space-y-4">
+                        <nav className="space-y-4 flex-1 overflow-y-auto pr-2">
                             {navItems.map((item) => (
                                 <Button
                                     key={item.id}
@@ -274,7 +176,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                         }
                                     }}
                                     className={cn(
-                                        "w-full justify-start gap-3 text-lg font-medium",
+                                        "w-full justify-start gap-3 text-lg font-medium h-12",
                                         activeTab === item.id ? "text-rose-400 bg-rose-500/10" : "text-slate-400"
                                     )}
                                 >
@@ -282,22 +184,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                     {item.label}
                                 </Button>
                             ))}
+
+                            <div className="mt-8 pt-8 border-t border-slate-800">
+                                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 mb-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-slate-100 font-medium">Level {level}</span>
+                                        <span className="text-xs text-rose-400">{Math.round(xpPercentage)}%</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-slate-900/50 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-rose-500"
+                                            style={{ width: `${xpPercentage}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <RunningCosts
+                                    ownedInfrastructure={ownedInfrastructure}
+                                    parcels={parcels}
+                                    onOpenFinancialReport={onOpenFinancialReport}
+                                />
+                            </div>
                         </nav>
 
-                        {/* Mobile Level Card */}
-                        <div className="mt-8 pt-8 border-t border-slate-800">
-                            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-slate-100 font-medium">Level {level}</span>
-                                    <span className="text-xs text-rose-400">{Math.round(xpPercentage)}%</span>
-                                </div>
-                                <div className="h-2 w-full bg-slate-900/50 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-rose-500"
-                                        style={{ width: `${xpPercentage}%` }}
-                                    />
-                                </div>
-                            </div>
+                        <div className="pt-6 border-t border-slate-800 mt-auto">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    logout();
+                                    onClose();
+                                }}
+                                className="w-full text-slate-400 hover:text-red-400 hover:bg-red-950/20 gap-3 justify-start h-12 text-lg"
+                            >
+                                <LogOut className="h-5 w-5" />
+                                Sign Out
+                            </Button>
                         </div>
                     </div>
                 </div>

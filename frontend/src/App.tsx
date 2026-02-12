@@ -190,54 +190,57 @@ function App() {
                             <p className="text-slate-400 mt-1">Manage your parcels and production.</p>
                         </div>
 
-                        <div className="flex items-center gap-3 w-full md:w-auto">
-                            {/* Desktop Inventory Bar */}
+                        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            {/* Inventory Bar (Stats) */}
                             <InventoryBar
                                 cash={stats.cash}
                                 cherries={stats.regularCherries}
                                 organicCherries={stats.organicCherries}
-                                className="hidden md:flex"
+                                className="flex md:flex shadow-none md:shadow-none bg-transparent p-0 static border-none backdrop-blur-0"
                             />
 
-                            {/* Season Display */}
-                            <SeasonDisplay
-                                currentSeason={stats.currentSeason}
-                                seasonNumber={stats.seasonNumber}
-                                className="hidden md:flex"
-                            />
+                            <div className="flex flex-wrap items-center gap-2">
+                                {/* Season Display */}
+                                <SeasonDisplay
+                                    currentSeason={stats.currentSeason}
+                                    seasonNumber={stats.seasonNumber}
+                                    className="flex"
+                                />
 
-                            {/* Advance Season Button */}
-                            <AdvanceSeasonButton
-                                onAdvance={async () => { await advanceSeason.mutateAsync(); }}
-                                isLoading={advanceSeason.isPending}
-                                disabled={!isAuthenticated}
-                                className="hidden md:flex"
-                            />
+                                {/* Advance Season Button */}
+                                <AdvanceSeasonButton
+                                    onAdvance={async () => { await advanceSeason.mutateAsync(); }}
+                                    isLoading={advanceSeason.isPending}
+                                    disabled={!isAuthenticated}
+                                    className="flex"
+                                />
 
-                            {/* Sell Cherries Button */}
-                            <Button
-                                onClick={handleSellCherries}
-                                disabled={!isAuthenticated || stats.totalCherries === 0 || sellCherries.isPending}
-                                variant="default"
-                                size="sm"
-                                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white hidden md:flex"
-                            >
-                                <Cherry className="h-4 w-4" />
-                                Sell Cherries ({stats.totalCherries})
-                            </Button>
+                                {/* Sell Cherries Button */}
+                                <Button
+                                    onClick={handleSellCherries}
+                                    disabled={!isAuthenticated || stats.totalCherries === 0 || sellCherries.isPending}
+                                    variant="default"
+                                    size="sm"
+                                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white flex"
+                                >
+                                    <Cherry className="h-4 w-4" />
+                                    Sell ({stats.totalCherries})
+                                </Button>
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => refetch()}
-                                disabled={isLoading || !isAuthenticated}
-                                className="gap-2 ml-auto text-slate-900 md:text-border md:bg-transparent md:text-slate-100 hover:bg-slate-800"
-                            >
-                                <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                                Refresh
-                            </Button>
-                            <div className="hidden md:block">
-                                <LoginButton />
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => refetch()}
+                                    disabled={isLoading || !isAuthenticated}
+                                    className="gap-2 text-slate-900 md:text-border md:bg-transparent md:text-slate-100 hover:bg-slate-800"
+                                >
+                                    <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                                    <span className="hidden sm:inline">Refresh</span>
+                                </Button>
+
+                                <div className="hidden md:block">
+                                    <LoginButton />
+                                </div>
                             </div>
                         </div>
                     </div>
