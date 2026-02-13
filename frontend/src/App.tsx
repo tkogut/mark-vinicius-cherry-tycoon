@@ -5,10 +5,11 @@ import React, { useState } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/hooks/useAuth"
 import { Sidebar } from "@/components/layout/Sidebar"
-import { FarmGrid } from "@/components/farm/FarmGrid"
+// Lazy load heavy components
+const FarmGrid = React.lazy(() => import("@/components/farm/FarmGrid").then(module => ({ default: module.FarmGrid })));
 import { PlantingModal } from "@/components/farm/modals/PlantingModal"
 import { SellModal } from '@/components/farm/modals/SellModal';
-import { Marketplace } from '@/components/farm/Marketplace';
+const Marketplace = React.lazy(() => import('@/components/farm/Marketplace').then(module => ({ default: module.Marketplace })));
 import { Toaster } from "@/components/ui/toaster"
 import { InventoryBar } from "@/components/layout/InventoryBar"
 import { useFarm } from "@/hooks/useFarm"
@@ -16,6 +17,8 @@ import { SeasonDisplay } from "@/components/season/SeasonDisplay"
 import { AdvanceSeasonButton } from "@/components/season/AdvanceSeasonButton"
 import { FinancialReportModal } from "@/components/farm/modals/FinancialReportModal"
 import { OnboardingModal } from "@/components/farm/modals/OnboardingModal"
+import { useInstallPrompt } from "@/utils/pwa"
+import { useToast } from "@/components/ui/use-toast"
 
 function App() {
     const { isAuthenticated, backendActor } = useAuth();
@@ -284,30 +287,32 @@ function App() {
                     </div>
 
                     {isAuthenticated ? (
-                        activeTab === 'dashboard' ? (
-                            <FarmGrid
-                                parcels={parcels}
-                                onAction={handleParcelAction}
-                                onBuyParcel={handleBuyParcel}
-                                loading={isLoading}
-                                currentSeason={stats.currentSeason}
-                            />
-                        ) : activeTab === 'marketplace' ? (
-                            <Marketplace
-                                cash={stats.cash}
-                                ownedInfrastructure={farm?.infrastructure || []}
-                                onPurchase={(id) => upgradeInfrastructure.mutate(id)}
-                                isLoading={upgradeInfrastructure.isPending}
-                            />
-                        ) : (
-                            <div className="h-64 flex items-center justify-center border border-dashed border-slate-700 rounded-xl bg-slate-800/20">
-                                <div className="text-center">
-                                    <Trophy className="h-10 w-10 text-slate-500 mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium">Sports Center Coming Soon</h3>
-                                    <p className="text-sm text-slate-500">Regional football leagues and sponsorships are in development.</p>
+                        <React.Suspense fallback={<div className="flex justify-center p-12"><RefreshCcw className="animate-spin h-8 w-8 text-rose-500" /></div>}>
+                            {activeTab === 'dashboard' ? (
+                                <FarmGrid
+                                    parcels={parcels}
+                                    onAction={handleParcelAction}
+                                    onBuyParcel={handleBuyParcel}
+                                    loading={isLoading}
+                                    currentSeason={stats.currentSeason}
+                                />
+                            ) : activeTab === 'marketplace' ? (
+                                <Marketplace
+                                    cash={stats.cash}
+                                    ownedInfrastructure={farm?.infrastructure || []}
+                                    onPurchase={(id) => upgradeInfrastructure.mutate(id)}
+                                    isLoading={upgradeInfrastructure.isPending}
+                                />
+                            ) : (
+                                <div className="h-64 flex items-center justify-center border border-dashed border-slate-700 rounded-xl bg-slate-800/20">
+                                    <div className="text-center">
+                                        <Trophy className="h-10 w-10 text-slate-500 mx-auto mb-4" />
+                                        <h3 className="text-lg font-medium">Sports Center Coming Soon</h3>
+                                        <p className="text-sm text-slate-500">Regional football leagues and sponsorships are in development.</p>
+                                    </div>
                                 </div>
-                            </div>
-                        )
+                            )}
+                        </React.Suspense>
                     ) : (
                         <section className="mt-12">
                             <div className="h-64 rounded-xl border-2 border-dashed border-slate-700/50 flex flex-col items-center justify-center bg-slate-800/30 space-y-4">
@@ -324,8 +329,28 @@ function App() {
                     )}
                 </main>
             </div>
+            {/* PWA Install Button (Conditional) */}
+            <InstallPrompt />
         </div>
     )
+}
+
+function InstallPrompt() {
+    const { isInstallable, promptInstall } = useInstallPrompt();
+    const { toast } = useToast();
+
+    React.useEffect(() => {
+        if (isInstallable) {
+            toast({
+                title: "Install App",
+                description: "Add Mark Vinicius to your home screen for the best experience.",
+                action: <Button onClick={promptInstall} size="sm" className="bg-rose-600 text-white">Install</Button>,
+                duration: 10000,
+            })
+        }
+    }, [isInstallable, toast, promptInstall]);
+
+    return null; // Rendered via toast
 }
 
 export default App

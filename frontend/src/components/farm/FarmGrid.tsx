@@ -37,9 +37,8 @@ export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParc
             </div>
 
             <div className={cn(
-                "grid gap-4 md:gap-6",
-                // Mobile: 2 columns, Desktop: 3 columns
-                "grid-cols-2 md:grid-cols-3",
+                // Mobile: 1 col < 475px, 2 cols >= 475px, Desktop: 3 columns
+                "grid-cols-1 xs:grid-cols-2 md:grid-cols-3",
                 // Max width for centered 3x3 look on large screens
                 "lg:max-w-4xl mx-auto"
             )}>

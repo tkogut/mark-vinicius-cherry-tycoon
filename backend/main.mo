@@ -18,7 +18,7 @@ import GameLogic "game_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-actor CherryTycoon {
+persistent actor CherryTycoon {
   
   // Type aliases
   type PlayerFarm = Types.PlayerFarm;
@@ -71,9 +71,9 @@ actor CherryTycoon {
   );
 
   // Global game state
-  private var globalSeasonNumber : Nat = 1;
-  private var baseRetailPrice : Nat = 15; // PLN per kg
-  private var baseWholesalePrice : Nat = 10; // PLN per kg
+  private flexible var globalSeasonNumber : Nat = 1;
+  private flexible var baseRetailPrice : Nat = 15; // PLN per kg
+  private flexible var baseWholesalePrice : Nat = 10; // PLN per kg
 
   // Stable storage for upgrades
   private var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
