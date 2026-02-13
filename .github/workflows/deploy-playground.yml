@@ -51,12 +51,6 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Generate Backend Declarations
-        run: |
-          unset CI
-          unset GITHUB_ACTIONS
-          dfx generate backend --network playground
-
       - name: Build Frontend Assets
         working-directory: frontend
         env:
