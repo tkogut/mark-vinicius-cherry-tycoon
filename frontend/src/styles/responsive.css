@@ -57,8 +57,26 @@ body {
 
 /* Force hide desktop sidebar on mobile/tablet portrait */
 @media (max-width: 767px) {
-  .desktop-sidebar {
+
+  /* Hide any and all sidebars */
+  .desktop-sidebar,
+  aside,
+  [class*="sidebar"] {
     display: none !important;
+  }
+
+  /* Force full width for content wrappers */
+  .main-layout-wrapper {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Ensure body doesn't scroll horizontally */
+  body {
+    overflow-x: hidden;
+    width: 100vw;
   }
 }
 

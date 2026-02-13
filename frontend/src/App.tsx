@@ -169,7 +169,7 @@ function App() {
                 } : undefined}
             />
 
-            <div className="flex-1 w-full flex flex-col md:ml-64 lg:ml-72 min-h-screen transition-all duration-300 bg-slate-950 pb-20 md:pb-0">
+            <div className="main-layout-wrapper flex-1 w-full flex flex-col md:ml-64 lg:ml-72 min-h-screen transition-all duration-300 bg-slate-950 pb-20 md:pb-0">
 
                 {/* Mobile/Tablet Header */}
                 <header className="sticky top-0 z-30 w-full border-b border-slate-800 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 md:hidden h-16 flex items-center justify-between px-4">
