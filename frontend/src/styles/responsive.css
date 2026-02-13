@@ -7,11 +7,16 @@
   --bp-desktop: 1024px;
 
   /* Spacing */
-  --spacing-xs: 0.25rem; /* 4px */
-  --spacing-sm: 0.5rem;  /* 8px */
-  --spacing-md: 1rem;    /* 16px */
-  --spacing-lg: 1.5rem;  /* 24px */
-  --spacing-xl: 2rem;    /* 32px */
+  --spacing-xs: 0.25rem;
+  /* 4px */
+  --spacing-sm: 0.5rem;
+  /* 8px */
+  --spacing-md: 1rem;
+  /* 16px */
+  --spacing-lg: 1.5rem;
+  /* 24px */
+  --spacing-xl: 2rem;
+  /* 32px */
 
   /* Touch Targets */
   --touch-target-min: 44px;
@@ -19,14 +24,17 @@
 
 /* Base Mobile Styles */
 html {
-  font-size: 16px; /* Ensure readable base size */
-  -webkit-text-size-adjust: 100%; /* Prevent automatic text resizing */
+  font-size: 16px;
+  /* Ensure readable base size */
+  -webkit-text-size-adjust: 100%;
+  /* Prevent automatic text resizing */
 }
 
 body {
   margin: 0;
   padding: 0;
-  overflow-x: hidden; /* Prevent horizontal scroll */
+  overflow-x: hidden;
+  /* Prevent horizontal scroll */
 }
 
 /* Touch Target Utility */
@@ -47,14 +55,22 @@ body {
   display: none;
 }
 
+/* Force hide desktop sidebar on mobile/tablet portrait */
+@media (max-width: 767px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+}
+
 /* Tablet Breakpoint */
 @media (min-width: 768px) {
   .mobile-only {
     display: none;
   }
-  
+
   .desktop-only {
-    display: block; /* Or flex/grid depending on context, may need specific overrides */
+    display: block;
+    /* Or flex/grid depending on context, may need specific overrides */
   }
 }
 

@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
     return (
         <>
             {/* Desktop Sidebar (Fixed Left) */}
-            <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 lg:w-72 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 text-slate-100 transition-all duration-300 z-40">
+            <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 lg:w-72 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 text-slate-100 transition-all duration-300 z-40 desktop-sidebar">
                 {/* Logo Area */}
                 <div className="h-16 flex items-center px-6 border-b border-slate-800/50">
                     <Cherry className="h-6 w-6 text-rose-500 animate-pulse mr-2" />
@@ -123,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
             </aside>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 flex items-center justify-around px-2 z-50 safe-area-bottom">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 flex items-center justify-around px-2 z-50 safe-area-bottom pb-safe">
                 {navItems.map((item) => (
                     <button
                         key={item.id}
@@ -133,12 +133,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                             }
                         }}
                         className={cn(
-                            "flex flex-col items-center justify-center p-2 rounded-lg transition-colors",
+                            "flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px]",
                             activeTab === item.id ? "text-rose-400" : "text-slate-500 hover:text-slate-300"
                         )}
+                        style={{ touchAction: 'manipulation' }}
                     >
-                        <item.icon className="h-5 w-5 mb-1" />
-                        <span className="text-[10px] font-medium">{item.label}</span>
+                        <item.icon className="h-6 w-6 mb-1" />
+                        <span className="text-[10px] font-medium">{item.label === 'Dashboard' ? 'Farm' : item.label === 'Marketplace' ? 'Market' : item.label}</span>
                     </button>
                 ))}
             </nav>
