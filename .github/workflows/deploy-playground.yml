@@ -62,8 +62,14 @@ jobs:
         run: |
           unset CI
           unset GITHUB_ACTIONS
+          
+          # Backend: Force reinstall to ensure clean state
           dfx deploy backend --network playground --mode reinstall --yes
-          dfx deploy frontend --network playground --mode reinstall --yes
+          
+          # Frontend: Explicitly delete and redeploy to fix "no Wasm module" error
+          dfx canister stop frontend --network playground || true
+          dfx canister delete frontend --network playground || true
+          dfx deploy frontend --network playground
           
           echo "✅ Deployment complete"
           if [ -f .dfx/playground/canister_ids.json ]; then
