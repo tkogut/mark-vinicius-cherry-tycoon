@@ -134,13 +134,7 @@ function App() {
                 onSuccess={() => refetch()}
             />
 
-            {/* Mobile Inventory Bar (Fixed Bottom) */}
-            <InventoryBar
-                cash={stats.cash}
-                cherries={stats.regularCherries}
-                organicCherries={stats.organicCherries}
-                className="md:hidden"
-            />
+
 
             <Sidebar
                 isOpen={sidebarOpen}
@@ -185,6 +179,14 @@ function App() {
                     </div>
                     <LoginButton />
                 </header>
+
+                {/* Mobile Inventory Bar (Sticky below header) */}
+                <InventoryBar
+                    cash={stats.cash}
+                    cherries={stats.regularCherries}
+                    organicCherries={stats.organicCherries}
+                    className="md:hidden sticky top-16 z-20"
+                />
 
                 <main className="flex-1 p-4 md:p-8 lg:p-10 pb-20 md:pb-8 text-slate-100">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
