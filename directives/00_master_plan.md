@@ -21,8 +21,11 @@
 - [ ] **Error Handling**: Verify error toasts for seasonal restrictions
 - [ ] **Code Cleanup**: Remove temporary debug logs once stable
 
-### Phase 3: Surface the Simulation (Next)
+### Phase 3: Surface the Simulation & Mobile Polish (Next)
 - [ ] **Frontend**: Display Soil Type, pH, and Fertility on Parcel Cards
+- [ ] **Frontend**: **Implement Responsive PWA** (See `responsive-pwa-implementation-guide.md`)
+    - [ ] Add Viewport & Manifest
+    - [ ] Mobile-first CSS & Touch Targets
 - [x] **Backend**: Ensure `getPlayerFarm` returns all parcel attributes
 - [ ] **UI**: Add tooltips explaining yield modifiers
 

@@ -15,8 +15,7 @@
     - [x] Deploy canister -> Create data -> Upgrade canister (`dfx deploy --upgrade-unchanged`) -> Verify data persists. (Verified: Passing in latest logs).
 
 ### Test Scripts needed
-- [x] Create `execution/tests/e2e_backend.sh` using `dfx canister call`.
-- [x] Create `execution/tests/e2e_backend.sh` using `dfx canister call`.
+- [x] Create `execution/tests/e2e_backend.sh` using `dfx canister call`. (Verified: Script passed)
 - [x] Create `tests/integration_tests.ts` using `vitest` + `@dfinity/agent`.
     - [x] Fixed `GameError` type mismatch in declarations and test suite.
 - [x] Verify `useAuth.test.tsx` React hook tests (6/6 passing).

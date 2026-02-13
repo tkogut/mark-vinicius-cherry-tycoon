@@ -15,6 +15,8 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 check_ok() {
     if [[ "$1" == *"Ok"* ]]; then
         echo "✅ SUCCESS: $2"
+    elif [[ "$1" == *"variant { Ok"* ]]; then # Handle explicit variant syntax
+        echo "✅ SUCCESS: $2"
     else
         echo "❌ FAILED: $2"
         echo "Response: $1"

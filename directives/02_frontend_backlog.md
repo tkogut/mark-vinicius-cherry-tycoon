@@ -1,5 +1,5 @@
 # FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]  
-> **Current Directive**: **Phase 2.5 - Polish & Phase 3 - UI Depth**
+> **Current Directive**: **Phase 3 - Mobile PWA & Simulation UI**
 > **Constraint**: **WSL Terminal Required** - For `dfx generate` and environment management.
 > **Last Updated**: 2026-02-08
 
@@ -58,7 +58,16 @@
   - Created `SellModal` with Wholesale/Retail options.
   - Integrated into main App workflow.
 
-### 📊 Phase 3: Surface the Simulation (Next)
+### 📱 Phase 3a: PWA Implementation (Priority)
+> **Reference**: `responsive-pwa-implementation-guide.md`
+- [ ] **Foundation**: Add viewport meta tag & audit CSS
+- [ ] **Manifest**: Create `manifest.json` & Service Worker
+- [ ] **Responsive Layout**:
+  - [ ] Adapt `FarmGrid` to mobile (stack view vs grid)
+  - [ ] Implement Mobile Nav (Bottom Tabs)
+- [ ] **Touch Optimization**: Ensure all buttons are 44x44px+
+
+### 📊 Phase 3b: Surface the Simulation
 - [ ] **Parcel Card Update**: Show Soil Type, pH, and Fertility values
 - [ ] **Yield Tooltip**: Hover over "Expected Yield" to see checking modifiers (e.g. "Sandy Soil: x0.85")
 - [ ] **Season Modifier**: Show how current season affects growth/yield
