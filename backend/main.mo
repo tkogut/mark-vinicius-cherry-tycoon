@@ -18,7 +18,7 @@ import GameLogic "game_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-persistent actor CherryTycoon {
+actor CherryTycoon {
   
   // Type aliases
   type PlayerFarm = Types.PlayerFarm;
