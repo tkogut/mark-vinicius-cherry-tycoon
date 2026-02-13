@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import type { ParcelEconomics, SeasonReport, YearlyReport, Province } from '@/declarations/backend';
+import type { ParcelEconomics, SeasonReport, YearlyReport, Province } from '../../../declarations/backend';
 
 interface FinancialReportModalProps {
     isOpen: boolean;
@@ -89,7 +89,7 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
         const latest = seasonalReports[seasonalReports.length - 1];
 
         if (filterParcelId !== "all") {
-            const pData = latest.parcelData.find(pd => pd.parcelId === filterParcelId);
+            const pData = latest.parcelData.find((pd: ParcelEconomics) => pd.parcelId === filterParcelId);
             if (pData) {
                 return {
                     ...latest,
@@ -100,9 +100,9 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                 };
             }
         } else if (filterProvince !== "all") {
-            const provData = latest.parcelData.filter(pd => getProvinceName(pd.province) === filterProvince);
-            const totalRevenue = provData.reduce((sum: bigint, pd) => sum + pd.revenue, 0n);
-            const totalCosts = provData.reduce((sum: bigint, pd) => sum + pd.costs, 0n);
+            const provData = latest.parcelData.filter((pd: ParcelEconomics) => getProvinceName(pd.province) === filterProvince);
+            const totalRevenue = provData.reduce((sum: bigint, pd: ParcelEconomics) => sum + pd.revenue, 0n);
+            const totalCosts = provData.reduce((sum: bigint, pd: ParcelEconomics) => sum + pd.costs, 0n);
             return {
                 ...latest,
                 totalRevenue,
