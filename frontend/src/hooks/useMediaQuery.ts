@@ -13,8 +13,14 @@ export function useMediaQuery(query: string): boolean {
             setMatches(media.matches);
         };
 
-        media.addEventListener('change', listener);
-        return () => media.removeEventListener('change', listener);
+        if (media.addEventListener) {
+            media.addEventListener('change', listener);
+            return () => media.removeEventListener('change', listener);
+        } else {
+            // Fallback for older browsers
+            (media as any).addListener(listener);
+            return () => (media as any).removeListener(listener);
+        }
     }, [query]);
 
     return matches;

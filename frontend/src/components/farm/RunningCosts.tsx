@@ -73,7 +73,7 @@ export const RunningCosts: React.FC<RunningCostsProps> = ({ ownedInfrastructure,
                     Est. Next Season Cost
                 </span>
                 <div className="p-1 bg-amber-500/10 rounded">
-                    < Coins className="h-3 w-3 text-amber-500" />
+                    <Coins className="h-3 w-3 text-amber-500" />
                 </div>
             </div>
 

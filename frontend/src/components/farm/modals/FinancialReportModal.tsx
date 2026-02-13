@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import type { ParcelEconomics, SeasonReport, YearlyReport, Province } from '@/declarations/backend.did';
+import type { ParcelEconomics, SeasonReport, YearlyReport, Province } from '@/declarations/backend';
 
 interface FinancialReportModalProps {
     isOpen: boolean;

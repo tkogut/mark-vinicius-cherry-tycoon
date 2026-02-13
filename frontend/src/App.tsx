@@ -156,10 +156,10 @@ function App() {
                 yearlyReports={farm?.statistics.yearlyReports || []}
                 parcels={parcels}
                 overallStatistics={farm ? {
-                    totalRevenue: farm.statistics.totalRevenue,
-                    totalCosts: farm.statistics.totalCosts,
-                    totalHarvested: farm.statistics.totalHarvested,
-                    bestYearlyProfit: farm.statistics.bestYearlyProfit,
+                    totalRevenue: farm.statistics?.totalRevenue || 0n,
+                    totalCosts: farm.statistics?.totalCosts || 0n,
+                    totalHarvested: farm.statistics?.totalHarvested || 0n,
+                    bestYearlyProfit: farm.statistics?.bestYearlyProfit || 0n,
                 } : undefined}
             />
 
