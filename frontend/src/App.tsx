@@ -111,7 +111,7 @@ function App() {
     const maxPlantable = Math.max(0, Math.min(200, maxAffordableTrees));
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex relative">
+        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row relative">
             <Toaster />
             <PlantingModal
                 isOpen={plantingModalOpen}
@@ -199,7 +199,7 @@ function App() {
                                 cash={stats.cash}
                                 cherries={stats.regularCherries}
                                 organicCherries={stats.organicCherries}
-                                className="flex md:flex shadow-none md:shadow-none bg-transparent p-0 static border-none backdrop-blur-0"
+                                className="hidden md:flex shadow-none md:shadow-none bg-transparent p-0 static border-none backdrop-blur-0"
                             />
 
                             <div className="flex flex-wrap items-center gap-2">
