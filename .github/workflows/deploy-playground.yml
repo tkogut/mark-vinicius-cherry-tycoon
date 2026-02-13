@@ -62,7 +62,8 @@ jobs:
         run: |
           unset CI
           unset GITHUB_ACTIONS
-          dfx deploy --network playground --mode reinstall --yes
+          dfx deploy backend --network playground --mode reinstall --yes
+          dfx deploy frontend --network playground --mode reinstall --yes
           
           echo "✅ Deployment complete"
           if [ -f .dfx/playground/canister_ids.json ]; then
