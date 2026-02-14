@@ -40,7 +40,7 @@ persistent actor CherryTycoon {
   type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
-  let accessControlState = AccessControl.initState();
+  transient let accessControlState = AccessControl.initState();
 
   public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
     await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
@@ -63,7 +63,7 @@ persistent actor CherryTycoon {
   // ============================================================================
 
   // Player farms storage
-  private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+  private transient var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
     10,
     Principal.equal,
     Principal.hash
@@ -77,7 +77,7 @@ persistent actor CherryTycoon {
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  private var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  private transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
 
