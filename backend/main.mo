@@ -8,17 +8,16 @@ import Text "mo:base/Text";
 import Nat "mo:base/Nat";
 import Array "mo:base/Array";
 import Iter "mo:base/Iter";
-import Time "mo:base/Time";
-import Result "mo:base/Result";
-import Float "mo:base/Float";
 import Int "mo:base/Int";
+import Time "mo:base/Time";
+import Float "mo:base/Float";
 
 import Types "types";
 import GameLogic "game_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-actor CherryTycoon {
+persistent actor CherryTycoon {
   
   // Type aliases
   type PlayerFarm = Types.PlayerFarm;
@@ -34,7 +33,7 @@ actor CherryTycoon {
   type Region = Types.Region;
   type CommuneType = Types.CommuneType;
   type InfrastructureType = Types.InfrastructureType;
-  type Result<T, E> = Types.Result<T, E>;
+  type GameResult<T, E> = Types.Result<T, E>;
   type GameError = Types.GameError;
   type SeasonReport = Types.SeasonReport;
   type YearlyReport = Types.YearlyReport;
@@ -76,11 +75,11 @@ actor CherryTycoon {
   private flexible var baseWholesalePrice : Nat = 10; // PLN per kg
 
   // Stable storage for upgrades
-  private var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
-  private var stableSaturation : [(Text, (Nat, Int))] = [];
-  private var stableGlobalSeason : Nat = 1;
-  private var stableUserRoles : [(Principal, AccessControl.UserRole)] = [];
-  private var stableAdminAssigned : Bool = false;
+  private transient var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
+  private transient var stableSaturation : [(Text, (Nat, Int))] = [];
+  private transient var stableGlobalSeason : Nat = 1;
+  private transient var stableUserRoles : [(Principal, AccessControl.UserRole)] = [];
+  private transient var stableAdminAssigned : Bool = false;
 
   system func preupgrade() {
     stablePlayerFarms := Iter.toArray(playerFarms.entries());
@@ -175,7 +174,7 @@ actor CherryTycoon {
   public shared({ caller }) func initializePlayer(
     playerId: Text,
     playerName: Text
-  ) : async Result<Text, GameError> {
+  ) : async GameResult<Text, GameError> {
     
     // Check if player already exists
     switch (playerFarms.get(caller)) {
@@ -252,7 +251,7 @@ actor CherryTycoon {
   };
 
   // Get player's farm
-  public shared query({ caller }) func getPlayerFarm() : async Result<PlayerFarm, GameError> {
+  public shared query({ caller }) func getPlayerFarm() : async GameResult<PlayerFarm, GameError> {
     switch (playerFarms.get(caller)) {
       case (?farm) { #Ok(farm) };
       case null { #Err(#NotFound("Player not found. Please initialize first.")) };
@@ -260,7 +259,7 @@ actor CherryTycoon {
   };
 
   // Get condensed farm overview (for UI sidebar)
-  public shared query({ caller }) func getFarmOverview() : async Result<Types.FarmOverview, GameError> {
+  public shared query({ caller }) func getFarmOverview() : async GameResult<Types.FarmOverview, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -290,7 +289,7 @@ actor CherryTycoon {
   };
 
   // Get details for a specific parcel
-  public shared query({ caller }) func getParcelDetails(parcelId: Text) : async Result<CherryParcel, GameError> {
+  public shared query({ caller }) func getParcelDetails(parcelId: Text) : async GameResult<CherryParcel, GameError> {
      switch (playerFarms.get(caller)) {
        case null { #Err(#NotFound("Player not found")) };
        case (?farm) {
@@ -304,13 +303,13 @@ actor CherryTycoon {
   };
 
   // DEBUG ONLY: Reset player state
-  public shared({ caller }) func debugResetPlayer() : async Result<Text, GameError> {
+  public shared({ caller }) func debugResetPlayer() : async GameResult<Text, GameError> {
     let _ = playerFarms.delete(caller);
     #Ok("Player reset successfully")
   };
 
   // Get player statistics
-  public shared query({ caller }) func getPlayerStats() : async Result<Statistics, GameError> {
+  public shared query({ caller }) func getPlayerStats() : async GameResult<Statistics, GameError> {
     switch (playerFarms.get(caller)) {
       case (?farm) { #Ok(farm.statistics) };
       case null { #Err(#NotFound("Player not found")) };
@@ -318,7 +317,7 @@ actor CherryTycoon {
   };
 
   // Proactive check for bankruptcy risk (Query for UI)
-  public query ({ caller }) func checkStability() : async Result<{ estimatedCost: Nat; available: Nat; isRisky: Bool }, GameError> {
+  public query ({ caller }) func checkStability() : async GameResult<{ estimatedCost: Nat; available: Nat; isRisky: Bool }, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -349,7 +348,7 @@ actor CherryTycoon {
   // ============================================================================
 
   // Harvest cherries from a parcel
-  public shared({ caller }) func harvestCherries(parcelId: Text) : async Result<Nat, GameError> {
+  public shared({ caller }) func harvestCherries(parcelId: Text) : async GameResult<Nat, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -461,7 +460,7 @@ actor CherryTycoon {
   };
 
   // Water a parcel
-  public shared({ caller }) func waterParcel(parcelId: Text) : async Result<Text, GameError> {
+  public shared({ caller }) func waterParcel(parcelId: Text) : async GameResult<Text, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -535,7 +534,7 @@ actor CherryTycoon {
   public shared({ caller }) func fertilizeParcel(
     parcelId: Text,
     _fertilizerType: Text
-  ) : async Result<Text, GameError> {
+  ) : async GameResult<Text, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -628,7 +627,7 @@ actor CherryTycoon {
   // Start organic conversion for a parcel (Takes 2 seasons)
   public shared({ caller }) func startOrganicConversion(
     parcelId: Text
-  ) : async Result<Text, GameError> {
+  ) : async GameResult<Text, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -703,7 +702,7 @@ actor CherryTycoon {
   public shared({ caller }) func plantTrees(
     parcelId: Text,
     quantity: Nat
-  ) : async Result<Text, GameError> {
+  ) : async GameResult<Text, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -793,7 +792,7 @@ actor CherryTycoon {
   public shared({ caller }) func sellCherries(
     quantity: Nat,
     saleType: Text
-  ) : async Result<Nat, GameError> {
+  ) : async GameResult<Nat, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -933,7 +932,7 @@ actor CherryTycoon {
   };
 
   // Get cash balance
-  public shared query({ caller }) func getCashBalance() : async Result<Nat, GameError> {
+  public shared query({ caller }) func getCashBalance() : async GameResult<Nat, GameError> {
     switch (playerFarms.get(caller)) {
       case (?farm) { #Ok(farm.cash) };
       case null { #Err(#NotFound("Player not found")) };
@@ -941,7 +940,7 @@ actor CherryTycoon {
   };
 
   // Get inventory
-  public shared query({ caller }) func getInventory() : async Result<Inventory, GameError> {
+  public shared query({ caller }) func getInventory() : async GameResult<Inventory, GameError> {
     switch (playerFarms.get(caller)) {
       case (?farm) { #Ok(farm.inventory) };
       case null { #Err(#NotFound("Player not found")) };
@@ -955,7 +954,7 @@ actor CherryTycoon {
   // Advance to next season
   public shared({ caller }) func advanceSeason(
     _weatherEvent: ?Text
-  ) : async Result<Text, GameError> {
+  ) : async GameResult<Text, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -1115,7 +1114,7 @@ actor CherryTycoon {
   // Upgrade infrastructure
   public shared({ caller }) func upgradeInfrastructure(
     infraTypeString: Text
-  ) : async Result<Text, GameError> {
+  ) : async GameResult<Text, GameError> {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -1191,7 +1190,7 @@ actor CherryTycoon {
   // ============================================================================
 
   // Helper: Check if an expenditure leads to bankruptcy risk
-  private func checkBankruptcyRisk(farm: PlayerFarm, expenditure: Nat) : async Result<(), GameError> {
+  private func checkBankruptcyRisk(farm: PlayerFarm, expenditure: Nat) : async GameResult<(), GameError> {
     if (farm.cash < expenditure) {
       return #Err(#InsufficientFunds { required = expenditure; available = farm.cash });
     };
@@ -1251,7 +1250,7 @@ actor CherryTycoon {
   public shared({ caller }) func purchaseParcel(
     province: Province,
     size: Float
-  ) : async Result<Text, GameError> {
+  ) : async GameResult<Text, GameError> {
     
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
@@ -1328,7 +1327,7 @@ actor CherryTycoon {
   public shared({ caller }) func buyParcel(
     parcelId: Text,
     price: Nat
-  ) : async Result<Text, GameError> {
+  ) : async GameResult<Text, GameError> {
     
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
@@ -1621,7 +1620,7 @@ actor CherryTycoon {
   public shared({ caller }) func assignParcelToPlayer(
     parcelId: Text,
     recipient: Principal
-  ) : async Result<Text, GameError> {
+  ) : async GameResult<Text, GameError> {
     
     // 1. Get Caller Farm (Sender)
     let callerFarm = switch (playerFarms.get(caller)) {
@@ -1694,7 +1693,7 @@ actor CherryTycoon {
   };
 
   // Get current market prices
-  public query func getMarketPrices() : async Result<Types.MarketPrice, GameError> {
+  public query func getMarketPrices() : async GameResult<Types.MarketPrice, GameError> {
     // Basic static prices for now, matching GDD
     let prices : Types.MarketPrice = {
       retailBasePrice = baseRetailPrice;

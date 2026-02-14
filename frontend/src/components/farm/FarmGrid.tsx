@@ -1,5 +1,4 @@
-import React from 'react';
-import { CherryParcel } from '@/declarations/backend.did';
+import { CherryParcel, Infrastructure } from '@/declarations/backend.did';
 import { ParcelCard } from './ParcelCard';
 import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
@@ -11,9 +10,10 @@ interface FarmGridProps {
     onBuyParcel: () => void;
     loading?: boolean;
     currentSeason?: any; // Season type from backend
+    infrastructure: Infrastructure[];
 }
 
-export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParcel, loading, currentSeason }) => {
+export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParcel, loading, currentSeason, infrastructure }) => {
     if (loading) {
         return (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-pulse">
@@ -48,6 +48,7 @@ export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParc
                         parcel={parcel}
                         onAction={onAction}
                         currentSeason={currentSeason}
+                        infrastructure={infrastructure}
                     />
                 ))}
 

@@ -1,99 +1,45 @@
 # FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]  
-> **Current Directive**: **Phase 3 - Mobile PWA & Simulation UI**
+> **Current Directive**: **Phase 3.5 - Simulation Actionability & Economy UX**
 > **Constraint**: **WSL Terminal Required** - For `dfx generate` and environment management.
-> **Last Updated**: 2026-02-08
+> **Last Updated**: 2026-02-14
 
 ## Backlog
 
-### 🔍 Phase 2.5: Integration Debugging (CRITICAL)
-- [x] **Verify Actor Initialization**: Add console logs to `AuthContext` to confirm `backendActor` is created
-- [x] **Add Mutation Logging**: Log all inputs/outputs in `useFarm.ts` mutations
-- [x] **Create Debugging Guide**: Document how to use browser console for debugging
-- [/] **Test in Browser Console**: Manually trigger mutations and capture errors
-- [x] **Verify Environment**: Check `.env` has correct canister ID
-- [x] **Test Login Flow**: Ensure user can login and `getPlayerFarm()` returns data
-- [x] **Document Errors**: Report any runtime errors to Backend Agent
-  - **RESOLVED**: JSON-RPC error (-32603) fixed by Backend Agent (changed `Time.Time` to `Nat`)
-  - Backend redeployed, serialization verified, frontend integration working
-- [x] **Fix Missing Dependencies**:
-  - Found errors for `@radix-ui/react-tabs` and `@radix-ui/react-slider`
-  - Installed missing packages to fix build errors
-- [x] **Auth Layer**: Implement `useAuth` hook with `@dfinity/auth-client`.
-- [x] **Canister Integration**: 
-    - [x] Run `dfx generate` (User) and copy declarations.
-    - [x] Create `actor.ts` service.
-- [x] **Core Dashboard Components**:
-    - [x] `Sidebar`: Navigation and User Level.
-    - [x] `FarmGrid`: 3x3 grid display of `CherryParcel`s.
-    - [x] `InventoryBar`: Cash and harvested fruit.
-- [x] **Action Modals**:
-    - [x] "Planted Trees" status.
-    - [x] "Water / Fertilize" buttons with loading states.
-    - [x] `PlantingModal` for new parcels.
-- [x] **State Management**: Implement React Query for optimistic updates on farm state.
+### 🎯 Phase 3.5: Simulation Actionability (High Priority)
+- [x] **Yield Modifier Tooltips**:
+  - Update `ParcelCard.tsx` or `ParcelDetailsPanel.tsx`.
+  - Add tooltips to "Expected Yield" showing internal modifiers.
+  - Formula: `Base (25t) * Soil Type Mod * pH Mod * Fertility * Age Mod`.
+  - Example: "Sandy Soil: x0.85 Modifier applied."
+- [ ] **Yield Comparison View**:
+  - Visual indicator of how close the parcel is to its "Peak Production" (Age 7-25).
 
-### 🔧 Backend Requests
-- [x] **Seasonal Harvest Restriction**: ✅ COMPLETE - Backend now enforces Summer-only harvest
-  - `harvestCherries()` checks `currentSeason != #Summer`
-  - Returns `#SeasonalRestriction` error: "Cherries can only be harvested in Summer"
-  - Verified working in all seasons (Spring, Summer, Autumn, Winter)
+### 📈 Phase 4.1: Economy & Price Feedback
+- [ ] **Market Saturation Visuals**:
+  - In `SellModal.tsx`, show a "Saturation Warning" if volume exceeds current region demand.
+  - Display the "Volume Penalty" impact on the final price before the user confirms the sale.
+- [ ] **Historical Price Graph**:
+  - (Optional) Simple line chart showing last 4 seasons of wholesale vs retail prices.
 
-### 🎨 UI Enhancements (NEW)
-- [x] **Disable Harvest Button Outside Summer**: Improve UX by disabling harvest button when not in Summer
-  - Check `farm.currentSeason` in UI
-  - Disable harvest button if `currentSeason !== 'Summer'`
-  - Visual indicator: Gray out button or show season badge
-  - **Rationale**: Better UX than showing error toast after click
-- [ ] **Disable Fertilize Button Outside Spring/Autumn**: Improve UX by disabling fertilize button
-  - Check `farm.currentSeason`
-  - Disable fertilize button if `currentSeason !== 'Spring'` AND `currentSeason !== 'Autumn'`
-  - Tooltip: "Effective in Spring & Autumn"
+### 📱 Phase 3a: PWA Final Polish
+- [x] **Foundation**: Add viewport meta tag & audit CSS
+- [x] **Manifest**: Create `manifest.json` & Service Worker
+- [ ] **Weather-Based UI Themes**:
+  - Change dashboard background colors/effects based on `farm.currentSeason`.
+  - Spring: Light Green/Emerald. Summer: Golden/Rose. Autumn: Amber/Orange. Winter: Soft Blue/Indigo.
 
-### 🔗 Backend Integration
-- [x] **Integrate `getFarmOverview`**:
-  - Implemented `useFarmOverview` hook for lightweight updates.
-  - Type: `FarmOverview` (defined in types.mo).
-- [x] **Integrate `getMarketPrices`**:
-  - Implemented `useMarketPrices` hook.
-  - Created `SellModal` with Wholesale/Retail options.
-  - Integrated into main App workflow.
-
-### 📱 Phase 3a: PWA Implementation (Priority)
-> **Reference**: `responsive-pwa-implementation-guide.md`
-- [ ] **Foundation**: Add viewport meta tag & audit CSS
-- [ ] **Manifest**: Create `manifest.json` & Service Worker
-- [ ] **Responsive Layout**:
-  - [ ] Adapt `FarmGrid` to mobile (stack view vs grid)
-  - [ ] Implement Mobile Nav (Bottom Tabs)
-- [ ] **Touch Optimization**: Ensure all buttons are 44x44px+
-
-### 📊 Phase 3b: Surface the Simulation
-- [ ] **Parcel Card Update**: Show Soil Type, pH, and Fertility values
-- [ ] **Yield Tooltip**: Hover over "Expected Yield" to see checking modifiers (e.g. "Sandy Soil: x0.85")
-- [ ] **Season Modifier**: Show how current season affects growth/yield
-
-### 💰 Phase 4: Economy & Infrastructure (Future)
-- [x] **Split Sales**: Create dedicated "Wholesale" and "Retail" UIs (Prototype in Frontend)
-- [ ] **Migrate Pricing Logic**: Move volume/saturation calculations to Backend for Multiplayer security
-- [ ] **Shop UI**: Create interface for buying Irrigation/Greenhouses
-- [x] **Disable Fertilize Button Outside Spring/Autumn**: ✅ COMPLETE - Improved UX
-  - Checks `farm.currentSeason`
-  - Disables fertilize button if `currentSeason !== 'Spring'` AND `currentSeason !== 'Autumn'`
-  - Tooltip: "Effective in Spring & Autumn"
-  - **Implementation**: Added `fertilize` mutation, updated `ParcelCard` with button and logic
-
-### ✅ Completed Tasks
-- [x] **Create Project**: `npm create vite@latest frontend -- --template react-ts`.
-- [x] **Install Dependencies**: `shadcn/ui`, `tailwindcss`, `@dfinity/agent`, `@dfinity/auth-client`.
-- [x] **Configure Tailind**: Setup `tailwind.config.js`.
-- [x] **Dashboard Layout**: Basic grid layout for Farm Overview.
+### ✅ Completed Tasks (Audit Verified)
+- [x] **Core Dashboard**: Responsive grid layout (1, 2, or 3 columns).
+- [x] **Simulation Depth**: `ParcelDetailsPanel` surfacing pH, Soil, Humidity.
+- [x] **Infrastructure Shop**: `Marketplace` supporting Buildings and Machinery.
+- [x] **Risk Management**: Survival budget and bankruptcy alerts.
+- [x] **PWA Foundation**: Basic manifest and icons.
 
 ## Agent Instructions
-1.  Read `directives/00_master_plan.md` to understand the goal.
-2.  Implement UI components one by one.
-3.  **WSL Workflow**: If you need declarations or canister calls:
+1.  Read `directives/00_master_plan.md` to see the global roadmap.
+2.  Focus on **Yield Modifier Tooltips** as the first task.
+3.  **WSL Workflow**: If you need new declarations or log checking:
     - Formulate the `dfx` command for the User.
     - Instruct them to use `| tee .tmp/frontend.log`.
     - Read the log yourself using `view_file`.
 4.  Update this file upon completion.
-5.  Notify Coordinator if blocked by backend.

@@ -1,12 +1,15 @@
 import React from 'react';
-import { CherryParcel } from '@/declarations/backend.did';
+import { CherryParcel, Infrastructure } from '@/declarations/backend.did';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Droplets, Leaf, TestTube, Gauge } from 'lucide-react';
+import { Droplets, Leaf, TestTube, Gauge, TrendingUp, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { calculateYieldBreakdown } from '@/lib/gameLogic';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ParcelDetailsPanelProps {
     parcel: CherryParcel;
+    infrastructure: Infrastructure[];
     className?: string;
 }
 
@@ -34,7 +37,9 @@ const getProgressColor = (value: number, min: number = 0.5, max: number = 1.0): 
     return 'bg-red-500';
 };
 
-export const ParcelDetailsPanel: React.FC<ParcelDetailsPanelProps> = ({ parcel, className }) => {
+export const ParcelDetailsPanel: React.FC<ParcelDetailsPanelProps> = ({ parcel, infrastructure, className }) => {
+    const yieldBreakdown = calculateYieldBreakdown(parcel, infrastructure);
+
     const waterPercentage = parcel.waterLevel * 100;
     const fertilityPercentage = parcel.fertility * 100;
     const qualityPercentage = Number(parcel.quality);
@@ -148,6 +153,66 @@ export const ParcelDetailsPanel: React.FC<ParcelDetailsPanelProps> = ({ parcel, 
                         <div className="text-slate-500">Quality</div>
                         <div className={cn("font-mono font-bold", getStatusColor(qualityPercentage / 100, 0.6, 1.0))}>
                             {qualityPercentage}/100
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Production Forecast */}
+            <div className="space-y-2">
+                <div className="flex items-center justify-between text-slate-400 font-semibold">
+                    <div className="flex items-center gap-2">
+                        <TrendingUp className="h-3 w-3" />
+                        <span>Production Forecast</span>
+                    </div>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger>
+                                <Info className="h-3 w-3 text-slate-500 hover:text-slate-300 transition-colors" />
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-slate-900 border-slate-800 text-[10px] w-48">
+                                <p>Yield is calculated based on current environmental factors and infrastructure bonuses.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+
+                <div className="bg-emerald-950/20 rounded-lg p-3 border border-emerald-900/30">
+                    <div className="flex justify-between items-baseline mb-2">
+                        <span className="text-slate-400">Exp. Harvest</span>
+                        <span className="text-sm font-bold text-emerald-400 font-mono">
+                            {Math.round(yieldBreakdown.parcelYield).toLocaleString()} kg
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        <div className="space-y-1">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Soil Mod</span>
+                                <span className="text-slate-300">x{yieldBreakdown.soilMod.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">pH Mod</span>
+                                <span className="text-slate-300">x{yieldBreakdown.phMod.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Water Mod</span>
+                                <span className="text-slate-300">x{yieldBreakdown.waterMod.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Infra Mod</span>
+                                <span className="text-slate-300">x{yieldBreakdown.infraMod.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Organic Mod</span>
+                                <span className="text-slate-300">x{yieldBreakdown.organicMod.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Age Mod</span>
+                                <span className={cn(yieldBreakdown.ageMod < 1 ? "text-amber-500" : "text-slate-300")}>x{yieldBreakdown.ageMod.toFixed(2)}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

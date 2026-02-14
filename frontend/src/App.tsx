@@ -20,6 +20,7 @@ import { OnboardingModal } from "@/components/farm/modals/OnboardingModal"
 import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
 import { useInstallPrompt } from "@/utils/pwa"
 import { useToast } from "@/components/ui/use-toast"
+import { calculateYieldBreakdown } from "@/lib/gameLogic"
 
 function App() {
     const { isAuthenticated, backendActor } = useAuth();
@@ -42,11 +43,8 @@ function App() {
         regularCherries: farm ? Number(farm.inventory.cherries) : 0,
         activeParcels: farm ? farm.parcels.length : 0,
         productionRate: farm ? farm.parcels.reduce((acc, parcel) => {
-            const baseYield = 25.0; // t/ha
-            const ageMod = Number(parcel.treeAge) >= 3 ? 1.0 : (Number(parcel.treeAge) === 2 ? 0.66 : (Number(parcel.treeAge) === 1 ? 0.33 : 0));
-            const fertilityMod = Number(parcel.fertility) || 0.7;
-            const yieldPotential = baseYield * fertilityMod * ageMod * Number(parcel.size) * 1000;
-            return acc + yieldPotential;
+            const breakdown = calculateYieldBreakdown(parcel, farm.infrastructure);
+            return acc + breakdown.parcelYield;
         }, 0) : 0,
         level: farm ? Number(farm.level) : 1,
         xp: farm ? Number(farm.experience) : 0,
@@ -290,6 +288,7 @@ function App() {
                                     onBuyParcel={handleBuyParcel}
                                     loading={isLoading}
                                     currentSeason={stats.currentSeason}
+                                    infrastructure={farm?.infrastructure || []}
                                 />
                             ) : activeTab === 'marketplace' ? (
                                 <Marketplace

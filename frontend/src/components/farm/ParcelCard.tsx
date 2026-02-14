@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CherryParcel } from '@/declarations/backend.did';
+import { CherryParcel, Infrastructure } from '@/declarations/backend.did';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,8 @@ import {
     AlertCircle,
     ChevronDown,
     ChevronUp,
-    ShieldCheck
+    ShieldCheck,
+    Gauge
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -21,18 +22,22 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ParcelDetailsPanel } from './ParcelDetailsPanel';
+import { calculateYieldBreakdown } from '@/lib/gameLogic';
 
 interface ParcelCardProps {
     parcel: CherryParcel;
     onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic', parcelId: string) => void;
     currentSeason?: any; // Season type from backend
+    infrastructure: Infrastructure[];
 }
 
-export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason }) => {
+export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure }) => {
     const [showDetails, setShowDetails] = useState(false);
     const isPlanted = Number(parcel.plantedTrees) > 0;
     // Harvest allowed from year 5 onwards (> 4 seasons)
     const isReadyToHarvest = isPlanted && Number(parcel.treeAge) > 4;
+
+    const yieldBreakdown = calculateYieldBreakdown(parcel, infrastructure);
 
     // Determine specific season
     const isSpring = currentSeason && 'Spring' in currentSeason;
@@ -149,8 +154,38 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 {visual.icon}
                                 <div className="text-xs font-medium mt-1">{visual.label}</div>
                                 {isPlanted && (
-                                    <div className="text-[10px] text-slate-500 mt-0.5">
-                                        {Number(parcel.plantedTrees)} Trees • Age {Number(parcel.treeAge)}
+                                    <div className="flex flex-col items-center gap-0.5 mt-0.5">
+                                        <div className="text-[10px] text-slate-500">
+                                            {Number(parcel.plantedTrees)} Trees • Age {Number(parcel.treeAge)}
+                                        </div>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <div className="text-[10px] font-bold text-emerald-400/80 flex items-center gap-1">
+                                                        <Gauge className="h-2.5 w-2.5" />
+                                                        Yield: {Math.round(yieldBreakdown.parcelYield).toLocaleString()} kg
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="bg-slate-900 border-slate-800 text-xs p-3 shadow-xl">
+                                                    <div className="space-y-1.5">
+                                                        <p className="font-bold border-b border-slate-800 pb-1 mb-1 text-slate-200">Current Yield Potential</p>
+                                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                                            <span className="text-slate-400">Base Yield:</span> <span className="text-slate-300">25.0 t/ha</span>
+                                                            <span className="text-slate-400">Soil Type:</span> <span className="text-slate-300">x{yieldBreakdown.soilMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">pH Level:</span> <span className="text-slate-300">x{yieldBreakdown.phMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">Fertility:</span> <span className="text-slate-300">x{yieldBreakdown.fertilityMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">Infrastructure:</span> <span className="text-slate-300">x{yieldBreakdown.infraMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">Water Level:</span> <span className="text-slate-300">x{yieldBreakdown.waterMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">Organic:</span> <span className="text-slate-300">x{yieldBreakdown.organicMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">Tree Age:</span> <span className={yieldBreakdown.ageMod < 1 ? "text-amber-400" : "text-emerald-400"}>x{yieldBreakdown.ageMod.toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="pt-1.5 mt-1 border-t border-slate-800 font-mono text-emerald-400 text-center">
+                                                            {(yieldBreakdown.totalYield / 1000).toFixed(2)} t / hectare
+                                                        </div>
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </div>
                                 )}
                             </div>
@@ -309,7 +344,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                 {/* Expandable Details Panel */}
                 {showDetails && (
                     <div className="mt-3 pt-3 border-t border-slate-800/50">
-                        <ParcelDetailsPanel parcel={parcel} />
+                        <ParcelDetailsPanel parcel={parcel} infrastructure={infrastructure} />
                     </div>
                 )}
             </CardContent>
