@@ -39,6 +39,8 @@ jobs:
         run: |
           unset CI
           unset GITHUB_ACTIONS
+          dfx canister --network playground stop --all || true
+          dfx canister --network playground delete --all || true
           dfx canister --network playground create --all
 
       - name: Export Backend Canister ID
