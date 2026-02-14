@@ -3,6 +3,7 @@
     "backend": {
       "type": "motoko",
       "main": "backend/main.mo",
+      "args": "--shrink",
       "declarations": {
         "output": "frontend/src/declarations",
         "bindings": [

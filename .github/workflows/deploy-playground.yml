@@ -35,11 +35,14 @@ jobs:
           dfx identity use deploy
           dfx identity get-principal
 
-      - name: Export Backend Canister ID
+      - name: Deploy Backend to Playground
         run: |
           unset CI
           unset GITHUB_ACTIONS
-          BACKEND_ID=$(dfx canister --network playground id backend || dfx canister --network playground create backend)
+          dfx deploy backend --network playground --yes
+          
+          # Export ID for frontend build
+          BACKEND_ID=$(dfx canister --network playground id backend)
           echo "VITE_BACKEND_CANISTER_ID=$BACKEND_ID" >> $GITHUB_ENV
           echo "Backend ID: $BACKEND_ID"
 
@@ -54,14 +57,10 @@ jobs:
           VITE_DFX_NETWORK: playground
         run: npm run build
 
-      - name: Deploy to Playground
+      - name: Deploy Frontend to Playground
         run: |
           unset CI
           unset GITHUB_ACTIONS
-          
-          # Deploy using standard upgrade mode ( safer on playground)
-          dfx deploy backend --network playground --yes
-          
           dfx deploy frontend --network playground
           
           echo "✅ Deployment complete"
