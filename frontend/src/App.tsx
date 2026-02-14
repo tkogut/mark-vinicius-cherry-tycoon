@@ -17,6 +17,7 @@ import { SeasonDisplay } from "@/components/season/SeasonDisplay"
 import { AdvanceSeasonButton } from "@/components/season/AdvanceSeasonButton"
 import { FinancialReportModal } from "@/components/farm/modals/FinancialReportModal"
 import { OnboardingModal } from "@/components/farm/modals/OnboardingModal"
+import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
 import { useInstallPrompt } from "@/utils/pwa"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -26,6 +27,7 @@ function App() {
     const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null);
     const [plantingModalOpen, setPlantingModalOpen] = useState(false);
     const [sellModalOpen, setSellModalOpen] = useState(false);
+    const [statsModalOpen, setStatsModalOpen] = useState(false);
     const [financialReportOpen, setFinancialReportOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports'>('dashboard');
 
@@ -132,6 +134,16 @@ function App() {
                 onSell={handleConfirmSell}
                 totalCherries={stats.totalCherries}
                 isLoading={sellCherries.isPending}
+            />
+
+            <FarmStatsModal
+                isOpen={statsModalOpen}
+                onClose={() => setStatsModalOpen(false)}
+                stats={{
+                    totalCherries: stats.totalCherries,
+                    activeParcels: stats.activeParcels,
+                    productionRate: stats.productionRate
+                }}
             />
 
             <OnboardingModal
@@ -249,6 +261,17 @@ function App() {
                                     <span className="hidden sm:inline">Refresh</span>
                                 </Button>
 
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setStatsModalOpen(true)}
+                                    disabled={!isAuthenticated}
+                                    className="gap-2 border-slate-700 text-slate-100 hover:bg-slate-800"
+                                >
+                                    <LayoutDashboard className="h-4 w-4" />
+                                    <span>Farm stats</span>
+                                </Button>
+
                                 <div className="hidden md:block">
                                     <LoginButton />
                                 </div>
@@ -256,43 +279,7 @@ function App() {
                         </div>
                     </div>
 
-                    {/* Stats Row */}
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
-                        <Card className="bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-rose-500/30 transition-all">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-slate-400">Total Cherries</CardTitle>
-                                <Cherry className="h-4 w-4 text-rose-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-slate-100">{isLoading ? "..." : stats.totalCherries.toLocaleString()}</div>
-                                <p className="text-xs text-slate-500 mt-1">
-                                    Current inventory ready for sale
-                                </p>
-                            </CardContent>
-                        </Card>
 
-                        <Card className="bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-rose-500/30 transition-all">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-slate-400">Active Parcels</CardTitle>
-                                <LayoutDashboard className="h-4 w-4 text-rose-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-slate-100">{isLoading ? "..." : stats.activeParcels}</div>
-                                <p className="text-xs text-slate-500 mt-1">9 parcels max capacity</p>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-rose-500/30 transition-all">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-slate-400">Production Rate</CardTitle>
-                                <Settings className="h-4 w-4 text-rose-500" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-slate-100">{isLoading ? "..." : Math.round(stats.productionRate).toLocaleString()}/season</div>
-                                <p className="text-xs text-slate-500 mt-1">Est. yield based on trees & soil</p>
-                            </CardContent>
-                        </Card>
-                    </div>
 
                     {isAuthenticated ? (
                         <React.Suspense fallback={<div className="flex justify-center p-12"><RefreshCcw className="animate-spin h-8 w-8 text-rose-500" /></div>}>
