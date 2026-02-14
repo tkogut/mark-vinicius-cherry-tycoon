@@ -23,7 +23,7 @@ jobs:
       - name: Install DFX
         uses: aviate-labs/setup-dfx@v0.3.2
         with:
-          dfx-version: '0.24.3'
+          dfx-version: '0.30.2'
 
       - name: Import Deploy Identity
         if: env.DFX_IDENTITY != ''
