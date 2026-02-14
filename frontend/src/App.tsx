@@ -262,11 +262,11 @@ function App() {
                                 </Button>
 
                                 <Button
-                                    variant="outline"
+                                    variant="default"
                                     size="sm"
                                     onClick={() => setStatsModalOpen(true)}
                                     disabled={!isAuthenticated}
-                                    className="gap-2 border-slate-700 text-slate-100 hover:bg-slate-800"
+                                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
                                 >
                                     <LayoutDashboard className="h-4 w-4" />
                                     <span>Farm stats</span>
