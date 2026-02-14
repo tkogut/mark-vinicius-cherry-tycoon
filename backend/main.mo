@@ -592,7 +592,7 @@ actor CherryTycoon {
               case (#Ok(())) {};
             };
 
-            let updatedParcels = Array.tabulate<CherryParcel>(
+            let updatedStats = updateSeasonalReport(farm, func(r) {
               let updatedReport = { r with 
                 laborCosts = r.laborCosts + laborShare;
                 operationalCosts = r.operationalCosts + operationalShare;
@@ -668,10 +668,27 @@ actor CherryTycoon {
               }
             );
 
+            let updatedStats = updateSeasonalReport(farm, func(r) {
+              let updatedReport = { r with 
+                certificationCosts = r.certificationCosts + conversionCost;
+                totalCosts = r.totalCosts + conversionCost;
+                netProfit = r.netProfit - (conversionCost : Int);
+              };
+              updateParcelEconomics(updatedReport, parcelId, parcel.region.province, func(p) {
+                { p with 
+                  costs = p.costs + conversionCost;
+                  netProfit = p.netProfit - (conversionCost : Int);
+                }
+              })
+            });
+
             let updatedFarm = {
               farm with
               parcels = updatedParcels;
               cash = Int.abs((farm.cash : Int) - (conversionCost : Int));
+              statistics = { updatedStats with 
+                totalCosts = farm.statistics.totalCosts + conversionCost;
+              };
             };
 
             playerFarms.put(caller, updatedFarm);
