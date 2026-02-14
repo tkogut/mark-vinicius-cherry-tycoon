@@ -317,6 +317,33 @@ actor CherryTycoon {
     }
   };
 
+  // Proactive check for bankruptcy risk (Query for UI)
+  public query ({ caller }) func checkStability() : async Result<{ estimatedCost: Nat; available: Nat; isRisky: Bool }, GameError> {
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        // Check for organic parcels
+        var hasOrganic = false;
+        for (p in farm.parcels.vals()) {
+          if (p.isOrganic) { hasOrganic := true };
+        };
+
+        let seasonsRemaining = GameLogic.estimateSeasonsUntilHarvest(farm.currentSeason);
+        let seasonalCost = GameLogic.estimateSeasonalCosts(farm.parcels, farm.infrastructure, hasOrganic);
+        let harvestCost = GameLogic.estimateHarvestCosts(farm.parcels, farm.infrastructure);
+        
+        let totalNeeded = (seasonsRemaining * seasonalCost) + harvestCost;
+        let isRisky = farm.cash < totalNeeded;
+
+        #Ok({
+          estimatedCost = totalNeeded;
+          available = farm.cash;
+          isRisky = isRisky;
+        })
+      };
+    }
+  };
+
   // ============================================================================
   // PARCEL OPERATIONS
   // ============================================================================
@@ -451,8 +478,10 @@ actor CherryTycoon {
             let laborShare = 150;
             let operationalShare = 50;
             
-            if (farm.cash < waterCost) {
-              return #Err(#InsufficientFunds { required = waterCost; available = farm.cash });
+            // Check for bankruptcy risk
+            switch (await checkBankruptcyRisk(farm, waterCost)) {
+              case (#Err(e)) { return #Err(e) };
+              case (#Ok(())) {};
             };
 
             // Update parcel water level
@@ -553,12 +582,17 @@ actor CherryTycoon {
               fertilizers = Int.abs((farm.inventory.fertilizers : Int) - (1 : Int));
             };
 
-            // Cost of fertilization (Labor + Fertilizer)
+            // Check for bankruptcy risk (Labor + Fertilizer)
             let laborShare = 300;
             let operationalShare = 200;
             let totalCost = laborShare + operationalShare;
 
-            let updatedStats = updateSeasonalReport(farm, func(r) {
+            switch (await checkBankruptcyRisk(farm, totalCost)) {
+              case (#Err(e)) { return #Err(e) };
+              case (#Ok(())) {};
+            };
+
+            let updatedParcels = Array.tabulate<CherryParcel>(
               let updatedReport = { r with 
                 laborCosts = r.laborCosts + laborShare;
                 operationalCosts = r.operationalCosts + operationalShare;
@@ -611,8 +645,11 @@ actor CherryTycoon {
 
             // Certification cost (GDD Section 5)
             let conversionCost = 5000; // PLN initial fee
-            if (farm.cash < conversionCost) {
-              return #Err(#InsufficientFunds { required = conversionCost; available = farm.cash });
+            
+            // Check for bankruptcy risk
+            switch (await checkBankruptcyRisk(farm, conversionCost)) {
+              case (#Err(e)) { return #Err(e) };
+              case (#Ok(())) {};
             };
 
             let updatedParcels = Array.tabulate<CherryParcel>(
@@ -657,10 +694,12 @@ actor CherryTycoon {
         let costPerTree = 50; // PLN
         let totalCost = quantity * costPerTree;
         
-        if (farm.cash < totalCost) {
-          return #Err(#InsufficientFunds { required = totalCost; available = farm.cash });
+        // Check for bankruptcy risk
+        switch (await checkBankruptcyRisk(farm, totalCost)) {
+          case (#Err(e)) { return #Err(e) };
+          case (#Ok(())) {};
         };
-
+        
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
         switch (indexOpt) {
@@ -1083,10 +1122,12 @@ actor CherryTycoon {
 
         let cost = GameLogic.getInfrastructureCost(infraType);
         
-        if (farm.cash < cost) {
-          return #Err(#InsufficientFunds { required = cost; available = farm.cash });
+        // Check for bankruptcy risk
+        switch (await checkBankruptcyRisk(farm, cost)) {
+          case (#Err(e)) { return #Err(e) };
+          case (#Ok(())) {};
         };
-
+        
         // Create new infrastructure
         let newInfra : Infrastructure = {
           infraType = infraType;
@@ -1132,6 +1173,33 @@ actor CherryTycoon {
   // PARCEL PURCHASE (from Caffeine AI)
   // ============================================================================
 
+  // Helper: Check if an expenditure leads to bankruptcy risk
+  private func checkBankruptcyRisk(farm: PlayerFarm, expenditure: Nat) : async Result<(), GameError> {
+    if (farm.cash < expenditure) {
+      return #Err(#InsufficientFunds { required = expenditure; available = farm.cash });
+    };
+
+    let remainingCash = Int.abs((farm.cash : Int) - (expenditure : Int));
+    
+    // Check for organic parcels
+    var hasOrganic = false;
+    for (p in farm.parcels.vals()) {
+      if (p.isOrganic) { hasOrganic := true };
+    };
+
+    let seasonsRemaining = GameLogic.estimateSeasonsUntilHarvest(farm.currentSeason);
+    let seasonalCost = GameLogic.estimateSeasonalCosts(farm.parcels, farm.infrastructure, hasOrganic);
+    let harvestCost = GameLogic.estimateHarvestCosts(farm.parcels, farm.infrastructure);
+    
+    let totalNeeded = (seasonsRemaining * seasonalCost) + harvestCost;
+    
+    if (remainingCash < totalNeeded) {
+      return #Err(#BankruptcyRisk { estimatedCostUntilHarvest = totalNeeded; available = remainingCash });
+    };
+    
+    #Ok(())
+  };
+
   // Helper: Find parcel and its index
   private func findParcelIndex(
     parcels: [CherryParcel],
@@ -1175,8 +1243,10 @@ actor CherryTycoon {
         // Calculate cost: 60,000 PLN per hectare (from Caffeine)
         let cost = Int.abs(Float.toInt(size * 60000.0));
         
-        if (farm.cash < cost) {
-          return #Err(#InsufficientFunds { required = cost; available = farm.cash });
+        // Check for bankruptcy risk
+        switch (await checkBankruptcyRisk(farm, cost)) {
+          case (#Err(e)) { return #Err(e) };
+          case (#Ok(())) {};
         };
         
         // Generate unique parcel ID
@@ -1247,8 +1317,10 @@ actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        if (farm.cash < price) {
-          return #Err(#InsufficientFunds { required = price; available = farm.cash });
+        // Check for bankruptcy risk
+        switch (await checkBankruptcyRisk(farm, price)) {
+          case (#Err(e)) { return #Err(e) };
+          case (#Ok(())) {};
         };
         
         // In a real scenario, we would check if the parcel belongs to another player or bank

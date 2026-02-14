@@ -1,6 +1,8 @@
 import React from 'react';
-import { Coins, Zap, PieChart } from 'lucide-react';
+import { Coins, Zap, PieChart, AlertTriangle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { useStability } from '@/hooks/useFarm';
+import { cn } from '@/lib/utils';
 
 interface RunningCostsProps {
     ownedInfrastructure: any[];
@@ -9,105 +11,81 @@ interface RunningCostsProps {
 }
 
 export const RunningCosts: React.FC<RunningCostsProps> = ({ ownedInfrastructure, parcels, onOpenFinancialReport }) => {
-    // Fixed Costs (Maintenance)
-    const fixedCosts = ownedInfrastructure.reduce((acc, infra) => acc + Number(infra.maintenanceCost), 0);
+    const { data: stability, isLoading } = useStability();
 
-    // Variable Costs Estimate (matching backend game_logic.mo)
-    let totalArea = 0;
-    let fertilizerCost = 0;
-    let protectionCost = 0;
-    let fuelCost = 0;
-    let laborCostBase = 0;
-
-    // Calculate labor efficiency from infrastructure
-    let laborEfficiency = 1.0;
-    ownedInfrastructure.forEach(infra => {
-        const type = Object.keys(infra.infraType)[0] || infra.infraType; // Handle variant structure
-        const level = Number(infra.level);
-
-        if (type === 'Tractor') laborEfficiency -= 0.15 * level;
-        else if (type === 'Shaker') laborEfficiency -= 0.30 * level;
-        else if (type === 'SocialFacilities') laborEfficiency -= 0.05 * level;
-    });
-    // Cap efficiency at 0.2 (min 20% labor cost remains)
-    if (laborEfficiency < 0.2) laborEfficiency = 0.2;
-
-    parcels.forEach(p => {
-        const size = Number(p.size);
-        totalArea += size;
-        const isOrganic = p.isOrganic;
-
-        // Fertilizer
-        fertilizerCost += isOrganic ? (size * 3000) : (size * 1500);
-
-        // Plant Protection
-        protectionCost += isOrganic ? (size * 2000) : (size * 1000);
-
-        // Fuel
-        fuelCost += size * 500;
-
-        // Labor Base (8000 * region multiplier)
-        const laborMultiplier = p.region?.laborCostMultiplier ? Number(p.region.laborCostMultiplier) : 1.0;
-        laborCostBase += size * 8000 * laborMultiplier;
-    });
-
-    const totalLaborCost = laborCostBase * laborEfficiency;
-
-    // Organic certification fee (GDD Section 5)
-    const hasOrganic = parcels.some(p => p.isOrganic);
-    let certFee = 0;
-    if (hasOrganic) {
-        if (totalArea < 5.0) certFee = 1500;
-        else if (totalArea < 20.0) certFee = 1800;
-        else if (totalArea < 50.0) certFee = 2090;
-        else certFee = 2500;
+    if (isLoading) {
+        return (
+            <div className="mt-4 bg-slate-800/40 rounded-xl p-4 border border-slate-700/30 animate-pulse">
+                <div className="h-4 w-24 mb-3 bg-slate-700 rounded" />
+                <div className="h-8 w-full bg-slate-700 rounded" />
+            </div>
+        );
     }
 
-    const totalEst = fixedCosts + fertilizerCost + protectionCost + fuelCost + totalLaborCost + certFee;
-    const operationalCosts = fertilizerCost + protectionCost + fuelCost + totalLaborCost + certFee;
+    const totalEst = stability?.estimatedCost ? Number(stability.estimatedCost) : 0;
+    const isRisky = stability?.isRisky || false;
 
     return (
-        <div className="mt-4 bg-slate-800/40 rounded-xl p-4 border border-slate-700/30">
+        <div className={cn(
+            "mt-4 rounded-xl p-4 border transition-all duration-300",
+            isRisky
+                ? "bg-rose-500/10 border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.05)]"
+                : "bg-slate-800/40 border-slate-700/30"
+        )}>
             <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    Est. Next Season Cost
+                <span className={cn(
+                    "text-[10px] font-bold uppercase tracking-widest",
+                    isRisky ? "text-rose-400" : "text-slate-500"
+                )}>
+                    {isRisky ? "Bankruptcy Risk Detected" : "Est. Survival Budget"}
                 </span>
-                <div className="p-1 bg-amber-500/10 rounded">
-                    <Coins className="h-3 w-3 text-amber-500" />
+                <div className={cn(
+                    "p-1 rounded",
+                    isRisky ? "bg-rose-500/10" : "bg-amber-500/10"
+                )}>
+                    {isRisky ? (
+                        <AlertTriangle className="h-3 w-3 text-rose-500 animate-pulse" />
+                    ) : (
+                        <Coins className="h-3 w-3 text-amber-500" />
+                    )}
                 </div>
             </div>
 
             <div className="space-y-2">
                 <div className="flex justify-between items-baseline">
-                    <span className="text-xl font-mono font-bold text-amber-400">
+                    <span className={cn(
+                        "text-xl font-mono font-bold",
+                        isRisky ? "text-rose-500" : "text-amber-400"
+                    )}>
                         ${Math.round(totalEst).toLocaleString()}
                     </span>
                     <span className="text-[10px] text-slate-500">PLN</span>
                 </div>
-                <div className="space-y-1">
-                    <div className="flex justify-between text-[10px]">
-                        <span className="text-slate-500">Maintenance</span>
-                        <span className="text-slate-300 font-mono">${Math.round(fixedCosts).toLocaleString()}</span>
+
+                {isRisky && (
+                    <div className="text-[9px] text-rose-400 leading-relaxed font-medium bg-rose-500/5 p-1.5 rounded border border-rose-500/10 mt-2">
+                        You don't have enough cash to reach the next harvest. Sell inventory or avoid spending!
                     </div>
-                    <div className="flex justify-between text-[10px]">
-                        <span className="text-slate-500">Operational</span>
-                        <span className="text-slate-300 font-mono">${Math.round(operationalCosts).toLocaleString()}</span>
-                    </div>
-                </div>
-                <div className="mt-3 pt-2 border-t border-slate-700/50 flex items-center gap-1.5 opacity-60">
+                )}
+
+                <div className="mt-auto pt-2 border-t border-slate-700/50 flex items-center gap-1.5 opacity-60">
                     <Zap className="h-2.5 w-2.5 text-amber-500/70" />
                     <span className="text-[9px] text-slate-500 leading-tight">
-                        Charged automatically at season end
+                        Includes seasonal ops & harvest labor
                     </span>
                 </div>
+
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={onOpenFinancialReport}
-                    className="w-full mt-3 bg-slate-900/50 border-slate-700 text-slate-300 hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-400 gap-2 h-8 text-[11px] font-bold"
+                    className={cn(
+                        "w-full mt-3 bg-slate-900/50 border-slate-700 text-slate-300 gap-2 h-8 text-[11px] font-bold",
+                        isRisky ? "hover:bg-rose-500/10 hover:border-rose-500/50 hover:text-rose-400" : "hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-400"
+                    )}
                 >
                     <PieChart className="h-3 w-3" />
-                    Financial Report
+                    Full Analysis
                 </Button>
             </div>
         </div>

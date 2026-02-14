@@ -10,8 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sprout, AlertCircle } from 'lucide-react';
+import { Sprout, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
+import { useStability } from '@/hooks/useFarm';
+import { cn } from '@/lib/utils';
 
 interface PlantingModalProps {
     isOpen: boolean;
@@ -31,6 +33,8 @@ export const PlantingModal: React.FC<PlantingModalProps> = ({
     const [amount, setAmount] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
+    const { data: stability } = useStability();
+    const estimatedSurvivalCost = stability?.estimatedCost ? Number(stability.estimatedCost) : 0;
 
     const handlePlant = async () => {
         const numTrees = parseInt(amount);
@@ -108,11 +112,26 @@ export const PlantingModal: React.FC<PlantingModalProps> = ({
                     </div>
 
                     {amount && !isNaN(parseInt(amount)) && (
-                        <div className="flex justify-between items-center px-4 py-2 bg-slate-950/50 rounded-lg border border-slate-800">
-                            <span className="text-xs text-slate-500 uppercase font-bold tracking-wider text-[10px]">Total Cost</span>
-                            <span className={`font-mono font-bold ${parseInt(amount) * 50 > Number(userCash) ? 'text-rose-500' : 'text-amber-400'}`}>
-                                ${(parseInt(amount) * 50).toLocaleString()} PLN
-                            </span>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center px-4 py-2 bg-slate-950/50 rounded-lg border border-slate-800">
+                                <span className="text-xs text-slate-500 uppercase font-bold tracking-wider text-[10px]">Total Cost</span>
+                                <span className={cn(
+                                    "font-mono font-bold",
+                                    parseInt(amount) * 50 > Number(userCash) ? 'text-rose-500' : 'text-amber-400'
+                                )}>
+                                    ${(parseInt(amount) * 50).toLocaleString()} PLN
+                                </span>
+                            </div>
+
+                            {(Number(userCash) - (parseInt(amount) * 50) < estimatedSurvivalCost) && Number(userCash) >= (parseInt(amount) * 50) && (
+                                <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                                    <div className="text-[10px] text-amber-200 leading-normal">
+                                        <span className="font-bold text-amber-500 block mb-0.5">FINANCIAL RISK</span>
+                                        This investment might leave you with insufficient funds to reach the next harvest season (Need: ${estimatedSurvivalCost.toLocaleString()} PLN).
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

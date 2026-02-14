@@ -349,6 +349,7 @@ module {
     #NotFound: Text;
     #Unauthorized: Text;
     #InsufficientFunds: { required: Nat; available: Nat };
+    #BankruptcyRisk: { estimatedCostUntilHarvest: Nat; available: Nat };
     #InvalidOperation: Text;
     #SeasonalRestriction: Text;
     #AlreadyExists: Text;

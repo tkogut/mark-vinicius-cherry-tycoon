@@ -351,4 +351,57 @@ module {
     
     level
   };
+
+  // ============================================================================
+  // BANKRUPTCY RISK CALCULATION
+  // ============================================================================
+
+  public func estimateSeasonsUntilHarvest(currentSeason : Types.Season) : Nat {
+    switch (currentSeason) {
+      case (#Winter) { 3 }; // Winter -> Spring -> Summer -> Autumn (harvest in Summer)
+      case (#Spring) { 2 }; // Spring -> Summer -> Autumn
+      case (#Summer) { 1 }; // Summer -> Autumn
+      case (#Autumn) { 4 }; // Harvest just passed, need to survive whole next year
+    }
+  };
+
+  public func estimateSeasonalCosts(
+    parcels: [CherryParcel],
+    infrastructure: [Infrastructure],
+    hasOrganic: Bool
+  ) : Nat {
+    let fixed = calculateFixedCosts(infrastructure);
+    // Use first parcel's region for variable cost estimation
+    let region = if (parcels.size() > 0) parcels[0].region else {
+       // Fallback region if no parcels (unlikely for an active player)
+       {
+         province = #Opolskie;
+         county = "Opole";
+         commune = "Opole";
+         communeType = #Mixed;
+         population = 120000;
+         marketSize = 0.8;
+         laborCostMultiplier = 1.0;
+       }
+    };
+    let variable = calculateVariableCosts(parcels, region, hasOrganic, infrastructure);
+    fixed + variable
+  };
+
+  public func estimateHarvestCosts(
+    parcels: [CherryParcel],
+    infrastructure: [Infrastructure]
+  ) : Nat {
+    var totalHarvestCost : Nat = 0;
+    for (parcel in parcels.vals()) {
+      let yieldOpt = calculateYieldPotential(parcel, infrastructure);
+      switch (yieldOpt) {
+        case (?yield) {
+          totalHarvestCost += yield * 2; // 2 PLN per kg labor cost
+        };
+        case null {};
+      };
+    };
+    totalHarvestCost
+  };
 }

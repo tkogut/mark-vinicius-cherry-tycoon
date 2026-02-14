@@ -51,6 +51,7 @@ export type GameError = { 'SeasonalRestriction': string } |
 { 'Unauthorized': string } |
 { 'AlreadyExists': string } |
 { 'InvalidOperation': string } |
+{ 'BankruptcyRisk': { 'available': bigint, 'estimatedCostUntilHarvest': bigint } } |
 { 'InsufficientFunds': { 'available': bigint, 'required': bigint } };
 export interface Infrastructure {
   'purchasedSeason': bigint,
@@ -136,6 +137,8 @@ export type Result_5 = { 'Ok': MarketPrice } |
 export type Result_6 = { 'Ok': Inventory } |
 { 'Err': GameError };
 export type Result_7 = { 'Ok': FarmOverview } |
+{ 'Err': GameError };
+export type Result_8 = { 'Ok': { 'estimatedCost': bigint, 'available': bigint, 'isRisky': boolean } } |
 { 'Err': GameError };
 export type Season = { 'Winter': null } |
 { 'Autumn': null } |
@@ -227,6 +230,7 @@ export interface _SERVICE {
   'startOrganicConversion': ActorMethod<[string], Result>,
   'upgradeInfrastructure': ActorMethod<[string], Result>,
   'waterParcel': ActorMethod<[string], Result>,
+  'checkStability': ActorMethod<[], Result_8>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
 export declare const init: (args: { IDL: typeof IDL }) => IDL.Type[];

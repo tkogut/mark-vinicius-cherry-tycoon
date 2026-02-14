@@ -5,7 +5,8 @@ import { GameError } from '@/declarations/backend.did';
 
 const getErrorMessage = (error: GameError): string => {
     if ('NotFound' in error) return `Not Found: ${error.NotFound}`;
-    if ('Unauthorized' in error) return `Unauthorized: ${error.Unauthorized}`;
+    if ('InvalidOperation' in error) return `Invalid Operation: ${error.InvalidOperation}`;
+    if ('BankruptcyRisk' in error) return `Financial Risk: You need at least $${Number(error.BankruptcyRisk.estimatedCostUntilHarvest).toLocaleString()} to survive until the next harvest, but you would have only $${Number(error.BankruptcyRisk.available).toLocaleString()} left.`;
     if ('InsufficientFunds' in error) return `Insufficient Funds: Need ${error.InsufficientFunds.required}, Have ${error.InsufficientFunds.available}`;
     if ('InvalidOperation' in error) return `Invalid Operation: ${error.InvalidOperation}`;
     if ('SeasonalRestriction' in error) return `Seasonal Restriction: ${error.SeasonalRestriction}`;
@@ -378,4 +379,20 @@ export function useFarm() {
         startOrganicConversion: startOrganicConversionMutation,
         upgradeInfrastructure: upgradeInfrastructureMutation,
     };
+}
+
+export function useStability() {
+    const { backendActor } = useAuth();
+
+    return useQuery({
+        queryKey: ['stability'],
+        queryFn: async () => {
+            if (!backendActor) throw new Error('Not authenticated');
+            const result = await backendActor.checkStability();
+            if ('Err' in result) throw new Error(getErrorMessage(result.Err));
+            return result.Ok;
+        },
+        enabled: !!backendActor,
+        refetchInterval: 1000 * 30, // Refresh every 30 seconds
+    });
 }

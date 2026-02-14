@@ -15,6 +15,9 @@ import {
     Wrench
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useStability } from '@/hooks/useFarm';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertCircle } from 'lucide-react';
 
 interface InfrastructureItem {
     id: string;
@@ -100,6 +103,8 @@ interface MarketplaceProps {
 }
 
 export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastructure, onPurchase, isLoading }) => {
+    const { data: stability } = useStability();
+    const estimatedSurvivalCost = stability?.estimatedCost ? Number(stability.estimatedCost) : 0;
 
     const isOwned = (id: string) => {
         return ownedInfrastructure.some(infra => {
@@ -138,6 +143,21 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                                 )}>
                                     ${item.cost.toLocaleString()}
                                 </span>
+                                {(Number(cash) - item.cost < estimatedSurvivalCost) && Number(cash) >= item.cost && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className="flex items-center gap-1 text-[10px] text-amber-500 font-bold mt-1 cursor-help hover:text-amber-400">
+                                                    <AlertCircle className="h-3 w-3" />
+                                                    FINANCIAL RISK
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-[200px] bg-slate-800 border-slate-700 text-slate-100">
+                                                <p>Buying this item might leave you with too little cash to reach the next harvest.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
                                 <span className="text-[10px] text-slate-500 font-medium mt-1">
                                     Upkeep: ${item.type === 'Machinery' ? (item.cost * 0.02) : (item.cost * 0.01)} / season
                                 </span>

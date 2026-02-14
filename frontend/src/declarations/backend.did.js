@@ -25,6 +25,10 @@ export const idlFactory = ({ IDL }) => {
     'Unauthorized': IDL.Text,
     'AlreadyExists': IDL.Text,
     'InvalidOperation': IDL.Text,
+    'BankruptcyRisk': IDL.Record({
+      'available': IDL.Nat,
+      'estimatedCostUntilHarvest': IDL.Nat,
+    }),
     'InsufficientFunds': IDL.Record({
       'available': IDL.Nat,
       'required': IDL.Nat,
@@ -112,6 +116,14 @@ export const idlFactory = ({ IDL }) => {
     'parcelCount': IDL.Nat,
   });
   const Result_7 = IDL.Variant({ 'Ok': FarmOverview, 'Err': GameError });
+  const Result_8 = IDL.Variant({
+    'Ok': IDL.Record({
+      'estimatedCost': IDL.Nat,
+      'available': IDL.Nat,
+      'isRisky': IDL.Bool,
+    }),
+    'Err': GameError,
+  });
   const Result_6 = IDL.Variant({ 'Ok': Inventory, 'Err': GameError });
   const MarketPrice = IDL.Record({
     'organicPremium': IDL.Float64,
@@ -234,6 +246,7 @@ export const idlFactory = ({ IDL }) => {
     'startOrganicConversion': IDL.Func([IDL.Text], [Result], []),
     'upgradeInfrastructure': IDL.Func([IDL.Text], [Result], []),
     'waterParcel': IDL.Func([IDL.Text], [Result], []),
+    'checkStability': IDL.Func([], [Result_8], ['query']),
   });
 };
 export const init = ({ IDL }) => { return []; };
