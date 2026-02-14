@@ -17,7 +17,7 @@ import GameLogic "game_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-persistent actor CherryTycoon {
+actor CherryTycoon {
   
   // Type aliases
   type PlayerFarm = Types.PlayerFarm;
@@ -40,7 +40,7 @@ persistent actor CherryTycoon {
   type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
-  flexible let accessControlState = AccessControl.initState();
+  let accessControlState = AccessControl.initState();
 
   public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
     await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
@@ -63,23 +63,23 @@ persistent actor CherryTycoon {
   // ============================================================================
 
   // Player farms storage
-  private flexible var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+  private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
     10,
     Principal.equal,
     Principal.hash
   );
 
   // Global game state
-  private flexible var globalSeasonNumber : Nat = 1;
-  private flexible var baseRetailPrice : Nat = 15; // PLN per kg
-  private flexible var baseWholesalePrice : Nat = 10; // PLN per kg
+  private var globalSeasonNumber : Nat = 1;
+  private var baseRetailPrice : Nat = 15; // PLN per kg
+  private var baseWholesalePrice : Nat = 10; // PLN per kg
 
   // Stable storage for upgrades
-  private transient var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
-  private transient var stableSaturation : [(Text, (Nat, Int))] = [];
-  private transient var stableGlobalSeason : Nat = 1;
-  private transient var stableUserRoles : [(Principal, AccessControl.UserRole)] = [];
-  private transient var stableAdminAssigned : Bool = false;
+  private stable var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
+  private stable var stableSaturation : [(Text, (Nat, Int))] = [];
+  private stable var stableGlobalSeason : Nat = 1;
+  private stable var stableUserRoles : [(Principal, AccessControl.UserRole)] = [];
+  private stable var stableAdminAssigned : Bool = false;
 
   system func preupgrade() {
     stablePlayerFarms := Iter.toArray(playerFarms.entries());
@@ -120,7 +120,7 @@ persistent actor CherryTycoon {
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  private flexible var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  private var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
 

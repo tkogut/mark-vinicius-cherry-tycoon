@@ -61,7 +61,7 @@ jobs:
         run: |
           unset CI
           unset GITHUB_ACTIONS
-          dfx deploy frontend --network playground
+          dfx deploy frontend --network playground --yes
           
           echo "✅ Deployment complete"
           if [ -f .dfx/playground/canister_ids.json ]; then
