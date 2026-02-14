@@ -39,7 +39,13 @@ function App() {
         organicCherries: farm ? Number(farm.inventory.organicCherries) : 0,
         regularCherries: farm ? Number(farm.inventory.cherries) : 0,
         activeParcels: farm ? farm.parcels.length : 0,
-        productionRate: 0,
+        productionRate: farm ? farm.parcels.reduce((acc, parcel) => {
+            const baseYield = 25.0; // t/ha
+            const ageMod = Number(parcel.treeAge) >= 3 ? 1.0 : (Number(parcel.treeAge) === 2 ? 0.66 : (Number(parcel.treeAge) === 1 ? 0.33 : 0));
+            const fertilityMod = Number(parcel.fertility) || 0.7;
+            const yieldPotential = baseYield * fertilityMod * ageMod * Number(parcel.size) * 1000;
+            return acc + yieldPotential;
+        }, 0) : 0,
         level: farm ? Number(farm.level) : 1,
         xp: farm ? Number(farm.experience) : 0,
         nextLevelXp: farm ? Number(farm.level) * 1000 : 1000,
@@ -259,8 +265,8 @@ function App() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-slate-100">{isLoading ? "..." : stats.totalCherries.toLocaleString()}</div>
-                                <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
-                                    +20.1% <span className="text-slate-500">from last hour</span>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Current inventory ready for sale
                                 </p>
                             </CardContent>
                         </Card>
@@ -282,8 +288,8 @@ function App() {
                                 <Settings className="h-4 w-4 text-rose-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-slate-100">{isLoading ? "..." : stats.productionRate}/hr</div>
-                                <p className="text-xs text-emerald-400 mt-1">+5% <span className="text-slate-500">efficiency</span></p>
+                                <div className="text-2xl font-bold text-slate-100">{isLoading ? "..." : Math.round(stats.productionRate).toLocaleString()}/season</div>
+                                <p className="text-xs text-slate-500 mt-1">Est. yield based on trees & soil</p>
                             </CardContent>
                         </Card>
                     </div>
