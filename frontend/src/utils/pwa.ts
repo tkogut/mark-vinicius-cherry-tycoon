@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 export function registerSW() {
     if ('serviceWorker' in navigator) {
@@ -38,7 +38,7 @@ export function useInstallPrompt() {
         };
     }, []);
 
-    const promptInstall = async () => {
+    const promptInstall = useCallback(async () => {
         if (!deferredPrompt) return;
 
         deferredPrompt.prompt();
@@ -48,7 +48,7 @@ export function useInstallPrompt() {
             setIsInstallable(false);
             setDeferredPrompt(null);
         }
-    };
+    }, [deferredPrompt]);
 
     return { isInstallable, promptInstall };
 }

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Trophy, Coins, Zap } from "lucide-react"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/hooks/useAuth"
 import { Sidebar } from "@/components/layout/Sidebar"
@@ -340,17 +340,29 @@ function App() {
 function InstallPrompt() {
     const { isInstallable, promptInstall } = useInstallPrompt();
     const { toast } = useToast();
+    const [hasShown, setHasShown] = useState(false);
 
-    React.useEffect(() => {
-        if (isInstallable) {
+    useEffect(() => {
+        if (isInstallable && !hasShown) {
+            setHasShown(true);
             toast({
                 title: "Install App",
                 description: "Add Mark Vinicius to your home screen for the best experience.",
-                action: <Button onClick={promptInstall} size="sm" className="bg-rose-600 text-white">Install</Button>,
+                action: (
+                    <Button
+                        onClick={() => {
+                            promptInstall();
+                        }}
+                        size="sm"
+                        className="bg-rose-600 text-white"
+                    >
+                        Install
+                    </Button>
+                ),
                 duration: 10000,
-            })
+            });
         }
-    }, [isInstallable, toast, promptInstall]);
+    }, [isInstallable, hasShown, toast, promptInstall]);
 
     return null; // Rendered via toast
 }
