@@ -147,7 +147,9 @@ export const SellModal: React.FC<SellModalProps> = ({
                                         <Truck className="h-4 w-4" />
                                         <span className="font-semibold">Wholesale Distributor</span>
                                     </div>
-                                    <span className="text-[10px] text-slate-500 font-normal">High Volume • Steady Price • Low Margin</span>
+                                    <span className="text-[10px] text-slate-500 font-normal text-center whitespace-normal mt-1 leading-tight">
+                                        High Volume • Steady Price • Low Margin
+                                    </span>
                                 </div>
                             </TabsTrigger>
                             <TabsTrigger
@@ -159,7 +161,9 @@ export const SellModal: React.FC<SellModalProps> = ({
                                         <Store className="h-4 w-4" />
                                         <span className="font-semibold">Local Retail Market</span>
                                     </div>
-                                    <span className="text-[10px] text-slate-500 font-normal">Low Volume • Volatile • High Margin</span>
+                                    <span className="text-[10px] text-slate-500 font-normal text-center whitespace-normal mt-1 leading-tight">
+                                        Low Volume • Volatile • High Margin
+                                    </span>
                                 </div>
                             </TabsTrigger>
                         </TabsList>
