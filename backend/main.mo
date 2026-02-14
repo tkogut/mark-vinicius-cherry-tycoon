@@ -40,7 +40,7 @@ actor CherryTycoon {
   type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
-  let accessControlState = AccessControl.initState();
+  transient let accessControlState = AccessControl.initState();
 
   public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
     await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
@@ -63,16 +63,16 @@ actor CherryTycoon {
   // ============================================================================
 
   // Player farms storage
-  private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+  private transient var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
     10,
     Principal.equal,
     Principal.hash
   );
 
   // Global game state
-  private var globalSeasonNumber : Nat = 1;
-  private var baseRetailPrice : Nat = 15; // PLN per kg
-  private var baseWholesalePrice : Nat = 10; // PLN per kg
+  private transient var globalSeasonNumber : Nat = 1;
+  private transient var baseRetailPrice : Nat = 15; // PLN per kg
+  private transient var baseWholesalePrice : Nat = 10; // PLN per kg
 
   // Stable storage for upgrades
   private stable var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
@@ -120,7 +120,7 @@ actor CherryTycoon {
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  private var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  private transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
 
