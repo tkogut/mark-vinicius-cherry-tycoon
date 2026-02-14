@@ -17,7 +17,7 @@ import GameLogic "game_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-persistent actor CherryTycoon {
+actor CherryTycoon {
   
   // Type aliases
   type PlayerFarm = Types.PlayerFarm;
@@ -40,7 +40,7 @@ persistent actor CherryTycoon {
   type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
-  transient let accessControlState = AccessControl.initState();
+  let accessControlState = AccessControl.initState();
 
   public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
     await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
@@ -63,7 +63,7 @@ persistent actor CherryTycoon {
   // ============================================================================
 
   // Player farms storage
-  private transient var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+  private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
     10,
     Principal.equal,
     Principal.hash
@@ -74,10 +74,53 @@ persistent actor CherryTycoon {
   private var baseRetailPrice : Nat = 15; // PLN per kg
   private var baseWholesalePrice : Nat = 10; // PLN per kg
 
+  // Stable storage for upgrades
+  private stable var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
+  private stable var stableSaturation : [(Text, (Nat, Int))] = [];
+  private stable var stableGlobalSeason : Nat = 1;
+  private stable var stableUserRoles : [(Principal, AccessControl.UserRole)] = [];
+  private stable var stableAdminAssigned : Bool = false;
+
+  system func preupgrade() {
+    stablePlayerFarms := Iter.toArray(playerFarms.entries());
+    stableSaturation := Iter.toArray(regionalMarketSaturation.entries());
+    stableGlobalSeason := globalSeasonNumber;
+    stableUserRoles := Iter.toArray(accessControlState.userRoles.entries());
+    stableAdminAssigned := accessControlState.adminAssigned;
+  };
+
+  system func postupgrade() {
+    playerFarms := HashMap.fromIter<Principal, PlayerFarm>(
+      stablePlayerFarms.vals(),
+      10,
+      Principal.equal,
+      Principal.hash
+    );
+    stablePlayerFarms := [];
+
+    regionalMarketSaturation := HashMap.fromIter<Text, (Nat, Int)>(
+      stableSaturation.vals(),
+      16,
+      Text.equal,
+      Text.hash
+    );
+    stableSaturation := [];
+
+    globalSeasonNumber := stableGlobalSeason;
+
+    accessControlState.adminAssigned := stableAdminAssigned;
+    accessControlState.userRoles := HashMap.fromIter<Principal, AccessControl.UserRole>(
+      stableUserRoles.vals(),
+      10,
+      Principal.equal,
+      Principal.hash
+    );
+    stableUserRoles := [];
+  };
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  private transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  private var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
 
