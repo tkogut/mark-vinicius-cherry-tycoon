@@ -21,7 +21,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install DFX
-        uses: aviate-labs/setup-dfx@v0.3.2
+        uses: dfinity/setup-dfx@main
         with:
           dfx-version: '0.30.2'
 
@@ -35,17 +35,9 @@ jobs:
           dfx identity use deploy
           dfx identity get-principal
 
-      - name: Reserve Playground Canisters
-        run: |
-          unset CI
-          unset GITHUB_ACTIONS
-          dfx canister --network playground stop --all || true
-          dfx canister --network playground delete --all || true
-          dfx canister --network playground create --all
-
       - name: Export Backend Canister ID
         run: |
-          BACKEND_ID=$(dfx canister --network playground id backend)
+          BACKEND_ID=$(dfx canister --network playground id backend || dfx canister --network playground create backend)
           echo "VITE_BACKEND_CANISTER_ID=$BACKEND_ID" >> $GITHUB_ENV
           echo "Backend ID: $BACKEND_ID"
 
@@ -65,12 +57,9 @@ jobs:
           unset CI
           unset GITHUB_ACTIONS
           
-          # Backend: Force reinstall to ensure clean state
-          dfx deploy backend --network playground --mode reinstall --yes
+          # Deploy using standard upgrade mode ( safer on playground)
+          dfx deploy backend --network playground --yes
           
-          # Frontend: Explicitly delete and redeploy to fix "no Wasm module" error
-          dfx canister stop frontend --network playground || true
-          dfx canister delete frontend --network playground || true
           dfx deploy frontend --network playground
           
           echo "✅ Deployment complete"
