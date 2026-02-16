@@ -12,6 +12,18 @@
         ]
       }
     },
+    "backend_mainnet": {
+      "type": "motoko",
+      "main": "backend/main_mainnet.mo",
+      "declarations": {
+        "output": "frontend/src/declarations",
+        "bindings": [
+          "js",
+          "ts",
+          "did"
+        ]
+      }
+    },
     "frontend": {
       "type": "assets",
       "source": [

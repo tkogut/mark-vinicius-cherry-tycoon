@@ -96,7 +96,8 @@ See [Environment Setup Guide](docs/environment_setup.md) for detailed installati
 ```
 mark-vinicius-cherry-tycoon/
 ├── backend/                 # Motoko backend
-│   ├── main.mo             # Main canister (803 lines)
+│   ├── main.mo             # Playground entrypoint (classic actor, dfx 0.24.3)
+│   ├── main_mainnet.mo     # Mainnet entrypoint (EOP persistent actor, dfx 0.30+)
 │   ├── types.mo            # Type definitions
 │   ├── game_logic.mo       # Game formulas
 │   └── old_main.mo         # Reference (Caffeine AI)
@@ -134,6 +135,35 @@ mark-vinicius-cherry-tycoon/
 - **Year 1-2**: Reduced yield (33%, 66%)
 - **Year 3-40**: Peak production (100%)
 - **Year 40+**: Trees die (must replant)
+
+## 🚀 Deployment
+
+This project uses a **dual-entrypoint architecture** to support both the IC Playground (limited cycles) and mainnet (full EOP).
+
+| Target | Entry File | DFX Version | Actor Type | Command |
+|--------|-----------|-------------|------------|----------|
+| **Playground** | `main.mo` | 0.24.3 | Classic `actor` + `stable var` | `dfx deploy backend --playground` |
+| **Mainnet** | `main_mainnet.mo` | 0.30+ | `persistent actor` (EOP) | `dfx deploy backend_mainnet --network ic` |
+
+### Local Development with dfxvm
+
+```bash
+# Install multiple dfx versions
+dfxvm install 0.24.3
+dfxvm install latest
+
+# For playground testing
+dfxvm use 0.24.3
+dfx deploy backend --playground
+
+# For mainnet/modern local dev
+dfxvm use latest
+dfx deploy backend_mainnet
+```
+
+### CI/CD Workflows
+- **Playground**: Auto-deploys on push to `master` via `deploy-playground.yml` (dfx 0.24.3)
+- **Mainnet**: Manual trigger via `deploy-mainnet.yml` (dfx 0.30.2, requires confirmation)
 
 ## 🧪 Testing
 
