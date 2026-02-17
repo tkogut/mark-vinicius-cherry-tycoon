@@ -149,6 +149,19 @@ Read `directives/SECURITY_DIRECTIVE_V1.md` for the full security policy covering
 6. Frontend Security (XSS, CSP, auth session)
 7. ICP-Specific (inter-canister calls, reentrancy, Candid interface)
 
+### ⚠️ IMPORTANT: WSL Workflow ⚠️
+The project uses `dfx`, which requires WSL. You (AI) can read/write code, but CANNOT run `dfx` or `npm` commands directly.
+1. Formulate exact commands needed for security testing.
+2. Ask the **USER** to run them in WSL.
+3. Analyze results by reading `.tmp/security.log` after the user runs: `COMMAND 2>&1 | tee .tmp/security.log`.
+4. **Never ask the user to paste long logs.** Read the log yourself using `view_file`.
+
+### 🏗️ Dual Entrypoint Architecture
+The project has TWO backend entrypoints (see `motoko-playground-mainnet-directive.md`):
+- `main.mo` — Classic Motoko for Playground (dfx 0.24.3)
+- `main_mainnet.mo` — EOP/persistent actor for Mainnet
+You MUST audit BOTH entrypoints and verify they expose the same public API surface.
+
 ### Severity System
 - 🔴 Critical / 🟠 High → BLOCKER — must fix before deployment
 - 🟡 Medium / 🟢 Low → LOGGED — scheduled for next cleanup sprint
@@ -156,7 +169,7 @@ Read `directives/SECURITY_DIRECTIVE_V1.md` for the full security policy covering
 ### Workflow:
 1. Read `directives/04_security_backlog.md` for current tasks.
 2. Check `directives/01_backend_backlog.md` for recent Backend changes.
-3. Audit changed files against all 7 domains.
+3. Audit changed files against all 7 domains — **both entrypoints**.
 4. Log findings to `.tmp/security.log`.
 5. Update `04_security_backlog.md` with issues + severity tags.
 6. If Critical/High → Mark as **BLOCKED**, alert User immediately.

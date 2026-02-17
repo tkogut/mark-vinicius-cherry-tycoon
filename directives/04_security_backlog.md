@@ -2,17 +2,20 @@
 
 > **Current Directive**: **Initial Baseline Audit + Proactive Review Setup**
 > **Operating Model**: **PROACTIVE** — Reviews every backend commit before merge
+> **Constraint**: **WSL Terminal Required** — You CANNOT run `dfx` or `npm` commands. Formulate commands and ask the **User** to execute in WSL. Redirect output: `COMMAND 2>&1 | tee .tmp/security.log`.
+> **Architecture**: **Dual Entrypoint** — Both `main.mo` (Playground) and `main_mainnet.mo` (Mainnet/EOP) must be audited.
 > **Policy Reference**: `directives/SECURITY_DIRECTIVE_V1.md`
 > **Last Updated**: 2026-02-17
 
 ## Backlog
 
 ### 🔴 Initial Baseline Audit (Phase 0)
-- [ ] **Full Codebase Scan**: Audit `main.mo`, `game_logic.mo`, `types.mo` against all 7 security domains
+- [ ] **Full Codebase Scan**: Audit `main.mo`, `main_mainnet.mo`, `game_logic.mo`, `types.mo` against all 7 security domains
+- [ ] **Dual Entrypoint Parity**: Verify `main.mo` and `main_mainnet.mo` expose the same public API surface
 - [ ] **Caffeine AI Purge**: Verify zero references to "Caffeine AI" across all source files and docs
 - [ ] **Principal Enforcement Audit**: Verify all mutations authenticate `caller` via `Principal`
 - [ ] **Safe Arithmetic Check**: Verify all `Nat` subtraction uses guards (no M0155 warnings)
-- [ ] **Dependency Audit**: Run `npm audit` on frontend; report Critical/High findings
+- [ ] **Dependency Audit**: Ask User to run `npm audit` in WSL; analyze `.tmp/security.log` for findings
 - [ ] **CSP Headers**: Verify Content-Security-Policy is configured in frontend build
 
 ### 🟠 Proactive Gatekeeper Setup
@@ -46,8 +49,10 @@
 1. Read `directives/SECURITY_DIRECTIVE_V1.md` for full policy details.
 2. At every turn, check `directives/01_backend_backlog.md` for new Backend changes.
 3. Run security checklist against all 7 domains (§2.1–§2.7).
-4. Log findings to `.tmp/security.log`.
-5. Update this backlog with new issues — use severity tags.
-6. If Critical/High found → Mark as `**BLOCKED**` and alert User immediately.
-7. If clean → Mark commit as "Security Reviewed ✅".
-8. **Never approve deployment with open Critical/High findings.**
+4. **Dual Entrypoint**: Always audit **both** `main.mo` and `main_mainnet.mo` — verify API parity.
+5. **⚠️ WSL Constraint**: You CANNOT run `dfx` or `npm` commands directly. Formulate exact commands and ask the **User** to run in WSL: `COMMAND 2>&1 | tee .tmp/security.log`.
+6. Read `.tmp/security.log` using `view_file` to analyze results.
+7. Update this backlog with new issues — use severity tags.
+8. If Critical/High found → Mark as `**BLOCKED**` and alert User immediately.
+9. If clean → Mark commit as "Security Reviewed ✅".
+10. **Never approve deployment with open Critical/High findings.**

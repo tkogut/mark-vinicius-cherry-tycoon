@@ -5,6 +5,8 @@ This project uses a "Multi-Agent Simulation" workflow. Even if run by a single h
 
 **Producer:** JaPiTo Group — all branding must reflect this. Zero legacy references (Caffeine AI, etc.).
 
+**Architecture:** Dual Entrypoint — `main.mo` (Playground/dfx 0.24.3) + `main_mainnet.mo` (Mainnet/EOP). See `motoko-playground-mainnet-directive.md`.
+
 ## Roles & Recommended Models
 
 ### 1. Coordinator (Manager) — Keep always the name of chat as "Coordinator (Manager)"
@@ -63,11 +65,12 @@ Support the following short-hands by reading their definitions in `.agent/workfl
 ## Agent Instructions
 1. Read your backlog and identify implementation gaps.
 2. Implement one function at a time.
-3. Formulate `dfx` commands for the user to run in WSL.
-4. Tell the user to redirect output: `| tee .tmp/<role>.log`.
-5. Read the log yourself using `view_file` to analyze errors.
-6. Update your backlog (mark as `[x]`) upon completion.
-7. Notify Coordinator (`00_master_plan.md`) if blocked.
+3. **Dual Entrypoint**: New logic goes in shared modules. Public functions must be exposed in **both** `main.mo` and `main_mainnet.mo`.
+4. **⚠️ WSL Constraint**: You CANNOT run `dfx` or `npm` commands. Formulate exact commands and ask the **User** to run them in WSL.
+5. Tell the user to redirect output: `COMMAND 2>&1 | tee .tmp/<role>.log`.
+6. Read the log yourself using `view_file` to analyze errors.
+7. Update your backlog (mark as `[x]`) upon completion.
+8. Notify Coordinator (`00_master_plan.md`) if blocked.
 
 ## Tool Usage
 - **Manager**: Uses `task_boundary` to define high-level tasks.

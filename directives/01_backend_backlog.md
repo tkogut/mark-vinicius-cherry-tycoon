@@ -1,7 +1,8 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
 > **Current Directive**: **Phase 0 — Close Out 2.5 Cleanup, then Phase 5 — Living World**
-> **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` commands in WSL terminal manually.
+> **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` and `npm` commands in WSL terminal manually.
+> **Architecture**: **Dual Entrypoint** - `main.mo` (Playground/dfx 0.24.3) + `main_mainnet.mo` (Mainnet/EOP). See `motoko-playground-mainnet-directive.md`.
 > **Security**: All commits reviewed by Security Agent before merge (see `SECURITY_DIRECTIVE_V1.md`)
 > **Last Updated**: 2026-02-17
 
@@ -85,11 +86,12 @@
 </details>
 
 ## Agent Instructions
-1. Read `main.mo` and identify implementation gaps.
+1. Read `main.mo` AND `main_mainnet.mo` — identify implementation gaps in **both** entrypoints.
 2. Implement one function at a time.
-3. Formulate `dfx` commands for the user to run in WSL.
-4. Tell the user to redirect output: `| tee .tmp/backend.log`.
-5. Read the log yourself using `view_file` to analyze errors.
-6. Update this file (mark as `[x]`) upon completion.
-7. Notify Coordinator (`00_master_plan.md`) if blocked.
-8. **Security**: All code subject to Security Agent review before merge.
+3. **Dual Entrypoint Rule**: All new logic goes in shared modules (e.g., `weather_logic.mo`, `ai_logic.mo`). New public functions must be exposed in **both** `main.mo` (Playground) and `main_mainnet.mo` (Mainnet/EOP).
+4. **⚠️ WSL Constraint**: You CANNOT run `dfx` or `npm` commands. Formulate exact commands and ask the **User** to run them in WSL.
+5. Tell the user to redirect output: `COMMAND 2>&1 | tee .tmp/backend.log`.
+6. Read the log yourself using `view_file` to analyze errors.
+7. Update this file (mark as `[x]`) upon completion.
+8. Notify Coordinator (`00_master_plan.md`) if blocked.
+9. **Security**: All code subject to Security Agent review before merge.

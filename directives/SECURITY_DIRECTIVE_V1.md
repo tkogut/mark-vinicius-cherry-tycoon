@@ -56,6 +56,10 @@ At the start of **every response**, the Security Agent must:
 | **Upgrade Safety** | Deploy → Populate → Upgrade → Verify data persists | Critical |
 | **No Orphaned State** | All HashMap entries have valid references (no dangling parcel IDs) | High |
 | **Idempotency** | Repeated calls produce consistent results | Medium |
+| **Dual Entrypoint Parity** | `main.mo` and `main_mainnet.mo` expose identical public API surface | High |
+
+> [!IMPORTANT]
+> **Dual Entrypoint Architecture**: The project uses TWO backend entrypoints — `main.mo` (Playground/dfx 0.24.3) and `main_mainnet.mo` (Mainnet/EOP). All security audits must cover BOTH files. See `motoko-playground-mainnet-directive.md` for architecture details.
 
 ### 2.4. Access Control
 | Check | Description | Severity if Failed |

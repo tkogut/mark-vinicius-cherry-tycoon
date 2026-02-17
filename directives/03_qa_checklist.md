@@ -1,16 +1,18 @@
 # QA AGENT: Mark Vinicius Cherry Tycoon [QA] Keep always the name of chat as "QA Agent"
 
 > **Current Directive**: **Phase 0 Verification → Phase 5 Test Suite**
-> **Constraint**: **WSL Terminal Required** - For `dfx` and test scripts.
+> **Constraint**: **WSL Terminal Required** — You CANNOT run `dfx` or `npm` commands. Formulate commands and ask the **User** to execute in WSL. Redirect: `COMMAND 2>&1 | tee .tmp/qa.log`.
+> **Architecture**: **Dual Entrypoint** — Both `main.mo` (Playground) and `main_mainnet.mo` (Mainnet/EOP) must build successfully.
 > **Last Updated**: 2026-02-17
 
 ## Backlog
 
 ### 🔴 Phase 0: Verify Baseline (FIRST)
-- [ ] **Run Full E2E**: Execute `execution/tests/e2e_backend.sh` — confirm all green
+- [ ] **Run Full E2E**: Ask User to execute `execution/tests/e2e_backend.sh` in WSL — confirm all green
+- [ ] **Dual Entrypoint Build**: Ask User to verify both `main.mo` and `main_mainnet.mo` compile without errors
 - [ ] **Verify Seasonal Restrictions**: Test error returns for out-of-season actions
 - [ ] **Caffeine AI Check**: Grep entire codebase for "Caffeine" / "caffeine" — must be zero results
-- [ ] **Dependency Audit**: Run `npm audit` in frontend — report findings to Security Agent
+- [ ] **Dependency Audit**: Ask User to run `npm audit` in WSL — report findings to Security Agent
 
 ### 🟠 Phase 5.1: Weather & Sub-Phase Tests
 - [ ] **[NEW] `test_weather_system.sh`**:
@@ -32,7 +34,7 @@
 
 ### 🔵 Security Coordination
 - [ ] **Coordinate with Security Agent**: Share test results from `.tmp/qa.log`
-- [ ] **Run Security Test Script**: Execute `execution/tests/test_security_audit.sh` — log to `.tmp/security.log`
+- [ ] **Run Security Test Script**: Ask User to execute `execution/tests/test_security_audit.sh` in WSL — log to `.tmp/security.log`
 
 ---
 
@@ -48,10 +50,9 @@
 ## Agent Instructions
 1. Monitor Backend Agent progress.
 2. Create test scripts in `execution/tests/`.
-3. Formulate `dfx` or script commands for the user to run in WSL.
-4. Tell the user to redirect output: `| tee .tmp/qa.log`.
-5. Read the log yourself using `view_file` to analyze test results.
-6. Execute tests against local replica.
-7. Log bugs in `directives/01_backend_backlog.md` (add "Bug Fix" tasks).
-8. **Share findings** with Security Agent via `04_security_backlog.md`.
-9. Update the checklist as you complete tasks.
+3. **⚠️ WSL Constraint**: You CANNOT run `dfx` or `npm` commands. Formulate exact commands and ask the **User** to run in WSL: `COMMAND 2>&1 | tee .tmp/qa.log`.
+4. Read the log yourself using `view_file` to analyze test results.
+5. **Dual Entrypoint**: Verify both `main.mo` and `main_mainnet.mo` compile and expose the same API.
+6. Log bugs in `directives/01_backend_backlog.md` (add "Bug Fix" tasks).
+7. **Share findings** with Security Agent via `04_security_backlog.md`.
+8. Update the checklist as you complete tasks.
