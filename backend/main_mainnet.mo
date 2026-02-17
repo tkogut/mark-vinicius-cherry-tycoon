@@ -11,13 +11,16 @@ import Array "mo:base/Array";
 import Int "mo:base/Int";
 import Time "mo:base/Time";
 import Float "mo:base/Float";
+import Iter "mo:base/Iter";
 
 import Types "types";
 import GameLogic "game_logic";
+import WeatherLogic "weather_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
 persistent actor CherryTycoon {
+  
   
   // Type aliases
   type PlayerFarm = Types.PlayerFarm;
@@ -63,7 +66,7 @@ persistent actor CherryTycoon {
   // ============================================================================
 
   // Player farms storage
-  private transient var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+  transient var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
     10,
     Principal.equal,
     Principal.hash
@@ -77,9 +80,33 @@ persistent actor CherryTycoon {
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  private transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
+
+  // Stable storage for upgrades (auto-persisted by EOP)
+  var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
+  var stableSaturation : [(Text, (Nat, Int))] = [];
+  var stableGlobalSeason : Nat = 1;
+
+  // Serialization hooks for transient HashMap variables
+  system func preupgrade() {
+    stablePlayerFarms := Iter.toArray(playerFarms.entries());
+    stableSaturation := Iter.toArray(regionalMarketSaturation.entries());
+    stableGlobalSeason := globalSeasonNumber;
+  };
+
+  system func postupgrade() {
+    for ((k, v) in stablePlayerFarms.vals()) {
+      playerFarms.put(k, v);
+    };
+    for ((k, v) in stableSaturation.vals()) {
+      regionalMarketSaturation.put(k, v);
+    };
+    globalSeasonNumber := stableGlobalSeason;
+    stablePlayerFarms := [];
+    stableSaturation := [];
+  };
 
   // Helper: Get decayed volume based on time passed
   private func getDecayedVolume(regionName: Text) : Nat {
@@ -133,6 +160,17 @@ persistent actor CherryTycoon {
     playerName: Text
   ) : async GameResult<Text, GameError> {
     
+    // SEC-005: Reject anonymous callers
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+
+    // SEC-008: Validate inputs
+    if (Text.size(playerId) == 0 or Text.size(playerId) > 50) {
+      return #Err(#InvalidOperation("playerId must be 1-50 characters"));
+    };
+    if (Text.size(playerName) == 0 or Text.size(playerName) > 50) {
+      return #Err(#InvalidOperation("playerName must be 1-50 characters"));
+    };
+
     // Check if player already exists
     switch (playerFarms.get(caller)) {
       case (?_) { return #Err(#AlreadyExists("Player already initialized")) };
@@ -199,6 +237,8 @@ persistent actor CherryTycoon {
         yearlyReports = [];
       };
       currentSeason = #Spring;
+      currentPhase = #Preparation;
+      weather = null;
       seasonNumber = 1;
       lastActive = Int.abs(Time.now());
     };
@@ -237,6 +277,8 @@ persistent actor CherryTycoon {
             totalTrees = trees;
             inventory = farm.inventory;
             currentSeason = farm.currentSeason;
+            currentPhase = farm.currentPhase;
+            weather = farm.weather;
             seasonNumber = farm.seasonNumber;
         };
         
@@ -259,8 +301,9 @@ persistent actor CherryTycoon {
      }
   };
 
-  // DEBUG ONLY: Reset player state
+  // DEBUG ONLY: Reset player state (SEC-003: restricted from anonymous)
   public shared({ caller }) func debugResetPlayer() : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     let _ = playerFarms.delete(caller);
     #Ok("Player reset successfully")
   };
@@ -306,6 +349,7 @@ persistent actor CherryTycoon {
 
   // Harvest cherries from a parcel
   public shared({ caller }) func harvestCherries(parcelId: Text) : async GameResult<Nat, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -418,6 +462,7 @@ persistent actor CherryTycoon {
 
   // Water a parcel
   public shared({ caller }) func waterParcel(parcelId: Text) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -492,6 +537,7 @@ persistent actor CherryTycoon {
     parcelId: Text,
     _fertilizerType: Text
   ) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -585,6 +631,7 @@ persistent actor CherryTycoon {
   public shared({ caller }) func startOrganicConversion(
     parcelId: Text
   ) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -660,6 +707,7 @@ persistent actor CherryTycoon {
     parcelId: Text,
     quantity: Nat
   ) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -680,7 +728,7 @@ persistent actor CherryTycoon {
           case (?index) {
             let parcel = farm.parcels[index];
             
-            // Check tree density limit: 400 trees per hectare (from Caffeine)
+            // Check tree density limit: 400 trees per hectare (from GDD)
             let maxTrees = Int.abs(Float.toInt(parcel.size * 400.0));
             let currentTrees = parcel.plantedTrees;
             
@@ -750,6 +798,11 @@ persistent actor CherryTycoon {
     quantity: Nat,
     saleType: Text
   ) : async GameResult<Nat, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // SEC-007: Validate saleType
+    if (saleType != "retail" and saleType != "wholesale") {
+      return #Err(#InvalidOperation("Invalid sale type: " # saleType # ". Must be 'retail' or 'wholesale'"));
+    };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -912,6 +965,7 @@ persistent actor CherryTycoon {
   public shared({ caller }) func advanceSeason(
     _weatherEvent: ?Text
   ) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -948,9 +1002,15 @@ persistent actor CherryTycoon {
 
         // Calculate costs for the season
         let fixedCosts = GameLogic.calculateFixedCosts(farm.infrastructure);
+        // SEC-004: Guard against empty parcels array
+        let parcelRegion = if (updatedParcels.size() > 0) {
+          updatedParcels[0].region
+        } else {
+          { province = #Opolskie; county = "Opole"; commune = "Opole"; communeType = #Mixed : Types.CommuneType; population = 120000; marketSize = 0.8; laborCostMultiplier = 1.0 }
+        };
         let variableCosts = GameLogic.calculateVariableCosts(
           updatedParcels,
-          updatedParcels[0].region,
+          parcelRegion,
           hasAnyOrganic,
           farm.infrastructure
         );
@@ -1055,6 +1115,8 @@ persistent actor CherryTycoon {
         let updatedFarm = {
           farm with
           currentSeason = nextSeason;
+          currentPhase = #Preparation; // Reset phase on new season
+          weather = null; // Clear weather on new season
           seasonNumber = farm.seasonNumber + 1;
           cash = Int.abs((farm.cash : Int) - (totalCosts : Int));
           parcels = updatedParcels;
@@ -1068,10 +1130,52 @@ persistent actor CherryTycoon {
     }
   };
 
+  // Advance phase within a season
+  public shared({ caller }) func advancePhase() : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+        case null { return #Err(#NotFound("Player not found")) };
+        case (?farm) {
+            
+            let nextPhase = switch (farm.currentPhase) {
+                case (#Preparation) { #Growth };
+                case (#Growth) { #Harvest };
+                case (#Harvest) { #Sales };
+                case (#Sales) { #OffSeason };
+                case (#OffSeason) { return #Err(#InvalidOperation("Cannot advance phase from OffSeason. Use advanceSeason() instead.")) };
+            };
+
+            // Weather Logic (only triggers when entering Growth phase)
+            let newWeather = if (nextPhase == #Growth) {
+                let entropy = Int.abs(Time.now());
+                WeatherLogic.generateWeatherEvent(farm.currentSeason, entropy)
+            } else {
+                farm.weather // Persist existing weather event until end of season
+            };
+
+            let updatedFarm = {
+                farm with
+                currentPhase = nextPhase;
+                weather = newWeather;
+            };
+
+            playerFarms.put(caller, updatedFarm);
+            
+            let weatherMsg = switch (newWeather) {
+                case (null) { "" };
+                case (?w) { ". Weather Alert: " # w.impact };
+            };
+
+            #Ok("Advanced to " # debug_show(nextPhase) # weatherMsg)
+        };
+    }
+  };
+
   // Upgrade infrastructure
   public shared({ caller }) func upgradeInfrastructure(
     infraTypeString: Text
   ) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -1143,7 +1247,7 @@ persistent actor CherryTycoon {
   };
 
   // ============================================================================
-  // PARCEL PURCHASE (from Caffeine AI)
+  // PARCEL PURCHASE (from GDD)
   // ============================================================================
 
   // Helper: Check if an expenditure leads to bankruptcy risk
@@ -1209,11 +1313,12 @@ persistent actor CherryTycoon {
     size: Float
   ) : async GameResult<Text, GameError> {
     
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        // Calculate cost: 60,000 PLN per hectare (from Caffeine)
+        // Calculate cost: 60,000 PLN per hectare (from GDD)
         let cost = Int.abs(Float.toInt(size * 60000.0));
         
         // Check for bankruptcy risk
@@ -1286,6 +1391,7 @@ persistent actor CherryTycoon {
     price: Nat
   ) : async GameResult<Text, GameError> {
     
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -1578,6 +1684,7 @@ persistent actor CherryTycoon {
     parcelId: Text,
     recipient: Principal
   ) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     
     // 1. Get Caller Farm (Sender)
     let callerFarm = switch (playerFarms.get(caller)) {

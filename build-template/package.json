@@ -1,5 +1,5 @@
 {
-  "name": "@caffeine/template-app",
+  "name": "@japito/template-app",
   "type": "module",
   "engines": {
     "node": ">=16.0.0",

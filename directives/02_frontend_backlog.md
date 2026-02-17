@@ -8,7 +8,7 @@
 ## Backlog
 
 ### 🔴 Phase 0: Cleanup (Pre-requisite)
-- [ ] **Caffeine AI Purge**: Remove ALL legacy references from frontend code and comments
+- [x] **Legacy Purge**: Remove ALL legacy references from frontend code and comments ✅ *DONE 2026-02-17*
 - [ ] **Branding**: Ensure "Produced by JaPiTo Group" in all system messages
 
 ### 🟠 Phase 5.1: Weather + Season Sub-Phases UI

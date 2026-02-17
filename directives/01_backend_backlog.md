@@ -12,7 +12,7 @@
 - [ ] **Full Function Verification**: Test ALL public functions via `dfx canister call` — log results
 - [ ] **Error Handling Verification**: Verify `#SeasonalRestriction` errors return proper toasts
 - [ ] **Code Cleanup**: Remove all temporary `Debug.print` statements
-- [ ] **Caffeine AI Purge**: Remove ALL legacy "Caffeine AI" references from codebase & docs — replace with "JaPiTo Group"
+- [x] **Legacy Purge**: Remove ALL legacy references from codebase & docs — replace with "JaPiTo Group" ✅ *DONE 2026-02-17*
 - [ ] **Baseline Green**: Confirm E2E test suite passes with zero failures
 
 ### 🟠 Phase 5.1: Weather Events + Season Sub-Phases

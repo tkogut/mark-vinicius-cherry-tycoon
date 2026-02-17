@@ -49,9 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `upgradeInfrastructure()` - Purchase infrastructure upgrades
 - Stable storage for canister upgrades (preupgrade/postupgrade hooks)
 
-### Added - Caffeine AI Integration (2026-02-07)
+### Added - Enhanced Game Features (2026-02-07)
 
-#### Enhanced Features from Original Caffeine Code
+#### Enhanced Features
 - **Tree Age Modifier** (`backend/game_logic.mo`):
   - Realistic 0-40 year tree lifecycle
   - Year 0: No harvest (newly planted)
@@ -81,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Project Configuration
 - `dfx.json` - ICP project configuration
-- `test-backend.ps1` - Comprehensive PowerShell test script (20 tests: 10 original + 10 Caffeine features)
+- `test-backend.ps1` - Comprehensive PowerShell test script (20 tests: 10 original + 10 enhanced features)
 - `README.md` - Complete project documentation
 
 ### Technical Details

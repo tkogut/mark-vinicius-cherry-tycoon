@@ -19,7 +19,7 @@ module {
   // YIELD CALCULATION (GDD Section 1 - Yield Potential Formula)
   // ============================================================================
 
-  // Tree age modifier (from Caffeine AI - realistic progression)
+  // Tree age modifier (from GDD - realistic progression)
   public func getTreeAgeModifier(treeAge: Nat) : ?Float {
     if (treeAge == 0) { ?0.0 }        // Newly planted - no harvest
     else if (treeAge == 1) { ?0.33 }  // Year 1 - 33% yield

@@ -2,11 +2,13 @@ import AccessControl "./access-control";
 
 module {
   // Initialize auth - first caller becomes admin if they provide the correct secret
-  // Note: Simplified from Caffeine AI version (removed Prim.envVar dependency)
+  // SEC-009: Use a known admin token instead of user-provided value for both sides
+  private let ADMIN_TOKEN = "CHERRY_ADMIN_2026";
+
   public func _initializeAccessControlWithSecret(accessControlState : AccessControl.AccessControlState, caller : Principal, userSecret : Text) : async () {
-    // In standard Motoko, we use the userSecret directly as both the token and verification
-    // The first non-anonymous caller to provide a non-empty secret becomes admin
-    AccessControl.initialize(accessControlState, caller, userSecret, userSecret);
+    // The userSecret is compared against the known ADMIN_TOKEN
+    // Only the first non-anonymous caller providing the correct token becomes admin
+    AccessControl.initialize(accessControlState, caller, ADMIN_TOKEN, userSecret);
   };
 
   public func getCallerUserRole(accessControlState : AccessControl.AccessControlState, caller : Principal) : AccessControl.UserRole {

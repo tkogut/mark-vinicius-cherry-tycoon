@@ -11,7 +11,7 @@
 - [ ] **Run Full E2E**: Ask User to execute `execution/tests/e2e_backend.sh` in WSL — confirm all green
 - [ ] **Dual Entrypoint Build**: Ask User to verify both `main.mo` and `main_mainnet.mo` compile without errors
 - [ ] **Verify Seasonal Restrictions**: Test error returns for out-of-season actions
-- [ ] **Caffeine AI Check**: Grep entire codebase for "Caffeine" / "caffeine" — must be zero results
+- [x] **Legacy Reference Check**: Grep entire codebase for legacy references — zero results in source ✅ *DONE 2026-02-17*
 - [ ] **Dependency Audit**: Ask User to run `npm audit` in WSL — report findings to Security Agent
 
 ### 🟠 Phase 5.1: Weather & Sub-Phase Tests

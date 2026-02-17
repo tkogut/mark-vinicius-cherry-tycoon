@@ -9,7 +9,7 @@
 
 ### Phase 1: Stabilization (Complete ✅)
 - [x] **Setup**: Local environment with dfx and Motoko.
-- [x] **Migration**: Moved code from legacy. **All "Caffeine AI" references purged.**
+- [x] **Migration**: Moved code from legacy. **All legacy references purged.**
 - [x] **Backend Fixes**: Type errors fixed, `assignParcelToPlayer` implemented.
 - [x] **Core Logic**: `harvestCherries`, `plantTrees`, etc. implemented and verified.
 - [x] **Economy**: `buyParcel`, `sellCherries` implemented.
@@ -41,7 +41,7 @@
 - [ ] **Backend Verification**: Test ALL functions via `dfx canister call`
 - [ ] **Error Handling**: Verify error toasts for seasonal restrictions
 - [ ] **Code Cleanup**: Remove temporary debug logs
-- [ ] **Caffeine Purge**: Remove ALL legacy "Caffeine AI" mentions across codebase
+- [x] **Caffeine Purge**: Remove ALL legacy mentions across codebase ✅ *DONE 2026-02-17*
 - [ ] **Security Baseline**: Initial full codebase security audit
 
 ### Phase 5: Living World (NEXT — After Phase 0)

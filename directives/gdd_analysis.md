@@ -21,7 +21,7 @@
 | 11. Implementation Roadmap | **~Phase 1 done** | GDD Phase 0 complete; Phase 1 (AI competition) not started |
 | 12. Metrics & Progression | **50%** | Farm KPIs tracked; no club KPIs, no unlock roadmap |
 | 13. UI/UX Priorities | **40%** | Onboarding exists; no progress roadmap, no social proof |
-| 14. Caffeine/ICP Goals | **30%** | Single canister; no multi-canister architecture |
+| 14. Implementation Goals | **30%** | Single canister; no multi-canister architecture |
 
 ---
 

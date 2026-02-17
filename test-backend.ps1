@@ -1,5 +1,5 @@
 # Mark Vinicius Cherry Tycoon - Enhanced Backend Test Script
-# Tests both original and new Caffeine AI features
+# Tests both original and enhanced game features
 
 Write-Host "🍒 Mark Vinicius Cherry Tycoon - Enhanced Backend Tests" -ForegroundColor Green
 Write-Host "=========================================================" -ForegroundColor Green
@@ -109,7 +109,7 @@ Write-Host $result10 -ForegroundColor White
 Write-Host ""
 
 Write-Host "=========================================================" -ForegroundColor Magenta
-Write-Host "PART 2: NEW CAFFEINE AI FEATURES" -ForegroundColor Magenta
+Write-Host "PART 2: ENHANCED GAME FEATURES" -ForegroundColor Magenta
 Write-Host "=========================================================" -ForegroundColor Magenta
 Write-Host ""
 

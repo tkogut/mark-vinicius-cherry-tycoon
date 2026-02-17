@@ -4,7 +4,7 @@ description: Read the relevant log file for your role and analyze the latest ter
 
 1. Identify your role (Backend, Frontend, QA, or Security).
 2. Use `view_file` to read the corresponding log:
-   - Backend: `.tmp/backend.log`, `.tmp/backend_deploy.log`, `.tmp/manual_api_test.log`
+   - Backend: `.tmp/backend.log`, `.tmp/backend_deploy.log`, `.tmp/manual_api_test.log`, '.tmp\backend_verification.log', '.tmp\weather_test.log'
    - Frontend: `.tmp/frontend.log`, `.tmp/manual_api_test.log`
    - QA: `.tmp/qa.log`, `.tmp/manual_api_test.log`, `.tmp/serialization_test.log`
    - Security: `.tmp/security.log`, `.tmp/backend.log`

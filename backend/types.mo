@@ -221,6 +221,8 @@ module {
     
     // Game state
     currentSeason: Season;
+    currentPhase: SeasonPhase;
+    weather: ?WeatherEvent; // [NEW] Active weather event
     seasonNumber: Nat;
     lastActive: Nat;  // Timestamp in nanoseconds (converted from Time.Time)
   };
@@ -234,6 +236,14 @@ module {
     #Summer;   // growth, harvest preparation
     #Autumn;   // harvest season
     #Winter;   // dormant, planning, infrastructure
+  };
+
+  public type SeasonPhase = {
+    #Preparation; // Buy land, hire workers, buy supplies, upgrade infrastructure
+    #Growth;      // Water, fertilize, treat pests. Weather events fire here
+    #Harvest;     // Harvest only. Yield = DNA + Weather + Quality
+    #Sales;       // Sell cherries. View market
+    #OffSeason;   // Plan, review financials
   };
 
   public type Weather = {
@@ -364,6 +374,8 @@ module {
     totalTrees: Nat;
     inventory: Inventory;
     currentSeason: Season;
+    currentPhase: SeasonPhase;
+    weather: ?WeatherEvent; // [NEW] Active weather event
     seasonNumber: Nat;
   };
 }

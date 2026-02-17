@@ -2000,4 +2000,4 @@ type FestivalScore = {
 ---
 
 *This Game Design Document was generated using the Mark Vinicius Cherry Tycoon GDD Tool.*
-*Built with ❤️ using [caffeine.ai](https://caffeine.ai)*
+*Built with ❤️ by [JaPiTo Group](https://github.com/tkogut)*

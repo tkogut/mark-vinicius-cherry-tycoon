@@ -100,7 +100,6 @@ mark-vinicius-cherry-tycoon/
 │   ├── main_mainnet.mo     # Mainnet entrypoint (EOP persistent actor, dfx 0.30+)
 │   ├── types.mo            # Type definitions
 │   ├── game_logic.mo       # Game formulas
-│   └── old_main.mo         # Reference (Caffeine AI)
 ├── frontend/               # React frontend
 │   ├── src/
 │   │   ├── pages/         # UI pages
@@ -230,7 +229,7 @@ This runs 20 tests covering:
 
 ### ✅ Phase 1: Core Engine (Complete)
 - Backend with all game mechanics
-- Caffeine AI integration
+- Enhanced game systems
 - Frontend UI
 - Backend integration
 
@@ -265,7 +264,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - Built with ❤️ for the Internet Computer ecosystem
 - Inspired by classic farming simulation games
-- Special thanks to the Caffeine AI project for valuable game mechanics
+- Produced by JaPiTo Group
 
 ## 📞 Contact
 

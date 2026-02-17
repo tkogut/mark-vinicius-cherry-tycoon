@@ -102,7 +102,7 @@ Leverage **Antigravity/Google Nano Banana** for "juicy" assets.
 ---
 
 ## 9. Development Directives (No Improvisation)
-1. **Purge Caffeine:** All legacy Caffeine AI code comments and mentions must be deleted.
+1. **Purge Legacy References:** All legacy code comments and mentions must be deleted.
 2. **JaPiTo Brand:** All system messages and branding must reflect "Produced by JaPiTo Group".
 3. **Type Safety:** Strict `Principal` usage for IDs. No loose `Text` strings for player identification.
 4. **Testing:** Every backend function must be verified via the `test-backend.ps1` script.

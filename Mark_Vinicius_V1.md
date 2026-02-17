@@ -1,4 +1,4 @@
-# Mark Vinicius Cherry Tycoon – Complete Game Design Document for ICP/Caffeine.ai
+# Mark Vinicius Cherry Tycoon – Complete Game Design Document for ICP
 
 Created by **JaPiTo**
 
@@ -548,7 +548,7 @@ The game supports **multiple languages from the start:**
 
 ---
 
-## 14. Goal for Caffeine.ai
+## 14. Implementation Goals
 
 Use this document as the **single source of truth** for:
 
