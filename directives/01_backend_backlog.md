@@ -1,65 +1,95 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Phase 4 - Economy & Infrastructure**
+> **Current Directive**: **Phase 0 — Close Out 2.5 Cleanup, then Phase 5 — Living World**
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` commands in WSL terminal manually.
-> **Last Updated**: 2026-02-08
+> **Security**: All commits reviewed by Security Agent before merge (see `SECURITY_DIRECTIVE_V1.md`)
+> **Last Updated**: 2026-02-17
 
 ## Backlog
 
-### 🔍 Phase 2.5: Integration Verification (CRITICAL)
-- [x] **Test `getPlayerFarm()`**: Verify it returns valid farm state for new and existing players
-- [x] **Test `plantTrees()`**: Call via `dfx canister call` with valid parcel ID
-- [x] **Test `waterParcel()`**: Verify water level increases
-- [x] **Test `harvestCherries()`**: Verify cherries are added to inventory
-- [x] **Test `sellCherries()`**: Verify cash increases
-- [x] **Add Debug Logging**: Add console output to each function for easier debugging
-- [x] **Document Parcel IDs**: Ensure parcel IDs are stable and documented for frontend use
-- [x] **Verify `assignParcelToPlayer`**: Updated to use `Principal` for recipient and implemented robust transfer logic (moving parcel between farms) to fix logic/type mismatch.
-- [x] **Verify Type Errors**: Verified consistency in `main.mo` (all use `#Ok`/`#Err`).
-- [x] **Verify `getMarketPrices`**: Returns valid data in manual test.
-- [x] **Verify `getFarmOverview`**: Returns valid data in manual test.
-- [x] **Verify `debugResetPlayer`**: Resets player successfully.
+### 🔴 Phase 0: Close Out Phase 2.5 (FIRST — Pre-requisite)
+- [ ] **Full Function Verification**: Test ALL public functions via `dfx canister call` — log results
+- [ ] **Error Handling Verification**: Verify `#SeasonalRestriction` errors return proper toasts
+- [ ] **Code Cleanup**: Remove all temporary `Debug.print` statements
+- [ ] **Caffeine AI Purge**: Remove ALL legacy "Caffeine AI" references from codebase & docs — replace with "JaPiTo Group"
+- [ ] **Baseline Green**: Confirm E2E test suite passes with zero failures
 
-### 🐞 Bug Fixes (Found by QA & Frontend)
-- [x] **[FIXED] Seasonal Fertilization Restriction**: Added Spring/Autumn only check to `fertilizeParcel()`. Returns `#SeasonalRestriction` error for Summer/Winter.
-- [x] **[FIXED] Seasonal Harvest Restriction**: Added Summer-only harvest check to `harvestCherries()`. Returns `#SeasonalRestriction` error for Spring/Autumn/Winter. Verified via `test_seasonal_harvest.sh`.
-- [x] **[FIXED] JSON-RPC Serialization Error**: Changed `PlayerFarm.lastActive` from `Time.Time` (Int) to `Nat` to fix BigInt serialization issues in JavaScript. Verified via `debug_serialization.sh`.
-- [x] **[FIXED] Parcel ID Mismatch in Operations**: Refactored logic to use `findParcelIndex` AND updated `e2e_backend.sh` script to use dynamic IDs (Fixes "Parcel not found" false positives).
-- [x] **[FIXED] Redundant Lookup Logic**: Unified all lookups to use the `findParcelIndex` helper.
-- [x] **[FIXED] `sellCherries` logic**: Now uses average quality across all parcels.
-- [x] **Implement `harvestCherries(parcelId: Text)`**: Verified and fixed lookup.
-- [x] **Implement `plantTrees(parcelId: Text, quantity: Nat)`**: Verified and fixed lookup.
-- [x] **Implement `waterParcel(parcelId: Text)`**: Verified and fixed lookup.
-- [x] **Implement `fertilizeParcel(parcelId: Text, type: Text)`**: Verified and fixed lookup.
+### 🟠 Phase 5.1: Weather Events + Season Sub-Phases
+- [ ] **[NEW] `weather_logic.mo`**: Weather event system
+  - `generateWeatherEvent(season, region)` with probability tables per season
+  - Spring: Late Frost (15%), Heavy Rain (20%)
+  - Summer: Drought (20%), Heatwave (15%), Hailstorm (5%)
+  - Autumn: Early Frost (10%), Storm (15%)
+  - Winter: Deep Freeze (25%)
+  - Pest events: Cherry Fruit Fly (20% summer), Monilinia (15% spring) — mitigated by Sprayer
+- [ ] **Season Sub-Phases**: Add `SeasonPhase` type to `types.mo`:
+  - `#Preparation | #Growth | #Harvest | #Sales | #OffSeason`
+- [ ] **Phase-Gated Actions** in `main.mo`:
+  - `#Preparation`: Buy land, hire workers, buy supplies, upgrade infrastructure
+  - `#Growth`: Water, fertilize, treat pests. Weather events fire here
+  - `#Harvest`: Harvest only. Yield = DNA + Weather + Quality
+  - `#Sales`: Sell cherries. View market
+  - `#OffSeason`: Plan, review financials
+- [ ] **`advancePhase()`**: Function to step through sub-phases within a season
+- [ ] **Integrate Weather**: Fire `generateWeatherEvent()` on Growth phase transition
+- [ ] **Opole DNA**: Activate county multipliers (soil/pH/fertility) from GDD §3.1
 
-### Next Steps (Priority 2)
-- [x] **Implement `buyParcel(parcelId: Text, price: Nat)`**: Implemented in `main.mo` (L787).
-- [x] **Implement `sellCherries(quantity: Nat, type: Text)`**: Enhanced with average quality logic.
-### Phase 3: Surface Simulation Data (Complete)
-- [x] **API Update**: Ensure `Parcel` type in `main.mo` exposes `soilType`, `phLevel`, `fertility` publically (Verified: CherryParcel type exposes these)
-- [x] **View Function**: Create `getParcelDetails(parcelId)` for detailed modifiers (Implemented)
-- [x] **Logic**: Verify yield calculation uses these modifiers correctly (Verified in game_logic.mo)
+### 🟡 Phase 5.2: AI Competitors + Shared Market
+- [ ] **[NEW] `ai_logic.mo`**: AI competitor engine
+  - **Marek "The Traditionalist"** (Głubczyce, GL_02): Mass producer, low risk, crashes wholesale
+  - **Kasia "The Eco-Visionary"** (Brzeg, BR_03): 100% organic, retail prestige, premium pricing
+  - **Hans "The Aggressor"** (Opole, OP_CITY): High-tech scaler, outbids export contracts
+- [ ] **`simulateAITurn()`**: AI makes seasonal decisions (plant/water/harvest/sell)
+- [ ] **Shared Market Formula**: `Price = Base * (Demand / Total_Supply)` where `Total_Supply = Player + AI + Global`
+- [ ] **`getCompetitorSummaries()`**: Query returning AI farm states
+- [ ] **Integrate**: Call `simulateAITurn()` during `advanceSeason()`
 
-### Phase 4: Economy & Infrastructure (Complete)
-- [x] **Implement Market Saturation**: Track sales volume per region with **Time-Based Decay** (5000kg/h). Implemented in `main.mo`.
-- [x] **Implement Infrastructure Costs**: Refactor `upgradeInfrastructure` to support variable CAPEX per GDD (Tractors 30k, Shakers 60k, etc.).
-- [x] **Implement Infrastructure Effects**:
-    - `Tractor`/`Shaker`: Reduce `calculateVariableCosts` (Labor).
-    - `Sprayer`: Increase `calculateQualityScore` (Disease prevention).
-    - `Warehouse`/`ColdStorage`: Implement spoilage logic in `advanceSeason` (only allow carry-over if infra exists).
-- [x] **Update E2E Script**: Created `test_infrastructure_gdd.sh` to verify economy logic and spoilage.
+### 🟢 Phase 5.4: Rankings
+- [ ] **`getLeaderboard()`**: Query returning top farms by profit, total value, efficiency (profit/ha)
+- [ ] **Include AI**: AI farms appear in rankings for competitive context
 
-### Next Steps (Priority 4)
-- [x] **Implement Stable Storage**: Use `preupgrade` and `postupgrade` hooks to persist `playerMap`, `parcelMap`. Verified.
+### 🔵 Phase 5.5: Monetization Readiness (Structure Only)
+- [ ] **CHERRY Credits Type**: Balance tracking (ICP-linked, no live token yet)
+- [ ] **Consumable Boosts**: Types for BioStimulant, CloudSummoner, PestShield, LegalLoophole
+- [ ] **Strategic Map Expansions**: Purchasable province unlock types
+- [ ] **Feature Flags**: All monetization behind flags — not active until CHERRY Credits go live
 
-### Phase 2: Integration & Frontend Support (Current)
-- [x] **Structured Error Handling**: Refactor `main.mo` to return `Result<T, GameError>` instead of `Result<T, Text>` for better UI error mapping. (Complete)
-- [x] **Market Data API**: Implement `getMarketPrices()` query to provide the dashboard with current price levels.
-- [x] **Farm Overview Helper**: Implement a summary query that returns condensed data for the `Sidebar` and `InventoryBar`.
+---
+
+### ✅ Completed Phases (Archive)
+
+<details>
+<summary>Phase 2.5: Integration Verification (Complete)</summary>
+
+- [x] Test `getPlayerFarm()`, `plantTrees()`, `waterParcel()`, `harvestCherries()`, `sellCherries()`
+- [x] Debug logging, Parcel IDs, `assignParcelToPlayer`, Type Errors
+- [x] `getMarketPrices`, `getFarmOverview`, `debugResetPlayer`
+</details>
+
+<details>
+<summary>Bug Fixes (Complete)</summary>
+
+- [x] Seasonal Fertilization/Harvest Restriction
+- [x] JSON-RPC Serialization Error (Time.Time → Nat)
+- [x] Parcel ID Mismatch, Redundant Lookup Logic
+- [x] `sellCherries` average quality logic
+</details>
+
+<details>
+<summary>Phase 3 & 4 (Complete)</summary>
+
+- [x] API: `soilType`, `phLevel`, `fertility` exposed. `getParcelDetails()` implemented
+- [x] Market Saturation, Infrastructure Costs/Effects, E2E Script
+- [x] Stable Storage with `preupgrade`/`postupgrade`
+- [x] Structured Error Handling, Market Data API, Farm Overview
+</details>
 
 ## Agent Instructions
-1.  Read `main.mo` and identify implementation gaps.
-2.  Implement one function at a time.
-3.  Formulate `dfx` commands for the user to run in WSL.
-4.  Update this file (mark as `[x]`) upon completion.
-5.  Notify Coordinator (`00_master_plan.md`) if blocked.
+1. Read `main.mo` and identify implementation gaps.
+2. Implement one function at a time.
+3. Formulate `dfx` commands for the user to run in WSL.
+4. Tell the user to redirect output: `| tee .tmp/backend.log`.
+5. Read the log yourself using `view_file` to analyze errors.
+6. Update this file (mark as `[x]`) upon completion.
+7. Notify Coordinator (`00_master_plan.md`) if blocked.
+8. **Security**: All code subject to Security Agent review before merge.
