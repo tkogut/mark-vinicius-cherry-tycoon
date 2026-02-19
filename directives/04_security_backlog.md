@@ -15,11 +15,12 @@
 
 ### 🔴 Initial Baseline Audit — Findings (BLOCKER)
 - [x] **Full Codebase Scan**: Audited `main.mo`, `main_mainnet.mo`, `game_logic.mo`, `types.mo`, `authorization/` against all 7 security domains
-- [x] **Dual Entrypoint Parity**: Verified — API surface matches ✅, but state management differs critically
+- [x] **Dual Entrypoint Parity**: VERIFIED ― identical API surface (26 public functions each) ✅ *CONFIRMED 2026-02-19*
 - [x] **Legacy Purge**: Scanned — **CLEAN** — all source/doc references purged ✅ *2026-02-17*
+- [x] **Debug.print Audit**: Zero `Debug.print` calls in backend ✅ *CONFIRMED 2026-02-19*
 - [x] **Principal Enforcement Audit**: Verified — all mutations use `caller` via `Principal`, but anonymous principal NOT rejected
 - [x] **Safe Arithmetic Check**: Verified — Nat subtraction uses `Int.abs()` guards throughout
-- [ ] **Dependency Audit**: ⏳ Waiting for User to run `npm audit` in WSL
+- [ ] **Dependency Audit**: ⏳ Waiting for User to install native Node.js in WSL, then run `npm audit`
 - [ ] **CSP Headers**: Not yet audited (frontend scope)
 
 ### 🔴 Critical Fixes Required (BLOCKER — Backend Agent)

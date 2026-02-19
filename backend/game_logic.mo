@@ -93,7 +93,15 @@ module {
     // Organic penalty (GDD Section 5: -15% to -25%)
     let organicMod = if (parcel.isOrganic) { 0.8 } else { 1.0 };
     
-    let totalYield = baseYield * soilMod * phMod * fertilityMod * infraMod * waterMod * organicMod * ageModifier;
+    // Phase 5.1: Opole DNA — county yield multiplier (GDD §3.1)
+    let countyMod = switch (parcel.region.county) {
+      case ("Głubczyce") { 1.10 };   // optimal sandy-clay cherry belt
+      case ("Opole") { 1.08 };       // strong infrastructure, good soil
+      case ("Namysłów") { 1.05 };    // good conditions, slightly cooler
+      case (_) { 1.0 };              // no bonus for other counties
+    };
+    
+    let totalYield = baseYield * soilMod * phMod * fertilityMod * infraMod * waterMod * organicMod * ageModifier * countyMod;
     let yieldPerHa = totalYield * parcel.size;
     
     ?Int.abs(Float.toInt(yieldPerHa * 1000.0)) // convert tons to kg

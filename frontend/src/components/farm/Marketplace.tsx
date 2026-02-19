@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PriceChart } from "@/components/market/PriceChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -194,6 +195,17 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
 
     return (
         <div className="space-y-10 py-4">
+            {/* Market Trends Section */}
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <TrendingDown className="h-5 w-5 text-emerald-500" />
+                    <div className="flex flex-col">
+                        <h3 className="text-xl font-bold text-slate-100 uppercase tracking-tight">Market Analytics</h3>
+                        <p className="text-xs text-slate-500">Historical price data for Wholesale vs Retail channels.</p>
+                    </div>
+                </div>
+                <PriceChart />
+            </section>
             {/* Buildings Section */}
             <section className="space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">

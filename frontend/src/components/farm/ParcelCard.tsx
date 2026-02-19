@@ -29,9 +29,10 @@ interface ParcelCardProps {
     onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic', parcelId: string) => void;
     currentSeason?: any; // Season type from backend
     infrastructure: Infrastructure[];
+    currentPhase?: 'Preparation' | 'Growth' | 'Harvest' | 'Sales' | 'OffSeason';
 }
 
-export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure }) => {
+export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure, currentPhase }) => {
     const [showDetails, setShowDetails] = useState(false);
     const isPlanted = Number(parcel.plantedTrees) > 0;
     // Harvest allowed from year 5 onwards (> 4 seasons)
@@ -45,8 +46,10 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
     const isAutumn = currentSeason && 'Autumn' in currentSeason;
     const isWinter = currentSeason && 'Winter' in currentSeason;
 
-    const canHarvest = isReadyToHarvest && isSummer;
-    const canFertilize = (isSpring || isAutumn) && isPlanted;
+    // Contextual Actions based on Phase + Season
+    const canPlant = !isPlanted && (currentPhase === 'Preparation' || currentPhase === 'Growth');
+    const canHarvest = isReadyToHarvest && isSummer && currentPhase === 'Harvest';
+    const canFertilize = (isSpring || isAutumn) && isPlanted && (currentPhase === 'Preparation' || currentPhase === 'Growth');
     const isDormant = isAutumn || isWinter;
 
     const getStatusLabel = () => {
@@ -201,14 +204,16 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className={cn("h-8 px-0", !isPlanted ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "opacity-50")}
-                                    disabled={isPlanted}
+                                    className={cn("h-8 px-0", canPlant ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "opacity-50")}
+                                    disabled={!canPlant}
                                     onClick={() => onAction('plant', parcel.id)}
                                 >
                                     <Shovel className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Plant Trees</TooltipContent>
+                            <TooltipContent>
+                                {canPlant ? "Plant Trees" : isPlanted ? "Parcel Occupied" : "Wrong Phase (Need Prep/Growth)"}
+                            </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
 

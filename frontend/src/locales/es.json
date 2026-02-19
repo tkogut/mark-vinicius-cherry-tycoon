@@ -1,0 +1,16 @@
+{
+    "app": {
+        "title": "Magnate de Cerezas Mark Vinicius",
+        "subtitle": "Producido por el Grupo JaPiTo"
+    },
+    "nav": {
+        "dashboard": "Tablero",
+        "marketplace": "Mercado",
+        "rankings": "Clasificación",
+        "neighbors": "Vecinos"
+    },
+    "common": {
+        "loading": "Cargando...",
+        "close": "Cerrar"
+    }
+}

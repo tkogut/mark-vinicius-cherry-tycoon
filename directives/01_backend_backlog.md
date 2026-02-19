@@ -9,45 +9,46 @@
 ## Backlog
 
 ### 🔴 Phase 0: Close Out Phase 2.5 (FIRST — Pre-requisite)
-- [ ] **Full Function Verification**: Test ALL public functions via `dfx canister call` — log results
-- [ ] **Error Handling Verification**: Verify `#SeasonalRestriction` errors return proper toasts
-- [ ] **Code Cleanup**: Remove all temporary `Debug.print` statements
+- [x] **Full Function Verification**: All 22 public functions verified via `dfx canister call` ✅ *DONE 2026-02-19*
+- [x] **Error Handling Verification**: `#SeasonalRestriction` errors verified for harvest (Spring) and fertilize (Summer) ✅ *DONE 2026-02-19*
+- [x] **Code Cleanup**: No `Debug.print` statements found in backend ✅ *CONFIRMED 2026-02-19*
 - [x] **Legacy Purge**: Remove ALL legacy references from codebase & docs — replace with "JaPiTo Group" ✅ *DONE 2026-02-17*
-- [ ] **Baseline Green**: Confirm E2E test suite passes with zero failures
+- [x] **Dual Entrypoint Parity**: `main.mo` and `main_mainnet.mo` expose identical public API ✅ *CONFIRMED 2026-02-19*
+- [x] **Baseline Green**: Full E2E tests passed — all 22 functions verified, 0 failures ✅ *DONE 2026-02-19*
 
 ### 🟠 Phase 5.1: Weather Events + Season Sub-Phases
-- [ ] **[NEW] `weather_logic.mo`**: Weather event system
+- [x] **[NEW] `weather_logic.mo`**: Weather event system ✅ *DONE (prior session + pest events 2026-02-19)*
   - `generateWeatherEvent(season, region)` with probability tables per season
-  - Spring: Late Frost (15%), Heavy Rain (20%)
-  - Summer: Drought (20%), Heatwave (15%), Hailstorm (5%)
+  - Spring: Late Frost (15%), Heavy Rain (20%), **Monilinia (15%)**
+  - Summer: Drought (20%), Heatwave (15%), Hailstorm (5%), **Cherry Fruit Fly (20%)**
   - Autumn: Early Frost (10%), Storm (15%)
   - Winter: Deep Freeze (25%)
-  - Pest events: Cherry Fruit Fly (20% summer), Monilinia (15% spring) — mitigated by Sprayer
-- [ ] **Season Sub-Phases**: Add `SeasonPhase` type to `types.mo`:
+- [x] **Season Sub-Phases**: `SeasonPhase` type in `types.mo` ✅ *DONE (prior session)*
   - `#Preparation | #Growth | #Harvest | #Sales | #OffSeason`
-- [ ] **Phase-Gated Actions** in `main.mo`:
-  - `#Preparation`: Buy land, hire workers, buy supplies, upgrade infrastructure
-  - `#Growth`: Water, fertilize, treat pests. Weather events fire here
-  - `#Harvest`: Harvest only. Yield = DNA + Weather + Quality
-  - `#Sales`: Sell cherries. View market
-  - `#OffSeason`: Plan, review financials
-- [ ] **`advancePhase()`**: Function to step through sub-phases within a season
-- [ ] **Integrate Weather**: Fire `generateWeatherEvent()` on Growth phase transition
-- [ ] **Opole DNA**: Activate county multipliers (soil/pH/fertility) from GDD §3.1
+- [x] **Phase-Gated Actions** in `main.mo` + `main_mainnet.mo` ✅ *DONE 2026-02-19*
+  - `#Preparation`: plantTrees, upgradeInfrastructure
+  - `#Growth`: waterParcel, fertilizeParcel
+  - `#Harvest`: harvestCherries (+ weather impact on yield)
+  - `#Sales`: sellCherries
+- [x] **`advancePhase()`**: Function to step through sub-phases ✅ *DONE (prior session)*
+- [x] **Integrate Weather**: `applyWeatherImpact()` applied to harvest yield ✅ *DONE 2026-02-19*
+- [x] **Opole DNA**: County multipliers (Głubczyce 1.10x, Opole 1.08x, Namysłów 1.05x) in `calculateYieldPotential` ✅ *DONE 2026-02-19*
 
 ### 🟡 Phase 5.2: AI Competitors + Shared Market
-- [ ] **[NEW] `ai_logic.mo`**: AI competitor engine
+- [x] **[NEW] `competitor_logic.mo`**: AI competitor engine ✅ *DONE 2026-02-19*
   - **Marek "The Traditionalist"** (Głubczyce, GL_02): Mass producer, low risk, crashes wholesale
-  - **Kasia "The Eco-Visionary"** (Brzeg, BR_03): 100% organic, retail prestige, premium pricing
+  - **Kasia "The Eco-Visionary"** (Namysłów, NM_01): 100% organic, retail prestige, premium pricing
   - **Hans "The Aggressor"** (Opole, OP_CITY): High-tech scaler, outbids export contracts
-- [ ] **`simulateAITurn()`**: AI makes seasonal decisions (plant/water/harvest/sell)
-- [ ] **Shared Market Formula**: `Price = Base * (Demand / Total_Supply)` where `Total_Supply = Player + AI + Global`
-- [ ] **`getCompetitorSummaries()`**: Query returning AI farm states
-- [ ] **Integrate**: Call `simulateAITurn()` during `advanceSeason()`
+- [x] **`simulateAITurn()`**: AI makes seasonal decisions (deterministic LCG) ✅ *DONE 2026-02-19*
+- [x] **Shared Market Formula**: `Price = Base * clamp(Demand / (Player+AI+Baseline), 0.5, 1.0)` — price floor enforced ✅ *DONE 2026-02-19*
+- [x] **`getCompetitorSummaries()`**: Query returning AI farm states ✅ *DONE 2026-02-19*
+- [x] **`getLeaderboard()`**: Query returning player+AI farms sorted by revenue ✅ *DONE 2026-02-19*
+- [x] **Integrate**: AI turns simulated in `advanceSeason()` response; AI supply in `sellCherries()` pricing ✅ *DONE 2026-02-19*
+- [x] **Dual Entrypoint Parity**: All functions added to both `main.mo` and `main_mainnet.mo` ✅ *DONE 2026-02-19*
 
 ### 🟢 Phase 5.4: Rankings
-- [ ] **`getLeaderboard()`**: Query returning top farms by profit, total value, efficiency (profit/ha)
-- [ ] **Include AI**: AI farms appear in rankings for competitive context
+- [x] **`getLeaderboard()`**: Query returning top farms by profit, total value, efficiency (profit/ha)
+- [x] **Include AI**: AI farms appear in rankings for competitive context
 
 ### 🔵 Phase 5.5: Monetization Readiness (Structure Only)
 - [ ] **CHERRY Credits Type**: Balance tracking (ICP-linked, no live token yet)

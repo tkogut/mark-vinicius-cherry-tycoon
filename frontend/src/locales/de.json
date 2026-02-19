@@ -1,0 +1,16 @@
+{
+    "app": {
+        "title": "Mark Vinicius Kirschen-Tycoon",
+        "subtitle": "Produziert von der JaPiTo Gruppe"
+    },
+    "nav": {
+        "dashboard": "Übersicht",
+        "marketplace": "Marktplatz",
+        "rankings": "Rangliste",
+        "neighbors": "Nachbarn"
+    },
+    "common": {
+        "loading": "Laden...",
+        "close": "Schließen"
+    }
+}

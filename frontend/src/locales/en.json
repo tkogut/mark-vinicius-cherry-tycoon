@@ -1,0 +1,55 @@
+{
+    "app": {
+        "title": "Mark Vinicius Cherry Tycoon",
+        "subtitle": "Produced by JaPiTo Group"
+    },
+    "nav": {
+        "dashboard": "Dashboard",
+        "marketplace": "Marketplace",
+        "rankings": "Rankings",
+        "neighbors": "Neighbors",
+        "sports": "Sports",
+        "profile": "Profile"
+    },
+    "common": {
+        "loading": "Loading...",
+        "refresh": "Refresh",
+        "close": "Close",
+        "back": "Back",
+        "save": "Save",
+        "cancel": "Cancel",
+        "install": "Install"
+    },
+    "auth": {
+        "required": "Authentication Required",
+        "description": "Connect with Internet Identity to access your farm and start growing.",
+        "login": "Login with Internet Identity",
+        "logout": "Sign Out"
+    },
+    "farm": {
+        "overview": "Farm Overview",
+        "level": "Level",
+        "tier": {
+            "novice": "Novice Grower",
+            "expert": "Cherry Expert"
+        },
+        "parcels": "Parcels",
+        "infrastructure": "Infrastructure",
+        "cash": "Cash",
+        "yield": "Yield"
+    },
+    "market": {
+        "sell": "Sell",
+        "buy": "Buy",
+        "wholesale": "Wholesale",
+        "retail": "Retail",
+        "demand": "Demand"
+    },
+    "season": {
+        "spring": "Spring",
+        "summer": "Summer",
+        "autumn": "Autumn",
+        "winter": "Winter",
+        "year": "Year {{count}}"
+    }
+}

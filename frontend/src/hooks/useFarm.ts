@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { GameError } from '@/declarations/backend.did';
+import { useAudio } from '@/contexts/AudioContext';
+import { SOUNDS } from '@/config/sounds';
 
 const getErrorMessage = (error: GameError): string => {
     if ('NotFound' in error) return `Not Found: ${error.NotFound}`;
@@ -20,6 +22,7 @@ export function useFarm() {
     const { backendActor } = useAuth();
     const queryClient = useQueryClient();
     const { toast } = useToast();
+    const { playSFX } = useAudio();
 
     const farmQuery = useQuery({
         queryKey: FARM_QUERY_KEY,
@@ -79,6 +82,7 @@ export function useFarm() {
                 description: `Planted ${amount} trees.`,
                 className: "bg-emerald-900 border-emerald-800 text-emerald-100",
             });
+            playSFX(SOUNDS.GAME.PLANT);
         },
         onError: (error: Error) => {
             console.error('[useFarm] Plant mutation error:', error);
@@ -113,6 +117,8 @@ export function useFarm() {
                 description: "Your trees are hydrated!",
                 className: "bg-blue-900 border-blue-800 text-blue-100",
             });
+            playSFX(SOUNDS.GAME.WATER);
+            playSFX(SOUNDS.GAME.WATER);
         },
         onError: (error: Error) => {
             console.error('[useFarm] Water mutation error:', error);
@@ -147,6 +153,7 @@ export function useFarm() {
                 description: "Nutrients added to the soil!",
                 className: "bg-amber-900 border-amber-800 text-amber-100",
             });
+            playSFX(SOUNDS.GAME.PLANT);
         },
         onError: (error: Error) => {
             console.error('[useFarm] Fertilize mutation error:', error);
@@ -181,6 +188,8 @@ export function useFarm() {
                 description: `You gathered ${amount} cherries.`,
                 className: "bg-rose-900 border-rose-800 text-rose-100",
             });
+            playSFX(SOUNDS.GAME.HARVEST);
+            playSFX(SOUNDS.GAME.HARVEST);
         },
         onError: (error: Error) => {
             console.error('[useFarm] Harvest mutation error:', error);
@@ -215,6 +224,7 @@ export function useFarm() {
                 description: "New parcel added to your farm.",
                 className: "bg-green-900 border-green-800 text-green-100",
             });
+            playSFX(SOUNDS.GAME.CASH);
         },
         onError: (error: Error) => {
             console.error('[useFarm] Buy parcel mutation error:', error);
@@ -250,6 +260,8 @@ export function useFarm() {
                 description: message,
                 className: "bg-purple-900 border-purple-800 text-purple-100",
             });
+            playSFX(SOUNDS.GAME.LEVEL_UP);
+            playSFX(SOUNDS.GAME.LEVEL_UP);
         },
         onError: (error: Error) => {
             console.error('[useFarm] Advance season mutation error:', error);
@@ -284,6 +296,7 @@ export function useFarm() {
                 description: `Earned $${Number(revenue).toLocaleString()} from sale.`,
                 className: "bg-emerald-900 border-emerald-800 text-emerald-100",
             });
+            playSFX(SOUNDS.GAME.CASH);
         },
         onError: (error: Error) => {
             console.error('[useFarm] Sell cherries mutation error:', error);
@@ -318,6 +331,7 @@ export function useFarm() {
                 description: message,
                 className: "bg-green-900 border-green-800 text-green-100",
             });
+            playSFX(SOUNDS.UI.SUCCESS);
         },
         onError: (error: Error) => {
             console.error('[useFarm] Organic conversion mutation error:', error);
@@ -352,6 +366,7 @@ export function useFarm() {
                 description: message,
                 className: "bg-amber-900 border-amber-800 text-amber-100",
             });
+            playSFX(SOUNDS.GAME.CASH);
         },
         onError: (error: Error) => {
             console.error('[useFarm] Infrastructure upgrade mutation error:', error);

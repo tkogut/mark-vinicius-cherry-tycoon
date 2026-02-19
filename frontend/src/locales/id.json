@@ -1,0 +1,16 @@
+{
+    "app": {
+        "title": "Taipan Ceri Mark Vinicius",
+        "subtitle": "Diproduksi oleh JaPiTo Group"
+    },
+    "nav": {
+        "dashboard": "Dasbor",
+        "marketplace": "Pasar",
+        "rankings": "Peringkat",
+        "neighbors": "Tetangga"
+    },
+    "common": {
+        "loading": "Memuat...",
+        "close": "Tutup"
+    }
+}

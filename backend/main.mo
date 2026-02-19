@@ -15,6 +15,7 @@ import Float "mo:base/Float";
 import Types "types";
 import GameLogic "game_logic";
 import WeatherLogic "weather_logic";
+import CompetitorLogic "competitor_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
@@ -372,6 +373,11 @@ actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
+        // Phase 5.1: Phase gate — harvest only in Harvest phase
+        if (farm.currentPhase != #Harvest) {
+          return #Err(#SeasonalRestriction("Harvest only allowed in Harvest phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
         // Find the parcel
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
@@ -401,9 +407,15 @@ actor CherryTycoon {
               farm.infrastructure
             );
 
-            let harvestedAmount = switch (harvestedAmountOpt) {
+            let baseHarvestedAmount = switch (harvestedAmountOpt) {
               case null { return #Err(#InvalidOperation("Trees are too old (>40 years) and have died. Please replant.")) };
               case (?amount) { amount };
+            };
+
+            // Phase 5.1: Apply active weather impact on yield
+            let harvestedAmount = switch (farm.weather) {
+              case (null) { baseHarvestedAmount };
+              case (?w) { GameLogic.applyWeatherImpact(baseHarvestedAmount, w.weather, w.severity) };
             };
 
             // Update parcel
@@ -485,6 +497,11 @@ actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
+        // Phase 5.1: Phase gate — watering only in Growth phase
+        if (farm.currentPhase != #Growth) {
+          return #Err(#SeasonalRestriction("Watering only allowed in Growth phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
         switch (indexOpt) {
@@ -560,6 +577,11 @@ actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
+        // Phase 5.1: Phase gate — fertilizing only in Growth phase
+        if (farm.currentPhase != #Growth) {
+          return #Err(#SeasonalRestriction("Fertilizing only allowed in Growth phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
         // Check if has fertilizers
         if (farm.inventory.fertilizers == 0) {
           return #Err(#InvalidOperation("No fertilizers in inventory"));
@@ -730,6 +752,11 @@ actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
+        // Phase 5.1: Phase gate — planting only in Preparation phase
+        if (farm.currentPhase != #Preparation) {
+          return #Err(#SeasonalRestriction("Planting only allowed in Preparation phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
         let costPerTree = 50; // PLN
         let totalCost = quantity * costPerTree;
         
@@ -825,6 +852,11 @@ actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
+        // Phase 5.1: Phase gate — selling only in Sales phase
+        if (farm.currentPhase != #Sales) {
+          return #Err(#SeasonalRestriction("Selling only allowed in Sales phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
         let totalAvailable = farm.inventory.cherries + farm.inventory.organicCherries;
         if (totalAvailable < quantity) {
           return #Err(#InvalidOperation("Insufficient cherries in inventory. Total available: " # Nat.toText(totalAvailable)));
@@ -842,6 +874,14 @@ actor CherryTycoon {
         // Calculate Saturation Multiplier
         let saturationMult = getSaturationMultiplier(regionKey);
 
+        // Phase 5.2: Shared market supply — AI competitors affect pricing
+        // SEC: entropy is Nat (Int.abs applied), bounded (3 AIs only)
+        let marketEntropy = Int.abs(Time.now()) % 1_000_000_000;
+        let aiSupplyKg = CompetitorLogic.getAITotalSupply(farm.currentSeason, marketEntropy);
+        let seasonDemand = CompetitorLogic.getSeasonDemand(farm.currentSeason);
+        // marketMult ∈ [0.50, 1.0] — price floor enforced per SECURITY_DIRECTIVE_V1 §2.5
+        let marketMult = CompetitorLogic.computeMarketMultiplier(quantity, aiSupplyKg, seasonDemand);
+
         // Check for organic certification (per GDD: if any harvested parcel was organic, or based on inventory)
         // For simplicity, we check if the player has any organic-certified parcels
         var hasOrganicCertified = false;
@@ -849,7 +889,7 @@ actor CherryTycoon {
            if (p.organicCertified) { hasOrganicCertified := true };
         };
 
-        // Calculate price based on sale type and saturation
+        // Calculate price based on sale type, saturation, and AI market competition
         let pricePerKg = if (saleType == "retail") {
           // Calculate average quality score across all parcels
           var totalQuality = 0;
@@ -860,20 +900,26 @@ actor CherryTycoon {
             totalQuality / farm.parcels.size()
           } else { 50 };
           
-          GameLogic.calculateRetailPrice(
+          // Apply AI market multiplier on top of saturation
+          let basePrice = GameLogic.calculateRetailPrice(
             baseRetailPrice,
             if (farm.parcels.size() > 0) farm.parcels[0].region.marketSize else 0.8,
             avgQuality,
             hasOrganicCertified,
             saturationMult
-          )
+          );
+          // SEC: safe Nat — Float.toInt can return 0, Int.abs handles sign
+          let adjustedPrice = Int.abs(Float.toInt(Float.fromInt(basePrice) * marketMult));
+          if (adjustedPrice < 1) 1 else adjustedPrice
         } else {
-          GameLogic.calculateWholesalePrice(
+          let basePrice = GameLogic.calculateWholesalePrice(
             baseWholesalePrice,
             quantity,
             60, // average quality
             saturationMult
-          )
+          );
+          let adjustedPrice = Int.abs(Float.toInt(Float.fromInt(basePrice) * marketMult));
+          if (adjustedPrice < 1) 1 else adjustedPrice
         };
 
         let revenue = quantity * pricePerKg;
@@ -1143,7 +1189,16 @@ actor CherryTycoon {
         };
 
         playerFarms.put(caller, updatedFarm);
-        #Ok("Advanced to " # debug_show(nextSeason) # " (Season " # Nat.toText(farm.seasonNumber + 1) # ")")
+
+        // Phase 5.2: Simulate AI turns for this season transition
+        // SEC: Bounded — exactly 3 AI competitors, no loops over unknown collections
+        let aiEntropy = Int.abs(Time.now()) % 1_000_000_000;
+        let _marekKg = CompetitorLogic.simulateAITurn(42,  45_000, nextSeason, aiEntropy);
+        let _kasiaKg = CompetitorLogic.simulateAITurn(137, 18_000, nextSeason, aiEntropy);
+        let _hansKg  = CompetitorLogic.simulateAITurn(999, 70_000, nextSeason, aiEntropy);
+        // AI production is used in market pricing via getAITotalSupply() — no state mutation needed
+
+        #Ok("Advanced to " # debug_show(nextSeason) # " (Season " # Nat.toText(farm.seasonNumber + 1) # "). AI: Marek=" # Nat.toText(_marekKg) # "kg, Kasia=" # Nat.toText(_kasiaKg) # "kg, Hans=" # Nat.toText(_hansKg) # "kg")
       };
     }
   };
@@ -1198,6 +1253,11 @@ actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
+        // Phase 5.1: Phase gate — upgrades only in Preparation phase
+        if (farm.currentPhase != #Preparation) {
+          return #Err(#SeasonalRestriction("Infrastructure upgrades only in Preparation phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
         // Parse infrastructure type
         let infraTypeOpt : ?InfrastructureType = switch (infraTypeString) {
           case ("SocialFacilities") { ?#SocialFacilities };
@@ -1787,4 +1847,128 @@ actor CherryTycoon {
     };
     #Ok(prices)
   };
+
+  // ============================================================================
+  // PHASE 5.2: AI COMPETITORS + LEADERBOARD
+  // ============================================================================
+
+  // Get all AI competitor summaries (public — no auth required, market intel)
+  public query func getCompetitorSummaries() : async [CompetitorLogic.AICompetitorSummary] {
+    CompetitorLogic.getCompetitorSummaries()
+  };
+
+  // Get leaderboard: player farms + AI estimates, sorted by total revenue
+  // SEC: bounded — iterates playerFarms (real players) + 3 fixed AI entries
+  public query func getLeaderboard() : async [{ 
+    name: Text; 
+    totalRevenue: Nat; 
+    profit: Int; 
+    efficiency: Float; 
+    isAI: Bool; 
+    reputation: Nat;
+    rank: Nat 
+  }] {
+    var entries = Buffer.Buffer<{ 
+      name: Text; 
+      totalRevenue: Nat; 
+      profit: Int; 
+      efficiency: Float; 
+      isAI: Bool; 
+      reputation: Nat 
+    }>(10);
+
+    // 1. Add real player farms
+    for ((_, farm) in playerFarms.entries()) {
+      let revenue = farm.statistics.totalRevenue;
+      let costs = farm.statistics.totalCosts;
+      
+      // Calculate profit: revenue - costs (using Int subtraction)
+      let profit : Int = (revenue : Int) - (costs : Int);
+      
+      // Calculate efficiency: Profit / Total Hectares
+      var totalArea = 0.0;
+      for (p in farm.parcels.vals()) {
+        totalArea += p.size;
+      };
+      
+      let efficiency = if (totalArea > 0.0) {
+        Float.fromInt(profit) / totalArea
+      } else {
+        0.0
+      };
+
+      entries.add({
+        name = farm.playerName;
+        totalRevenue = revenue;
+        profit = profit;
+        efficiency = efficiency;
+        isAI = false;
+        reputation = farm.reputation;
+      });
+    };
+
+    // 2. Add AI competitors with estimated metrics
+    let competitors = CompetitorLogic.getCompetitorSummaries();
+    for (ai in competitors.vals()) {
+      // Estimate revenue: Capacity * 70% sold * baseline wholesale price (12 PLN/kg)
+      let estimatedRevenue = (ai.baseCapacity * 70 / 100) * 12;
+      
+      // Estimate Profit: Assumed 40% margin
+      // Note: (Nat * Nat) / Nat -> Nat. Then cast to Int.
+      let estimatedProfit : Int = ((estimatedRevenue * 40) / 100) : Int;
+      
+      // Efficiency: Profit / Total Area
+      let efficiency = if (ai.totalArea > 0.0) {
+        Float.fromInt(estimatedProfit) / ai.totalArea
+      } else {
+        0.0
+      };
+
+      entries.add({
+        name = ai.name;
+        totalRevenue = estimatedRevenue;
+        profit = estimatedProfit;
+        efficiency = efficiency;
+        isAI = true;
+        reputation = ai.reputation;
+      });
+    };
+
+    // 3. Sort descending by Profit (primary metric for ranking)
+    let arr = Buffer.toArray(entries);
+    let sorted = Array.sort(arr, func(
+      a: { name: Text; totalRevenue: Nat; profit: Int; efficiency: Float; isAI: Bool; reputation: Nat }, 
+      b: { name: Text; totalRevenue: Nat; profit: Int; efficiency: Float; isAI: Bool; reputation: Nat }
+    ) : { #less; #equal; #greater } {
+      if (a.profit > b.profit) { #less }
+      else if (a.profit < b.profit) { #greater }
+      else { #equal }
+    });
+    
+    // 4. Assign Ranks
+    // Note: Explicit return type annotation on lambda to avoid M0098 Unit error
+    let ranked = Array.tabulate(sorted.size(), func(i: Nat) : { 
+      name: Text; 
+      totalRevenue: Nat; 
+      profit: Int; 
+      efficiency: Float; 
+      isAI: Bool; 
+      reputation: Nat;
+      rank: Nat 
+    } {
+      let entry = sorted[i];
+      {
+        name = entry.name;
+        totalRevenue = entry.totalRevenue;
+        profit = entry.profit;
+        efficiency = entry.efficiency;
+        isAI = entry.isAI;
+        reputation = entry.reputation;
+        rank = i + 1;
+      }
+    });
+
+    ranked
+  };
+
 }

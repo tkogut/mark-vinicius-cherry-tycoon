@@ -1,0 +1,16 @@
+{
+    "app": {
+        "title": "Mark Vinicius เจ้าพ่อเชอร์รี่",
+        "subtitle": "ผลิตโดย JaPiTo Group"
+    },
+    "nav": {
+        "dashboard": "แดชบอร์ด",
+        "marketplace": "ตลาด",
+        "rankings": "อันดับ",
+        "neighbors": "เพื่อนบ้าน"
+    },
+    "common": {
+        "loading": "กำลังโหลด...",
+        "close": "ปิด"
+    }
+}

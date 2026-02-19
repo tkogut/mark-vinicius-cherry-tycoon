@@ -13,20 +13,24 @@ interface SidebarProps {
     xp: number;
     nextLevelXp: number;
     activeTab: string;
-    onTabChange: (tab: 'dashboard' | 'marketplace' | 'sports') => void;
+    onTabChange: (tab: 'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings') => void;
     ownedInfrastructure: any[];
     parcels: any[];
     onOpenFinancialReport: () => void;
 }
 
+import { useTranslation } from 'react-i18next';
+
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, nextLevelXp, activeTab, onTabChange, ownedInfrastructure, parcels, onOpenFinancialReport }) => {
     const { logout } = useAuth();
+    const { t } = useTranslation();
 
     const navItems = [
-        { id: 'dashboard', icon: LayoutDashboard, label: "Dashboard" },
-        { id: 'marketplace', icon: ShoppingBag, label: "Marketplace" },
-        { id: 'sports', icon: Trophy, label: "Sports" },
-        { id: 'profile', icon: User, label: "Profile" },
+        { id: 'dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
+        { id: 'marketplace', icon: ShoppingBag, label: t('nav.marketplace') },
+        { id: 'rankings', icon: Trophy, label: t('nav.rankings') },
+        { id: 'neighbors', icon: User, label: t('nav.neighbors') },
+        { id: 'sports', icon: Zap, label: t('nav.sports') },
     ];
 
     // Width calculation for XP bar
@@ -44,10 +48,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                         <Cherry className="h-6 w-6 text-rose-500 animate-pulse mr-2" />
                         <div className="flex flex-col">
                             <span className="font-bold text-lg leading-tight tracking-tight bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent">
-                                Mark Vinicius
+                                {t('app.title')}
                             </span>
-                            <span className="text-xs font-medium text-slate-400 tracking-wider uppercase">
-                                Cherry Tycoon
+                            <span className="text-[10px] font-medium text-slate-500 tracking-wider">
+                                {t('app.subtitle')}
                             </span>
                         </div>
                     </div>
@@ -59,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                 key={item.id}
                                 variant="ghost"
                                 onClick={() => {
-                                    if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports') {
+                                    if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings') {
                                         onTabChange(item.id as any);
                                     }
                                 }}
@@ -87,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                             </div>
 
                             <div className="font-bold text-sm text-slate-100 mb-3">
-                                {level >= 5 ? "Cherry Expert" : "Novice Grower"}
+                                {level >= 5 ? t('farm.tier.expert') : t('farm.tier.novice')}
                             </div>
 
                             {/* XP Progress Bar */}
@@ -121,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                             className="w-full text-slate-400 hover:text-red-400 hover:bg-red-950/20 gap-2"
                         >
                             <LogOut className="h-4 w-4" />
-                            Sign Out
+                            {t('auth.logout')}
                         </Button>
                     </div>
                 </aside>
@@ -133,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                     <button
                         key={item.id}
                         onClick={() => {
-                            if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports') {
+                            if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings') {
                                 onTabChange(item.id as any);
                             }
                         }}
@@ -144,7 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                         style={{ touchAction: 'manipulation' }}
                     >
                         <item.icon className="h-6 w-6 mb-1" />
-                        <span className="text-[10px] font-medium">{item.label === 'Dashboard' ? 'Farm' : item.label === 'Marketplace' ? 'Market' : item.label}</span>
+                        <span className="text-[10px] font-medium">{item.label}</span>
                     </button>
                 ))}
             </nav>
@@ -176,7 +180,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                     key={item.id}
                                     variant="ghost"
                                     onClick={() => {
-                                        if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports') {
+                                        if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings') {
                                             onTabChange(item.id as any);
                                             onClose();
                                         }
@@ -224,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                 className="w-full text-slate-400 hover:text-red-400 hover:bg-red-950/20 gap-3 justify-start h-12 text-lg"
                             >
                                 <LogOut className="h-5 w-5" />
-                                Sign Out
+                                {t('auth.logout')}
                             </Button>
                         </div>
                     </div>

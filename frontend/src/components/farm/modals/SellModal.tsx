@@ -107,6 +107,7 @@ export const SellModal: React.FC<SellModalProps> = ({
             volumePenalty,
             hasOrganicCertified,
             organicMod,
+            demandMultiplier: prices.demandMultiplier,
             finalUnitPrice: Math.max(1, finalUnitPrice * organicMod) // Minimum 1
         };
 
@@ -128,6 +129,16 @@ export const SellModal: React.FC<SellModalProps> = ({
                     <DialogTitle className="flex items-center gap-2 text-2xl font-light">
                         <Coins className="h-6 w-6 text-amber-500" />
                         Market Exchange
+                        {pricingFactors && pricingFactors.demandMultiplier > 1.1 && (
+                            <Badge variant="outline" className="bg-rose-950/30 text-rose-400 border-rose-800 ml-2 animate-pulse">
+                                🔥 High Demand
+                            </Badge>
+                        )}
+                        {pricingFactors && pricingFactors.demandMultiplier < 0.9 && (
+                            <Badge variant="outline" className="bg-amber-950/30 text-amber-500 border-amber-800 ml-2">
+                                ⚠️ Market Saturated
+                            </Badge>
+                        )}
                     </DialogTitle>
                     <DialogDescription className="text-slate-400">
                         Sell your harvest on the open market. Prices fluctuate based on season, demand, and local population.
@@ -243,6 +254,17 @@ export const SellModal: React.FC<SellModalProps> = ({
                                                 x{pricingFactors.volumePenalty.toFixed(2)}
                                             </span>
                                         </div>
+
+                                        <div className="flex justify-between items-center py-1 border-b border-slate-800/50">
+                                            <span className="text-slate-400 flex items-center gap-2">
+                                                <Users className="h-3 w-3 text-blue-400" /> Market Demand
+                                            </span>
+                                            <span className={`font-mono ${pricingFactors.demandMultiplier > 1 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                                x{pricingFactors.demandMultiplier.toFixed(2)}
+                                            </span>
+                                        </div>
+
+
 
                                         {pricingFactors.hasOrganicCertified && (
                                             <div className="flex justify-between items-center py-1 border-b border-slate-800/50">

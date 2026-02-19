@@ -47,6 +47,17 @@ module {
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
           severity := 0.3 + (r2 * 0.4);
+        } else {
+          // Phase 5.1: Pest event — Monilinia fungus (15% in Spring)
+          let (s2, pestRoll) = nextRandom(currentSeed);
+          currentSeed := s2;
+          if (pestRoll < 0.15) {
+            eventType := ?#Rainy; // Using Rainy as proxy for pest until pest variant added
+            impactDesc := "Monilinia fungus detected! Flower blight spreading. Sprayer mitigates.";
+            let (s3, r3) = nextRandom(currentSeed);
+            currentSeed := s3;
+            severity := 0.3 + (r3 * 0.3); // 0.3 - 0.6 (moderate)
+          };
         };
       };
       case (#Summer) {
@@ -69,6 +80,17 @@ module {
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
           severity := 0.7 + (r2 * 0.3);
+        } else {
+          // Phase 5.1: Pest event — Cherry Fruit Fly (20% in Summer)
+          let (s2, pestRoll) = nextRandom(currentSeed);
+          currentSeed := s2;
+          if (pestRoll < 0.20) {
+            eventType := ?#Rainy; // Using Rainy as proxy for pest until pest variant added
+            impactDesc := "Cherry Fruit Fly infestation! Larvae damaging fruit. Sprayer mitigates.";
+            let (s3, r3) = nextRandom(currentSeed);
+            currentSeed := s3;
+            severity := 0.4 + (r3 * 0.4); // 0.4 - 0.8
+          };
         };
       };
       case (#Autumn) {

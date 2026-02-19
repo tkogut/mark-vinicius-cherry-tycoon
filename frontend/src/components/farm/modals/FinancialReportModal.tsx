@@ -252,6 +252,11 @@ const ReportContent = ({ report }: { report: any }) => {
         ? (Number(report.netProfit) / Number(report.totalRevenue)) * 100
         : 0;
 
+    // Labor Ratio KPI
+    const laborRatio = report.totalCosts > 0n
+        ? (Number(report.laborCosts) / Number(report.totalCosts)) * 100
+        : 0;
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -304,6 +309,12 @@ const ReportContent = ({ report }: { report: any }) => {
                             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest text-rose-400">Operating Costs</h4>
                             <div className="space-y-3 bg-slate-950/20 p-4 rounded-2xl border border-white/5">
                                 <BreakdownRow label="Labor" value={report.laborCosts} total={report.totalCosts} color="bg-rose-500" />
+                                <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
+                                    <span>Labor Cost Ratio</span>
+                                    <span className={laborRatio > 40 ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"}>
+                                        {laborRatio.toFixed(1)}% {laborRatio > 40 && "⚠️"}
+                                    </span>
+                                </div>
                                 <BreakdownRow label="Maintenance" value={report.maintenanceCosts} total={report.totalCosts} color="bg-orange-500" />
                                 <BreakdownRow label="Operations (Water/Fert)" value={report.operationalCosts} total={report.totalCosts} color="bg-amber-500" />
                             </div>

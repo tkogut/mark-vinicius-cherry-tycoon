@@ -1,0 +1,16 @@
+{
+    "app": {
+        "title": "マーク・ヴィニシウス・チェリー・タイクーン",
+        "subtitle": "JaPiTo Group 制作"
+    },
+    "nav": {
+        "dashboard": "ダッシュボード",
+        "marketplace": "市場",
+        "rankings": "ランキング",
+        "neighbors": "隣人"
+    },
+    "common": {
+        "loading": "読み込み中...",
+        "close": "閉じる"
+    }
+}

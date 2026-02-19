@@ -9,6 +9,8 @@ import { Sidebar } from "@/components/layout/Sidebar"
 const FarmGrid = React.lazy(() => import("@/components/farm/FarmGrid").then(module => ({ default: module.FarmGrid })));
 import { PlantingModal } from "@/components/farm/modals/PlantingModal"
 import { SellModal } from '@/components/farm/modals/SellModal';
+import { CompetitorsPanel } from "@/components/social/CompetitorsPanel";
+import { RankingsPanel } from "@/components/social/RankingsPanel";
 const Marketplace = React.lazy(() => import('@/components/farm/Marketplace').then(module => ({ default: module.Marketplace })));
 import { Toaster } from "@/components/ui/toaster"
 import { InventoryBar } from "@/components/layout/InventoryBar"
@@ -21,16 +23,36 @@ import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
 import { useInstallPrompt } from "@/utils/pwa"
 import { useToast } from "@/components/ui/use-toast"
 import { calculateYieldBreakdown } from "@/lib/gameLogic"
+import { PhaseIndicator } from "@/components/season/PhaseIndicator"
+import { WeatherEventModal, WeatherEventType } from "@/components/season/WeatherEventModal"
+import { WeatherOverlay } from "@/components/season/WeatherOverlay"
+import { SeasonalEffects } from "@/components/season/SeasonalEffects"
 
-function App() {
+import { I18nextProvider } from 'react-i18next';
+import i18n from '@/i18n';
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { AudioProvider, useAudio } from '@/contexts/AudioContext';
+import { VolumeControl } from '@/components/ui/VolumeControl';
+import { SOUNDS } from '@/config/sounds';
+
+function AppContent() {
     const { isAuthenticated, backendActor } = useAuth();
+    const { playBGM, stopBGM } = useAudio();
+
+    useEffect(() => {
+        // Start BGM on user interaction or immediately (depending on browser policy)
+        // For now, we try immediately, but howler handles unlocking
+        playBGM(SOUNDS.BGM.MAIN);
+        return () => stopBGM();
+    }, []);
+
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null);
     const [plantingModalOpen, setPlantingModalOpen] = useState(false);
     const [sellModalOpen, setSellModalOpen] = useState(false);
     const [statsModalOpen, setStatsModalOpen] = useState(false);
     const [financialReportOpen, setFinancialReportOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings'>('dashboard');
 
     const { farm, isLoading, refetch, plant, water, fertilize, harvest, buyParcel, advanceSeason, sellCherries, startOrganicConversion, upgradeInfrastructure } = useFarm();
 
@@ -55,6 +77,23 @@ function App() {
     };
 
     const parcels = farm ? farm.parcels : [];
+
+    // Helper to determine current phase (Mock for now, will replace with backend data if available)
+    // TODO: Connect to backend phase if available, or derive from season state
+    const currentPhase = 'Preparation';
+
+    // Helper for theme class
+    const getThemeClass = (season: any) => {
+        if (!season) return '';
+        const seasonName = Object.keys(season)[0] || '';
+        switch (seasonName) {
+            case 'Spring': return 'theme-spring';
+            case 'Summer': return 'theme-summer';
+            case 'Autumn': return 'theme-autumn';
+            case 'Winter': return 'theme-winter';
+            default: return '';
+        }
+    };
 
     const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic', parcelId: string) => {
         if (action === 'plant') {
@@ -116,9 +155,30 @@ function App() {
     const maxAffordableTrees = Number(stats.cash / 50n);
     const maxPlantable = Math.max(0, Math.min(200, maxAffordableTrees));
 
+    // Mock Weather Event State (To be connected to backend)
+    const [weatherEvent, setWeatherEvent] = useState<{
+        type: WeatherEventType;
+        name: string;
+        description: string;
+        yieldImpact: number;
+        infrastructureMitigation?: string;
+    } | null>(null);
+
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row relative">
+        <div className={`min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row relative ${getThemeClass(stats.currentSeason)}`}>
+            {/* Ambient Effects */}
+            <WeatherOverlay
+                type={weatherEvent?.type === 'Storm' ? 'rain' : stats.currentSeason && 'Winter' in stats.currentSeason ? 'snow' : 'none'}
+            />
+            <SeasonalEffects
+                season={stats.currentSeason ? Object.keys(stats.currentSeason)[0] as any : null}
+            />
             <Toaster />
+            <WeatherEventModal
+                isOpen={!!weatherEvent}
+                onClose={() => setWeatherEvent(null)}
+                event={weatherEvent}
+            />
             <PlantingModal
                 isOpen={plantingModalOpen}
                 onClose={() => setPlantingModalOpen(false)}
@@ -186,6 +246,10 @@ function App() {
                     <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
                         <Menu className="h-6 w-6 text-slate-400" />
                     </Button>
+                    <div className="flex items-center gap-1">
+                        <LanguageSwitcher />
+                        <VolumeControl />
+                    </div>
                     <div className="flex items-center gap-2">
                         <Cherry className="h-6 w-6 text-rose-600 animate-pulse" />
                         <div className="flex flex-col">
@@ -207,8 +271,10 @@ function App() {
                 <main className="flex-1 p-4 md:p-8 lg:p-10 pb-20 md:pb-8 text-slate-100">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-white">Farm Overview</h1>
-                            <p className="text-slate-400 mt-1">Manage your parcels and production.</p>
+                            <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Farm Overview</h1>
+                            <div className="flex items-center gap-4">
+                                <PhaseIndicator currentPhase={currentPhase} />
+                            </div>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -270,7 +336,9 @@ function App() {
                                     <span>Farm stats</span>
                                 </Button>
 
-                                <div className="hidden md:block">
+                                <div className="hidden md:flex items-center gap-2">
+                                    <VolumeControl />
+                                    <LanguageSwitcher />
                                     <LoginButton />
                                 </div>
                             </div>
@@ -289,6 +357,7 @@ function App() {
                                     loading={isLoading}
                                     currentSeason={stats.currentSeason}
                                     infrastructure={farm?.infrastructure || []}
+                                    currentPhase={currentPhase}
                                 />
                             ) : activeTab === 'marketplace' ? (
                                 <Marketplace
@@ -296,6 +365,20 @@ function App() {
                                     ownedInfrastructure={farm?.infrastructure || []}
                                     onPurchase={(id) => upgradeInfrastructure.mutate(id)}
                                     isLoading={upgradeInfrastructure.isPending}
+                                />
+                            ) : activeTab === 'neighbors' ? (
+                                <CompetitorsPanel
+                                    playerCash={stats.cash}
+                                    playerReputation={farm?.reputation}
+                                    playerName={farm?.playerName}
+                                />
+                            ) : activeTab === 'rankings' ? (
+                                <RankingsPanel
+                                    playerStats={{
+                                        name: farm?.playerName || "You",
+                                        cash: stats.cash,
+                                        productionRate: stats.productionRate
+                                    }}
                                 />
                             ) : (
                                 <div className="h-64 flex items-center justify-center border border-dashed border-slate-700 rounded-xl bg-slate-800/20">
@@ -359,4 +442,12 @@ function InstallPrompt() {
     return null; // Rendered via toast
 }
 
-export default App
+export default function App() {
+    return (
+        <I18nextProvider i18n={i18n}>
+            <AudioProvider>
+                <AppContent />
+            </AudioProvider>
+        </I18nextProvider>
+    );
+}

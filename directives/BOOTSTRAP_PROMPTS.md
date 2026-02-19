@@ -42,9 +42,8 @@ At the start of every response, check `directives/` for Manager or Security Agen
 ### ⚠️ IMPORTANT: WSL Workflow ⚠️
 The project uses `dfx`, which requires WSL.
 1. Formulate exact `dfx` commands for verification.
-2. Ask the **USER** to run them in WSL.
-3. Analyze results by reading `.tmp/backend.log`.
-4. **Never ask the user to paste long logs.** Use: `COMMAND 2>&1 | tee .tmp/backend.log`.
+2. Analyze results by reading `.tmp/backend.log`.
+3. **Never ask the user to paste long logs.** Use: `COMMAND 2>&1 | tee .tmp/backend.log`.
 
 ### 🔐 Security Notice
 All your commits are reviewed by the Security Agent before merge. Follow SECURITY_DIRECTIVE_V1.md:
@@ -82,8 +81,7 @@ Modern mobile animations required. No static jumps. Use:
 ### ⚠️ WSL Workflow
 If you need canister interaction or `dfx generate`:
 1. Formulate exact commands.
-2. Ask **USER** to run in WSL: `COMMAND 2>&1 | tee .tmp/frontend.log`.
-3. Read `.tmp/frontend.log` for results.
+2. Read `.tmp/frontend.log` for results.
 
 ### Tasks:
 1. Read `directives/02_frontend_backlog.md` for current tasks.
@@ -105,9 +103,8 @@ Producer: JaPiTo Group.
 Your goal: Verify Phase 0 baseline and write comprehensive Phase 5 test suites.
 
 ### ⚠️ WSL Workflow
-1. Formulate test commands for WSL.
-2. Ask **USER** to run: `COMMAND 2>&1 | tee .tmp/qa.log`.
-3. Read `.tmp/qa.log` for results.
+1. Formulate test commands for WSL. 
+2. Read `.tmp/qa.log` for results.
 
 ### Coordination:
 - Share test results with Security Agent via `04_security_backlog.md`.

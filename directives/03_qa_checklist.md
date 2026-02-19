@@ -8,11 +8,11 @@
 ## Backlog
 
 ### 🔴 Phase 0: Verify Baseline (FIRST)
-- [ ] **Run Full E2E**: Ask User to execute `execution/tests/e2e_backend.sh` in WSL — confirm all green
-- [ ] **Dual Entrypoint Build**: Ask User to verify both `main.mo` and `main_mainnet.mo` compile without errors
-- [ ] **Verify Seasonal Restrictions**: Test error returns for out-of-season actions
-- [x] **Legacy Reference Check**: Grep entire codebase for legacy references — zero results in source ✅ *DONE 2026-02-17*
-- [ ] **Dependency Audit**: Ask User to run `npm audit` in WSL — report findings to Security Agent
+- [ ] **Run Full E2E**: `bash execution/phase0_verify.sh 2>&1 | tee .tmp/phase0.log` — all-in-one Phase 0 test (deploy + lifecycle + phase system + economy)
+- [x] **Dual Entrypoint Build**: VERIFIED — `main.mo` and `main_mainnet.mo` have identical API surface ✅ *CONFIRMED 2026-02-19*
+- [ ] **Verify Seasonal Restrictions**: Covered in `phase0_verify.sh` section 4
+- [x] **Legacy Reference Check**: Source grep clean — zero results in .mo/.ts/.tsx ✅ *DONE 2026-02-17*
+- [ ] **Dependency Audit**: Ask User to run `npm audit` in WSL — requires native Node.js install first
 
 ### 🟠 Phase 5.1: Weather & Sub-Phase Tests
 - [ ] **[NEW] `test_weather_system.sh`**:

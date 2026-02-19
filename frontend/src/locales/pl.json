@@ -1,0 +1,55 @@
+{
+    "app": {
+        "title": "Mark Vinicius Cherry Tycoon",
+        "subtitle": "Wyprodukowane przez Grupę JaPiTo"
+    },
+    "nav": {
+        "dashboard": "Panel Główny",
+        "marketplace": "Rynek",
+        "rankings": "Rankingi",
+        "neighbors": "Sąsiedzi",
+        "sports": "Sport",
+        "profile": "Profil"
+    },
+    "common": {
+        "loading": "Ładowanie...",
+        "refresh": "Odśwież",
+        "close": "Zamknij",
+        "back": "Wstecz",
+        "save": "Zapisz",
+        "cancel": "Anuluj",
+        "install": "Zainstaluj"
+    },
+    "auth": {
+        "required": "Wymagane Uwierzytelnienie",
+        "description": "Połącz się za pomocą Internet Identity, aby uzyskać dostęp do farmy.",
+        "login": "Zaloguj przez Internet Identity",
+        "logout": "Wyloguj"
+    },
+    "farm": {
+        "overview": "Przegląd Farmy",
+        "level": "Poziom",
+        "tier": {
+            "novice": "Początkujący Sadownik",
+            "expert": "Ekspert Wiśniowy"
+        },
+        "parcels": "Parcele",
+        "infrastructure": "Infrastruktura",
+        "cash": "Gotówka",
+        "yield": "Plon"
+    },
+    "market": {
+        "sell": "Sprzedaj",
+        "buy": "Kup",
+        "wholesale": "Hurt",
+        "retail": "Detal",
+        "demand": "Popyt"
+    },
+    "season": {
+        "spring": "Wiosna",
+        "summer": "Lato",
+        "autumn": "Jesień",
+        "winter": "Zima",
+        "year": "Rok {{count}}"
+    }
+}

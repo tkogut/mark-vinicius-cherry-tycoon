@@ -1,0 +1,16 @@
+{
+    "app": {
+        "title": "마크 비니시우스 체리 타이쿤",
+        "subtitle": "JaPiTo Group 제작"
+    },
+    "nav": {
+        "dashboard": "대시보드",
+        "marketplace": "시장",
+        "rankings": "순위",
+        "neighbors": "이웃"
+    },
+    "common": {
+        "loading": "로딩 중...",
+        "close": "닫기"
+    }
+}

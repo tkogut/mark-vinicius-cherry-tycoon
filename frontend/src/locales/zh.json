@@ -1,0 +1,16 @@
+{
+    "app": {
+        "title": "马克·维尼修斯樱桃大亨",
+        "subtitle": "JaPiTo Group 制作"
+    },
+    "nav": {
+        "dashboard": "仪表板",
+        "marketplace": "市场",
+        "rankings": "排行榜",
+        "neighbors": "邻居"
+    },
+    "common": {
+        "loading": "加载中...",
+        "close": "关闭"
+    }
+}

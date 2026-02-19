@@ -56,8 +56,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('[AuthContext] Starting login flow...');
         await new Promise<void>((resolve, reject) => {
             client.login({
-                identityProvider: import.meta.env.DEV
-                    ? `http://127.0.0.1:4943?canisterId=${import.meta.env.VITE_CANISTER_ID_INTERNET_IDENTITY}`
+                identityProvider: import.meta.env.VITE_DFX_NETWORK !== "ic"
+                    ? `http://127.0.0.1:4943?canisterId=${import.meta.env.VITE_INTERNET_IDENTITY_CANISTER_ID}`
                     : 'https://identity.ic0.app',
                 onSuccess: async () => {
                     console.log('[AuthContext] Login successful');

@@ -157,9 +157,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
                     </Button>
                 </form>
 
-                <div className="text-center">
+                <div className="text-center mt-2">
                     <p className="text-[10px] text-slate-500 italic px-4">
                         "Agriculture is the most healthful, most useful, and most noble employment of man."
+                    </p>
+                    <p className="text-[9px] text-slate-600 mt-2 uppercase tracking-widest">
+                        Produced by JaPiTo Group
                     </p>
                 </div>
             </DialogContent>

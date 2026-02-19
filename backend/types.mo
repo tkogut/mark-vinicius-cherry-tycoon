@@ -341,9 +341,13 @@ module {
     id: Text;
     name: Text;
     personality: AIPersonality;
-    totalArea: Float;         // hectares
-    productionCapacity: Nat;  // kg per season
-    reputation: Nat;          // 0-100
+    totalArea: Float;            // hectares
+    productionCapacity: Nat;     // kg per season (base capacity)
+    reputation: Nat;             // 0-100
+    county: Text;                // e.g. "Głubczyce (GL-02)"
+    isOrganic: Bool;             // true if farm is organically certified
+    preferredSaleType: Text;     // "retail" | "wholesale"
+    lastSeasonProduction: Nat;   // kg simulated last season (0 before first simulation)
   };
 
   // ============================================================================

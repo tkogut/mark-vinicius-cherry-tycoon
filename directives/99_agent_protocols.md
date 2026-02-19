@@ -60,6 +60,8 @@ Support the following short-hands by reading their definitions in `.agent/workfl
 - `/start`: Pick a new task and begin implementation.
 - `/continue`: Resume current task or start next one.
 - `/test-cycle`: Execute tests relevant to the active phase.
+- `/test-backend`: Run standardized backend verification tests in WSL.
+- `/test-frontend`: Run standardized frontend build & verify tests in WSL.
 - `/security-audit`: Trigger a security audit of specified scope.
 
 ## Agent Instructions

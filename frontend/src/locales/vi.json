@@ -1,0 +1,16 @@
+{
+    "app": {
+        "title": "Ông Trùm Cherry Mark Vinicius",
+        "subtitle": "Sản xuất bởi Tập đoàn JaPiTo"
+    },
+    "nav": {
+        "dashboard": "Bảng điều khiển",
+        "marketplace": "Thị trường",
+        "rankings": "Bảng xếp hạng",
+        "neighbors": "Hàng xóm"
+    },
+    "common": {
+        "loading": "Đang tải...",
+        "close": "Đóng"
+    }
+}
