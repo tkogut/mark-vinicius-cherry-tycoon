@@ -27,18 +27,19 @@ try {
 const CANISTER_NAMES = ["backend", "internet_identity"];
 
 // Generate environment variables based on canister IDs
-const network = process.env["DFX_NETWORK"] || "local";
-const canisterId = process.env[`CANISTER_ID_${name.toUpperCase()}`] || canisterIds[name]?.[network];
+const canisterEnvDefinitions = CANISTER_NAMES.reduce((acc, name) => {
+    const network = process.env["DFX_NETWORK"] || "local";
+    const canisterId = process.env[`CANISTER_ID_${name.toUpperCase()}`] || canisterIds[name]?.[network];
 
-if (canisterId) {
-    acc[`VITE_${name.toUpperCase()}_CANISTER_ID`] = JSON.stringify(canisterId);
-    acc[`process.env.${name.toUpperCase()}_CANISTER_ID`] = JSON.stringify(canisterId);
-} else {
-    console.warn(`⚠️  Canister ID not found for ${name} on network ${network}`);
-}
+    if (canisterId) {
+        acc[`VITE_${name.toUpperCase()}_CANISTER_ID`] = JSON.stringify(canisterId);
+        acc[`process.env.${name.toUpperCase()}_CANISTER_ID`] = JSON.stringify(canisterId);
+    } else {
+        console.warn(`⚠️  Canister ID not found for ${name} on network ${network}`);
+    }
 
-return acc;
-}, { } as Record<string, string>);
+    return acc;
+}, {} as Record<string, string>);
 
 console.log("Environment definitions:", canisterEnvDefinitions);
 
