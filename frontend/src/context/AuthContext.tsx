@@ -55,8 +55,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         console.log('[AuthContext] Starting login flow...');
         await new Promise<void>((resolve, reject) => {
+            const isLocal = window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1");
             client.login({
-                identityProvider: import.meta.env.VITE_DFX_NETWORK === "local"
+                identityProvider: isLocal
                     ? `http://127.0.0.1:4943?canisterId=${import.meta.env.VITE_INTERNET_IDENTITY_CANISTER_ID}`
                     : 'https://identity.ic0.app',
                 onSuccess: async () => {

@@ -5,7 +5,8 @@ import { _SERVICE } from "../declarations/backend.did";
 const canisterId = import.meta.env.VITE_BACKEND_CANISTER_ID;
 
 export const createBackendActor = async (identity?: Identity) => {
-    const host = import.meta.env.VITE_DFX_NETWORK === "local" ? "http://127.0.0.1:8000" : "https://ic0.app";
+    const isLocal = window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1");
+    const host = isLocal ? "http://127.0.0.1:8000" : "https://ic0.app";
 
     const agent = new HttpAgent({
         host,
@@ -13,7 +14,7 @@ export const createBackendActor = async (identity?: Identity) => {
     });
 
     // Fetch root key for certificate validation during development
-    if (import.meta.env.VITE_DFX_NETWORK === "local") {
+    if (isLocal) {
         await agent.fetchRootKey().catch((err) => {
             console.warn(
                 "Unable to fetch root key. Check to ensure that your local replica is running"
