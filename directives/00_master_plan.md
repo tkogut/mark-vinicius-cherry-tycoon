@@ -1,9 +1,10 @@
 # MASTER PLAN: Mark Vinicius Cherry Tycoon [COORDINATOR]
 
 > **Current Status**: **Phase 0 — Close Out Phase 2.5 (Pre-req for Phase 5)**
+> **Environment**: **WSL (Ubuntu)** — See `SETUP_WSL.md` & `DEV_PROGRESS_REPORT.md`
 > **Next Focus**: Phase 5 — Living World (Weather, AI Competitors, Animations, Rankings)
 > **Security**: Proactive Security Agent active — reviews all backend commits
-> **Last Updated**: 2026-02-17
+> **Last Updated**: 2026-02-19
 
 ## High-Level Roadmap
 
