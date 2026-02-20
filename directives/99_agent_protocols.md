@@ -130,3 +130,7 @@ Since agents are in separate chat windows, they do not "talk" directly. They use
 - `backend/`: Source code (Backend).
 - `frontend/`: Source code (Frontend).
 - `.tmp/`: Scratchpad and logs.
+
+## 🏗️ Added: Browser Tunnel Protocol
+- The browser subagent is bridged to Windows via socat on port 9222.
+- Ensure WIN_IP is correctly mapped in ~/.bashrc to 172.27.32.1.
