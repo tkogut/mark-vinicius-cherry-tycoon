@@ -56,6 +56,11 @@
   - `locales/vi.json`, `locales/th.json`, `locales/id.json`, `locales/kr.json`, `locales/ja.json`, `locales/zh.json` — Asian stubs
 - [x] **Browser Detection**: Auto-detect language + flag switcher in settings ✅ *DONE*
 
+### 🟣 Phase 6 Prep: Feedback Resolution (Auth & SEO)
+- [ ] **Identity Persistence**: Ensure `AuthClient` uses `localStorage` for anonymous sessions, or configure `maxTimeToLive` to prevent frequent state resets to Season 1.
+- [ ] **SEO & Discoverability**: Add `robots.txt`, `sitemap.xml`, and appropriate `<title>`/`<meta>` description tags to `index.html` to allow Google indexing of the `.icp0.io` domain.
+
+
 ### 🟣 Phase 6: Audio System (GDD §8.2)
 - [x] **Engine**: `howler.js` integration ✅ *DONE*
 - [x] **Sound Manager**: Global context for SFX/BGM ✅ *DONE*

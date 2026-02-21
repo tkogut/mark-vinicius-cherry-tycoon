@@ -1,26 +1,39 @@
 type YearlyReport = 
  record {
    bestPerformingParcelId: opt text;
-   bestPerformingProvince: opt Province;
+   bestPerformingProvince: opt Province__1;
+   certificationCosts: nat;
+   infrastructureCosts: nat;
+   laborCosts: nat;
+   maintenanceCosts: nat;
    netProfit: int;
+   operationalCosts: nat;
+   otherRevenue: nat;
+   parcelCosts: nat;
+   retailRevenue: nat;
+   retailVolume: nat;
    seasonalBreakdown: vec SeasonReport;
    totalCosts: nat;
    totalHarvested: nat;
    totalRevenue: nat;
-   year: nat;
-   
-   retailRevenue: nat;
    wholesaleRevenue: nat;
-   otherRevenue: nat;
-   retailVolume: nat;
    wholesaleVolume: nat;
-
-   maintenanceCosts: nat;
-   operationalCosts: nat;
-   laborCosts: nat;
-   certificationCosts: nat;
-   infrastructureCosts: nat;
-   parcelCosts: nat;
+   year: nat;
+ };
+type WeatherEvent = 
+ record {
+   impact: text;
+   season: nat;
+   severity: float64;
+   weather: Weather;
+ };
+type Weather = 
+ variant {
+   Drought;
+   Frost;
+   Heatwave;
+   Rainy;
+   Sunny;
  };
 type UserRole = 
  variant {
@@ -28,17 +41,29 @@ type UserRole =
    guest;
    user;
  };
-type Statistics = 
+type Statistics__1 = 
  record {
    averageYieldPerHa: float64;
    bestYearlyProfit: nat;
    seasonalReports: vec SeasonReport;
-   yearlyReports: vec YearlyReport;
    seasonsPlayed: nat;
    totalCosts: nat;
    totalHarvested: nat;
    totalRevenue: nat;
    totalSold: nat;
+   yearlyReports: vec YearlyReport;
+ };
+type Statistics = 
+ record {
+   averageYieldPerHa: float64;
+   bestYearlyProfit: nat;
+   seasonalReports: vec SeasonReport;
+   seasonsPlayed: nat;
+   totalCosts: nat;
+   totalHarvested: nat;
+   totalRevenue: nat;
+   totalSold: nat;
+   yearlyReports: vec YearlyReport;
  };
 type SoilType = 
  variant {
@@ -47,35 +72,34 @@ type SoilType =
    SandyClay;
    Waterlogged;
  };
-type ParcelEconomics = 
- record {
-   costs: nat;
-   netProfit: int;
-   parcelId: text;
-   province: Province;
-   revenue: nat;
-   yield: nat;
- };
 type SeasonReport = 
  record {
    certificationCosts: nat;
+   infrastructureCosts: nat;
    laborCosts: nat;
    maintenanceCosts: nat;
    netProfit: int;
    operationalCosts: nat;
    otherRevenue: nat;
-   infrastructureCosts: nat;
    parcelCosts: nat;
    parcelData: vec ParcelEconomics;
    retailRevenue: nat;
    retailVolume: nat;
-   wholesaleVolume: nat;
    seasonName: Season;
    seasonNumber: nat;
    totalCosts: nat;
    totalHarvested: nat;
    totalRevenue: nat;
    wholesaleRevenue: nat;
+   wholesaleVolume: nat;
+ };
+type SeasonPhase = 
+ variant {
+   Growth;
+   Harvest;
+   OffSeason;
+   Preparation;
+   Sales;
  };
 type Season = 
  variant {
@@ -83,46 +107,6 @@ type Season =
    Spring;
    Summer;
    Winter;
- };
-type Result_7 = 
- variant {
-   Err: GameError;
-   Ok: FarmOverview;
- };
-type Result_6 = 
- variant {
-   Err: GameError;
-   Ok: Inventory;
- };
-type Result_5 = 
- variant {
-   Err: GameError;
-   Ok: MarketPrice;
- };
-type Result_4 = 
- variant {
-   Err: GameError;
-   Ok: CherryParcel;
- };
-type Result_3 = 
- variant {
-   Err: GameError;
-   Ok: PlayerFarm;
- };
-type Result_2 = 
- variant {
-   Err: GameError;
-   Ok: Statistics;
- };
-type Result_1 = 
- variant {
-   Err: GameError;
-   Ok: nat;
- };
-type Result = 
- variant {
-   Err: GameError;
-   Ok: text;
  };
 type Region = 
  record {
@@ -132,7 +116,26 @@ type Region =
    laborCostMultiplier: float64;
    marketSize: float64;
    population: nat;
-   province: Province;
+   province: Province__1;
+ };
+type Province__1 = 
+ variant {
+   Dolnoslaskie;
+   Kujawsko_Pomorskie;
+   Lodzkie;
+   Lubelskie;
+   Lubuskie;
+   Malopolskie;
+   Mazowieckie;
+   Opolskie;
+   Podkarpackie;
+   Podlaskie;
+   Pomorskie;
+   Slaskie;
+   Swietokrzyskie;
+   Warminsko_Mazurskie;
+   Wielkopolskie;
+   Zachodniopomorskie;
  };
 type Province = 
  variant {
@@ -156,19 +159,31 @@ type Province =
 type PlayerFarm = 
  record {
    cash: nat;
+   currentPhase: SeasonPhase;
    currentSeason: Season;
    experience: nat;
    infrastructure: vec Infrastructure;
    inventory: Inventory;
    lastActive: nat;
    level: nat;
+   ownedClubs: vec text;
    owner: principal;
    parcels: vec CherryParcel;
    playerId: text;
    playerName: text;
    reputation: nat;
    seasonNumber: nat;
-   statistics: Statistics;
+   statistics: Statistics__1;
+   weather: opt WeatherEvent;
+ };
+type ParcelEconomics = 
+ record {
+   costs: nat;
+   netProfit: int;
+   parcelId: text;
+   province: Province__1;
+   revenue: nat;
+   yield: nat;
  };
 type MarketPrice = 
  record {
@@ -178,6 +193,21 @@ type MarketPrice =
    retailBasePrice: nat;
    seasonMultiplier: float64;
    wholesaleBasePrice: nat;
+ };
+type League = 
+ variant {
+   Liga1;
+   Liga2;
+   Liga3;
+   TopLiga;
+ };
+type Inventory__1 = 
+ record {
+   cherries: nat;
+   fertilizers: nat;
+   organicCherries: nat;
+   organicTreatments: nat;
+   pesticides: nat;
  };
 type Inventory = 
  record {
@@ -204,9 +234,67 @@ type Infrastructure =
    maintenanceCost: nat;
    purchasedSeason: nat;
  };
+type GameResult_9 = 
+ variant {
+   Err: GameError;
+   Ok: record {
+         available: nat;
+         estimatedCost: nat;
+         isRisky: bool;
+       };
+ };
+type GameResult_8 = 
+ variant {
+   Err: GameError;
+   Ok: vec FootballClub;
+ };
+type GameResult_7 = 
+ variant {
+   Err: GameError;
+   Ok: FarmOverview;
+ };
+type GameResult_6 = 
+ variant {
+   Err: GameError;
+   Ok: Inventory__1;
+ };
+type GameResult_5 = 
+ variant {
+   Err: GameError;
+   Ok: MarketPrice;
+ };
+type GameResult_4 = 
+ variant {
+   Err: GameError;
+   Ok: CherryParcel__1;
+ };
+type GameResult_3 = 
+ variant {
+   Err: GameError;
+   Ok: PlayerFarm;
+ };
+type GameResult_2 = 
+ variant {
+   Err: GameError;
+   Ok: Statistics;
+ };
+type GameResult_1 = 
+ variant {
+   Err: GameError;
+   Ok: nat;
+ };
+type GameResult = 
+ variant {
+   Err: GameError;
+   Ok: text;
+ };
 type GameError = 
  variant {
    AlreadyExists: text;
+   BankruptcyRisk: record {
+                     available: nat;
+                     estimatedCostUntilHarvest: nat;
+                   };
    InsufficientFunds: record {
                         available: nat;
                         required: nat;
@@ -216,24 +304,67 @@ type GameError =
    SeasonalRestriction: text;
    Unauthorized: text;
  };
+type FootballClub = 
+ record {
+   id: text;
+   league: League;
+   leaguePosition: nat;
+   marketValue: nat;
+   name: text;
+   ownerId: opt text;
+   ownershipPercent: nat;
+   playerWages: nat;
+   region: Region;
+   squadSize: nat;
+   squadValue: nat;
+   stadiumCapacity: nat;
+   stadiumQuality: nat;
+   ticketRevenue: nat;
+   tvRights: nat;
+   youthDevelopment: nat;
+ };
 type FarmOverview = 
  record {
    cash: nat;
+   currentPhase: SeasonPhase;
    currentSeason: Season;
    experience: nat;
    inventory: Inventory;
    level: nat;
+   ownedClubs: vec text;
    parcelCount: nat;
    playerId: text;
    playerName: text;
    seasonNumber: nat;
    totalTrees: nat;
+   weather: opt WeatherEvent;
  };
 type CommuneType = 
  variant {
    Mixed;
    Rural;
    Urban;
+ };
+type CherryParcel__1 = 
+ record {
+   fertility: float64;
+   humidity: float64;
+   id: text;
+   isOrganic: bool;
+   lastFertilized: nat;
+   lastHarvest: nat;
+   organicCertified: bool;
+   organicConversionSeason: nat;
+   ownerId: text;
+   pH: float64;
+   permeability: float64;
+   plantedTrees: nat;
+   quality: nat;
+   region: Region;
+   size: float64;
+   soilType: SoilType;
+   treeAge: nat;
+   waterLevel: float64;
  };
 type CherryParcel = 
  record {
@@ -256,31 +387,65 @@ type CherryParcel =
    treeAge: nat;
    waterLevel: float64;
  };
+type AIPersonality = 
+ variant {
+   Businessman;
+   Innovator;
+   Traditionalist;
+ };
+type AICompetitorSummary = 
+ record {
+   baseCapacity: nat;
+   county: text;
+   id: text;
+   isOrganic: bool;
+   name: text;
+   personality: AIPersonality;
+   preferredSaleType: text;
+   reputation: nat;
+   totalArea: float64;
+ };
 service : {
-  _initializeAccessControlWithSecret: (userSecret: text) -> ();
-  advanceSeason: (_weatherEvent: opt text) -> (Result);
-  assignCallerUserRole: (user: principal, role: UserRole) -> ();
-  assignParcelToPlayer: (parcelId: text, recipient: principal) -> (Result);
-  buyParcel: (parcelId: text, price: nat) -> (Result);
-  debugResetPlayer: () -> (Result);
-  fertilizeParcel: (parcelId: text, _fertilizerType: text) -> (Result);
+  _initializeAccessControlWithSecret: (text) -> ();
+  advancePhase: () -> (GameResult);
+  advanceSeason: (opt text) -> (GameResult);
+  assignCallerUserRole: (principal, UserRole) -> ();
+  assignParcelToPlayer: (text, principal) -> (GameResult);
+  buyClubShares: (text, nat) -> (GameResult);
+  buyParcel: (text, nat) -> (GameResult);
+  checkStability: () -> (GameResult_9) query;
+  debugResetPlayer: () -> (GameResult);
+  fertilizeParcel: (text, text) -> (GameResult);
+  getAvailableFootballClubs: () -> (GameResult_8) query;
   getCallerUserRole: () -> (UserRole) query;
-  getCashBalance: () -> (Result_1) query;
-  getFarmOverview: () -> (Result_7) query;
+  getCashBalance: () -> (GameResult_1) query;
+  getCompetitorSummaries: () -> (vec AICompetitorSummary) query;
+  getFarmOverview: () -> (GameResult_7) query;
   getGlobalSeason: () -> (nat) query;
-  getInventory: () -> (Result_6) query;
-  getMarketPrices: () -> (Result_5) query;
-  getParcelDetails: (parcelId: text) -> (Result_4) query;
-  getPlayerFarm: () -> (Result_3) query;
-  getPlayerStats: () -> (Result_2) query;
+  getInventory: () -> (GameResult_6) query;
+  getLeaderboard: () ->
+   (vec
+     record {
+       efficiency: float64;
+       isAI: bool;
+       name: text;
+       profit: int;
+       rank: nat;
+       reputation: nat;
+       totalRevenue: nat;
+     }) query;
+  getMarketPrices: () -> (GameResult_5) query;
+  getParcelDetails: (text) -> (GameResult_4) query;
+  getPlayerFarm: () -> (GameResult_3) query;
+  getPlayerStats: () -> (GameResult_2) query;
   getTotalPlayers: () -> (nat) query;
-  harvestCherries: (parcelId: text) -> (Result_1);
-  initializePlayer: (playerId: text, playerName: text) -> (Result);
+  harvestCherries: (text) -> (GameResult_1);
+  initializePlayer: (text, text) -> (GameResult);
   isCallerAdmin: () -> (bool) query;
-  plantTrees: (parcelId: text, quantity: nat) -> (Result);
-  purchaseParcel: (province: Province, size: float64) -> (Result);
-  sellCherries: (quantity: nat, saleType: text) -> (Result_1);
-  startOrganicConversion: (parcelId: text) -> (Result);
-  upgradeInfrastructure: (infraTypeString: text) -> (Result);
-  waterParcel: (parcelId: text) -> (Result);
+  plantTrees: (text, nat) -> (GameResult);
+  purchaseParcel: (Province, float64) -> (GameResult);
+  sellCherries: (nat, text) -> (GameResult_1);
+  startOrganicConversion: (text) -> (GameResult);
+  upgradeInfrastructure: (text) -> (GameResult);
+  waterParcel: (text) -> (GameResult);
 }

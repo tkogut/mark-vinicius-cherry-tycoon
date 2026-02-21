@@ -11,10 +11,12 @@ import { PlantingModal } from "@/components/farm/modals/PlantingModal"
 import { SellModal } from '@/components/farm/modals/SellModal';
 import { CompetitorsPanel } from "@/components/social/CompetitorsPanel";
 import { RankingsPanel } from "@/components/social/RankingsPanel";
+import { SportsCenter } from "@/components/sports/SportsCenter";
 const Marketplace = React.lazy(() => import('@/components/farm/Marketplace').then(module => ({ default: module.Marketplace })));
 import { Toaster } from "@/components/ui/toaster"
 import { InventoryBar } from "@/components/layout/InventoryBar"
 import { useFarm } from "@/hooks/useFarm"
+import { useGuestFarm } from "@/hooks/useGuestFarm"
 import { SeasonDisplay } from "@/components/season/SeasonDisplay"
 import { AdvanceSeasonButton } from "@/components/season/AdvanceSeasonButton"
 import { FinancialReportModal } from "@/components/farm/modals/FinancialReportModal"
@@ -36,7 +38,7 @@ import { VolumeControl } from '@/components/ui/VolumeControl';
 import { SOUNDS } from '@/config/sounds';
 
 function AppContent() {
-    const { isAuthenticated, backendActor } = useAuth();
+    const { isAuthenticated, isInitializing, identity } = useAuth();
     const { playBGM, stopBGM } = useAudio();
 
     useEffect(() => {
@@ -54,9 +56,23 @@ function AppContent() {
     const [financialReportOpen, setFinancialReportOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings'>('dashboard');
 
-    const { farm, isLoading, refetch, plant, water, fertilize, harvest, buyParcel, advanceSeason, sellCherries, startOrganicConversion, upgradeInfrastructure } = useFarm();
+    const {
+        farm,
+        isLoading,
+        refetch,
+        plant,
+        water,
+        fertilize,
+        harvest,
+        buyParcel,
+        advanceSeason,
+        sellCherries,
+        startOrganicConversion,
+        upgradeInfrastructure,
+        advancePhase
+    } = useGuestFarm();
 
-    const showOnboarding = isAuthenticated && !!backendActor && !isLoading && !farm;
+    const showOnboarding = isAuthenticated && !!identity && !isLoading && !farm;
 
     // Derived state
     const stats = {
@@ -78,9 +94,14 @@ function AppContent() {
 
     const parcels = farm ? farm.parcels : [];
 
-    // Helper to determine current phase (Mock for now, will replace with backend data if available)
-    // TODO: Connect to backend phase if available, or derive from season state
-    const currentPhase = 'Preparation';
+    // Helper to determine current phase
+    const getCurrentPhaseName = (phase: any): any => {
+        if (!phase) return 'Preparation';
+        if (typeof phase === 'string') return phase;
+        return Object.keys(phase)[0] || 'Preparation';
+    };
+
+    const currentPhase = getCurrentPhaseName(farm?.currentPhase) as any;
 
     // Helper for theme class
     const getThemeClass = (season: any) => {
@@ -163,6 +184,33 @@ function AppContent() {
         yieldImpact: number;
         infrastructureMitigation?: string;
     } | null>(null);
+
+    // 4. Initialization loading screen
+    if (isInitializing) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+                <div className="flex flex-col items-center gap-6 max-w-sm w-full text-center">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-red-500/20 blur-3xl rounded-full" />
+                        <div className="relative bg-slate-900 border border-slate-800 p-8 rounded-3xl animate-pulse">
+                            <Cherry className="h-16 w-16 text-rose-500 animate-bounce" />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <h1 className="text-2xl font-black tracking-tighter text-white uppercase italic">
+                            Cherry Tycoon
+                        </h1>
+                        <p className="text-slate-400 text-sm font-medium">
+                            Establishing secure connection to the Internet Computer...
+                        </p>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                        <div className="h-full bg-rose-600 animate-[loading_1.5s_ease-in-out_infinite]" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row relative ${getThemeClass(stats.currentSeason)}`}>
@@ -294,6 +342,22 @@ function AppContent() {
                                     className="flex"
                                 />
 
+                                {/* Advance Phase Button */}
+                                <Button
+                                    onClick={() => advancePhase.mutate()}
+                                    disabled={!isAuthenticated || advancePhase.isPending || currentPhase === 'OffSeason'}
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2 border-indigo-500 text-indigo-400 hover:bg-indigo-500/10 flex"
+                                >
+                                    {advancePhase.isPending ? (
+                                        <RefreshCcw className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Zap className="h-4 w-4" />
+                                    )}
+                                    Next Phase
+                                </Button>
+
                                 {/* Advance Season Button */}
                                 <AdvanceSeasonButton
                                     onAdvance={async () => { await advanceSeason.mutateAsync(); }}
@@ -354,7 +418,16 @@ function AppContent() {
                                     parcels={parcels}
                                     onAction={handleParcelAction}
                                     onBuyParcel={handleBuyParcel}
-                                    loading={isLoading}
+                                    loading={
+                                        isLoading ||
+                                        advancePhase.isPending ||
+                                        advanceSeason.isPending ||
+                                        plant.isPending ||
+                                        water.isPending ||
+                                        fertilize.isPending ||
+                                        harvest.isPending ||
+                                        startOrganicConversion.isPending
+                                    }
                                     currentSeason={stats.currentSeason}
                                     infrastructure={farm?.infrastructure || []}
                                     currentPhase={currentPhase}
@@ -365,6 +438,10 @@ function AppContent() {
                                     ownedInfrastructure={farm?.infrastructure || []}
                                     onPurchase={(id) => upgradeInfrastructure.mutate(id)}
                                     isLoading={upgradeInfrastructure.isPending}
+                                />
+                            ) : activeTab === 'sports' ? (
+                                <SportsCenter
+                                    ownedClubs={farm?.ownedClubs || []}
                                 />
                             ) : activeTab === 'neighbors' ? (
                                 <CompetitorsPanel
@@ -391,6 +468,7 @@ function AppContent() {
                             )}
                         </React.Suspense>
                     ) : (
+                        // 5. Auth selection screen
                         <section className="mt-12">
                             <div className="h-64 rounded-xl border-2 border-dashed border-slate-700/50 flex flex-col items-center justify-center bg-slate-800/30 space-y-4">
                                 <div className="h-16 w-16 bg-slate-800 rounded-full flex items-center justify-center border border-slate-700">

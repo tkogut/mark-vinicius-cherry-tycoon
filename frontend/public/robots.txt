@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://be2us-64aaa-aaaaa-qaabq-cai.icp0.io/sitemap.xml

@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
     isAuthenticated: boolean;
+    isInitializing: boolean;
     identity: Identity | null;
     backendActor: _SERVICE | null;
     login: () => Promise<void>;
@@ -19,7 +20,8 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [client, setClient] = useState<AuthClient | null>(null);
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(true);
     const [identity, setIdentity] = useState<Identity | null>(null);
     const [backendActor, setBackendActor] = useState<_SERVICE | null>(null);
     const queryClient = useQueryClient();
@@ -31,20 +33,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setClient(client);
 
             const isAuth = await client.isAuthenticated();
-            const id = client.getIdentity();
-            setIdentity(id);
+            if (isAuth) {
+                const id = client.getIdentity();
+                setIdentity(id);
 
-            console.log('[AuthContext] Creating backend actor...');
-            const actor = await createBackendActor(id);
-            console.log('[AuthContext] Backend actor created:', actor ? 'SUCCESS' : 'FAILED');
+                console.log('[AuthContext] Creating backend actor...');
+                const actor = await createBackendActor(id);
+                console.log('[AuthContext] Backend actor created:', actor ? 'SUCCESS' : 'FAILED');
 
-            setBackendActor(actor);
-            // ONLY set isAuthenticated after we have the actor
-            setIsAuthenticated(isAuth);
+                setBackendActor(actor);
+                setIsAuthenticated(true);
+            } else {
+                // If not authenticated, still create an anonymous actor
+                console.log('[AuthContext] Not authenticated. Creating anonymous backend actor...');
+                const anonymousActor = await createBackendActor();
+                setBackendActor(anonymousActor);
+            }
 
-            console.log('[AuthContext] Initialization complete. Connected:', !!actor, 'Authenticated:', isAuth);
+            console.log('[AuthContext] Initialization complete. Authenticated:', isAuth);
+            setIsInitializing(false);
         }).catch((error) => {
             console.error('[AuthContext] Failed to initialize:', error);
+            setIsInitializing(false);
         });
     }, []);
 
@@ -60,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 identityProvider: isLocal
                     ? `http://127.0.0.1:4943?canisterId=${import.meta.env.VITE_INTERNET_IDENTITY_CANISTER_ID}`
                     : 'https://identity.ic0.app',
+                maxTimeToLive: BigInt(30 * 24 * 60 * 60 * 1000 * 1000 * 1000), // 30 days in nanoseconds
                 onSuccess: async () => {
                     console.log('[AuthContext] Login successful');
                     const id = client.getIdentity();
@@ -135,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, identity, backendActor, login, logout, client, initTestMode }}>
+        <AuthContext.Provider value={{ isAuthenticated, isInitializing, identity, backendActor, login, logout, client, initTestMode }}>
             {children}
         </AuthContext.Provider>
     );

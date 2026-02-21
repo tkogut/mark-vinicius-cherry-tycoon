@@ -225,6 +225,9 @@ module {
     weather: ?WeatherEvent; // [NEW] Active weather event
     seasonNumber: Nat;
     lastActive: Nat;  // Timestamp in nanoseconds (converted from Time.Time)
+    
+    // Sports Center (Phase 6)
+    ownedClubs: [Text]; // IDs of owned FootballClubs
   };
 
   // ============================================================================
@@ -381,5 +384,6 @@ module {
     currentPhase: SeasonPhase;
     weather: ?WeatherEvent; // [NEW] Active weather event
     seasonNumber: Nat;
+    ownedClubs: [Text]; // [NEW] Phase 6 prep
   };
 }

@@ -378,6 +378,34 @@ export function useFarm() {
         },
     });
 
+    const advancePhaseMutation = useMutation({
+        mutationFn: async () => {
+            if (!backendActor) throw new Error("Backend actor not initialized");
+            console.log('[useFarm] Advancing phase...');
+            const result = await backendActor.advancePhase();
+            if ('Err' in result) throw new Error(getErrorMessage(result.Err)); // Assuming getErrorMessage is available
+            return result.Ok;
+        },
+        onSuccess: (message) => {
+            console.log('[useFarm] Invalidating farm query after phase advance');
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Phase Advanced!",
+                description: message,
+                className: "bg-indigo-900 border-indigo-800 text-indigo-100",
+            });
+            playSFX(SOUNDS.GAME.LEVEL_UP);
+        },
+        onError: (error: Error) => {
+            console.error('[useFarm] Advance phase mutation error:', error);
+            toast({
+                variant: "destructive",
+                title: "Phase Advance Failed",
+                description: error.message,
+            });
+        },
+    });
+
     return {
         farm: farmQuery.data,
         isLoading: farmQuery.isLoading,
@@ -393,6 +421,7 @@ export function useFarm() {
         sellCherries: sellCherriesMutation,
         startOrganicConversion: startOrganicConversionMutation,
         upgradeInfrastructure: upgradeInfrastructureMutation,
+        advancePhase: advancePhaseMutation,
     };
 }
 
@@ -409,5 +438,33 @@ export function useStability() {
         },
         enabled: !!backendActor,
         refetchInterval: 1000 * 30, // Refresh every 30 seconds
+    });
+}
+
+export function useLeaderboard() {
+    const { backendActor } = useAuth();
+
+    return useQuery({
+        queryKey: ['leaderboard'],
+        queryFn: async () => {
+            if (!backendActor) throw new Error('Not authenticated');
+            return await backendActor.getLeaderboard();
+        },
+        enabled: !!backendActor,
+        refetchInterval: 1000 * 60 * 5, // 5 minutes
+    });
+}
+
+export function useCompetitors() {
+    const { backendActor } = useAuth();
+
+    return useQuery({
+        queryKey: ['competitors'],
+        queryFn: async () => {
+            if (!backendActor) throw new Error('Not authenticated');
+            return await backendActor.getCompetitorSummaries();
+        },
+        enabled: !!backendActor,
+        refetchInterval: 1000 * 60 * 5, // 5 minutes
     });
 }

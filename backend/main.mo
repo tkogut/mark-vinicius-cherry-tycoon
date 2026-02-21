@@ -260,6 +260,7 @@ actor CherryTycoon {
       weather = null;
       seasonNumber = 1;
       lastActive = Int.abs(Time.now());
+      ownedClubs = [];
     };
 
     playerFarms.put(caller, newFarm);
@@ -299,6 +300,7 @@ actor CherryTycoon {
             currentPhase = farm.currentPhase;
             weather = farm.weather;
             seasonNumber = farm.seasonNumber;
+            ownedClubs = farm.ownedClubs;
         };
         
         #Ok(overview)
@@ -1969,6 +1971,19 @@ actor CherryTycoon {
     });
 
     ranked
+  };
+
+  // ============================================================================
+  // SPORTS CENTER (Phase 6 Stubs)
+  // ============================================================================
+
+  public shared query({ caller }) func getAvailableFootballClubs() : async GameResult<[Types.FootballClub], GameError> {
+    #Ok([])
+  };
+
+  public shared({ caller }) func buyClubShares(clubId: Text, amount: Nat) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    #Err(#InvalidOperation("Sports Center feature coming soon!"))
   };
 
 }

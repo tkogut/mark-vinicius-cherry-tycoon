@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, TrendingUp, Users, MapPin } from "lucide-react";
+import { Trophy, TrendingUp, Users, MapPin, Loader2 } from "lucide-react";
+import { useCompetitors } from "@/hooks/useFarm";
+
 
 interface Competitor {
     id: string;
@@ -22,42 +24,31 @@ interface CompetitorsPanelProps {
 }
 
 export const CompetitorsPanel: React.FC<CompetitorsPanelProps> = ({ playerCash, playerReputation = 0n, playerName = "You" }) => {
-    // Mock Data for AI Competitors
-    const competitors: Competitor[] = [
-        {
-            id: 'ai-1',
-            name: "Green Valley Corp",
-            region: "Mazowieckie",
-            reputation: 850,
-            marketShare: 35,
-            specialty: "High Volume"
-        },
-        {
-            id: 'ai-2',
-            name: "EcoHarvest Ltd",
-            region: "Lubelskie",
-            reputation: 720,
-            marketShare: 25,
-            specialty: "Organic"
-        },
-        {
-            id: 'player',
-            name: playerName,
-            region: "Local",
-            reputation: Number(playerReputation),
-            marketShare: Math.min(15, Number(playerCash) / 1000), // Dynamic mock share based on cash
-            specialty: "Rising Star",
-            isPlayer: true
-        },
-        {
-            id: 'ai-3',
-            name: "Old World Orchards",
-            region: "Malopolskie",
-            reputation: 450,
-            marketShare: 12,
-            specialty: "Heritage"
-        }
-    ].sort((a, b) => b.marketShare - a.marketShare);
+    const { data: rawCompetitors, isLoading } = useCompetitors();
+
+    const competitors: Competitor[] = (rawCompetitors || []).map(comp => ({
+        id: comp.id,
+        name: comp.name,
+        region: comp.county,
+        reputation: Number(comp.reputation),
+        marketShare: Number(comp.baseCapacity) / 100, // mock calculation
+        specialty: comp.preferredSaleType,
+        isPlayer: false
+    }));
+
+    // Add Player to competitors
+    competitors.push({
+        id: 'player',
+        name: playerName,
+        region: "Local",
+        reputation: Number(playerReputation),
+        marketShare: Math.min(15, Number(playerCash) / 1000),
+        specialty: "Rising Star",
+        isPlayer: true
+    });
+
+    competitors.sort((a, b) => b.marketShare - a.marketShare);
+
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
@@ -72,7 +63,11 @@ export const CompetitorsPanel: React.FC<CompetitorsPanelProps> = ({ playerCash, 
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-                {competitors.map((comp, index) => (
+                {isLoading ? (
+                    <div className="flex justify-center p-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                    </div>
+                ) : competitors.map((comp, index) => (
                     <Card key={comp.id} className={`border-slate-800 bg-slate-900/50 ${comp.isPlayer ? 'border-rose-500/50 bg-rose-950/10' : ''}`}>
                         <CardContent className="p-6 flex flex-col md:flex-row items-center gap-6">
                             <div className="flex items-center gap-4 flex-1">
@@ -107,7 +102,7 @@ export const CompetitorsPanel: React.FC<CompetitorsPanelProps> = ({ playerCash, 
                                     <span className="text-slate-400">Market Share</span>
                                     <span className="font-mono font-bold text-slate-200">{comp.marketShare.toFixed(1)}%</span>
                                 </div>
-                                <Progress value={comp.marketShare} className="h-2 bg-slate-800" indicatorClassName={comp.isPlayer ? 'bg-rose-500' : 'bg-slate-600'} />
+                                <Progress value={Math.min(100, comp.marketShare)} className="h-2 bg-slate-800" indicatorClassName={comp.isPlayer ? 'bg-rose-500' : 'bg-slate-600'} />
                             </div>
 
                             <div className="w-full md:w-32 flex justify-end">
