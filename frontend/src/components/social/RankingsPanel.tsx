@@ -30,7 +30,11 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
     const leaderboard: RankingEntry[] = (rawLeaderboard || [])
         .map(entry => ({
             rank: Number(entry.rank),
-
+            id: entry.name,
+            name: entry.name,
+            farmValue: Number(entry.profit || entry.totalRevenue || 0),
+            efficiency: Number(entry.efficiency),
+            isPlayer: !entry.isAI
         }))
         .sort((a, b) => a.rank - b.rank);
 
