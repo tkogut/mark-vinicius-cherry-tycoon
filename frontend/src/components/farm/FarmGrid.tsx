@@ -59,6 +59,7 @@ export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParc
                         onAction={onAction}
                         currentSeason={currentSeason}
                         infrastructure={infrastructure}
+                        currentPhase={currentPhase}
                     />
                 ))}
 

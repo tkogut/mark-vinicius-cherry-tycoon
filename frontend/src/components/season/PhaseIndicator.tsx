@@ -26,7 +26,7 @@ export const PhaseIndicator: React.FC<PhaseIndicatorProps> = ({ currentPhase, cl
     const currentIndex = PHASES.findIndex(p => p.id === currentPhase);
 
     return (
-        <div className={cn("flex flex-col w-full max-w-xs", className)}>
+        <div className={cn("flex flex-col w-full max-w-3xl", className)}>
             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 text-center md:text-left">
                 Season Phase
             </div>
