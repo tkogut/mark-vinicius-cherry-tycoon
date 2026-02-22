@@ -56,11 +56,15 @@
   - `locales/vi.json`, `locales/th.json`, `locales/id.json`, `locales/kr.json`, `locales/ja.json`, `locales/zh.json` — Asian stubs
 - [x] **Browser Detection**: Auto-detect language + flag switcher in settings ✅ *DONE*
 
-### 🔴 Phase 5.6: UI Simplification (Turn System)
-- [ ] **Unified "Next Turn" Button**: Replace separate Season/Phase buttons with a single "Next Turn" button calling `advancePhase`.
-- [ ] **Phase-Activity Mapping**: Update `PhaseIndicator` to display descriptive activity names (e.g., "Procurement" instead of generic "Preparation").
-- [ ] **Action Visibility**: Dynamic hiding/disabling of buttons based on the 11 unique phases.
-- [ ] **`cutAndPrune` UI**: Add interface for the new tree maintenance phase.
+### 🔴 Phase 5.6: Activity-Based Turn System UI Integration
+- [ ] **Unified "Next Turn" Button**: Replace separate Season/Phase buttons with a single prominent "End Phase" / "Next Turn" button that calls `advancePhase`.
+- [ ] **10-Phase Indicator**: Overhaul `PhaseIndicator` to display the specific activity name (Hiring, Procurement, Investment, Growth, Harvest, Market, Storage, CutAndPrune, Maintenance, Planning) instead of generic seasons.
+- [ ] **Action Visibility & Gating**: 
+  - Dynamically show/hide or disable action buttons based on the current phase (e.g., `plantTrees` only in `#Investment`, `harvestCherries` only in `#Harvest`).
+  - `sellCherries` should remain available year-round.
+  - `fertilizeParcel` should be available in Spring/Autumn phases.
+- [ ] **Empty Phase State**: If a phase has no available actions for the player (e.g., no funds for `#Investment`, nothing to `#Harvest`, or no features built yet like `#Storage`), display a very clear, obvious message/UI prompt directing the player to simply click "Next Phase".
+- [ ] **`cutAndPrune` UI**: Add interface (e.g., button + cost confirmation modal) for the new `#CutAndPrune` tree maintenance phase.
 
 
 ### 🟣 Phase 6: Audio System (GDD §8.2)

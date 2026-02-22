@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Circle } from "lucide-react";
 
-export type GamePhase = 'Preparation' | 'Growth' | 'Harvest' | 'Sales' | 'OffSeason';
+export type GamePhase = 'Planning' | 'Hiring' | 'Procurement' | 'Investment' | 'Growth' | 'Harvest' | 'Market' | 'Storage' | 'CutAndPrune' | 'Maintenance';
 
 interface PhaseIndicatorProps {
     currentPhase: GamePhase;
@@ -10,11 +10,16 @@ interface PhaseIndicatorProps {
 }
 
 const PHASES: { id: GamePhase; label: string }[] = [
-    { id: 'Preparation', label: 'Prep' },
+    { id: 'Planning', label: 'Plan' },
+    { id: 'Hiring', label: 'Hire' },
+    { id: 'Procurement', label: 'Buy' },
+    { id: 'Investment', label: 'Invest' },
     { id: 'Growth', label: 'Grow' },
     { id: 'Harvest', label: 'Harv' },
-    { id: 'Sales', label: 'Sale' },
-    { id: 'OffSeason', label: 'Rest' }
+    { id: 'Market', label: 'Sell' },
+    { id: 'Storage', label: 'Store' },
+    { id: 'CutAndPrune', label: 'Prune' },
+    { id: 'Maintenance', label: 'Maint' }
 ];
 
 export const PhaseIndicator: React.FC<PhaseIndicatorProps> = ({ currentPhase, className }) => {

@@ -95,11 +95,16 @@ type SeasonReport =
  };
 type SeasonPhase = 
  variant {
+   CutAndPrune;
    Growth;
    Harvest;
-   OffSeason;
-   Preparation;
-   Sales;
+   Hiring;
+   Investment;
+   Maintenance;
+   Market;
+   Planning;
+   Procurement;
+   Storage;
  };
 type Season = 
  variant {
@@ -408,12 +413,12 @@ type AICompetitorSummary =
 service : {
   _initializeAccessControlWithSecret: (text) -> ();
   advancePhase: () -> (GameResult);
-  advanceSeason: (opt text) -> (GameResult);
   assignCallerUserRole: (principal, UserRole) -> ();
   assignParcelToPlayer: (text, principal) -> (GameResult);
   buyClubShares: (text, nat) -> (GameResult);
   buyParcel: (text, nat) -> (GameResult);
   checkStability: () -> (GameResult_9) query;
+  cutAndPrune: (text) -> (GameResult);
   debugResetPlayer: () -> (GameResult);
   fertilizeParcel: (text, text) -> (GameResult);
   getAvailableFootballClubs: () -> (GameResult_8) query;

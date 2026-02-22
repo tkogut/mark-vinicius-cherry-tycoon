@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils";
 
 interface FarmGridProps {
     parcels: CherryParcel[];
-    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic', parcelId: string) => void;
+    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string) => void;
     onBuyParcel: () => void;
     loading?: boolean;
     currentSeason?: any; // Season type from backend
     infrastructure: Infrastructure[];
-    currentPhase?: 'Preparation' | 'Growth' | 'Harvest' | 'Sales' | 'OffSeason';
+    currentPhase?: 'Planning' | 'Hiring' | 'Procurement' | 'Investment' | 'Growth' | 'Harvest' | 'Market' | 'Storage' | 'CutAndPrune' | 'Maintenance';
 }
 
 export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParcel, loading, currentSeason, infrastructure, currentPhase }) => {
@@ -36,6 +36,15 @@ export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParc
                     </Button>
                 )}
             </div>
+
+            {currentPhase && ['Hiring', 'Procurement', 'Market', 'Storage', 'Maintenance'].includes(currentPhase) && parcels.length > 0 && (
+                <div className="bg-indigo-950/40 border border-indigo-500/30 text-indigo-200 p-4 rounded-xl flex items-center justify-between mb-6 shadow-sm">
+                    <div>
+                        <h3 className="font-semibold text-indigo-300">No Parcel Actions Available</h3>
+                        <p className="text-sm opacity-90">The <span className="font-bold">{currentPhase}</span> phase involves general management rather than field work. Review your stats, or proceed to the next phase.</p>
+                    </div>
+                </div>
+            )}
 
             <div className={cn(
                 // Mobile: 1 col < 475px, 2 cols >= 475px, Desktop: 3 columns

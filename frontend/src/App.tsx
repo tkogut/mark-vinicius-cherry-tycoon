@@ -18,7 +18,6 @@ import { InventoryBar } from "@/components/layout/InventoryBar"
 import { useFarm } from "@/hooks/useFarm"
 import { useGuestFarm } from "@/hooks/useGuestFarm"
 import { SeasonDisplay } from "@/components/season/SeasonDisplay"
-import { AdvanceSeasonButton } from "@/components/season/AdvanceSeasonButton"
 import { FinancialReportModal } from "@/components/farm/modals/FinancialReportModal"
 import { OnboardingModal } from "@/components/farm/modals/OnboardingModal"
 import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
@@ -65,11 +64,11 @@ function AppContent() {
         fertilize,
         harvest,
         buyParcel,
-        advanceSeason,
         sellCherries,
         startOrganicConversion,
         upgradeInfrastructure,
-        advancePhase
+        advancePhase,
+        cutAndPrune
     } = useGuestFarm();
 
     const showOnboarding = isAuthenticated && !!identity && !isLoading && !farm;
@@ -96,9 +95,9 @@ function AppContent() {
 
     // Helper to determine current phase
     const getCurrentPhaseName = (phase: any): any => {
-        if (!phase) return 'Preparation';
+        if (!phase) return 'Hiring';
         if (typeof phase === 'string') return phase;
-        return Object.keys(phase)[0] || 'Preparation';
+        return Object.keys(phase)[0] || 'Hiring';
     };
 
     const currentPhase = getCurrentPhaseName(farm?.currentPhase) as any;
@@ -116,7 +115,7 @@ function AppContent() {
         }
     };
 
-    const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic', parcelId: string) => {
+    const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string) => {
         if (action === 'plant') {
             setSelectedParcelId(parcelId);
             setPlantingModalOpen(true);
@@ -133,6 +132,8 @@ function AppContent() {
             fertilize.mutate({ parcelId, fertilizerType: "NPK" });
         } else if (action === 'organic') {
             startOrganicConversion.mutate(parcelId);
+        } else if (action === 'prune') {
+            cutAndPrune.mutate(parcelId);
         }
     };
 
@@ -345,26 +346,18 @@ function AppContent() {
                                 {/* Advance Phase Button */}
                                 <Button
                                     onClick={() => advancePhase.mutate()}
-                                    disabled={!isAuthenticated || advancePhase.isPending || currentPhase === 'OffSeason'}
-                                    variant="outline"
+                                    disabled={!isAuthenticated || advancePhase.isPending}
+                                    variant="default"
                                     size="sm"
-                                    className="gap-2 border-indigo-500 text-indigo-400 hover:bg-indigo-500/10 flex"
+                                    className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white flex shadow-md font-semibold"
                                 >
                                     {advancePhase.isPending ? (
                                         <RefreshCcw className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <Zap className="h-4 w-4" />
                                     )}
-                                    Next Phase
+                                    End Phase
                                 </Button>
-
-                                {/* Advance Season Button */}
-                                <AdvanceSeasonButton
-                                    onAdvance={async () => { await advanceSeason.mutateAsync(); }}
-                                    isLoading={advanceSeason.isPending}
-                                    disabled={!isAuthenticated}
-                                    className="flex"
-                                />
 
                                 {/* Sell Cherries Button */}
                                 <Button
@@ -421,7 +414,6 @@ function AppContent() {
                                     loading={
                                         isLoading ||
                                         advancePhase.isPending ||
-                                        advanceSeason.isPending ||
                                         plant.isPending ||
                                         water.isPending ||
                                         fertilize.isPending ||

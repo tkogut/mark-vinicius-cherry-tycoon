@@ -201,6 +201,41 @@ export function useFarm() {
         },
     });
 
+    const cutAndPruneMutation = useMutation({
+        mutationFn: async (parcelId: string) => {
+            console.log('[useFarm] cutAndPrune called:', { parcelId });
+            if (!backendActor) {
+                console.warn('[useFarm] No backend actor for pruning');
+                throw new Error('Not authenticated');
+            }
+            const result = await backendActor.cutAndPrune(parcelId);
+            if ('Err' in result) {
+                console.error('[useFarm] cutAndPrune failed:', result.Err);
+                throw new Error(getErrorMessage(result.Err));
+            }
+            console.log('[useFarm] cutAndPrune succeeded');
+            return result.Ok;
+        },
+        onSuccess: (message) => {
+            console.log('[useFarm] Invalidating farm query after prune');
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Maintenance Done",
+                description: message,
+                className: "bg-emerald-900 border-emerald-800 text-emerald-100",
+            });
+            playSFX(SOUNDS.GAME.PLANT);
+        },
+        onError: (error: Error) => {
+            console.error('[useFarm] Prune mutation error:', error);
+            toast({
+                variant: "destructive",
+                title: "Pruning Failed",
+                description: error.message,
+            });
+        },
+    });
+
     const buyParcelMutation = useMutation({
         mutationFn: async ({ parcelId, price }: { parcelId: string; price: number }) => {
             console.log('[useFarm] buyParcel called:', { parcelId, price });
@@ -231,43 +266,6 @@ export function useFarm() {
             toast({
                 variant: "destructive",
                 title: "Purchase Failed",
-                description: error.message,
-            });
-        },
-    });
-
-    const advanceSeasonMutation = useMutation({
-        mutationFn: async () => {
-            console.log('[useFarm] advanceSeason called');
-            if (!backendActor) {
-                console.warn('[useFarm] No backend actor for advancing season');
-                throw new Error('Not authenticated');
-            }
-            // Backend expects either [] or [weatherEvent: string]
-            const result = await backendActor.advanceSeason([]);
-            if ('Err' in result) {
-                console.error('[useFarm] advanceSeason failed:', result.Err);
-                throw new Error(getErrorMessage(result.Err));
-            }
-            console.log('[useFarm] advanceSeason succeeded:', result.Ok);
-            return result.Ok;
-        },
-        onSuccess: (message) => {
-            console.log('[useFarm] Invalidating farm query after season advance');
-            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
-            toast({
-                title: "Season Advanced!",
-                description: message,
-                className: "bg-purple-900 border-purple-800 text-purple-100",
-            });
-            playSFX(SOUNDS.GAME.LEVEL_UP);
-            playSFX(SOUNDS.GAME.LEVEL_UP);
-        },
-        onError: (error: Error) => {
-            console.error('[useFarm] Advance season mutation error:', error);
-            toast({
-                variant: "destructive",
-                title: "Season Advance Failed",
                 description: error.message,
             });
         },
@@ -416,8 +414,8 @@ export function useFarm() {
         water: waterMutation,
         fertilize: fertilizeMutation,
         harvest: harvestMutation,
+        cutAndPrune: cutAndPruneMutation,
         buyParcel: buyParcelMutation,
-        advanceSeason: advanceSeasonMutation,
         sellCherries: sellCherriesMutation,
         startOrganicConversion: startOrganicConversionMutation,
         upgradeInfrastructure: upgradeInfrastructureMutation,

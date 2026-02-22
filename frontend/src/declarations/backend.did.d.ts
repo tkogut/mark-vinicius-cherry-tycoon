@@ -241,11 +241,16 @@ export type Season = { 'Winter' : null } |
   { 'Autumn' : null } |
   { 'Summer' : null } |
   { 'Spring' : null };
-export type SeasonPhase = { 'Sales' : null } |
-  { 'OffSeason' : null } |
+export type SeasonPhase = { 'Storage' : null } |
+  { 'Investment' : null } |
   { 'Growth' : null } |
   { 'Harvest' : null } |
-  { 'Preparation' : null };
+  { 'Procurement' : null } |
+  { 'Maintenance' : null } |
+  { 'Hiring' : null } |
+  { 'Planning' : null } |
+  { 'CutAndPrune' : null } |
+  { 'Market' : null };
 export interface SeasonReport {
   'wholesaleRevenue' : bigint,
   'maintenanceCosts' : bigint,
@@ -330,12 +335,12 @@ export interface YearlyReport {
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'advancePhase' : ActorMethod<[], GameResult>,
-  'advanceSeason' : ActorMethod<[[] | [string]], GameResult>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'assignParcelToPlayer' : ActorMethod<[string, Principal], GameResult>,
   'buyClubShares' : ActorMethod<[string, bigint], GameResult>,
   'buyParcel' : ActorMethod<[string, bigint], GameResult>,
   'checkStability' : ActorMethod<[], GameResult_9>,
+  'cutAndPrune' : ActorMethod<[string], GameResult>,
   'debugResetPlayer' : ActorMethod<[], GameResult>,
   'fertilizeParcel' : ActorMethod<[string, string], GameResult>,
   'getAvailableFootballClubs' : ActorMethod<[], GameResult_8>,

@@ -106,11 +106,16 @@ export const idlFactory = ({ IDL }) => {
     'county' : IDL.Text,
   });
   const SeasonPhase = IDL.Variant({
-    'Sales' : IDL.Null,
-    'OffSeason' : IDL.Null,
+    'Storage' : IDL.Null,
+    'Investment' : IDL.Null,
     'Growth' : IDL.Null,
     'Harvest' : IDL.Null,
-    'Preparation' : IDL.Null,
+    'Procurement' : IDL.Null,
+    'Maintenance' : IDL.Null,
+    'Hiring' : IDL.Null,
+    'Planning' : IDL.Null,
+    'CutAndPrune' : IDL.Null,
+    'Market' : IDL.Null,
   });
   const Season = IDL.Variant({
     'Winter' : IDL.Null,
@@ -349,7 +354,6 @@ export const idlFactory = ({ IDL }) => {
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'advancePhase' : IDL.Func([], [GameResult], []),
-    'advanceSeason' : IDL.Func([IDL.Opt(IDL.Text)], [GameResult], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'assignParcelToPlayer' : IDL.Func(
         [IDL.Text, IDL.Principal],
@@ -359,6 +363,7 @@ export const idlFactory = ({ IDL }) => {
     'buyClubShares' : IDL.Func([IDL.Text, IDL.Nat], [GameResult], []),
     'buyParcel' : IDL.Func([IDL.Text, IDL.Nat], [GameResult], []),
     'checkStability' : IDL.Func([], [GameResult_9], ['query']),
+    'cutAndPrune' : IDL.Func([IDL.Text], [GameResult], []),
     'debugResetPlayer' : IDL.Func([], [GameResult], []),
     'fertilizeParcel' : IDL.Func([IDL.Text, IDL.Text], [GameResult], []),
     'getAvailableFootballClubs' : IDL.Func([], [GameResult_8], ['query']),

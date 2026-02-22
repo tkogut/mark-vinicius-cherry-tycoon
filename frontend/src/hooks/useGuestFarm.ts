@@ -66,7 +66,7 @@ const createInitialGuestFarm = (): PlayerFarm => ({
         yearlyReports: [],
     },
     currentSeason: { Spring: null },
-    currentPhase: { Preparation: null },
+    currentPhase: { Hiring: null },
     weather: [] as any, // Option type mapped to array in frontend
     seasonNumber: 1n,
     lastActive: BigInt(Date.now()),
@@ -199,33 +199,38 @@ export function useGuestFarm() {
         return harvestedAmount;
     }, [mutateLocal]);
 
+    const mockCutAndPrune = useCallback(async (parcelId: string) => {
+        mutateLocal(f => {
+            // Mock empty maintenance log
+            return f;
+        });
+        return "Pruned";
+    }, [mutateLocal]);
+
     const mockAdvancePhase = useCallback(async () => {
         mutateLocal(f => {
-            const phaseTypes = ['Preparation', 'Growth', 'Harvest', 'Sales', 'OffSeason'];
+            const phaseTypes = ['Planning', 'Hiring', 'Procurement', 'Investment', 'Growth', 'Harvest', 'Market', 'Storage', 'CutAndPrune', 'Maintenance'];
+            const seasonTypes = ['Spring', 'Summer', 'Autumn', 'Winter'];
             const currentPhaseName = Object.keys(f.currentPhase)[0];
             const currentIndex = phaseTypes.indexOf(currentPhaseName);
-            if (currentIndex >= 0 && currentIndex < phaseTypes.length - 1) {
+
+            if (currentPhaseName === 'Planning') {
+                // If ending Planning, we advance the whole season
+                const currentSeasonName = Object.keys(f.currentSeason)[0];
+                const seasonIndex = seasonTypes.indexOf(currentSeasonName);
+                const nextSeason = seasonTypes[(seasonIndex + 1) % 4];
+                f.currentSeason = { [nextSeason]: null } as any;
+                f.currentPhase = { 'Hiring': null } as any;
+                if (nextSeason === 'Spring') {
+                    f.seasonNumber += 1n;
+                }
+            } else if (currentIndex >= 0 && currentIndex < phaseTypes.length - 1) {
                 const nextPhase = phaseTypes[currentIndex + 1];
                 f.currentPhase = { [nextPhase]: null } as any;
             }
             return f;
         });
         return "Phase advanced";
-    }, [mutateLocal]);
-
-    const mockAdvanceSeason = useCallback(async () => {
-        mutateLocal(f => {
-            const seasonTypes = ['Spring', 'Summer', 'Autumn', 'Winter'];
-            const currentSeasonName = Object.keys(f.currentSeason)[0];
-            const currentIndex = seasonTypes.indexOf(currentSeasonName);
-            const nextSeason = seasonTypes[(currentIndex + 1) % 4];
-
-            f.currentSeason = { [nextSeason]: null } as any;
-            f.currentPhase = { 'Preparation': null } as any;
-            f.seasonNumber += 1n;
-            return f;
-        });
-        return "Season advanced";
     }, [mutateLocal]);
 
     const mockSellCherries = useCallback(async ({ amount }: { amount: number }) => {
@@ -273,8 +278,8 @@ export function useGuestFarm() {
         fertilize: mockMutation(mockFertilizeParcel) as any,
         buyParcel: mockMutation(async () => { }) as any, // Complex, leave empty for guest
         harvest: mockMutation(mockHarvestCherries) as any,
+        cutAndPrune: mockMutation(mockCutAndPrune) as any,
         sellCherries: mockMutation(mockSellCherries) as any,
-        advanceSeason: mockMutation(mockAdvanceSeason) as any,
         advancePhase: mockMutation(mockAdvancePhase) as any,
         startOrganicConversion: mockMutation(async () => { }) as any,
         upgradeInfrastructure: mockMutation(async () => { }) as any,
