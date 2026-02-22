@@ -210,23 +210,23 @@ export function useGuestFarm() {
     const mockAdvancePhase = useCallback(async () => {
         mutateLocal(f => {
             const phaseTypes = ['Hiring', 'Procurement', 'Investment', 'Growth', 'Harvest', 'Market', 'Storage', 'CutAndPrune', 'Maintenance', 'Planning'];
-            const seasonTypes = ['Spring', 'Summer', 'Autumn', 'Winter'];
+            const seasonMap: Record<string, string> = {
+                Hiring: 'Spring', Procurement: 'Spring', Investment: 'Spring',
+                Growth: 'Summer', Harvest: 'Summer',
+                Market: 'Autumn', Storage: 'Autumn',
+                CutAndPrune: 'Winter', Maintenance: 'Winter', Planning: 'Winter'
+            };
             const currentPhaseName = Object.keys(f.currentPhase)[0];
             const currentIndex = phaseTypes.indexOf(currentPhaseName);
 
             if (currentPhaseName === 'Planning') {
-                // If ending Planning, we advance the whole season
-                const currentSeasonName = Object.keys(f.currentSeason)[0];
-                const seasonIndex = seasonTypes.indexOf(currentSeasonName);
-                const nextSeason = seasonTypes[(seasonIndex + 1) % 4];
-                f.currentSeason = { [nextSeason]: null } as any;
                 f.currentPhase = { 'Hiring': null } as any;
-                if (nextSeason === 'Spring') {
-                    f.seasonNumber += 1n;
-                }
+                f.currentSeason = { 'Spring': null } as any;
+                f.seasonNumber += 1n;
             } else if (currentIndex >= 0 && currentIndex < phaseTypes.length - 1) {
                 const nextPhase = phaseTypes[currentIndex + 1];
                 f.currentPhase = { [nextPhase]: null } as any;
+                f.currentSeason = { [seasonMap[nextPhase]]: null } as any;
             }
             return f;
         });
