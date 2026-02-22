@@ -56,9 +56,11 @@
   - `locales/vi.json`, `locales/th.json`, `locales/id.json`, `locales/kr.json`, `locales/ja.json`, `locales/zh.json` — Asian stubs
 - [x] **Browser Detection**: Auto-detect language + flag switcher in settings ✅ *DONE*
 
-### 🟣 Phase 6 Prep: Feedback Resolution (Auth & SEO)
-- [ ] **Identity Persistence**: Ensure `AuthClient` uses `localStorage` for anonymous sessions, or configure `maxTimeToLive` to prevent frequent state resets to Season 1.
-- [ ] **SEO & Discoverability**: Add `robots.txt`, `sitemap.xml`, and appropriate `<title>`/`<meta>` description tags to `index.html` to allow Google indexing of the `.icp0.io` domain.
+### 🔴 Phase 5.6: UI Simplification (Turn System)
+- [ ] **Unified "Next Turn" Button**: Replace separate Season/Phase buttons with a single "Next Turn" button calling `advancePhase`.
+- [ ] **Phase-Activity Mapping**: Update `PhaseIndicator` to display descriptive activity names (e.g., "Procurement" instead of generic "Preparation").
+- [ ] **Action Visibility**: Dynamic hiding/disabling of buttons based on the 11 unique phases.
+- [ ] **`cutAndPrune` UI**: Add interface for the new tree maintenance phase.
 
 
 ### 🟣 Phase 6: Audio System (GDD §8.2)

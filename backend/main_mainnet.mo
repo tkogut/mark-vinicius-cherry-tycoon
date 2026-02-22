@@ -238,7 +238,7 @@ persistent actor CherryTycoon {
         yearlyReports = [];
       };
       currentSeason = #Spring;
-      currentPhase = #Preparation;
+      currentPhase = #Hiring;
       weather = null;
       seasonNumber = 1;
       lastActive = Int.abs(Time.now());
@@ -561,11 +561,6 @@ persistent actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        // Phase 5.1: Phase gate — fertilizing only in Growth phase
-        if (farm.currentPhase != #Growth) {
-          return #Err(#SeasonalRestriction("Fertilizing only allowed in Growth phase. Current: " # debug_show(farm.currentPhase)));
-        };
-
         // Check if has fertilizers
         if (farm.inventory.fertilizers == 0) {
           return #Err(#InvalidOperation("No fertilizers in inventory"));
@@ -659,6 +654,12 @@ persistent actor CherryTycoon {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
+        
+        // Phase 5.6: Phase gate — organic conversion only in Planning or Investment phase
+        if (farm.currentPhase != #Planning and farm.currentPhase != #Investment) {
+          return #Err(#SeasonalRestriction("Organic conversion only allowed in Planning or Investment phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
         switch (indexOpt) {
@@ -726,6 +727,56 @@ persistent actor CherryTycoon {
     }
   };
 
+  // Phase 5.6: Cut and Prune to maintain quality
+  public shared({ caller }) func cutAndPrune(
+    parcelId: Text
+  ) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        if (farm.currentPhase != #CutAndPrune) {
+          return #Err(#SeasonalRestriction("Pruning only allowed in CutAndPrune phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
+        switch (indexOpt) {
+          case null { return #Err(#NotFound("Parcel not found")) };
+          case (?index) {
+            let parcel = farm.parcels[index];
+            
+            let pruneCost = 100 * parcel.plantedTrees; // 100 PLN per tree
+            if (farm.cash < pruneCost) {
+               return #Err(#InsufficientFunds { required = pruneCost; available = farm.cash });
+            };
+
+            let newQuality = if (parcel.quality < 100) {
+              if (parcel.quality + 10 > 100) 100 else parcel.quality + 10
+            } else { parcel.quality };
+
+            let updatedParcel = {
+              parcel with
+              quality = newQuality;
+            };
+            
+            let updatedParcels = Array.tabulate<CherryParcel>(farm.parcels.size(), func(i: Nat) : CherryParcel {
+                if (i == index) { updatedParcel } else { farm.parcels[i] }
+            });
+
+            let updatedFarm = {
+              farm with
+              cash = Int.abs((farm.cash : Int) - (pruneCost : Int));
+              parcels = updatedParcels;
+            };
+
+            playerFarms.put(caller, updatedFarm);
+            #Ok("Parcel pruned successfully for " # Nat.toText(pruneCost) # " PLN. Quality improved.")
+          };
+        };
+      };
+    };
+  };
+
   // Plant trees on a parcel
   public shared({ caller }) func plantTrees(
     parcelId: Text,
@@ -736,9 +787,9 @@ persistent actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        // Phase 5.1: Phase gate — planting only in Preparation phase
-        if (farm.currentPhase != #Preparation) {
-          return #Err(#SeasonalRestriction("Planting only allowed in Preparation phase. Current: " # debug_show(farm.currentPhase)));
+        // Phase 5.6: Phase gate — planting only in Investment phase
+        if (farm.currentPhase != #Investment) {
+          return #Err(#SeasonalRestriction("Planting only allowed in Investment phase. Current: " # debug_show(farm.currentPhase)));
         };
 
         let costPerTree = 50; // PLN
@@ -835,11 +886,6 @@ persistent actor CherryTycoon {
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
-        
-        // Phase 5.1: Phase gate — selling only in Sales phase
-        if (farm.currentPhase != #Sales) {
-          return #Err(#SeasonalRestriction("Selling only allowed in Sales phase. Current: " # debug_show(farm.currentPhase)));
-        };
 
         let totalAvailable = farm.inventory.cherries + farm.inventory.organicCherries;
         if (totalAvailable < quantity) {
@@ -1009,197 +1055,203 @@ persistent actor CherryTycoon {
   // GAME PROGRESSION
   // ============================================================================
 
-  // Advance to next season
-  public shared({ caller }) func advanceSeason(
-    _weatherEvent: ?Text
+  // Internal helper to advance to next season (Called from advancePhase)
+  private func _advanceSeasonInternal(
+    farm: PlayerFarm,
+    caller: Principal
   ) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
-    switch (playerFarms.get(caller)) {
-      case null { return #Err(#NotFound("Player not found")) };
-      case (?farm) {
+    
+    // Check for organic parcels and update certification status
+    var anyOrganicCount = 0;
+    let updatedParcels = Array.tabulate<CherryParcel>(
+      farm.parcels.size(),
+      func(i: Nat) : CherryParcel {
+        let p = farm.parcels[i];
         
-        // Check for organic parcels and update certification status
-        var anyOrganicCount = 0;
-        let updatedParcels = Array.tabulate<CherryParcel>(
-          farm.parcels.size(),
-          func(i: Nat) : CherryParcel {
-            let p = farm.parcels[i];
-            
-            // Check if certification is complete (2 seasons)
-            let isCertifiedNow = if (p.isOrganic and not p.organicCertified) {
-              if (farm.seasonNumber >= p.organicConversionSeason + 1) { true }
-              else { false };
-            } else { p.organicCertified };
+        // Check if certification is complete (2 seasons)
+        let isCertifiedNow = if (p.isOrganic and not p.organicCertified) {
+          if (farm.seasonNumber >= p.organicConversionSeason + 1) { true }
+          else { false };
+        } else { p.organicCertified };
 
-            if (p.isOrganic or isCertifiedNow) { anyOrganicCount += 1 };
+        if (p.isOrganic or isCertifiedNow) { anyOrganicCount += 1 };
 
-            // Age trees by 1 year every 4 seasons
-            let shouldAgeTrees = (farm.seasonNumber + 1) % 4 == 0;
-            let newAge = if (shouldAgeTrees) { p.treeAge + 1 } else { p.treeAge };
+        // Age trees by 1 year every 4 seasons
+        let shouldAgeTrees = (farm.seasonNumber + 1) % 4 == 0;
+        let newAge = if (shouldAgeTrees) { p.treeAge + 1 } else { p.treeAge };
 
-            { 
-              p with 
-              organicCertified = isCertifiedNow;
-              treeAge = newAge;
-              waterLevel = p.waterLevel * 0.7; // water depletes
-            }
-          }
-        );
+        { 
+          p with 
+          organicCertified = isCertifiedNow;
+          treeAge = newAge;
+          waterLevel = p.waterLevel * 0.7; // water depletes
+        }
+      }
+    );
 
-        let hasAnyOrganic = anyOrganicCount > 0;
+    let hasAnyOrganic = anyOrganicCount > 0;
 
-        // Calculate costs for the season
-        let fixedCosts = GameLogic.calculateFixedCosts(farm.infrastructure);
-        // SEC-004: Guard against empty parcels array
-        let parcelRegion = if (updatedParcels.size() > 0) {
-          updatedParcels[0].region
-        } else {
-          { province = #Opolskie; county = "Opole"; commune = "Opole"; communeType = #Mixed : Types.CommuneType; population = 120000; marketSize = 0.8; laborCostMultiplier = 1.0 }
+    // Calculate costs for the season
+    let fixedCosts = GameLogic.calculateFixedCosts(farm.infrastructure);
+    // SEC-004: Guard against empty parcels array
+    let parcelRegion = if (updatedParcels.size() > 0) {
+      updatedParcels[0].region
+    } else {
+      { province = #Opolskie; county = "Opole"; commune = "Opole"; communeType = #Mixed : Types.CommuneType; population = 120000; marketSize = 0.8; laborCostMultiplier = 1.0 }
+    };
+    let variableCosts = GameLogic.calculateVariableCosts(
+      updatedParcels,
+      parcelRegion,
+      hasAnyOrganic,
+      farm.infrastructure
+    );
+    let totalCosts = fixedCosts + variableCosts;
+
+    if (farm.cash < totalCosts) {
+      return #Err(#InsufficientFunds { required = totalCosts; available = farm.cash });
+    };
+
+    // Advance season
+    let nextSeason = switch (farm.currentSeason) {
+      case (#Spring) { #Summer };
+      case (#Summer) { #Autumn };
+      case (#Autumn) { #Winter };
+      case (#Winter) { #Spring };
+    };
+
+    // Spoilage Logic (Phase 4)
+    // Check for Cold Storage / Warehouse to prevent rotting in Winter
+    var spoiledCherries : Nat = 0;
+    
+    // Use Iter to check for infrastructure presence
+    // We use variables because we need to iterate once
+    var hasColdStorage = false;
+    var hasWarehouse = false;
+    
+    for (infra in farm.infrastructure.vals()) {
+       switch (infra.infraType) {
+         case (#ColdStorage) { hasColdStorage := true };
+         case (#Warehouse) { hasWarehouse := true };
+         case (_) {};
+       };
+    };
+
+    if (farm.currentSeason == #Autumn) {
+       if (not hasColdStorage and not hasWarehouse) {
+          // 100% spoilage without any storage
+          spoiledCherries := farm.inventory.cherries;
+       } else if (hasWarehouse and not hasColdStorage) {
+          // 80% spoilage with just basic warehouse
+          spoiledCherries := (farm.inventory.cherries * 80) / 100;
+       } else {
+          // 20% spoilage with Cold Storage
+          spoiledCherries := (farm.inventory.cherries * 20) / 100;
+       };
+    };
+    
+    let newCherries = if (farm.inventory.cherries >= spoiledCherries) {
+       Int.abs((farm.inventory.cherries : Int) - (spoiledCherries : Int))
+    } else { 0 };
+    
+    let updatedInventory = {
+       farm.inventory with
+       cherries = newCherries;
+    };
+
+    let _currentSeasonName = farm.currentSeason;
+    let _currentSeasonNum = farm.seasonNumber;
+    
+    let laborShare = (variableCosts * 80) / 100;
+    let operationalShare = Int.abs((variableCosts : Int) - (laborShare : Int));
+    
+    let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
+      { r with 
+        maintenanceCosts = r.maintenanceCosts + fixedCosts;
+        laborCosts = r.laborCosts + laborShare;
+        operationalCosts = r.operationalCosts + operationalShare;
+        totalCosts = r.totalCosts + fixedCosts + variableCosts;
+        netProfit = r.netProfit - ((fixedCosts + variableCosts) : Int);
+      }
+    });
+
+    let isNewYear = nextSeason == #Spring;
+
+    // Generate yearly report if it's a new year to get the annual profit
+    let yearlyReportOpt = if (isNewYear) {
+        let yearNum = Int.abs(((farm.seasonNumber) : Int) / 4);
+        ?generateYearlyReport(farm, updatedSeasonStats, yearNum)
+    } else {
+        null
+    };
+    let newBestYearlyProfit = switch (yearlyReportOpt) {
+        case (?report) {
+            let yearlyProfit = if (report.netProfit > 0) Int.abs(report.netProfit) else 0;
+            if (yearlyProfit > farm.statistics.bestYearlyProfit) yearlyProfit else farm.statistics.bestYearlyProfit
         };
-        let variableCosts = GameLogic.calculateVariableCosts(
-          updatedParcels,
-          parcelRegion,
-          hasAnyOrganic,
-          farm.infrastructure
-        );
-        let totalCosts = fixedCosts + variableCosts;
+        case (null) { farm.statistics.bestYearlyProfit };
+    };
 
-        if (farm.cash < totalCosts) {
-          return #Err(#InsufficientFunds { required = totalCosts; available = farm.cash });
-        };
-
-        // Advance season
-        let nextSeason = switch (farm.currentSeason) {
-          case (#Spring) { #Summer };
-          case (#Summer) { #Autumn };
-          case (#Autumn) { #Winter };
-          case (#Winter) { #Spring };
-        };
-
-        // Spoilage Logic (Phase 4)
-        // Check for Cold Storage / Warehouse to prevent rotting in Winter
-        var spoiledCherries : Nat = 0;
-        
-        // Use Iter to check for infrastructure presence
-        // We use variables because we need to iterate once
-        var hasColdStorage = false;
-        var hasWarehouse = false;
-        
-        for (infra in farm.infrastructure.vals()) {
-           switch (infra.infraType) {
-             case (#ColdStorage) { hasColdStorage := true };
-             case (#Warehouse) { hasWarehouse := true };
-             case (_) {};
-           };
-        };
-
-        if (farm.currentSeason == #Autumn) {
-           if (not hasColdStorage and not hasWarehouse) {
-              // 100% spoilage without any storage
-              spoiledCherries := farm.inventory.cherries;
-           } else if (hasWarehouse and not hasColdStorage) {
-              // 80% spoilage with just basic warehouse
-              spoiledCherries := (farm.inventory.cherries * 80) / 100;
-           } else {
-              // 20% spoilage with Cold Storage
-              spoiledCherries := (farm.inventory.cherries * 20) / 100;
-           };
-        };
-        
-        let newCherries = if (farm.inventory.cherries >= spoiledCherries) {
-           Int.abs((farm.inventory.cherries : Int) - (spoiledCherries : Int))
-        } else { 0 };
-        
-        let updatedInventory = {
-           farm.inventory with
-           cherries = newCherries;
-        };
-
-        let _currentSeasonName = farm.currentSeason;
-        let _currentSeasonNum = farm.seasonNumber;
-        
-        let laborShare = (variableCosts * 80) / 100;
-        let operationalShare = Int.abs((variableCosts : Int) - (laborShare : Int));
-        
-        let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
-          { r with 
-            maintenanceCosts = r.maintenanceCosts + fixedCosts;
-            laborCosts = r.laborCosts + laborShare;
-            operationalCosts = r.operationalCosts + operationalShare;
-            totalCosts = r.totalCosts + fixedCosts + variableCosts;
-            netProfit = r.netProfit - ((fixedCosts + variableCosts) : Int);
-          }
-        });
-
-        let isNewYear = nextSeason == #Spring;
-
-        // Generate yearly report if it's a new year to get the annual profit
-        let yearlyReportOpt = if (isNewYear) {
-            let yearNum = Int.abs(((farm.seasonNumber) : Int) / 4);
-            ?generateYearlyReport(farm, updatedSeasonStats, yearNum)
-        } else {
-            null
-        };
-        let newBestYearlyProfit = switch (yearlyReportOpt) {
-            case (?report) {
-                let yearlyProfit = if (report.netProfit > 0) Int.abs(report.netProfit) else 0;
-                if (yearlyProfit > farm.statistics.bestYearlyProfit) yearlyProfit else farm.statistics.bestYearlyProfit
-            };
-            case (null) { farm.statistics.bestYearlyProfit };
-        };
-
-        let updatedStats = {
-          farm.statistics with
-          totalCosts = farm.statistics.totalCosts + totalCosts;
-          seasonsPlayed = farm.statistics.seasonsPlayed + 1;
-          bestYearlyProfit = newBestYearlyProfit;
-          seasonalReports = updatedSeasonStats.seasonalReports;
-          yearlyReports = switch (yearlyReportOpt) {
-            case (?report) { Array.append(farm.statistics.yearlyReports, [report]) };
-            case (null) { farm.statistics.yearlyReports };
-          };
-        };
-
-        let updatedFarm = {
-          farm with
-          currentSeason = nextSeason;
-          currentPhase = #Preparation; // Reset phase on new season
-          weather = null; // Clear weather on new season
-          seasonNumber = farm.seasonNumber + 1;
-          cash = Int.abs((farm.cash : Int) - (totalCosts : Int));
-          parcels = updatedParcels;
-          inventory = updatedInventory;
-          statistics = updatedStats;
-        };
-
-        playerFarms.put(caller, updatedFarm);
-
-        // Phase 5.2: Simulate AI turns for this season transition
-        // SEC: Bounded — exactly 3 AI competitors, no loops over unknown collections
-        let aiEntropy = Int.abs(Time.now()) % 1_000_000_000;
-        let _marekKg = CompetitorLogic.simulateAITurn(42,  45_000, nextSeason, aiEntropy);
-        let _kasiaKg = CompetitorLogic.simulateAITurn(137, 18_000, nextSeason, aiEntropy);
-        let _hansKg  = CompetitorLogic.simulateAITurn(999, 70_000, nextSeason, aiEntropy);
-        // AI production is used in market pricing via getAITotalSupply() — no state mutation needed
-
-        #Ok("Advanced to " # debug_show(nextSeason) # " (Season " # Nat.toText(farm.seasonNumber + 1) # "). AI: Marek=" # Nat.toText(_marekKg) # "kg, Kasia=" # Nat.toText(_kasiaKg) # "kg, Hans=" # Nat.toText(_hansKg) # "kg")
+    let updatedStats = {
+      farm.statistics with
+      totalCosts = farm.statistics.totalCosts + totalCosts;
+      seasonsPlayed = farm.statistics.seasonsPlayed + 1;
+      bestYearlyProfit = newBestYearlyProfit;
+      seasonalReports = updatedSeasonStats.seasonalReports;
+      yearlyReports = switch (yearlyReportOpt) {
+        case (?report) { Array.append(farm.statistics.yearlyReports, [report]) };
+        case (null) { farm.statistics.yearlyReports };
       };
-    }
+    };
+
+    let updatedFarm = {
+      farm with
+      currentSeason = nextSeason;
+      currentPhase = #Hiring; // Reset phase on new season
+      weather = null; // Clear weather on new season
+      seasonNumber = farm.seasonNumber + 1;
+      cash = Int.abs((farm.cash : Int) - (totalCosts : Int));
+      parcels = updatedParcels;
+      inventory = updatedInventory;
+      statistics = updatedStats;
+    };
+
+    playerFarms.put(caller, updatedFarm);
+
+    // Phase 5.2: Simulate AI turns for this season transition
+    // SEC: Bounded — exactly 3 AI competitors, no loops over unknown collections
+    let aiEntropy = Int.abs(Time.now()) % 1_000_000_000;
+    let _marekKg = CompetitorLogic.simulateAITurn(42,  45_000, nextSeason, aiEntropy);
+    let _kasiaKg = CompetitorLogic.simulateAITurn(137, 18_000, nextSeason, aiEntropy);
+    let _hansKg  = CompetitorLogic.simulateAITurn(999, 70_000, nextSeason, aiEntropy);
+    // AI production is used in market pricing via getAITotalSupply() — no state mutation needed
+
+    #Ok("Advanced to " # debug_show(nextSeason) # " (Season " # Nat.toText(farm.seasonNumber + 1) # "). AI: Marek=" # Nat.toText(_marekKg) # "kg, Kasia=" # Nat.toText(_kasiaKg) # "kg, Hans=" # Nat.toText(_hansKg) # "kg")
   };
 
-  // Advance phase within a season
+  // Advance phase through the 10-turn sequence
   public shared({ caller }) func advancePhase() : async GameResult<Text, GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
         case null { return #Err(#NotFound("Player not found")) };
         case (?farm) {
             
-            let nextPhase = switch (farm.currentPhase) {
-                case (#Preparation) { #Growth };
+            // Handle automatic season switching at the end of the year/season
+            if (farm.currentPhase == #Planning) {
+                // Call the internal season logic which handles spoilage, AI turns, and stats
+                return await _advanceSeasonInternal(farm, caller);
+            };
+
+            let nextPhase : Types.SeasonPhase = switch (farm.currentPhase) {
+                case (#Hiring) { #Procurement };
+                case (#Procurement) { #Investment };
+                case (#Investment) { #Growth };
                 case (#Growth) { #Harvest };
-                case (#Harvest) { #Sales };
-                case (#Sales) { #OffSeason };
-                case (#OffSeason) { return #Err(#InvalidOperation("Cannot advance phase from OffSeason. Use advanceSeason() instead.")) };
+                case (#Harvest) { #Market };
+                case (#Market) { #Storage };
+                case (#Storage) { #CutAndPrune };
+                case (#CutAndPrune) { #Maintenance };
+                case (#Maintenance) { #Planning };
+                case (#Planning) { #Planning }; // Handled by if block above, but needed for exhaustiveness
             };
 
             // Weather Logic (only triggers when entering Growth phase)
@@ -1223,7 +1275,7 @@ persistent actor CherryTycoon {
                 case (?w) { ". Weather Alert: " # w.impact };
             };
 
-            #Ok("Advanced to " # debug_show(nextPhase) # weatherMsg)
+            #Ok("Advanced to phase: " # debug_show(nextPhase) # weatherMsg)
         };
     }
   };
@@ -1237,9 +1289,9 @@ persistent actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        // Phase 5.1: Phase gate — upgrades only in Preparation phase
-        if (farm.currentPhase != #Preparation) {
-          return #Err(#SeasonalRestriction("Infrastructure upgrades only in Preparation phase. Current: " # debug_show(farm.currentPhase)));
+        // Phase 5.6: Phase gate — upgrades only in Investment phase
+        if (farm.currentPhase != #Investment) {
+          return #Err(#SeasonalRestriction("Infrastructure upgrades only in Investment phase. Current: " # debug_show(farm.currentPhase)));
         };
 
         // Parse infrastructure type

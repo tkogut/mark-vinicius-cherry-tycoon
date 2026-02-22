@@ -237,16 +237,21 @@ module {
   public type Season = {
     #Spring;   // planting, growth starts
     #Summer;   // growth, harvest preparation
-    #Autumn;   // harvest season
+    #Autumn;   // maintenance season, cut and prune trees
     #Winter;   // dormant, planning, infrastructure
   };
 
   public type SeasonPhase = {
-    #Preparation; // Buy land, hire workers, buy supplies, upgrade infrastructure
-    #Growth;      // Water, fertilize, treat pests. Weather events fire here
-    #Harvest;     // Harvest only. Yield = DNA + Weather + Quality
-    #Sales;       // Sell cherries. View market
-    #OffSeason;   // Plan, review financials
+    #Hiring;       // Hire labor, set wages (Spring)
+    #Procurement;  // Buy fertilizers, pesticides, seeds (Spring)
+    #Investment;   // Plant trees, upgrade infrastructure (Spring)
+    #Growth;       // Water, fertilize, weather events (Summer)
+    #Harvest;      // Harvest cherries (Summer)
+    #Market;       // Sell cherries (Autumn)
+    #Storage;      // Process inventory, storage costs (Autumn)
+    #CutAndPrune;  // Maintain quality, tree pruning (Winter)
+    #Maintenance;  // Machine repair, fixed costs (Winter)
+    #Planning;     // Financial review, AI simulation for next year (Winter)
   };
 
   public type Weather = {

@@ -46,15 +46,12 @@
 - [x] **Integrate**: AI turns simulated in `advanceSeason()` response; AI supply in `sellCherries()` pricing ✅ *DONE 2026-02-19*
 - [x] **Dual Entrypoint Parity**: All functions added to both `main.mo` and `main_mainnet.mo` ✅ *DONE 2026-02-19*
 
-### 🟢 Phase 5.4: Rankings
-- [x] **`getLeaderboard()`**: Query returning top farms by profit, total value, efficiency (profit/ha)
-- [x] **Include AI**: AI farms appear in rankings for competitive context
-
-### 🔵 Phase 5.5: Monetization Readiness (Structure Only)
-- [ ] **CHERRY Credits Type**: Balance tracking (ICP-linked, no live token yet)
-- [ ] **Consumable Boosts**: Types for BioStimulant, CloudSummoner, PestShield, LegalLoophole
-- [ ] **Strategic Map Expansions**: Purchasable province unlock types
-- [ ] **Feature Flags**: All monetization behind flags — not active until CHERRY Credits go live
+### 🟢 Phase 5.6: Activity-Based Turn System (CRITICAL REFACTOR)
+- [x] **Redefine `SeasonPhase`**: Implement 10 unique phases in `types.mo` (Hiring, Procurement, Investment, Growth, Harvest, Market, Storage, CutAndPrune, Maintenance, Planning). ✅ *DONE*
+- [x] **Unified Turn Logic**: Overhaul `advancePhase()` to handle the linear 10-turn sequence. Remove `advanceSeason()` as a standalone caller. ✅ *DONE*
+- [x] **Strict Action Gating**: Implement seasonal/phase locks for all public functions (e.g., `harvestCherries` ONLY in `#Harvest`). ✅ *DONE*
+- [x] **`cutAndPrune()`**: Implement the new activity logic for the `#CutAndPrune` phase. ✅ *DONE*
+- [x] **Dual Entrypoint Parity**: Apply these changes to both `main.mo` and `main_mainnet.mo`. ✅ *DONE*
 
 ---
 
