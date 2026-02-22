@@ -209,7 +209,7 @@ export function useGuestFarm() {
 
     const mockAdvancePhase = useCallback(async () => {
         mutateLocal(f => {
-            const phaseTypes = ['Planning', 'Hiring', 'Procurement', 'Investment', 'Growth', 'Harvest', 'Market', 'Storage', 'CutAndPrune', 'Maintenance'];
+            const phaseTypes = ['Hiring', 'Procurement', 'Investment', 'Growth', 'Harvest', 'Market', 'Storage', 'CutAndPrune', 'Maintenance', 'Planning'];
             const seasonTypes = ['Spring', 'Summer', 'Autumn', 'Winter'];
             const currentPhaseName = Object.keys(f.currentPhase)[0];
             const currentIndex = phaseTypes.indexOf(currentPhaseName);

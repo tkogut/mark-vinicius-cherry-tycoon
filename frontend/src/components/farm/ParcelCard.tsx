@@ -8,7 +8,7 @@ import {
     Droplets,
     Leaf,
     Shovel,
-    AlertCircle,
+    Scissors,
     ChevronDown,
     ChevronUp,
     ShieldCheck,
@@ -283,7 +283,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                     disabled={!canCutAndPrune}
                                     onClick={() => onAction('prune', parcel.id)}
                                 >
-                                    <AlertCircle className="h-4 w-4" />
+                                    <Scissors className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
