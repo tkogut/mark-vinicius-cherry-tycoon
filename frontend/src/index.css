@@ -69,3 +69,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Weather Animation Keyframes */
+@keyframes rain-fall {
+  0% { transform: translateY(-10vh); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+@keyframes snow-drift {
+  0% { transform: translateY(-10vh) translateX(0px); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
+}
+
+@keyframes heat-pulse {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.05); }
+}
+
+@keyframes sun-beam {
+  0% { transform: rotate(-5deg) scale(1); opacity: 0.2; }
+  50% { transform: rotate(5deg) scale(1.1); opacity: 0.4; }
+  100% { transform: rotate(-5deg) scale(1); opacity: 0.2; }
+}

@@ -55,6 +55,13 @@
 
 ---
 
+### 🔵 Phase 5.7: Phase Engagement & Mechanics Deepening (UPCOMING)
+- [ ] **Hiring Phase Rework**: Replace flat fee with wage negotiation. Decide on worker types (e.g., cheap/low-productivity seasonal labor vs. expensive/high-productivity city workers).
+- [ ] **Spring Watering**: Allow `waterParcel` action earlier (e.g., in Spring/#Procurement or #Investment) to combat early droughts.
+- [ ] **Phase Engagement Mechanics**: Brainstorm and implement at least one active, meaningful decision (or minigame-like choice) for EVERY single phase so no phase is just a passive click-through.
+
+---
+
 ### ✅ Completed Phases (Archive)
 
 <details>

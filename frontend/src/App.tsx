@@ -32,6 +32,7 @@ import { SeasonalEffects } from "@/components/season/SeasonalEffects"
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { WeatherEffects } from "@/components/season/WeatherEffects"
 import { AudioProvider, useAudio } from '@/contexts/AudioContext';
 import { VolumeControl } from '@/components/ui/VolumeControl';
 import { SOUNDS } from '@/config/sounds';
@@ -189,7 +190,7 @@ function AppContent() {
     // 4. Initialization loading screen
     if (isInitializing) {
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+            <div className={`min-h-screen bg-slate-950 font-sans ${getThemeClass(stats.currentSeason)} flex flex-col items-center justify-center p-4 overflow-x-hidden selection:bg-rose-500/30 selection:text-rose-200 transition-colors duration-1000`}>
                 <div className="flex flex-col items-center gap-6 max-w-sm w-full text-center">
                     <div className="relative">
                         <div className="absolute inset-0 bg-red-500/20 blur-3xl rounded-full" />
@@ -215,6 +216,9 @@ function AppContent() {
 
     return (
         <div className={`min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row relative ${getThemeClass(stats.currentSeason)}`}>
+            {/* Weather Overlay */}
+            <WeatherEffects weatherState={farm?.weather} />
+
             {/* Ambient Effects */}
             <WeatherOverlay
                 type={weatherEvent?.type === 'Storm' ? 'rain' : stats.currentSeason && 'Winter' in stats.currentSeason ? 'snow' : 'none'}
