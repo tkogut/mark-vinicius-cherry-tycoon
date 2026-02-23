@@ -1300,15 +1300,7 @@ actor CherryTycoon {
 
     playerFarms.put(caller, updatedFarm);
 
-    // Phase 5.2: Simulate AI turns for this season transition
-    // SEC: Bounded — exactly 3 AI competitors, no loops over unknown collections
-    let aiEntropy = Int.abs(Time.now()) % 1_000_000_000;
-    let _marekKg = CompetitorLogic.simulateAITurn(42,  45_000, nextSeason, aiEntropy);
-    let _kasiaKg = CompetitorLogic.simulateAITurn(137, 18_000, nextSeason, aiEntropy);
-    let _hansKg  = CompetitorLogic.simulateAITurn(999, 70_000, nextSeason, aiEntropy);
-    // AI production is used in market pricing via getAITotalSupply() — no state mutation needed
-
-    #Ok("Advanced to " # debug_show(nextSeason) # " (Season " # Nat.toText(farm.seasonNumber + 1) # "). AI: Marek=" # Nat.toText(_marekKg) # "kg, Kasia=" # Nat.toText(_kasiaKg) # "kg, Hans=" # Nat.toText(_hansKg) # "kg")
+    #Ok("Advanced to Season " # debug_show(nextSeason) # " (Year " # Nat.toText((farm.seasonNumber + 1)/4) # ")")
   };
 
   public shared({ caller }) func advancePhase() : async GameResult<Text, GameError> {
@@ -1376,7 +1368,15 @@ actor CherryTycoon {
                 case (?w) { ". Weather Alert: " # w.impact };
             };
 
-            #Ok("Advanced to phase: " # debug_show(nextPhase) # weatherMsg)
+            let aiText = if (nextPhase == #Harvest) {
+                let aiEntropy = Int.abs(Time.now()) % 1_000_000_000;
+                let _marekKg = CompetitorLogic.simulateAITurn(42,  45_000, #Summer, aiEntropy);
+                let _kasiaKg = CompetitorLogic.simulateAITurn(137, 18_000, #Summer, aiEntropy);
+                let _hansKg  = CompetitorLogic.simulateAITurn(999, 70_000, #Summer, aiEntropy);
+                " | AI Harvest Results: Marek=" # Nat.toText(_marekKg) # "kg, Kasia=" # Nat.toText(_kasiaKg) # "kg, Hans=" # Nat.toText(_hansKg) # "kg"
+            } else { "" };
+            
+            #Ok("Advanced to phase: " # debug_show(nextPhase) # weatherMsg # aiText)
         };
     }
   };

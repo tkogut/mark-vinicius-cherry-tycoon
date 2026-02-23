@@ -45,70 +45,73 @@ export const SellModal: React.FC<SellModalProps> = ({
     const pricingFactors = useMemo(() => {
         if (!prices || !farm) return null;
 
-        const base = saleType === 'wholesale'
+        const basePrice = saleType === 'wholesale'
             ? Number(prices.wholesaleBasePrice)
             : Number(prices.retailBasePrice);
 
-        // 1. Season Modifier
+        // 1. Season Modifier (For AI Market Competition)
         const seasonKey = Object.keys(farm.currentSeason)[0]; // "Spring", "Summer", etc.
-        let seasonMod = 1.0;
-        if (seasonKey === 'Winter') seasonMod = 1.4; // Scarcity
-        if (seasonKey === 'Spring') seasonMod = 1.2; // Early demand
-        if (seasonKey === 'Summer') seasonMod = 0.9; // Glut
-        if (seasonKey === 'Autumn') seasonMod = 1.0;
+        let seasonDemand = 20000;
+        let aiSupplyKg = 0;
+        if (seasonKey === 'Spring') { seasonDemand = 30000; aiSupplyKg = 0; }
+        if (seasonKey === 'Summer') { seasonDemand = 80000; aiSupplyKg = 133000; } // 45k+18k+70k = 133k base + 15% bonus = ~152k, but let's use 133k base for approx
+        if (seasonKey === 'Autumn') { seasonDemand = 50000; aiSupplyKg = 106400; } // 80% of 133k
+        if (seasonKey === 'Winter') { seasonDemand = 20000; aiSupplyKg = 0; }
 
-        // 2. Population / Market Access (Retail only)
-        // Default to 1.0 if no parcel info, or use first parcel's region
         let popMod = 1.0;
         let regionName = "Unknown Region";
-        let population = 0;
+        let population = 50000;
+        let marketSize = 0.8;
+        let avgQuality = 50;
+        let hasOrganicCertified = false;
 
         if (farm.parcels.length > 0) {
             const region = farm.parcels[0].region;
             regionName = region.commune;
-            try {
-                population = Number(region.population);
-            } catch (e) { population = 50000; } // Fallback
-
-            if (saleType === 'retail') {
-                // Larger population = higher willingness to pay / better market
-                // Normalize around 50k population. Max bonus 1.5x at 200k+
-                popMod = 0.8 + (Math.min(population, 200000) / 200000) * 0.7;
-            }
+            marketSize = Number(region.marketSize) || 0.8;
+            avgQuality = farm.parcels.reduce((acc, p) => acc + Number(p.quality), 0) / farm.parcels.length;
+            hasOrganicCertified = farm.parcels.some(p => p.organicCertified);
+            try { population = Number(region.population); } catch (e) { population = 50000; }
         }
 
-        // 3. Volume Penalty (Saturation)
-        // Selling too much at once lowers the unit price
-        // Wholesale absorbs more volume better than retail
-        let volumePenalty = 1.0;
-        if (amount > 0) {
-            const saturationPoint = saleType === 'wholesale' ? 5000 : 500;
-            const saturation = amount / saturationPoint;
-            // Decay curve: 1 / (1 + saturation * 0.1)
-            volumePenalty = 1 / (1 + (saturation * 0.2));
-        }
+        // Shared Market Multiplier (Supply/Demand curve)
+        const GLOBAL_BASELINE_KG = 20000;
+        let totalSupply = amount + aiSupplyKg + GLOBAL_BASELINE_KG;
+        let rawMarketMult = seasonDemand / (totalSupply || 1);
+        let marketMult = Math.max(0.5, Math.min(1.0, rawMarketMult)); // Floor 0.5, Cap 1.0
 
-        const finalUnitPrice = base * seasonMod * popMod * volumePenalty * prices.demandMultiplier;
-
-        // 4. Organic Premium (Retail Only)
+        let finalUnitPrice = basePrice;
+        let qualityBonus = 1.0;
         let organicMod = 1.0;
-        const hasOrganicCertified = farm.parcels.some(p => p.organicCertified);
-        if (saleType === 'retail' && hasOrganicCertified) {
-            organicMod = 1.4;
+        let volumePenalty = 1.0;
+
+        // Calculate exact price matching GameLogic.mo
+        if (saleType === 'retail') {
+            qualityBonus = 1.0 + (avgQuality / 100 * 0.3);
+            organicMod = hasOrganicCertified ? 1.4 : 1.0;
+            finalUnitPrice = basePrice * marketSize * qualityBonus * organicMod * marketMult;
+        } else {
+            let wholesaleMultiplier = 0.7;
+            volumePenalty = amount > 10000 ? 1.05 : (amount > 5000 ? 1.02 : 1.0);
+            qualityBonus = 1.0 + (avgQuality / 100 * 0.1);
+            finalUnitPrice = basePrice * wholesaleMultiplier * volumePenalty * qualityBonus * marketMult;
         }
+
+        // Ensure floor price 1 PLN/kg
+        finalUnitPrice = Math.max(1.0, finalUnitPrice);
 
         return {
-            base,
+            base: basePrice,
             season: seasonKey,
-            seasonMod,
+            seasonMod: 1.0, // deprecated inside modal component but kept for UI
             regionName,
             population,
-            popMod,
+            popMod: marketSize,
             volumePenalty,
             hasOrganicCertified,
             organicMod,
-            demandMultiplier: prices.demandMultiplier,
-            finalUnitPrice: Math.max(1, finalUnitPrice * organicMod) // Minimum 1
+            demandMultiplier: marketMult,
+            finalUnitPrice: finalUnitPrice
         };
 
     }, [prices, farm, saleType, amount]);
