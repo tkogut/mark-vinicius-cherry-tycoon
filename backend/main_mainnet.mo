@@ -443,13 +443,13 @@ persistent actor CherryTycoon {
               case (?w) { GameLogic.applyWeatherImpact(baseHarvestedAmount, w.weather, w.severity) };
             };
 
-            // Phase 5.7: Apply Labor Yield Multiplier
-            let harvestedAmount = switch (farm.hiredLabor) {
-              case (?#Village) { Float.toInt(Int.toFloat(weatherAdjustedAmount) * 0.9) };
-              case (?#Standard) { weatherAdjustedAmount };
-              case (?#City) { Float.toInt(Int.toFloat(weatherAdjustedAmount) * 1.1) };
-              case (?#Emergency) { Float.toInt(Int.toFloat(weatherAdjustedAmount) * 0.8) };
-              case null { weatherAdjustedAmount }; // Shouldn't happen due to advancePhase auto-assignment, fallback to 1.0x
+            // Phase 5.7: Apply Labor Yield Multiplier (Int math to avoid Float module errors)
+            let harvestedAmount : Nat = switch (farm.hiredLabor) {
+              case (?#Village) { Int.abs((weatherAdjustedAmount * 9) / 10) };
+              case (?#Standard) { Int.abs(weatherAdjustedAmount) };
+              case (?#City) { Int.abs((weatherAdjustedAmount * 11) / 10) };
+              case (?#Emergency) { Int.abs((weatherAdjustedAmount * 8) / 10) };
+              case null { Int.abs(weatherAdjustedAmount) }; // Shouldn't happen due to advancePhase auto-assignment, fallback to 1.0x
             };
 
             // Update parcel
@@ -979,7 +979,7 @@ persistent actor CherryTycoon {
         };
 
         // Calculate price based on sale type, saturation, and AI market competition
-        let pricePerKg = if (saleType == "retail") {
+        let revenue = if (saleType == "retail") {
           // Calculate average quality score across all parcels
           var totalQuality = 0;
           for (p in farm.parcels.vals()) {
@@ -997,9 +997,11 @@ persistent actor CherryTycoon {
             hasOrganicCertified,
             saturationMult
           );
-          // SEC: safe Nat — Float.toInt can return 0, Int.abs handles sign
-          let adjustedPrice = Int.abs(Float.toInt(Float.fromInt(basePrice) * marketMult));
-          if (adjustedPrice < 1) 1 else adjustedPrice
+          
+          // Calculate total float revenue to preserve precision across bulk sales
+          let totalFloatRevenue = basePrice * marketMult * Float.fromInt(quantity);
+          let computedRevenue = Int.abs(Float.toInt(totalFloatRevenue));
+          if (computedRevenue < quantity) quantity else computedRevenue // Floor: 1 PLN/kg
         } else {
           let basePrice = GameLogic.calculateWholesalePrice(
             baseWholesalePrice,
@@ -1007,11 +1009,10 @@ persistent actor CherryTycoon {
             60, // average quality
             saturationMult
           );
-          let adjustedPrice = Int.abs(Float.toInt(Float.fromInt(basePrice) * marketMult));
-          if (adjustedPrice < 1) 1 else adjustedPrice
+          let totalFloatRevenue = basePrice * marketMult * Float.fromInt(quantity);
+          let computedRevenue = Int.abs(Float.toInt(totalFloatRevenue));
+          if (computedRevenue < quantity) quantity else computedRevenue // Floor: 1 PLN/kg
         };
-
-        let revenue = quantity * pricePerKg;
 
         // Update Market Saturation (add quantity sold to decayed volume)
         let decayedVol = getDecayedVolume(regionKey);
@@ -1267,6 +1268,7 @@ persistent actor CherryTycoon {
       currentSeason = nextSeason;
       currentPhase = #Hiring; // Reset phase on new season
       weather = null; // Clear weather on new season
+      hiredLabor = null; // Phase 5.7: Reset labor for new season
       seasonNumber = farm.seasonNumber + 1;
       cash = Int.abs((farm.cash : Int) - (totalCosts : Int));
       parcels = updatedParcels;
@@ -1298,13 +1300,6 @@ persistent actor CherryTycoon {
             if (farm.currentPhase == #Planning) {
                 // Call the internal season logic which handles spoilage, AI turns, and stats
                 return await _advanceSeasonInternal(farm, caller);
-            };
-
-            var updatedFarm = farm;
-
-            // Phase 5.7: Auto-assign Emergency labor if skipped
-            if (farm.currentPhase == #Hiring and farm.hiredLabor == null) {
-                updatedFarm := { updatedFarm with hiredLabor = ?#Emergency };
             };
 
             var updatedFarm = farm;

@@ -15,8 +15,11 @@ test_actions() {
   echo "[plantTrees] (Expect OK in Investment, REJECT otherwise)"
   dfx canister call backend plantTrees '("parcel_1", 10)'
   
-  echo "[waterParcel] (Expect OK in Growth, REJECT otherwise)"
+  echo "[waterParcel] (Expect OK in Spring/Summer, REJECT otherwise)"
   dfx canister call backend waterParcel '("parcel_1")'
+  
+  echo "[hireLabor] (Expect OK in Hiring, REJECT otherwise)"
+  dfx canister call backend hireLabor '("Standard")'
   
   echo "[fertilizeParcel] (Expect OK in Spring/Autumn, REJECT in Summer/Winter)"
   dfx canister call backend fertilizeParcel '("parcel_1", "basic")'

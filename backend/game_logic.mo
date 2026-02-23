@@ -118,12 +118,12 @@ module {
     quality: Nat,
     isOrganic: Bool,
     saturationMultiplier: Float // New: 0.5 (saturated) to 1.0 (empty)
-  ) : Nat {
+  ) : Float {
     let qualityBonus = 1.0 + (Float.fromInt(quality) / 100.0 * 0.3); // up to +30%
     let organicPremium = if (isOrganic) { 1.4 } else { 1.0 }; // +40% for organic
     
     let finalPrice = Float.fromInt(basePrice) * marketSize * qualityBonus * organicPremium * saturationMultiplier;
-    Int.abs(Float.toInt(finalPrice))
+    finalPrice
   };
 
   // Wholesale price: Base × 0.7 × VolumeDiscount × Saturation
@@ -132,7 +132,7 @@ module {
     quantity: Nat,
     quality: Nat,
     saturationMultiplier: Float // New: 0.8 to 1.0
-  ) : Nat {
+  ) : Float {
     let wholesaleMultiplier = 0.7;
     
     // Volume discount: larger quantities get slightly better price
@@ -144,7 +144,7 @@ module {
     let qualityBonus = 1.0 + (Float.fromInt(quality) / 100.0 * 0.1); // up to +10%
     
     let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier;
-    Int.abs(Float.toInt(finalPrice))
+    finalPrice
   };
 
   // ============================================================================
