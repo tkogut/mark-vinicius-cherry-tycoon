@@ -9,17 +9,16 @@ interface PhaseIndicatorProps {
     className?: string;
 }
 
-const PHASES: { id: GamePhase; label: string }[] = [
-    { id: 'Planning', label: 'Plan' },
-    { id: 'Hiring', label: 'Hire' },
-    { id: 'Procurement', label: 'Buy' },
-    { id: 'Investment', label: 'Invest' },
-    { id: 'Growth', label: 'Grow' },
-    { id: 'Harvest', label: 'Harv' },
-    { id: 'Market', label: 'Sell' },
-    { id: 'Storage', label: 'Store' },
-    { id: 'CutAndPrune', label: 'Prune' },
-    { id: 'Maintenance', label: 'Maint' }
+{ id: 'Hiring', label: 'Hire' },
+{ id: 'Procurement', label: 'Buy' },
+{ id: 'Investment', label: 'Invest' },
+{ id: 'Growth', label: 'Grow' },
+{ id: 'Harvest', label: 'Harv' },
+{ id: 'Market', label: 'Sell' },
+{ id: 'Storage', label: 'Store' },
+{ id: 'CutAndPrune', label: 'Prune' },
+{ id: 'Maintenance', label: 'Maint' },
+{ id: 'Planning', label: 'Plan' }
 ];
 
 export const PhaseIndicator: React.FC<PhaseIndicatorProps> = ({ currentPhase, className }) => {

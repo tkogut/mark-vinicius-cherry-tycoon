@@ -55,10 +55,13 @@
 
 ---
 
-### 🔵 Phase 5.7: Phase Engagement & Mechanics Deepening (UPCOMING)
-- [ ] **Hiring Phase Rework**: Replace flat fee with wage negotiation. Decide on worker types (e.g., cheap/low-productivity seasonal labor vs. expensive/high-productivity city workers).
-- [ ] **Spring Watering**: Allow `waterParcel` action earlier (e.g., in Spring/#Procurement or #Investment) to combat early droughts.
-- [ ] **Phase Engagement Mechanics**: Brainstorm and implement at least one active, meaningful decision (or minigame-like choice) for EVERY single phase so no phase is just a passive click-through.
+### 🔵 Phase 5.7: Phase Engagement & Mechanics Deepening
+- [ ] **Hiring Phase Rework (Spring)**: Introduce a Hybrid Cost Model for labor (`#Village`, `#Standard`, `#City`). Upfront retainer fees in `#Hiring` + per kg costs at `#Harvest`. Auto-assign punishing `#Emergency` labor if skipped.
+- [ ] **Spring Watering**: Allow `waterParcel` action earlier (`#Procurement`, `#Investment`, `#Growth`) to combat early droughts.
+- [ ] **Bulk Supply (#Procurement)**: Market price fluctuations for fertilizers/pesticides.
+- [ ] **Forward Contract Negotiation (#Market)**: Lock-in contracts with specific AI buyers for guaranteed prices.
+- [ ] **Machine Degradation (#Maintenance)**: Implement `inspectAndRepair` mechanic to avoid permanent infrastructure downgrades.
+- [ ] **Market Forecasting (#Planning)**: Optional paid "Weather & Market Forecasts" revealing upcoming standard deviations for AI/Weather.
 
 ---
 

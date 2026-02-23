@@ -260,11 +260,52 @@ actor CherryTycoon {
       weather = null;
       seasonNumber = 1;
       lastActive = Int.abs(Time.now());
+      hiredLabor = null; // Phase 5.7: Must be hired in Spring
       ownedClubs = [];
     };
 
     playerFarms.put(caller, newFarm);
     #Ok("Player " # playerName # " initialized successfully with starter farm")
+  };
+
+  // Phase 5.7: Hire Seasonal Labor
+  public shared({ caller }) func hireLabor(
+    laborChoice: Text
+  ) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        
+        if (farm.currentPhase != #Hiring) {
+          return #Err(#SeasonalRestriction("Labor can only be hired during the Hiring phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        if (farm.hiredLabor != null) {
+          return #Err(#InvalidOperation("Labor contract already secured for this season."));
+        };
+
+        let (laborType, upfrontCost) : (Types.LaborType, Nat) = switch (laborChoice) {
+          case ("Village") { (#Village, 500) };
+          case ("Standard") { (#Standard, 1500) };
+          case ("City") { (#City, 3000) };
+          case (_) { return #Err(#InvalidOperation("Invalid labor type. Choose 'Village', 'Standard', or 'City'")) };
+        };
+
+        if (farm.cash < upfrontCost) {
+           return #Err(#InsufficientFunds { required = upfrontCost; available = farm.cash });
+        };
+
+        let updatedFarm = {
+          farm with
+          cash = Int.abs((farm.cash : Int) - (upfrontCost : Int));
+          hiredLabor = ?laborType;
+        };
+
+        playerFarms.put(caller, updatedFarm);
+        #Ok("Successfully hired " # laborChoice # " labor for " # Nat.toText(upfrontCost) # " PLN upfront.")
+      };
+    }
   };
 
   // Get player's farm
@@ -415,9 +456,18 @@ actor CherryTycoon {
             };
 
             // Phase 5.1: Apply active weather impact on yield
-            let harvestedAmount = switch (farm.weather) {
+            let weatherAdjustedAmount = switch (farm.weather) {
               case (null) { baseHarvestedAmount };
               case (?w) { GameLogic.applyWeatherImpact(baseHarvestedAmount, w.weather, w.severity) };
+            };
+
+            // Phase 5.7: Apply Labor Yield Multiplier
+            let harvestedAmount = switch (farm.hiredLabor) {
+              case (?#Village) { Float.toInt(Int.toFloat(weatherAdjustedAmount) * 0.9) };
+              case (?#Standard) { weatherAdjustedAmount };
+              case (?#City) { Float.toInt(Int.toFloat(weatherAdjustedAmount) * 1.1) };
+              case (?#Emergency) { Float.toInt(Int.toFloat(weatherAdjustedAmount) * 0.8) };
+              case null { weatherAdjustedAmount }; // Shouldn't happen due to advancePhase auto-assignment, fallback to 1.0x
             };
 
             // Update parcel
@@ -449,7 +499,16 @@ actor CherryTycoon {
               }
             };
 
-            let laborCost = harvestedAmount * 2; // 2 PLN per kg
+            // Phase 5.7: Calculate labor cost based on contract
+            let laborCostPerKg : Nat = switch (farm.hiredLabor) {
+              case (?#Village) { 1 };
+              case (?#Standard) { 2 };
+              case (?#City) { 3 };
+              case (?#Emergency) { 4 };
+              case null { 2 }; // fallback
+            };
+            let laborCost = Int.abs(harvestedAmount) * laborCostPerKg;
+            
             let updatedStats = updateSeasonalReport(farm, func(r) {
               let updatedReport = { r with
                 laborCosts = r.laborCosts + laborCost;
@@ -499,9 +558,9 @@ actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        // Phase 5.1: Phase gate — watering only in Growth phase
-        if (farm.currentPhase != #Growth) {
-          return #Err(#SeasonalRestriction("Watering only allowed in Growth phase. Current: " # debug_show(farm.currentPhase)));
+        // Phase 5.7: Phase gate — watering allowed in Spring and Summer to combat early droughts
+        if (farm.currentSeason != #Spring and farm.currentSeason != #Summer) {
+          return #Err(#SeasonalRestriction("Watering only allowed in Spring or Summer. Current Season: " # debug_show(farm.currentSeason)));
         };
 
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
@@ -1256,6 +1315,20 @@ actor CherryTycoon {
         case null { return #Err(#NotFound("Player not found")) };
         case (?farm) {
             
+            var updatedFarm = farm;
+
+            // Phase 5.7: Auto-assign Emergency labor if skipped
+            if (farm.currentPhase == #Hiring and farm.hiredLabor == null) {
+                updatedFarm := { updatedFarm with hiredLabor = ?#Emergency };
+            };
+
+            var updatedFarm = farm;
+
+            // Phase 5.7: Auto-assign Emergency labor if skipped
+            if (farm.currentPhase == #Hiring and farm.hiredLabor == null) {
+                updatedFarm := { updatedFarm with hiredLabor = ?#Emergency };
+            };
+
             let nextPhase : Types.SeasonPhase = switch (farm.currentPhase) {
                 case (#Hiring) { #Procurement };
                 case (#Procurement) { #Investment };

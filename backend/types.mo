@@ -225,6 +225,7 @@ module {
     weather: ?WeatherEvent; // [NEW] Active weather event
     seasonNumber: Nat;
     lastActive: Nat;  // Timestamp in nanoseconds (converted from Time.Time)
+    hiredLabor: ?LaborType;  // [NEW] Selected labor contract for the season
     
     // Sports Center (Phase 6)
     ownedClubs: [Text]; // IDs of owned FootballClubs
@@ -239,6 +240,13 @@ module {
     #Summer;   // growth, harvest preparation
     #Autumn;   // maintenance season, cut and prune trees
     #Winter;   // dormant, planning, infrastructure
+  };
+
+  public type LaborType = {
+    #Village;   // Upfront: 500, Harvest: 1/kg, Yield: 0.9x
+    #Standard;  // Upfront: 1500, Harvest: 2/kg, Yield: 1.0x
+    #City;      // Upfront: 3000, Harvest: 3/kg, Yield: 1.1x
+    #Emergency; // Upfront: 0, Harvest: 4/kg, Yield: 0.8x (Penalty)
   };
 
   public type SeasonPhase = {
