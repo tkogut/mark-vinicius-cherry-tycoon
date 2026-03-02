@@ -77,7 +77,7 @@ persistent actor CherryTycoon {
   private transient var baseRetailPrice : Nat = 15; // PLN per kg
   private transient var baseWholesalePrice : Nat = 10; // PLN per kg
 
-  // Stable storage for upgrades (stable is implicit in persistent actor)
+  // Stable storage for upgrades
   private var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
   private var stableSaturation : [(Text, (Nat, Int))] = [];
   private var stableGlobalSeason : Nat = 1;

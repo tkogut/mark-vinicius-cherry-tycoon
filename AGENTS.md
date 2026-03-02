@@ -27,9 +27,8 @@ Located in `execution/`:
 2. **Select your Role** (e.g., "I am working on Backend").
 3. **Read your specific Directive** (e.g., `01_backend_backlog.md`).
 4. **Execute** the top priority item.
-5. **WSL Workflow**: All commands (dfx, npm, etc.) MUST be executed in the Linux home directory (`/home/tkogut/projects/mark-vinicius-cherry-tycoon`).
-6. **Update** the directive file and `00_master_plan.md` upon completion.
-7. **Security Gate**: Backend commits require Security Agent review before merge.
+5. **Update** the directive file and `00_master_plan.md` upon completion.
+6. **Security Gate**: Backend commits require Security Agent review before merge.
 
 ### 4. Self-Correction
 - If a script fails, fix it in `execution/`.
