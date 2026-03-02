@@ -26,7 +26,7 @@ jobs:
           dfx-version: '0.24.3'
 
       - name: Import Deploy Identity
-        if: env.DFX_IDENTITY != ''
+        if: secrets.DFX_IDENTITY_PEM != ''
         env:
           DFX_IDENTITY: ${{ secrets.DFX_IDENTITY_PEM }}
         run: |
@@ -40,8 +40,10 @@ jobs:
           unset CI
           unset GITHUB_ACTIONS
           dfx deploy backend --network playground --yes
-          
-          # Export ID for frontend build
+        continue-on-error: false
+
+      - name: Export Backend ID
+        run: |
           BACKEND_ID=$(dfx canister --network playground id backend)
           echo "VITE_BACKEND_CANISTER_ID=$BACKEND_ID" >> $GITHUB_ENV
           echo "Backend ID: $BACKEND_ID"
@@ -68,3 +70,14 @@ jobs:
             echo "Canister IDs:"
             cat .dfx/playground/canister_ids.json
           fi
+
+      - name: Upload Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playground-deploy-logs
+          path: |
+            .tmp/*.log
+            frontend/npm-debug.log
+            *.log
+
