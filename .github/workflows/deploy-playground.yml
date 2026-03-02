@@ -9,6 +9,8 @@ jobs:
   deploy-playground:
     runs-on: ubuntu-latest
     name: Deploy to Playground
+    env:
+      DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,12 +28,10 @@ jobs:
           dfx-version: '0.24.3'
 
       - name: Import Deploy Identity
-        if: ${{ secrets.DFX_IDENTITY_PEM }}
-        env:
-          DFX_IDENTITY: ${{ secrets.DFX_IDENTITY_PEM }}
+        if: ${{ env.DFX_IDENTITY_PEM != '' }}
         run: |
           mkdir -p ~/.config/dfx/identity/deploy
-          echo "$DFX_IDENTITY" > ~/.config/dfx/identity/deploy/identity.pem
+          echo "${{ env.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/deploy/identity.pem
           dfx identity use deploy
           dfx identity get-principal
 
@@ -40,7 +40,6 @@ jobs:
           unset CI
           unset GITHUB_ACTIONS
           dfx deploy backend --network playground --yes
-        continue-on-error: false
 
       - name: Export Backend ID
         run: |
