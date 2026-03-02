@@ -26,7 +26,7 @@ jobs:
           dfx-version: '0.24.3'
 
       - name: Import Deploy Identity
-        if: secrets.DFX_IDENTITY_PEM != ''
+        if: ${{ secrets.DFX_IDENTITY_PEM }}
         env:
           DFX_IDENTITY: ${{ secrets.DFX_IDENTITY_PEM }}
         run: |
