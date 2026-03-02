@@ -14,6 +14,7 @@ Located in `directives/`:
 - **`02_frontend_backlog.md`**: React/Frontend tasks. (Managed by **Frontend Agent**).
 - **`03_qa_checklist.md`**: Testing tasks. (Managed by **QA Agent**).
 - **`04_security_backlog.md`**: Security audit tasks. (Managed by **Security Agent**).
+- **`05_game_lore.md`**: Creative direction and Lore (READ TO AVOID HALLUCINATIONS).
 - **`99_agent_protocols.md`**: Rules of engagement.
 - **`SECURITY_DIRECTIVE_V1.md`**: Blockchain security policy.
 - **`BOOTSTRAP_PROMPTS.md`**: Copy-paste prompts to initialize agents.
