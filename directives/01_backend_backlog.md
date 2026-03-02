@@ -1,10 +1,10 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Phase 0 — Close Out 2.5 Cleanup, then Phase 5 — Living World**
+> **Current Directive**: **WSL Migration Verification → Phase 5.7 Mechanics Deepening**
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` and `npm` commands in WSL terminal manually.
-> **Architecture**: **Dual Entrypoint** - `main.mo` (Playground/dfx 0.24.3) + `main_mainnet.mo` (Mainnet/EOP). See `motoko-playground-mainnet-directive.md`.
+> **Architecture**: **Dual Entrypoint** - `main.mo` (Playground/dfx 0.30.2) + `main_mainnet.mo` (Mainnet/EOP). See `motoko-playground-mainnet-directive.md`.
 > **Security**: All commits reviewed by Security Agent before merge (see `SECURITY_DIRECTIVE_V1.md`)
-> **Last Updated**: 2026-02-17
+> **Last Updated**: 2026-03-01
 
 ## Backlog
 

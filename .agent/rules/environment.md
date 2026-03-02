@@ -1,21 +1,22 @@
 # Cherry Tycoon Environment & Agent Directives
 
 ## 🌍 Environment Context
-- **OS**: WSL2 (Ubuntu)
+- **OS**: WSL2 (Ubuntu) — Migrated 2026-03-01
 - **Primary Tooling**: 
-  - dfx 0.24.3 (Internet Computer SDK)
+  - dfx 0.30.2 (Internet Computer SDK)
+  - Node.js v24.14.0 / NPM 11.9.0
   - Motoko (Backend logic)
   - React / Next.js (Frontend)
   - socat (Network bridging)
 - **Path Mapping**:
-  - Windows: C:\Users\admintk\.gemini\antigravity\playground\mark-vinicius-checker-tycoon-1 (Note: Project root name on Windows might vary slightly, always use relative paths from root).
-  - WSL: /home/tkogut/projects/mark-vinicius-cherry-tycoon-1
+  - Windows: C:\Users\admin_tk\.gemini\antigravity\projects\mark-vinicius-cherry-tycoon
+  - WSL: /home/tkogut/projects/mark-vinicius-cherry-tycoon
 
 ## 🌉 Browser Automation (The Bridge)
 - **Status**: ACTIVE
 - **CDP Bridge**: Antigravity agents use a Windows Chrome instance via a socat tunnel.
 - **Settings**:
-  - **CDP Port**: 9222
+  - **CDP Port**: 9222 (Bridged to Windows)
   - **Gateway IP**: 172.27.32.1
 - **Rule**: When browser automation is needed, ensure the ntigravity_chrome.bat launcher is active on the Windows host.
 

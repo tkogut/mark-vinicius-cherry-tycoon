@@ -1,9 +1,9 @@
 # FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]
 
-> **Current Directive**: **Phase 5 — Living World: Animations, UI Themes, Competitors, i18n**
-> **Constraint**: **WSL Terminal Required** - For `dfx generate` and environment management.
+> **Current Directive**: **Phase 5.6 — Activity-Based Turn System UI (ACTIVE)**
+> **Constraint**: **WSL Terminal Required** - For `dfx generate`, `npm install`, and environment management. dfx 0.30.2 / Node v24.14.0.
 > **Animation Directive**: Modern mobile animations — SVG morphing, Lottie, particles. No static jumps.
-> **Last Updated**: 2026-02-17
+> **Last Updated**: 2026-03-01
 
 ## Backlog
 
