@@ -80,33 +80,85 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                         ))}
                     </nav>
 
-                    {/* User Level Card (Bottom) */}
+                    {/* User Level Card (Bottom) — Neo-Steampunk Brass Plate */}
                     <div className="p-4 mt-auto border-t border-slate-800/50">
-                        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 backdrop-blur-sm shadow-xl">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-rose-400 uppercase tracking-wider">
-                                    Farmer Tier
-                                </span>
-                                <span className="text-xs text-slate-400 font-mono">Lvl {level}</span>
-                            </div>
+                        <div
+                            className="rounded-xl p-[2px] shadow-xl"
+                            style={{
+                                background: 'linear-gradient(135deg, #d4a056 0%, #c9975a 20%, #f5d08a 40%, #e0b76c 60%, #9e7434 80%, #d4a056 100%)',
+                                boxShadow: '0 0 12px rgba(212, 160, 86, 0.3), inset 0 1px 1px rgba(255,255,255,0.15)'
+                            }}
+                        >
+                            <div className="bg-slate-900/95 rounded-[10px] p-4 backdrop-blur-sm">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span
+                                        className="text-xs font-bold uppercase tracking-[0.2em] px-2 py-0.5 rounded"
+                                        style={{
+                                            background: 'linear-gradient(135deg, rgba(212,160,86,0.15), rgba(245,208,138,0.08))',
+                                            color: '#d4a056',
+                                            border: '1px solid rgba(212,160,86,0.3)',
+                                            textShadow: '0 0 8px rgba(212,160,86,0.4)'
+                                        }}
+                                    >
+                                        Farmer Tier
+                                    </span>
+                                    <span className="text-xs text-slate-400 font-mono">Lvl {level}</span>
+                                </div>
 
-                            <div className="font-bold text-sm text-slate-100 mb-3">
-                                {level >= 5 ? t('farm.tier.expert') : t('farm.tier.novice')}
-                            </div>
-
-                            {/* XP Progress Bar */}
-                            <div className="relative h-2 w-full bg-slate-900/50 rounded-full overflow-hidden">
+                                {/* Tier Name — Brass Engraved Label */}
                                 <div
-                                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-1000 ease-out"
-                                    style={{ width: `${xpPercentage}%` }}
-                                />
-                            </div>
+                                    className="font-serif font-bold text-sm mb-3 tracking-wide"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #f5d08a, #d4a056, #c9975a)',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                        textShadow: 'none',
+                                        filter: 'drop-shadow(0 0 6px rgba(212,160,86,0.3))'
+                                    }}
+                                >
+                                    {level >= 20 ? t('farm.tier.master')
+                                        : level >= 10 ? t('farm.tier.expert')
+                                            : level >= 5 ? t('farm.tier.journeyman')
+                                                : level >= 3 ? t('farm.tier.apprentice')
+                                                    : t('farm.tier.novice')}
+                                </div>
 
-                            <div className="flex justify-between mt-1.5">
-                                <span className="text-[10px] text-slate-500">Current</span>
-                                <span className="text-[10px] text-slate-400 font-medium">
-                                    {nextLevelXp - xp} XP to next
-                                </span>
+                                {/* XP Progress Bar — Liquid Mercury Effect */}
+                                <div
+                                    className="relative h-3 w-full rounded-full overflow-hidden"
+                                    style={{
+                                        background: 'linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
+                                        border: '1px solid rgba(212,160,86,0.2)',
+                                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+                                    }}
+                                >
+                                    <div
+                                        className="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out"
+                                        style={{
+                                            width: `${xpPercentage}%`,
+                                            background: 'linear-gradient(180deg, #e8e8f0 0%, #c0c0d0 30%, #a8a8b8 50%, #8888a0 70%, #707088 100%)',
+                                            boxShadow: '0 0 8px rgba(192,192,208,0.5), inset 0 1px 2px rgba(255,255,255,0.6), inset 0 -1px 2px rgba(0,0,0,0.3)'
+                                        }}
+                                    />
+                                    {/* Mercury shimmer overlay */}
+                                    {xpPercentage > 0 && (
+                                        <div
+                                            className="absolute top-0 left-0 h-full rounded-full"
+                                            style={{
+                                                width: `${xpPercentage}%`,
+                                                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 30%, transparent 60%)',
+                                                animation: 'mercuryShimmer 3s ease-in-out infinite',
+                                            }}
+                                        />
+                                    )}
+                                </div>
+
+                                <div className="flex justify-between mt-1.5">
+                                    <span className="text-[10px] text-slate-500 font-mono">{xp} XP</span>
+                                    <span className="text-[10px] text-amber-400/70 font-medium font-mono">
+                                        {nextLevelXp - xp} XP to next
+                                    </span>
+                                </div>
                             </div>
                         </div>
 

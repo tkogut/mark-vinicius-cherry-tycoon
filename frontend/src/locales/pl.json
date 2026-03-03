@@ -31,7 +31,10 @@
         "level": "Poziom",
         "tier": {
             "novice": "Początkujący Sadownik",
-            "expert": "Ekspert Wiśniowy"
+            "apprentice": "Czeladnik Sadu",
+            "journeyman": "Doświadczony Rolnik",
+            "expert": "Ekspert Wiśniowy",
+            "master": "Mistrz Tycoon"
         },
         "parcels": "Parcele",
         "infrastructure": "Infrastruktura",

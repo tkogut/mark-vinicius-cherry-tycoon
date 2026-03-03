@@ -31,7 +31,10 @@
         "level": "Level",
         "tier": {
             "novice": "Novice Grower",
-            "expert": "Cherry Expert"
+            "apprentice": "Apprentice Orchardist",
+            "journeyman": "Journeyman Farmer",
+            "expert": "Cherry Expert",
+            "master": "Master Tycoon"
         },
         "parcels": "Parcels",
         "infrastructure": "Infrastructure",

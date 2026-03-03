@@ -95,3 +95,10 @@
   50% { transform: rotate(5deg) scale(1.1); opacity: 0.4; }
   100% { transform: rotate(-5deg) scale(1); opacity: 0.2; }
 }
+
+/* Neo-Steampunk: Liquid Mercury shimmer for XP bar */
+@keyframes mercuryShimmer {
+  0% { transform: translateX(-100%); opacity: 0.3; }
+  50% { transform: translateX(50%); opacity: 0.6; }
+  100% { transform: translateX(200%); opacity: 0.3; }
+}
