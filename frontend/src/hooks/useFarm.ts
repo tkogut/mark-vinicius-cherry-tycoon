@@ -376,6 +376,41 @@ export function useFarm() {
         },
     });
 
+    const upgradeGoldenHarvesterMutation = useMutation({
+        mutationFn: async () => {
+            console.log('[useFarm] upgradeGoldenHarvester called');
+            if (!backendActor) {
+                console.warn('[useFarm] No backend actor for golden harvester upgrade');
+                throw new Error('Not authenticated');
+            }
+            const result = await backendActor.upgrade_golden_harvester();
+            if ('Err' in result) {
+                console.error('[useFarm] upgrade_golden_harvester failed:', result.Err);
+                throw new Error(getErrorMessage(result.Err));
+            }
+            console.log('[useFarm] upgrade_golden_harvester succeeded:', result.Ok);
+            return result.Ok;
+        },
+        onSuccess: (newLevel) => {
+            console.log('[useFarm] Invalidating farm query after golden harvester upgrade');
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Cinematic Upgrade!",
+                description: `Golden Harvester ascended to Level ${newLevel.toString()}`,
+                className: "bg-amber-900 border-amber-800 text-amber-100",
+            });
+            playSFX(SOUNDS.GAME.LEVEL_UP);
+        },
+        onError: (error: Error) => {
+            console.error('[useFarm] Golden harvester upgrade mutation error:', error);
+            toast({
+                variant: "destructive",
+                title: "Upgrade Failed",
+                description: error.message,
+            });
+        },
+    });
+
     const advancePhaseMutation = useMutation({
         mutationFn: async () => {
             if (!backendActor) throw new Error("Backend actor not initialized");
@@ -419,6 +454,7 @@ export function useFarm() {
         sellCherries: sellCherriesMutation,
         startOrganicConversion: startOrganicConversionMutation,
         upgradeInfrastructure: upgradeInfrastructureMutation,
+        upgradeGoldenHarvester: upgradeGoldenHarvesterMutation,
         advancePhase: advancePhaseMutation,
     };
 }

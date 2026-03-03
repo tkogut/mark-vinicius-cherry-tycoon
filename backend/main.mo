@@ -19,7 +19,7 @@ import CompetitorLogic "competitor_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-actor CherryTycoon {
+persistent actor CherryTycoon {
   
   
   // Type aliases
@@ -43,7 +43,7 @@ actor CherryTycoon {
   type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
-  let accessControlState = AccessControl.initState();
+  private transient let accessControlState = AccessControl.initState();
 
   public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
     await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
@@ -66,16 +66,16 @@ actor CherryTycoon {
   // ============================================================================
 
   // Player farms storage
-  private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+  private transient var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
     10,
     Principal.equal,
     Principal.hash
   );
 
   // Global game state
-  private var globalSeasonNumber : Nat = 1;
-  private var baseRetailPrice : Nat = 15; // PLN per kg
-  private var baseWholesalePrice : Nat = 10; // PLN per kg
+  private transient var globalSeasonNumber : Nat = 1;
+  private transient var baseRetailPrice : Nat = 15; // PLN per kg
+  private transient var baseWholesalePrice : Nat = 10; // PLN per kg
 
   // Stable storage for upgrades
   private stable var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
@@ -123,7 +123,7 @@ actor CherryTycoon {
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  private var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  private transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
 
@@ -1401,6 +1401,7 @@ actor CherryTycoon {
           case ("Warehouse") { ?#Warehouse };
           case ("ColdStorage") { ?#ColdStorage };
           case ("Tractor") { ?#Tractor };
+          case ("GoldenHarvester") { ?#GoldenHarvester };
           case ("Shaker") { ?#Shaker };
           case ("Sprayer") { ?#Sprayer };
           case ("ProcessingFacility") { ?#ProcessingFacility };
@@ -1457,6 +1458,94 @@ actor CherryTycoon {
 
         playerFarms.put(caller, updatedFarm);
         #Ok("Infrastructure upgraded successfully")
+      };
+    }
+  };
+
+  // Phase Cinematic: The Golden Harvester upgrade
+  public shared({ caller }) func upgrade_golden_harvester() : async GameResult<Nat, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        
+        if (farm.currentPhase != #Investment) {
+          return #Err(#SeasonalRestriction("Golden Harvester upgrades only in Investment phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        // Find existing Golden Harvester level
+        var currentLevel : Nat = 0;
+        var infraIndex : ?Nat = null;
+        var idx : Nat = 0;
+        
+        for (infra in farm.infrastructure.vals()) {
+          switch (infra.infraType) {
+            case (#GoldenHarvester) {
+              currentLevel := infra.level;
+              infraIndex := ?idx;
+            };
+            case (_) {};
+          };
+          idx += 1;
+        };
+
+        // Scale cost (Playground): Cost(L) = 10_000 * (1.15^L)
+        var costMultiplier = 1.0;
+        for (i in Iter.range(1, currentLevel)) { costMultiplier *= 1.15 };
+        let cost = Int.abs(Float.toInt(10_000.0 * costMultiplier));
+        
+        switch (await checkBankruptcyRisk(farm, cost)) {
+          case (#Err(e)) { return #Err(e) };
+          case (#Ok(())) {};
+        };
+        
+        let newLevel = currentLevel + 1;
+        
+        let newInfra : Infrastructure = {
+          infraType = #GoldenHarvester;
+          level = newLevel;
+          purchasedSeason = farm.seasonNumber;
+          maintenanceCost = GameLogic.getMaintenanceCost(#GoldenHarvester);
+        };
+
+        let updatedInfrastructure = switch (infraIndex) {
+          case (null) {
+            Array.append<Infrastructure>(farm.infrastructure, [newInfra])
+          };
+          case (?i) {
+            Array.tabulate<Infrastructure>(
+              farm.infrastructure.size(),
+              func(index: Nat) : Infrastructure {
+                if (index == i) { newInfra } else { farm.infrastructure[index] }
+              }
+            )
+          };
+        };
+
+        // Add experience
+        let xpGain = GameLogic.calculateExperienceGain("upgrade", 1);
+        let newXp = farm.experience + xpGain;
+        let newFarmLevel = GameLogic.getLevelFromExperience(newXp);
+
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          { r with 
+            infrastructureCosts = r.infrastructureCosts + cost;
+            totalCosts = r.totalCosts + cost;
+            netProfit = r.netProfit - (cost : Int);
+          }
+        });
+
+        let updatedFarm = {
+          farm with
+          infrastructure = updatedInfrastructure;
+          cash = Int.abs((farm.cash : Int) - (cost : Int));
+          experience = newXp;
+          level = newFarmLevel;
+          statistics = { updatedStats with totalCosts = farm.statistics.totalCosts + cost };
+        };
+
+        playerFarms.put(caller, updatedFarm);
+        #Ok(newLevel)
       };
     }
   };

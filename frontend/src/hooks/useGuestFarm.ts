@@ -54,6 +54,7 @@ const createInitialGuestFarm = (): PlayerFarm => ({
         pesticides: 5n,
         organicTreatments: 0n,
     },
+    hiredLabor: [], // Added for Motoko 0.30 backend compatibility
     statistics: {
         totalHarvested: 0n,
         totalSold: 0n,

@@ -93,6 +93,7 @@ module {
     #Warehouse;          // ability to store and time market
     #ColdStorage;        // reduces losses, stabilizes quality
     #Tractor;            // reduces labor dependency
+    #GoldenHarvester;    // cinematic massive upgrade (1.05^Level yield)
     #Shaker;             // mechanical harvesting
     #Sprayer;            // lower disease risk, higher quality
     #ProcessingFacility; // juices, jams, liqueurs

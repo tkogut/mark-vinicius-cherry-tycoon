@@ -4,6 +4,7 @@
 import Float "mo:base/Float";
 import Int "mo:base/Int";
 import Nat "mo:base/Nat";
+import Iter "mo:base/Iter";
 import Types "types";
 
 module {
@@ -55,6 +56,11 @@ module {
     
     for (infra in infrastructure.vals()) {
       switch (infra.infraType) {
+        case (#GoldenHarvester) {
+          var multi = 1.0;
+          for (i in Iter.range(1, infra.level)) { multi *= 1.05 };
+          modifier *= multi;
+        };
         case (#Tractor) { modifier += 0.05 * Float.fromInt(infra.level) };
         case (#Shaker) { modifier += 0.08 * Float.fromInt(infra.level) };
         case (#Sprayer) { modifier += 0.03 * Float.fromInt(infra.level) };
@@ -158,6 +164,7 @@ module {
       case (#Warehouse) { 25_000 };
       case (#ColdStorage) { 40_000 };
       case (#Tractor) { 30_000 };
+      case (#GoldenHarvester) { 0 }; // Cost handled manually in upgrade_golden_harvester
       case (#Shaker) { 60_000 };
       case (#Sprayer) { 12_000 };
       case (#ProcessingFacility) { 100_000 };
@@ -172,7 +179,7 @@ module {
 
   public func getMaintenancePercentage(infraType: InfrastructureType) : Nat {
     switch (infraType) {
-      case (#Tractor or #Shaker or #Sprayer) { 2 }; // Machinery: 2%
+      case (#GoldenHarvester or #Tractor or #Shaker or #Sprayer) { 2 }; // Machinery: 2%
       case (#Warehouse or #ColdStorage or #ProcessingFacility or #SocialFacilities) { 1 }; // Buildings: 1%
     }
   };

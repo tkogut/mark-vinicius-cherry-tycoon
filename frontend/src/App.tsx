@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Trophy, Coins, Zap } from "lucide-react"
+import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Trophy, Coins, Zap, TrendingUp } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/hooks/useAuth"
@@ -13,6 +13,7 @@ import { CompetitorsPanel } from "@/components/social/CompetitorsPanel";
 import { RankingsPanel } from "@/components/social/RankingsPanel";
 import { SportsCenter } from "@/components/sports/SportsCenter";
 const Marketplace = React.lazy(() => import('@/components/farm/Marketplace').then(module => ({ default: module.Marketplace })));
+import { GoldenHarvesterView } from "@/components/farm/GoldenHarvesterView";
 import { Toaster } from "@/components/ui/toaster"
 import { InventoryBar } from "@/components/layout/InventoryBar"
 import { useFarm } from "@/hooks/useFarm"
@@ -54,7 +55,7 @@ function AppContent() {
     const [sellModalOpen, setSellModalOpen] = useState(false);
     const [statsModalOpen, setStatsModalOpen] = useState(false);
     const [financialReportOpen, setFinancialReportOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'harvester'>('dashboard');
 
     const {
         farm,
@@ -363,6 +364,17 @@ function AppContent() {
                                     End Phase
                                 </Button>
 
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => setActiveTab('harvester')}
+                                    disabled={!isAuthenticated}
+                                    className="gap-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-white border-0 shadow-[0_0_15px_rgba(251,191,36,0.3)] hover:shadow-[0_0_20px_rgba(251,191,36,0.5)] transition-all flex font-bold tracking-wider"
+                                >
+                                    <TrendingUp className="h-4 w-4" />
+                                    <span className="hidden sm:inline">HARVESTER</span>
+                                </Button>
+
                                 {/* Sell Cherries Button */}
                                 <Button
                                     onClick={handleSellCherries}
@@ -428,6 +440,10 @@ function AppContent() {
                                     infrastructure={farm?.infrastructure || []}
                                     currentPhase={currentPhase}
                                 />
+                            ) : activeTab === 'harvester' ? (
+                                <div className="animate-in slide-in-from-right-[100%] duration-500 ease-out fill-mode-forwards sm:slide-in-from-right-[150%]">
+                                    <GoldenHarvesterView onBack={() => setActiveTab('dashboard')} />
+                                </div>
                             ) : activeTab === 'marketplace' ? (
                                 <Marketplace
                                     cash={stats.cash}

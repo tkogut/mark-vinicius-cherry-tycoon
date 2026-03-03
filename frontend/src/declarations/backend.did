@@ -1,7 +1,7 @@
 type YearlyReport = 
  record {
    bestPerformingParcelId: opt text;
-   bestPerformingProvince: opt Province__1;
+   bestPerformingProvince: opt Province;
    certificationCosts: nat;
    infrastructureCosts: nat;
    laborCosts: nat;
@@ -40,18 +40,6 @@ type UserRole =
    admin;
    guest;
    user;
- };
-type Statistics__1 = 
- record {
-   averageYieldPerHa: float64;
-   bestYearlyProfit: nat;
-   seasonalReports: vec SeasonReport;
-   seasonsPlayed: nat;
-   totalCosts: nat;
-   totalHarvested: nat;
-   totalRevenue: nat;
-   totalSold: nat;
-   yearlyReports: vec YearlyReport;
  };
 type Statistics = 
  record {
@@ -121,26 +109,7 @@ type Region =
    laborCostMultiplier: float64;
    marketSize: float64;
    population: nat;
-   province: Province__1;
- };
-type Province__1 = 
- variant {
-   Dolnoslaskie;
-   Kujawsko_Pomorskie;
-   Lodzkie;
-   Lubelskie;
-   Lubuskie;
-   Malopolskie;
-   Mazowieckie;
-   Opolskie;
-   Podkarpackie;
-   Podlaskie;
-   Pomorskie;
-   Slaskie;
-   Swietokrzyskie;
-   Warminsko_Mazurskie;
-   Wielkopolskie;
-   Zachodniopomorskie;
+   province: Province;
  };
 type Province = 
  variant {
@@ -167,6 +136,7 @@ type PlayerFarm =
    currentPhase: SeasonPhase;
    currentSeason: Season;
    experience: nat;
+   hiredLabor: opt LaborType;
    infrastructure: vec Infrastructure;
    inventory: Inventory;
    lastActive: nat;
@@ -178,7 +148,7 @@ type PlayerFarm =
    playerName: text;
    reputation: nat;
    seasonNumber: nat;
-   statistics: Statistics__1;
+   statistics: Statistics;
    weather: opt WeatherEvent;
  };
 type ParcelEconomics = 
@@ -186,7 +156,7 @@ type ParcelEconomics =
    costs: nat;
    netProfit: int;
    parcelId: text;
-   province: Province__1;
+   province: Province;
    revenue: nat;
    yield: nat;
  };
@@ -206,13 +176,12 @@ type League =
    Liga3;
    TopLiga;
  };
-type Inventory__1 = 
- record {
-   cherries: nat;
-   fertilizers: nat;
-   organicCherries: nat;
-   organicTreatments: nat;
-   pesticides: nat;
+type LaborType = 
+ variant {
+   City;
+   Emergency;
+   Standard;
+   Village;
  };
 type Inventory = 
  record {
@@ -225,6 +194,7 @@ type Inventory =
 type InfrastructureType = 
  variant {
    ColdStorage;
+   GoldenHarvester;
    ProcessingFacility;
    Shaker;
    SocialFacilities;
@@ -261,7 +231,7 @@ type GameResult_7 =
 type GameResult_6 = 
  variant {
    Err: GameError;
-   Ok: Inventory__1;
+   Ok: Inventory;
  };
 type GameResult_5 = 
  variant {
@@ -271,7 +241,7 @@ type GameResult_5 =
 type GameResult_4 = 
  variant {
    Err: GameError;
-   Ok: CherryParcel__1;
+   Ok: CherryParcel;
  };
 type GameResult_3 = 
  variant {
@@ -350,27 +320,6 @@ type CommuneType =
    Rural;
    Urban;
  };
-type CherryParcel__1 = 
- record {
-   fertility: float64;
-   humidity: float64;
-   id: text;
-   isOrganic: bool;
-   lastFertilized: nat;
-   lastHarvest: nat;
-   organicCertified: bool;
-   organicConversionSeason: nat;
-   ownerId: text;
-   pH: float64;
-   permeability: float64;
-   plantedTrees: nat;
-   quality: nat;
-   region: Region;
-   size: float64;
-   soilType: SoilType;
-   treeAge: nat;
-   waterLevel: float64;
- };
 type CherryParcel = 
  record {
    fertility: float64;
@@ -411,16 +360,17 @@ type AICompetitorSummary =
    totalArea: float64;
  };
 service : {
-  _initializeAccessControlWithSecret: (text) -> ();
+  _initializeAccessControlWithSecret: (userSecret: text) -> ();
   advancePhase: () -> (GameResult);
-  assignCallerUserRole: (principal, UserRole) -> ();
-  assignParcelToPlayer: (text, principal) -> (GameResult);
-  buyClubShares: (text, nat) -> (GameResult);
-  buyParcel: (text, nat) -> (GameResult);
+  assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  assignParcelToPlayer: (parcelId: text, recipient: principal) ->
+   (GameResult);
+  buyClubShares: (_clubId: text, _amount: nat) -> (GameResult);
+  buyParcel: (parcelId: text, price: nat) -> (GameResult);
   checkStability: () -> (GameResult_9) query;
-  cutAndPrune: (text) -> (GameResult);
+  cutAndPrune: (parcelId: text) -> (GameResult);
   debugResetPlayer: () -> (GameResult);
-  fertilizeParcel: (text, text) -> (GameResult);
+  fertilizeParcel: (parcelId: text, _fertilizerType: text) -> (GameResult);
   getAvailableFootballClubs: () -> (GameResult_8) query;
   getCallerUserRole: () -> (UserRole) query;
   getCashBalance: () -> (GameResult_1) query;
@@ -440,17 +390,19 @@ service : {
        totalRevenue: nat;
      }) query;
   getMarketPrices: () -> (GameResult_5) query;
-  getParcelDetails: (text) -> (GameResult_4) query;
+  getParcelDetails: (parcelId: text) -> (GameResult_4) query;
   getPlayerFarm: () -> (GameResult_3) query;
   getPlayerStats: () -> (GameResult_2) query;
   getTotalPlayers: () -> (nat) query;
-  harvestCherries: (text) -> (GameResult_1);
-  initializePlayer: (text, text) -> (GameResult);
+  harvestCherries: (parcelId: text) -> (GameResult_1);
+  hireLabor: (laborChoice: text) -> (GameResult);
+  initializePlayer: (playerId: text, playerName: text) -> (GameResult);
   isCallerAdmin: () -> (bool) query;
-  plantTrees: (text, nat) -> (GameResult);
-  purchaseParcel: (Province, float64) -> (GameResult);
-  sellCherries: (nat, text) -> (GameResult_1);
-  startOrganicConversion: (text) -> (GameResult);
-  upgradeInfrastructure: (text) -> (GameResult);
-  waterParcel: (text) -> (GameResult);
+  plantTrees: (parcelId: text, quantity: nat) -> (GameResult);
+  purchaseParcel: (province: Province, size: float64) -> (GameResult);
+  sellCherries: (quantity: nat, saleType: text) -> (GameResult_1);
+  startOrganicConversion: (parcelId: text) -> (GameResult);
+  upgradeInfrastructure: (infraTypeString: text) -> (GameResult);
+  upgrade_golden_harvester: () -> (GameResult_1);
+  waterParcel: (parcelId: text) -> (GameResult);
 }

@@ -1322,13 +1322,13 @@ persistent actor CherryTycoon {
                 farm.weather // Persist existing weather event until end of season
             };
 
-            let updatedFarm = {
-                farm with
+            let finalFarm = {
+                updatedFarm with
                 currentPhase = nextPhase;
                 weather = newWeather;
             };
 
-            playerFarms.put(caller, updatedFarm);
+            playerFarms.put(caller, finalFarm);
             
             let weatherMsg = switch (newWeather) {
                 case (null) { "" };
@@ -1368,6 +1368,7 @@ persistent actor CherryTycoon {
           case ("Warehouse") { ?#Warehouse };
           case ("ColdStorage") { ?#ColdStorage };
           case ("Tractor") { ?#Tractor };
+          case ("GoldenHarvester") { ?#GoldenHarvester };
           case ("Shaker") { ?#Shaker };
           case ("Sprayer") { ?#Sprayer };
           case ("ProcessingFacility") { ?#ProcessingFacility };
@@ -1424,6 +1425,94 @@ persistent actor CherryTycoon {
 
         playerFarms.put(caller, updatedFarm);
         #Ok("Infrastructure upgraded successfully")
+      };
+    }
+  };
+
+  // Phase Cinematic: The Golden Harvester upgrade
+  public shared({ caller }) func upgrade_golden_harvester() : async GameResult<Nat, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        
+        if (farm.currentPhase != #Investment) {
+          return #Err(#SeasonalRestriction("Golden Harvester upgrades only in Investment phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        // Find existing Golden Harvester level
+        var currentLevel : Nat = 0;
+        var infraIndex : ?Nat = null;
+        var idx : Nat = 0;
+        
+        for (infra in farm.infrastructure.vals()) {
+          switch (infra.infraType) {
+            case (#GoldenHarvester) {
+              currentLevel := infra.level;
+              infraIndex := ?idx;
+            };
+            case (_) {};
+          };
+          idx += 1;
+        };
+
+        // Scale cost: Cost(L) = 100_000 * (1.15^L)
+        var costMultiplier = 1.0;
+        for (i in Iter.range(1, currentLevel)) { costMultiplier *= 1.15 };
+        let cost = Int.abs(Float.toInt(100_000.0 * costMultiplier));
+        
+        switch (await checkBankruptcyRisk(farm, cost)) {
+          case (#Err(e)) { return #Err(e) };
+          case (#Ok(())) {};
+        };
+        
+        let newLevel = currentLevel + 1;
+        
+        let newInfra : Infrastructure = {
+          infraType = #GoldenHarvester;
+          level = newLevel;
+          purchasedSeason = farm.seasonNumber;
+          maintenanceCost = GameLogic.getMaintenanceCost(#GoldenHarvester);
+        };
+
+        let updatedInfrastructure = switch (infraIndex) {
+          case (null) {
+            Array.append<Infrastructure>(farm.infrastructure, [newInfra])
+          };
+          case (?i) {
+            Array.tabulate<Infrastructure>(
+              farm.infrastructure.size(),
+              func(index: Nat) : Infrastructure {
+                if (index == i) { newInfra } else { farm.infrastructure[index] }
+              }
+            )
+          };
+        };
+
+        // Add experience
+        let xpGain = GameLogic.calculateExperienceGain("upgrade", 1);
+        let newXp = farm.experience + xpGain;
+        let newFarmLevel = GameLogic.getLevelFromExperience(newXp);
+
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          { r with 
+            infrastructureCosts = r.infrastructureCosts + cost;
+            totalCosts = r.totalCosts + cost;
+            netProfit = r.netProfit - (cost : Int);
+          }
+        });
+
+        let updatedFarm = {
+          farm with
+          infrastructure = updatedInfrastructure;
+          cash = Int.abs((farm.cash : Int) - (cost : Int));
+          experience = newXp;
+          level = newFarmLevel;
+          statistics = { updatedStats with totalCosts = farm.statistics.totalCosts + cost };
+        };
+
+        playerFarms.put(caller, updatedFarm);
+        #Ok(newLevel)
       };
     }
   };

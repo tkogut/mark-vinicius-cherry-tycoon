@@ -28,7 +28,7 @@ export const idlFactory = ({ IDL }) => {
     }),
     'Err' : GameError,
   });
-  const Province__1 = IDL.Variant({
+  const Province = IDL.Variant({
     'Swietokrzyskie' : IDL.Null,
     'Warminsko_Mazurskie' : IDL.Null,
     'Podlaskie' : IDL.Null,
@@ -54,7 +54,7 @@ export const idlFactory = ({ IDL }) => {
   const Region = IDL.Record({
     'laborCostMultiplier' : IDL.Float64,
     'marketSize' : IDL.Float64,
-    'province' : Province__1,
+    'province' : Province,
     'commune' : IDL.Text,
     'communeType' : CommuneType,
     'county' : IDL.Text,
@@ -159,14 +159,7 @@ export const idlFactory = ({ IDL }) => {
     'weather' : IDL.Opt(WeatherEvent),
   });
   const GameResult_7 = IDL.Variant({ 'Ok' : FarmOverview, 'Err' : GameError });
-  const Inventory__1 = IDL.Record({
-    'fertilizers' : IDL.Nat,
-    'pesticides' : IDL.Nat,
-    'organicCherries' : IDL.Nat,
-    'cherries' : IDL.Nat,
-    'organicTreatments' : IDL.Nat,
-  });
-  const GameResult_6 = IDL.Variant({ 'Ok' : Inventory__1, 'Err' : GameError });
+  const GameResult_6 = IDL.Variant({ 'Ok' : Inventory, 'Err' : GameError });
   const MarketPrice = IDL.Record({
     'organicPremium' : IDL.Float64,
     'retailBasePrice' : IDL.Nat,
@@ -181,45 +174,6 @@ export const idlFactory = ({ IDL }) => {
     'Clay' : IDL.Null,
     'Waterlogged' : IDL.Null,
     'SandyClay' : IDL.Null,
-  });
-  const CherryParcel__1 = IDL.Record({
-    'id' : IDL.Text,
-    'pH' : IDL.Float64,
-    'region' : Region,
-    'lastFertilized' : IDL.Nat,
-    'soilType' : SoilType,
-    'organicConversionSeason' : IDL.Nat,
-    'isOrganic' : IDL.Bool,
-    'ownerId' : IDL.Text,
-    'waterLevel' : IDL.Float64,
-    'fertility' : IDL.Float64,
-    'quality' : IDL.Nat,
-    'permeability' : IDL.Float64,
-    'size' : IDL.Float64,
-    'lastHarvest' : IDL.Nat,
-    'organicCertified' : IDL.Bool,
-    'humidity' : IDL.Float64,
-    'plantedTrees' : IDL.Nat,
-    'treeAge' : IDL.Nat,
-  });
-  const GameResult_4 = IDL.Variant({
-    'Ok' : CherryParcel__1,
-    'Err' : GameError,
-  });
-  const InfrastructureType = IDL.Variant({
-    'Sprayer' : IDL.Null,
-    'Shaker' : IDL.Null,
-    'Tractor' : IDL.Null,
-    'Warehouse' : IDL.Null,
-    'ColdStorage' : IDL.Null,
-    'ProcessingFacility' : IDL.Null,
-    'SocialFacilities' : IDL.Null,
-  });
-  const Infrastructure = IDL.Record({
-    'purchasedSeason' : IDL.Nat,
-    'infraType' : InfrastructureType,
-    'maintenanceCost' : IDL.Nat,
-    'level' : IDL.Nat,
   });
   const CherryParcel = IDL.Record({
     'id' : IDL.Text,
@@ -241,9 +195,32 @@ export const idlFactory = ({ IDL }) => {
     'plantedTrees' : IDL.Nat,
     'treeAge' : IDL.Nat,
   });
+  const GameResult_4 = IDL.Variant({ 'Ok' : CherryParcel, 'Err' : GameError });
+  const LaborType = IDL.Variant({
+    'City' : IDL.Null,
+    'Village' : IDL.Null,
+    'Emergency' : IDL.Null,
+    'Standard' : IDL.Null,
+  });
+  const InfrastructureType = IDL.Variant({
+    'Sprayer' : IDL.Null,
+    'Shaker' : IDL.Null,
+    'Tractor' : IDL.Null,
+    'Warehouse' : IDL.Null,
+    'GoldenHarvester' : IDL.Null,
+    'ColdStorage' : IDL.Null,
+    'ProcessingFacility' : IDL.Null,
+    'SocialFacilities' : IDL.Null,
+  });
+  const Infrastructure = IDL.Record({
+    'purchasedSeason' : IDL.Nat,
+    'infraType' : InfrastructureType,
+    'maintenanceCost' : IDL.Nat,
+    'level' : IDL.Nat,
+  });
   const ParcelEconomics = IDL.Record({
     'revenue' : IDL.Nat,
-    'province' : Province__1,
+    'province' : Province,
     'costs' : IDL.Nat,
     'parcelId' : IDL.Text,
     'yield' : IDL.Nat,
@@ -273,7 +250,7 @@ export const idlFactory = ({ IDL }) => {
     'wholesaleRevenue' : IDL.Nat,
     'maintenanceCosts' : IDL.Nat,
     'certificationCosts' : IDL.Nat,
-    'bestPerformingProvince' : IDL.Opt(Province__1),
+    'bestPerformingProvince' : IDL.Opt(Province),
     'year' : IDL.Nat,
     'totalCosts' : IDL.Nat,
     'totalHarvested' : IDL.Nat,
@@ -290,7 +267,7 @@ export const idlFactory = ({ IDL }) => {
     'retailRevenue' : IDL.Nat,
     'netProfit' : IDL.Int,
   });
-  const Statistics__1 = IDL.Record({
+  const Statistics = IDL.Record({
     'bestYearlyProfit' : IDL.Nat,
     'totalCosts' : IDL.Nat,
     'totalHarvested' : IDL.Nat,
@@ -313,44 +290,16 @@ export const idlFactory = ({ IDL }) => {
     'level' : IDL.Nat,
     'experience' : IDL.Nat,
     'seasonNumber' : IDL.Nat,
+    'hiredLabor' : IDL.Opt(LaborType),
     'infrastructure' : IDL.Vec(Infrastructure),
     'playerName' : IDL.Text,
     'weather' : IDL.Opt(WeatherEvent),
     'parcels' : IDL.Vec(CherryParcel),
     'lastActive' : IDL.Nat,
-    'statistics' : Statistics__1,
+    'statistics' : Statistics,
   });
   const GameResult_3 = IDL.Variant({ 'Ok' : PlayerFarm, 'Err' : GameError });
-  const Statistics = IDL.Record({
-    'bestYearlyProfit' : IDL.Nat,
-    'totalCosts' : IDL.Nat,
-    'totalHarvested' : IDL.Nat,
-    'totalSold' : IDL.Nat,
-    'averageYieldPerHa' : IDL.Float64,
-    'seasonsPlayed' : IDL.Nat,
-    'seasonalReports' : IDL.Vec(SeasonReport),
-    'totalRevenue' : IDL.Nat,
-    'yearlyReports' : IDL.Vec(YearlyReport),
-  });
   const GameResult_2 = IDL.Variant({ 'Ok' : Statistics, 'Err' : GameError });
-  const Province = IDL.Variant({
-    'Swietokrzyskie' : IDL.Null,
-    'Warminsko_Mazurskie' : IDL.Null,
-    'Podlaskie' : IDL.Null,
-    'Kujawsko_Pomorskie' : IDL.Null,
-    'Malopolskie' : IDL.Null,
-    'Lubelskie' : IDL.Null,
-    'Lodzkie' : IDL.Null,
-    'Wielkopolskie' : IDL.Null,
-    'Mazowieckie' : IDL.Null,
-    'Opolskie' : IDL.Null,
-    'Pomorskie' : IDL.Null,
-    'Podkarpackie' : IDL.Null,
-    'Slaskie' : IDL.Null,
-    'Lubuskie' : IDL.Null,
-    'Zachodniopomorskie' : IDL.Null,
-    'Dolnoslaskie' : IDL.Null,
-  });
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'advancePhase' : IDL.Func([], [GameResult], []),
@@ -400,6 +349,7 @@ export const idlFactory = ({ IDL }) => {
     'getPlayerStats' : IDL.Func([], [GameResult_2], ['query']),
     'getTotalPlayers' : IDL.Func([], [IDL.Nat], ['query']),
     'harvestCherries' : IDL.Func([IDL.Text], [GameResult_1], []),
+    'hireLabor' : IDL.Func([IDL.Text], [GameResult], []),
     'initializePlayer' : IDL.Func([IDL.Text, IDL.Text], [GameResult], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'plantTrees' : IDL.Func([IDL.Text, IDL.Nat], [GameResult], []),
@@ -407,6 +357,7 @@ export const idlFactory = ({ IDL }) => {
     'sellCherries' : IDL.Func([IDL.Nat, IDL.Text], [GameResult_1], []),
     'startOrganicConversion' : IDL.Func([IDL.Text], [GameResult], []),
     'upgradeInfrastructure' : IDL.Func([IDL.Text], [GameResult], []),
+    'upgrade_golden_harvester' : IDL.Func([], [GameResult_1], []),
     'waterParcel' : IDL.Func([IDL.Text], [GameResult], []),
   });
 };
