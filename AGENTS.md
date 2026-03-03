@@ -1,41 +1,43 @@
-# Agent Instructions [PROJECT SPECIFIC]
+# MASTER_ONBOARDING_V1
 
-> **System**: Mark Vinicius Cherry Tycoon Orchestration
-> **Producer**: JaPiTo Group
-> **Structure**: 4-Agent Model (Backend, Frontend, QA, Security) + Manager
+## 1. Mission Briefing
 
-## The Setup
-This project uses a file-based orchestration system.
+* **Project Name**: Mark Vinicius Cherry Tycoon
+* **Objective**: A cinematic, high-fidelity idle management game with deep mechanical simulation. It emphasizes a "Vibe-First," highly tactile "Neo-Steampunk Cherry" aesthetic.
+* **Tech Stack**:
+  * **Backend**: Motoko (Internet Computer native actor)
+  * **Frontend**: React, Vite, TypeScript
+  * **Styling**: Tailwind CSS & scoped CSS for specific visual effects
+  * **Operations**: Antigravity 2026 Native Orchestration Framework
 
-### 1. The Directives (The Brain)
-Located in `directives/`:
-- **`00_master_plan.md`**: The High-Level Roadmap. (Managed by **Manager**).
-- **`01_backend_backlog.md`**: Motoko/Backend tasks. (Managed by **Backend Agent**).
-- **`02_frontend_backlog.md`**: React/Frontend tasks. (Managed by **Frontend Agent**).
-- **`03_qa_checklist.md`**: Testing tasks. (Managed by **QA Agent**).
-- **`04_security_backlog.md`**: Security audit tasks. (Managed by **Security Agent**).
-- **`05_game_lore.md`**: Creative direction and Lore (READ TO AVOID HALLUCINATIONS).
-- **`99_agent_protocols.md`**: Rules of engagement.
-- **`SECURITY_DIRECTIVE_V1.md`**: Blockchain security policy.
-- **`BOOTSTRAP_PROMPTS.md`**: Copy-paste prompts to initialize agents.
+## 2. Orchestration Framework Map
 
-### 2. The Execution (The Hands)
-Located in `execution/`:
-- Scripts for automating tasks (e.g., `test-backend.ps1`, `test_security_audit.sh`).
+### The Brain (`.agent/rules/`)
+These are the foundational 'Always-On' rules that govern every action taken by the AI agents:
+* **Math-Consistency Rule (`math_consistency.md`)**: Enforces deterministic economic formulas (Yield, Shared Market) and strict safe arithmetic policies.
+* **Anti-Split-Brain Protocol (`agent_protocols.md`)**: Mandates that file-based directives and internal UI Task Lists are updated symmetrically.
+* **UI Consistency Rule (`ui-consistency.md`)**: Enforces "Neo-Steampunk Cherry" aesthetics, dynamic lighting, and interactive 'Juice' rules.
+* **Security Gatekeeper (`security_directive.md`)**: Defines proactive auditing against 7 key web3 and architecture domains.
 
-### 3. How to Work
-1. **Check `00_master_plan.md`** to see the current phase.
-2. **Select your Role** (e.g., "I am working on Backend").
-3. **Read your specific Directive** (e.g., `01_backend_backlog.md`).
-4. **Execute** the top priority item.
-5. **Update** the directive file and `00_master_plan.md` upon completion.
-6. **Security Gate**: Backend commits require Security Agent review before merge.
+### The Skills (`.agent/skills/`)
+Reusable implementations for specific visual and technical tasks:
+* **Particle Engine (`particle-engine.md`)**: A React + Canvas/Three.js overlay system dynamically theming cinematic effects (e.g., *CherryBlossom*, *GoldenPollen*, *SteamSparks*) with `pointer-events-none` overlays to ensure UI interactivity.
 
-### 4. Self-Correction
-- If a script fails, fix it in `execution/`.
-- If a directive is unclear, update it in `directives/`.
-- If you are blocked, flag it in `00_master_plan.md`.
-- If a security vulnerability is found, flag it in `04_security_backlog.md`.
+### The Workflows (`.agent/workflows/`)
+Slash commands representing repeatable processes available to the orchestration team:
+* `/bootstrap-[role]`: Specialized initialization for Manager, Backend, Frontend, QA, or Security agents.
+* `/visualize-lore`: Guides the creation of mathematically grounded concept art via Nano Banana.
+* `/ui-mockup`: Backlog-driven layout generation mapped to our existing game lore.
+* `/playtest-ui`: UX/Psychology critique audit (Validates interactive 'Juice' and structural logic).
 
----
-*Refer to `directives/99_agent_protocols.md` for detailed instructions.*
+## 3. Data Integrity & Sync
+
+* **Source of Truth**: All progress, updates, and task completions MUST be updated in BOTH the file-based directives (`directives/`) and the internal Antigravity Task List (`task.md`). This symmetry prevents conflicting states ("split-brain").
+* **Math Formulas**: Strict adherence to the provided Yield Calculation and Shared Market constraints (`.agent/rules/math_consistency.md`) is mandatory for all code generation. No agent should invent arbitrary scaling logic.
+
+## 4. Operational Entry Points
+
+Standardized scripts exist in the `scripts/` directory for local development and CI testing:
+* **Local Deployment**: Use `./scripts/start.sh` to boot the local replica, deploy the backend, and spin up the Vite frontend.
+* **Auditing & QA**: Use `./scripts/test.sh` for economy checks and security audits directly linked to your Motoko testing framework.
+* **Frontend Verification**: Use `./scripts/verify-ui.sh` to mock a CI build check for styling and unhandled TS compile errors.
