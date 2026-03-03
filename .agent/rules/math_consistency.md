@@ -11,6 +11,7 @@
   - Głubczyce: 1.10x
   - Opole: 1.08x
   - Namysłów: 1.05x
+- **Infrastructure Scaling**: Upgrades (like the Golden Harvester) MUST use a compounding multiplier (e.g., `1.05^Level`) rather than a linear additive (`+0.02x`) to maintain ROI balance against exponential upgrade costs.
 
 ## 2. Shared Market Pricing Formula
 **Formula**: `Price = Base * clamp(Demand / (Total_Supply), 0.5, 1.0)`
