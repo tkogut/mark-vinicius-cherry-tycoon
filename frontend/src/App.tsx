@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Trophy, Coins, Zap, TrendingUp } from "lucide-react"
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/hooks/useAuth"
 import { Sidebar } from "@/components/layout/Sidebar"
@@ -14,6 +14,7 @@ import { RankingsPanel } from "@/components/social/RankingsPanel";
 import { SportsCenter } from "@/components/sports/SportsCenter";
 const Marketplace = React.lazy(() => import('@/components/farm/Marketplace').then(module => ({ default: module.Marketplace })));
 import { GoldenHarvesterView } from "@/components/farm/GoldenHarvesterView";
+import { ParticleLayer } from "@/components/effects/ParticleLayer";
 import { Toaster } from "@/components/ui/toaster"
 import { InventoryBar } from "@/components/layout/InventoryBar"
 import { useFarm } from "@/hooks/useFarm"
@@ -56,6 +57,27 @@ function AppContent() {
     const [statsModalOpen, setStatsModalOpen] = useState(false);
     const [financialReportOpen, setFinancialReportOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'harvester'>('dashboard');
+
+    // Harvest Velocity — drives the Sunset-Glow particle intensity
+    const [harvestVelocity, setHarvestVelocity] = useState(0);
+    const velocityDecayRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Decay the velocity smoothly over time
+    useEffect(() => {
+        velocityDecayRef.current = setInterval(() => {
+            setHarvestVelocity(prev => {
+                const next = prev * 0.97; // Smooth exponential decay
+                return next < 0.01 ? 0 : next;
+            });
+        }, 100);
+        return () => {
+            if (velocityDecayRef.current) clearInterval(velocityDecayRef.current);
+        };
+    }, []);
+
+    const boostHarvestVelocity = useCallback(() => {
+        setHarvestVelocity(prev => Math.min(1.0, prev + 0.35));
+    }, []);
 
     const {
         farm,
@@ -127,7 +149,9 @@ function AppContent() {
         if (action === 'water') {
             water.mutate(parcelId);
         } else if (action === 'harvest') {
-            harvest.mutate(parcelId);
+            harvest.mutate(parcelId, {
+                onSuccess: () => boostHarvestVelocity(),
+            });
         } else if (action === 'fertilize') {
             // Default to NPK fertilizer for quick action
             // TODO: Add fertilizer selection modal
@@ -219,6 +243,13 @@ function AppContent() {
         <div className={`min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col md:flex-row relative ${getThemeClass(stats.currentSeason)}`}>
             {/* Weather Overlay */}
             <WeatherEffects weatherState={farm?.weather} />
+
+            {/* Sunset-Glow Particle Layer — bound to harvest_velocity */}
+            {harvestVelocity > 0 && (
+                <ParticleLayer preset="SunsetGlow" intensity={harvestVelocity} />
+            )}
+            {/* Atmospheric Vignette */}
+            <div className="sunset-vignette" />
 
             {/* Ambient Effects */}
             <WeatherOverlay

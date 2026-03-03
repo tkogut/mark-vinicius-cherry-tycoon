@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 
-type Preset = 'CherryBlossom' | 'GoldenPollen' | 'SteamSparks';
+type Preset = 'CherryBlossom' | 'GoldenPollen' | 'SteamSparks' | 'SunsetGlow';
 
 interface ParticleLayerProps {
     preset: Preset;
+    intensity?: number; // 0.0 - 1.0, controls particle count and speed
 }
 
-export const ParticleLayer: React.FC<ParticleLayerProps> = ({ preset }) => {
+export const ParticleLayer: React.FC<ParticleLayerProps> = ({ preset, intensity = 1.0 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -30,19 +31,46 @@ export const ParticleLayer: React.FC<ParticleLayerProps> = ({ preset }) => {
         window.addEventListener('resize', resize);
         resize();
 
-        // Init particles
-        const particleCount = preset === 'CherryBlossom' ? 50 : preset === 'GoldenPollen' ? 100 : 75;
+        // Clamp intensity
+        const clampedIntensity = Math.max(0, Math.min(1, intensity));
+
+        // Base particle counts per preset
+        const baseCounts: Record<Preset, number> = {
+            CherryBlossom: 50,
+            GoldenPollen: 100,
+            SteamSparks: 75,
+            SunsetGlow: 120,
+        };
+        const particleCount = Math.max(5, Math.floor(baseCounts[preset] * clampedIntensity));
 
         for (let i = 0; i < particleCount; i++) {
+            const isSunset = preset === 'SunsetGlow';
+            const isSteam = preset === 'SteamSparks';
+            const isGolden = preset === 'GoldenPollen';
+
             particles.push({
                 x: Math.random() * width,
                 y: Math.random() * height,
-                size: preset === 'GoldenPollen' ? Math.random() * 3 + 1 : Math.random() * 4 + 2,
-                speedX: preset === 'SteamSparks' ? (Math.random() - 0.5) * 5 : (Math.random() - 0.5) * 2,
-                speedY: preset === 'SteamSparks' ? Math.random() * -5 - 1 : Math.random() * 2 + 1,
-                opacity: Math.random(),
+                size: isSunset
+                    ? Math.random() * 4 + 1.5
+                    : isGolden
+                        ? Math.random() * 3 + 1
+                        : Math.random() * 4 + 2,
+                speedX: isSteam
+                    ? (Math.random() - 0.5) * 5 * clampedIntensity
+                    : isSunset
+                        ? (Math.random() - 0.5) * 1.5 * clampedIntensity
+                        : (Math.random() - 0.5) * 2,
+                speedY: isSteam
+                    ? (Math.random() * -5 - 1) * clampedIntensity
+                    : isSunset
+                        ? (Math.random() * 1.5 + 0.3) * clampedIntensity
+                        : Math.random() * 2 + 1,
+                opacity: Math.random() * clampedIntensity,
                 oscillationSpeed: Math.random() * 0.05 + 0.01,
                 angle: Math.random() * Math.PI * 2,
+                // SunsetGlow specific: each particle picks either amber or ruby
+                hue: isSunset ? (Math.random() > 0.35 ? 'amber' : 'ruby') : null,
             });
         }
 
@@ -63,7 +91,17 @@ export const ParticleLayer: React.FC<ParticleLayerProps> = ({ preset }) => {
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
 
                 let fillColor = '';
-                if (preset === 'GoldenPollen') {
+                if (preset === 'SunsetGlow') {
+                    if (p.hue === 'ruby') {
+                        fillColor = `rgba(155, 17, 30, ${p.opacity * 0.7})`; // Ruby red
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = `rgba(155, 17, 30, ${p.opacity * 0.6})`;
+                    } else {
+                        fillColor = `rgba(212, 175, 55, ${p.opacity * 0.85})`; // Brass/Amber
+                        ctx.shadowBlur = 12;
+                        ctx.shadowColor = `rgba(255, 180, 0, ${p.opacity * 0.7})`;
+                    }
+                } else if (preset === 'GoldenPollen') {
                     fillColor = `rgba(255, 215, 0, ${p.opacity * 0.8})`; // Gold/Amber
                     ctx.shadowBlur = 10;
                     ctx.shadowColor = 'rgba(255, 140, 0, 0.8)'; // Orange glow
@@ -90,7 +128,7 @@ export const ParticleLayer: React.FC<ParticleLayerProps> = ({ preset }) => {
             window.removeEventListener('resize', resize);
             cancelAnimationFrame(animationFrameId);
         };
-    }, [preset]);
+    }, [preset, intensity]);
 
     return (
         <canvas
@@ -100,3 +138,4 @@ export const ParticleLayer: React.FC<ParticleLayerProps> = ({ preset }) => {
         />
     );
 };
+

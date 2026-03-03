@@ -5,58 +5,59 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    /* Neo-Steampunk Cherry — Dark Industrial Base */
+    --background: 20 10% 6%;
+    --foreground: 38 30% 90%;
+    --card: 25 12% 10%;
+    --card-foreground: 38 30% 90%;
+    --popover: 25 12% 10%;
+    --popover-foreground: 38 30% 90%;
+    --primary: 43 75% 52%;
+    --primary-foreground: 20 10% 6%;
+    --secondary: 25 55% 45%;
+    --secondary-foreground: 38 30% 90%;
+    --muted: 20 8% 15%;
+    --muted-foreground: 38 15% 55%;
+    --accent: 0 80% 34%;
+    --accent-foreground: 38 30% 90%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --border: 38 30% 22%;
+    --input: 38 15% 18%;
+    --ring: 43 75% 52%;
+    --chart-1: 43 75% 52%;
+    --chart-2: 25 55% 45%;
+    --chart-3: 0 80% 34%;
+    --chart-4: 38 30% 70%;
+    --chart-5: 15 60% 50%;
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    --background: 20 10% 4%;
+    --foreground: 38 30% 92%;
+    --card: 25 12% 8%;
+    --card-foreground: 38 30% 92%;
+    --popover: 25 12% 8%;
+    --popover-foreground: 38 30% 92%;
+    --primary: 43 75% 52%;
+    --primary-foreground: 20 10% 6%;
+    --secondary: 25 55% 40%;
+    --secondary-foreground: 38 30% 92%;
+    --muted: 20 8% 12%;
+    --muted-foreground: 38 15% 50%;
+    --accent: 0 80% 30%;
+    --accent-foreground: 38 30% 92%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
+    --border: 38 25% 18%;
+    --input: 38 15% 14%;
+    --ring: 43 75% 52%;
+    --chart-1: 43 75% 55%;
+    --chart-2: 25 55% 50%;
+    --chart-3: 0 80% 38%;
+    --chart-4: 38 30% 65%;
+    --chart-5: 15 60% 55%;
   }
 }
 
@@ -70,35 +71,182 @@
   }
 }
 
-/* Weather Animation Keyframes */
+/* ═══════════════════════════════════════════════
+   Neo-Steampunk Cherry — Utility Classes
+   ═══════════════════════════════════════════════ */
+
+@layer components {
+
+  /* Mechanical-Hull Container —
+     Industrial metallic panel with brass riveting */
+  .mechanical-hull {
+    @apply relative rounded-xl overflow-hidden;
+    background: linear-gradient(145deg,
+        rgba(26, 21, 16, 0.95) 0%,
+        rgba(18, 18, 18, 0.98) 40%,
+        rgba(26, 21, 16, 0.95) 100%);
+    border: 1.5px solid rgba(212, 175, 55, 0.35);
+    box-shadow:
+      inset 0 1px 1px rgba(212, 175, 55, 0.12),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.5),
+      0 0 20px rgba(212, 175, 55, 0.06),
+      0 4px 24px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  }
+
+  .mechanical-hull::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background:
+      radial-gradient(circle at 15% 15%, rgba(212, 175, 55, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 85% 85%, rgba(184, 115, 51, 0.03) 0%, transparent 50%);
+  }
+
+  .mechanical-hull:hover {
+    border-color: rgba(212, 175, 55, 0.55);
+    box-shadow:
+      inset 0 1px 2px rgba(212, 175, 55, 0.2),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.5),
+      0 0 30px rgba(212, 175, 55, 0.12),
+      0 8px 32px rgba(0, 0, 0, 0.65);
+  }
+
+  /* Hull Header — Brass gradient text for section titles */
+  .hull-header {
+    @apply text-transparent bg-clip-text font-bold tracking-wider uppercase;
+    background-image: linear-gradient(135deg, #e8cc6e, #d4af37, #b87333);
+    filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
+  }
+
+  /* God Ray — Atmospheric volumetric light beam */
+  .god-ray {
+    @apply absolute pointer-events-none mix-blend-overlay;
+    background: linear-gradient(to bottom,
+        rgba(255, 215, 0, 0.15) 0%,
+        rgba(255, 180, 0, 0.05) 50%,
+        transparent 100%);
+    animation: god-ray 8s ease-in-out infinite;
+  }
+
+  /* Sunset Vignette — Atmospheric framing overlay */
+  .sunset-vignette {
+    @apply fixed inset-0 pointer-events-none z-40;
+    background: radial-gradient(ellipse at center,
+        transparent 40%,
+        rgba(26, 15, 15, 0.4) 80%,
+        rgba(10, 5, 5, 0.7) 100%);
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Weather Animation Keyframes (Preserved)
+   ═══════════════════════════════════════════════ */
+
 @keyframes rain-fall {
-  0% { transform: translateY(-10vh); opacity: 0; }
-  10% { opacity: 0.5; }
-  90% { opacity: 0.5; }
-  100% { transform: translateY(110vh); opacity: 0; }
+  0% {
+    transform: translateY(-10vh);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.5;
+  }
+
+  90% {
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: translateY(110vh);
+    opacity: 0;
+  }
 }
 
 @keyframes snow-drift {
-  0% { transform: translateY(-10vh) translateX(0px); opacity: 0; }
-  10% { opacity: 0.8; }
-  90% { opacity: 0.8; }
-  100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
+  0% {
+    transform: translateY(-10vh) translateX(0px);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.8;
+  }
+
+  90% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateY(110vh) translateX(20px);
+    opacity: 0;
+  }
 }
 
 @keyframes heat-pulse {
-  0%, 100% { opacity: 0.1; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(1.05); }
+
+  0%,
+  100% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.3;
+    transform: scale(1.05);
+  }
 }
 
 @keyframes sun-beam {
-  0% { transform: rotate(-5deg) scale(1); opacity: 0.2; }
-  50% { transform: rotate(5deg) scale(1.1); opacity: 0.4; }
-  100% { transform: rotate(-5deg) scale(1); opacity: 0.2; }
+  0% {
+    transform: rotate(-5deg) scale(1);
+    opacity: 0.2;
+  }
+
+  50% {
+    transform: rotate(5deg) scale(1.1);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: rotate(-5deg) scale(1);
+    opacity: 0.2;
+  }
+}
+
+/* God Ray keyframe (referenced by Tailwind animation) */
+@keyframes god-ray {
+  0% {
+    transform: rotate(-5deg) scale(1);
+    opacity: 0.15;
+  }
+
+  50% {
+    transform: rotate(5deg) scale(1.1);
+    opacity: 0.35;
+  }
+
+  100% {
+    transform: rotate(-5deg) scale(1);
+    opacity: 0.15;
+  }
 }
 
 /* Neo-Steampunk: Liquid Mercury shimmer for XP bar */
 @keyframes mercuryShimmer {
-  0% { transform: translateX(-100%); opacity: 0.3; }
-  50% { transform: translateX(50%); opacity: 0.6; }
-  100% { transform: translateX(200%); opacity: 0.3; }
+  0% {
+    transform: translateX(-100%);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: translateX(50%);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: translateX(200%);
+    opacity: 0.3;
+  }
 }

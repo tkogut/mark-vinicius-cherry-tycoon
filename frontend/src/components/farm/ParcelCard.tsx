@@ -63,17 +63,17 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
     };
 
     const getStatusColor = () => {
-        if (!isPlanted) return "border-slate-700 bg-slate-900/50";
-        if (canHarvest) return "border-rose-500/50 bg-rose-950/10 shadow-[0_0_15px_rgba(244,63,94,0.1)]";
-        if (isDormant) return "border-blue-500/30 bg-blue-950/10 opacity-75";
-        return "border-emerald-500/30 bg-emerald-950/10";
+        if (!isPlanted) return "border-brass/20";
+        if (canHarvest) return "border-ruby/50 shadow-[0_0_15px_rgba(155,17,30,0.15)]";
+        if (isDormant) return "border-copper/30 opacity-75";
+        return "border-brass/30";
     };
 
     const getBadgeVariant = () => {
-        if (!isPlanted) return "bg-slate-700/50 text-slate-400";
-        if (canHarvest) return "bg-rose-500 text-white animate-pulse";
-        if (isDormant) return "bg-blue-900/50 text-blue-300 border-blue-800";
-        return "bg-emerald-500/20 text-emerald-400";
+        if (!isPlanted) return "bg-hull text-brass/60 border-brass/20";
+        if (canHarvest) return "bg-ruby text-white animate-pulse";
+        if (isDormant) return "bg-copper-dark/50 text-copper-light border-copper/30";
+        return "bg-brass/10 text-brass";
     };
 
     const getSoilIcon = () => {
@@ -98,19 +98,19 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
     };
 
     return (
-        <Card
+        <div
             className={cn(
-                "cursor-pointer transition-all duration-300 hover:scale-[1.02] border-2 relative overflow-hidden group",
+                "mechanical-hull cursor-pointer transition-all duration-300 hover:scale-[1.02] border-2 group p-0",
                 getStatusColor()
             )}
         >
-            {/* Background Grid Pattern */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:14px_14px] pointer-events-none" />
+            {/* Background Grid Pattern — Brass-tinted */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#d4af3708_1px,transparent_1px),linear-gradient(to_bottom,#d4af3708_1px,transparent_1px)] bg-[size:14px_14px] pointer-events-none" />
 
             <CardHeader className="pb-2 relative z-10">
                 <div className="flex justify-between items-start">
                     <div className="flex flex-col">
-                        <CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                        <CardTitle className="text-sm font-medium text-brass-light flex items-center gap-2">
                             <span>Parcel {parcel.id.slice(0, 6)}...</span>
                             {parcel.isOrganic && (
                                 <TooltipProvider>
@@ -136,7 +136,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 </TooltipProvider>
                             )}
                         </CardTitle>
-                        <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                        <span className="text-[10px] text-copper/70 font-mono mt-0.5">
                             {getSoilIcon()} {parcel.region.province ? Object.keys(parcel.region.province)[0] : 'Unknown'}
                         </span>
                     </div>
@@ -152,7 +152,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
 
             <CardContent className="relative z-10 space-y-4">
                 {/* Main Visual/Status */}
-                <div className="h-24 flex items-center justify-center rounded-lg bg-black/20 border border-slate-800/50 backdrop-blur-sm">
+                <div className="h-24 flex items-center justify-center rounded-lg bg-black/30 border border-brass/10 backdrop-blur-sm">
                     {(() => {
                         const visual = getTreeVisual();
                         return (
@@ -161,18 +161,18 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 <div className="text-xs font-medium mt-1">{visual.label}</div>
                                 {isPlanted && (
                                     <div className="flex flex-col items-center gap-0.5 mt-0.5">
-                                        <div className="text-[10px] text-slate-500">
+                                        <div className="text-[10px] text-copper/60">
                                             {Number(parcel.plantedTrees)} Trees • Age {Number(parcel.treeAge)}
                                         </div>
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger>
-                                                    <div className="text-[10px] font-bold text-emerald-400/80 flex items-center gap-1">
+                                                    <div className="text-[10px] font-bold text-brass flex items-center gap-1">
                                                         <Gauge className="h-2.5 w-2.5" />
                                                         Yield: {Math.round(yieldBreakdown.parcelYield).toLocaleString()} kg
                                                     </div>
                                                 </TooltipTrigger>
-                                                <TooltipContent className="bg-slate-900 border-slate-800 text-xs p-3 shadow-xl">
+                                                <TooltipContent className="bg-hull border-brass/30 text-xs p-3 shadow-xl">
                                                     <div className="space-y-1.5">
                                                         <p className="font-bold border-b border-slate-800 pb-1 mb-1 text-slate-200">Current Yield Potential</p>
                                                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -359,7 +359,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowDetails(!showDetails)}
-                    className="w-full mt-2 h-7 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                    className="w-full mt-2 h-7 text-xs text-brass/50 hover:text-brass hover:bg-brass/5"
                 >
                     {showDetails ? (
                         <>
@@ -376,11 +376,11 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
 
                 {/* Expandable Details Panel */}
                 {showDetails && (
-                    <div className="mt-3 pt-3 border-t border-slate-800/50">
+                    <div className="mt-3 pt-3 border-t border-brass/15">
                         <ParcelDetailsPanel parcel={parcel} infrastructure={infrastructure} />
                     </div>
                 )}
             </CardContent>
-        </Card>
+        </div>
     );
 };
