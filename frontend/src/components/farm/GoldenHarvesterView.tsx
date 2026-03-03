@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ParticleLayer } from '../effects/ParticleLayer';
@@ -39,11 +39,20 @@ export const GoldenHarvesterView: React.FC<GoldenHarvesterViewProps> = ({ onBack
     }
     const nextYieldMultiplier = yieldMultiplier * 1.05;
 
+    // Audio debounce: prevent flooding browser audio buffer on rapid clicks
+    const lastSoundRef = useRef<number>(0);
+
     const handleUpgrade = async () => {
         if (!canAfford) return;
 
-        // Haptic visual feedback: Button click -> shake -> particle explosion (simulated via engine)
-        playSFX(SOUNDS.GAME.LEVEL_UP);
+        // Debounced SFX trigger (300ms cooldown)
+        const now = Date.now();
+        if (now - lastSoundRef.current >= 300) {
+            playSFX(SOUNDS.GAME.LEVEL_UP);
+            lastSoundRef.current = now;
+        }
+
+        // Haptic visual feedback fires every time (cheap DOM op)
         setHapticShake(true);
         setTimeout(() => setHapticShake(false), 500);
 

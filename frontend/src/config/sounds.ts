@@ -12,6 +12,7 @@ export const SOUNDS = {
         WATER: '/sounds/game_water.mp3',
         CASH: '/sounds/game_cash.mp3',
         LEVEL_UP: '/sounds/game_levelup.mp3',
+        UPGRADE_INSTALL: '/sounds/game_upgrade_install.mp3',
     },
     BGM: {
         MAIN: '/sounds/bgm_main.mp3',

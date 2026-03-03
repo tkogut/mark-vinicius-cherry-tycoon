@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Howl, Howler } from 'howler';
-import { SOUNDS } from '@/config/sounds';
+import { soundPool } from '@/utils/audioManager';
 
 interface AudioContextType {
     isMuted: boolean;
@@ -41,13 +41,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const toggleMute = () => setIsMuted(prev => !prev);
     const setVolume = (vol: number) => setVolumeState(Math.max(0, Math.min(1, vol)));
 
+    // SFX playback via SoundPool — no more individual `new Howl()` per call
     const playSFX = (src: string, vol: number = 1.0) => {
         if (isMuted) return;
-        const sound = new Howl({
-            src: [src],
-            volume: vol,
-            autoplay: true,
-        });
+        soundPool.play(src, vol);
     };
 
     const playBGM = (src: string) => {
@@ -84,17 +81,15 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     };
 
-    // Initialize global mute/volume on mount
+    // Initialize SoundPool and global audio on mount
     useEffect(() => {
         Howler.mute(isMuted);
         Howler.volume(volume);
-    }, []);
+        soundPool.init();
 
-    // Helper to preload common sounds
-    useEffect(() => {
-        // Optional: Preload critical SFX
-        new Howl({ src: [SOUNDS.UI.CLICK], preload: true });
-        new Howl({ src: [SOUNDS.UI.SUCCESS], preload: true });
+        return () => {
+            soundPool.destroy();
+        };
     }, []);
 
     return (
@@ -111,3 +106,4 @@ export const useAudio = () => {
     }
     return context;
 };
+
