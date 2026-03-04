@@ -26,7 +26,7 @@ export const LoginButton: React.FC = () => {
                 <User className="h-4 w-4" />
                 Login with II
             </Button>
-            {import.meta.env.DEV && (
+            {import.meta.env.VITE_DFX_NETWORK !== 'ic' && (
                 <Button
                     variant="outline"
                     size="sm"

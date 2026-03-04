@@ -37,7 +37,7 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         description: 'Basic storage for harvested cherries.',
         cost: 25000,
         icon: <Warehouse className="h-6 w-6" />,
-        effect: 'Reduces seasonal spoilage to 20%',
+        effect: 'Spoilage Armor: 20% — retains 20% of stored cherries',
         type: 'Building'
     },
     {
@@ -46,7 +46,7 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         description: 'Advanced climate-controlled storage.',
         cost: 40000,
         icon: <Snowflake className="h-6 w-6" />,
-        effect: 'Reduces seasonal spoilage to 5%',
+        effect: 'Spoilage Armor: 80% — retains 80% of stored cherries',
         type: 'Building'
     },
     {

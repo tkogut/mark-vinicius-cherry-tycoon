@@ -15,6 +15,10 @@ dfx start --background --clean || echo "Replica may already be running."
 echo "🏗️ Deploying Backend Canister..."
 dfx deploy backend_mainnet || { echo "❌ Backend deployment failed."; exit 1; }
 
+# Deploy Internet Identity
+echo "🔐 Deploying Internet Identity (Local)..."
+dfx deploy internet_identity || echo "⚠️  Could not deploy Internet Identity. Local login may fail."
+
 # Start Frontend Dev Server
 echo "🌐 Starting Frontend Dev Server..."
 cd frontend || exit 1

@@ -13,7 +13,7 @@ import { CompetitorsPanel } from "@/components/social/CompetitorsPanel";
 import { RankingsPanel } from "@/components/social/RankingsPanel";
 import { SportsCenter } from "@/components/sports/SportsCenter";
 const Marketplace = React.lazy(() => import('@/components/farm/Marketplace').then(module => ({ default: module.Marketplace })));
-import { GoldenHarvesterView } from "@/components/farm/GoldenHarvesterView";
+import { InvestmentsDashboard } from "@/components/farm/InvestmentsDashboard";
 import { ParticleLayer } from "@/components/effects/ParticleLayer";
 import { Toaster } from "@/components/ui/toaster"
 import { InventoryBar } from "@/components/layout/InventoryBar"
@@ -473,7 +473,7 @@ function AppContent() {
                                 />
                             ) : activeTab === 'harvester' ? (
                                 <div className="animate-in slide-in-from-right-[100%] duration-500 ease-out fill-mode-forwards sm:slide-in-from-right-[150%]">
-                                    <GoldenHarvesterView onBack={() => setActiveTab('dashboard')} />
+                                    <InvestmentsDashboard onBack={() => setActiveTab('dashboard')} />
                                 </div>
                             ) : activeTab === 'marketplace' ? (
                                 <Marketplace

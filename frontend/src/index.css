@@ -233,6 +233,19 @@
   }
 }
 
+/* ═══════════════════════════════════════════════
+   Additional Keyframes
+   ═══════════════════════════════════════════════ */
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
 /* Neo-Steampunk: Liquid Mercury shimmer for XP bar */
 @keyframes mercuryShimmer {
   0% {

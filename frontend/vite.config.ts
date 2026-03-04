@@ -15,7 +15,7 @@ let canisterIds: CanisterIds;
 try {
     canisterIds = JSON.parse(
         fs.readFileSync(
-            isDev ? ".dfx/local/canister_ids.json" : "./canister_ids.json"
+            isDev ? path.resolve(__dirname, "../.dfx/local/canister_ids.json") : path.resolve(__dirname, "../canister_ids.json")
         ).toString()
     );
 } catch (e) {
@@ -24,7 +24,7 @@ try {
 }
 
 // List of all canisters to expose to the frontend
-const CANISTER_NAMES = ["backend", "internet_identity"];
+const CANISTER_NAMES = ["backend", "backend_mainnet", "internet_identity"];
 
 // Generate environment variables based on canister IDs
 const canisterEnvDefinitions = CANISTER_NAMES.reduce((acc, name) => {
@@ -32,8 +32,9 @@ const canisterEnvDefinitions = CANISTER_NAMES.reduce((acc, name) => {
     const canisterId = process.env[`CANISTER_ID_${name.toUpperCase()}`] || canisterIds[name]?.[network];
 
     if (canisterId) {
-        acc[`VITE_${name.toUpperCase()}_CANISTER_ID`] = JSON.stringify(canisterId);
+        acc[`import.meta.env.VITE_${name.toUpperCase()}_CANISTER_ID`] = JSON.stringify(canisterId);
         acc[`process.env.${name.toUpperCase()}_CANISTER_ID`] = JSON.stringify(canisterId);
+        acc[`process.env.VITE_${name.toUpperCase()}_CANISTER_ID`] = JSON.stringify(canisterId);
     } else {
         console.warn(`⚠️  Canister ID not found for ${name} on network ${network}`);
     }

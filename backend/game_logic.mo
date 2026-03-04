@@ -42,6 +42,28 @@ module {
     }
   };
 
+  // Spoilage calculation (GDD Section 4)
+  public func calculateSpoilageRate(infrastructure: [Infrastructure]) : Float {
+    var hasColdStorage = false;
+    var hasWarehouse = false;
+    
+    for (infra in infrastructure.vals()) {
+       switch (infra.infraType) {
+         case (#ColdStorage) { hasColdStorage := true };
+         case (#Warehouse) { hasWarehouse := true };
+         case (_) {};
+       };
+    };
+
+    if (hasColdStorage) {
+      0.20 // 20% spoilage with Cold Storage
+    } else if (hasWarehouse) {
+      0.80 // 80% spoilage with Warehouse
+    } else {
+      1.0 // 100% spoilage without storage
+    };
+  };
+
   // pH modifier (optimal 6.0-7.0)
   private func getPhModifier(pH: Float) : Float {
     if (pH >= 6.0 and pH <= 7.0) { 1.0 }

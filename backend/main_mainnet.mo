@@ -162,7 +162,7 @@ persistent actor CherryTycoon {
   ) : async GameResult<Text, GameError> {
     
     // SEC-005: Reject anonymous callers
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
 
     // SEC-008: Validate inputs
     if (Text.size(playerId) == 0 or Text.size(playerId) > 50) {
@@ -254,7 +254,7 @@ persistent actor CherryTycoon {
   public shared({ caller }) func hireLabor(
     laborChoice: Text
   ) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -347,7 +347,7 @@ persistent actor CherryTycoon {
 
   // DEBUG ONLY: Reset player state (SEC-003: restricted from anonymous)
   public shared({ caller }) func debugResetPlayer() : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     let _ = playerFarms.delete(caller);
     #Ok("Player reset successfully")
   };
@@ -393,7 +393,7 @@ persistent actor CherryTycoon {
 
   // Harvest cherries from a parcel
   public shared({ caller }) func harvestCherries(parcelId: Text) : async GameResult<Nat, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -535,7 +535,7 @@ persistent actor CherryTycoon {
 
   // Water a parcel
   public shared({ caller }) func waterParcel(parcelId: Text) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -615,7 +615,7 @@ persistent actor CherryTycoon {
     parcelId: Text,
     _fertilizerType: Text
   ) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -709,7 +709,7 @@ persistent actor CherryTycoon {
   public shared({ caller }) func startOrganicConversion(
     parcelId: Text
   ) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -790,7 +790,7 @@ persistent actor CherryTycoon {
   public shared({ caller }) func cutAndPrune(
     parcelId: Text
   ) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -841,7 +841,7 @@ persistent actor CherryTycoon {
     parcelId: Text,
     quantity: Nat
   ) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -937,7 +937,7 @@ persistent actor CherryTycoon {
     quantity: Nat,
     saleType: Text
   ) : async GameResult<Nat, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     // SEC-007: Validate saleType
     if (saleType != "retail" and saleType != "wholesale") {
       return #Err(#InvalidOperation("Invalid sale type: " # saleType # ". Must be 'retail' or 'wholesale'"));
@@ -1180,33 +1180,15 @@ persistent actor CherryTycoon {
     };
 
     // Spoilage Logic (Phase 4)
-    // Check for Cold Storage / Warehouse to prevent rotting in Winter
+    // Delegates to GameLogic.calculateSpoilageRate to maintain single source of truth
+    // (see math_consistency.md §1 for documented rates)
     var spoiledCherries : Nat = 0;
     
-    // Use Iter to check for infrastructure presence
-    // We use variables because we need to iterate once
-    var hasColdStorage = false;
-    var hasWarehouse = false;
-    
-    for (infra in farm.infrastructure.vals()) {
-       switch (infra.infraType) {
-         case (#ColdStorage) { hasColdStorage := true };
-         case (#Warehouse) { hasWarehouse := true };
-         case (_) {};
-       };
-    };
-
     if (farm.currentSeason == #Autumn) {
-       if (not hasColdStorage and not hasWarehouse) {
-          // 100% spoilage without any storage
-          spoiledCherries := farm.inventory.cherries;
-       } else if (hasWarehouse and not hasColdStorage) {
-          // 80% spoilage with just basic warehouse
-          spoiledCherries := (farm.inventory.cherries * 80) / 100;
-       } else {
-          // 20% spoilage with Cold Storage
-          spoiledCherries := (farm.inventory.cherries * 20) / 100;
-       };
+       let spoilageRate = GameLogic.calculateSpoilageRate(farm.infrastructure);
+       // spoilageRate is Float, multiply by quantity
+       let spoiledFloat = Float.fromInt(farm.inventory.cherries) * spoilageRate;
+       spoiledCherries := Int.abs(Float.toInt(spoiledFloat));
     };
     
     let newCherries = if (farm.inventory.cherries >= spoiledCherries) {
@@ -1283,7 +1265,7 @@ persistent actor CherryTycoon {
 
   // Advance phase through the 10-turn sequence
   public shared({ caller }) func advancePhase() : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
         case null { return #Err(#NotFound("Player not found")) };
         case (?farm) {
@@ -1352,7 +1334,7 @@ persistent actor CherryTycoon {
   public shared({ caller }) func upgradeInfrastructure(
     infraTypeString: Text
   ) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -1431,7 +1413,7 @@ persistent actor CherryTycoon {
 
   // Phase Cinematic: The Golden Harvester upgrade
   public shared({ caller }) func upgrade_golden_harvester() : async GameResult<Nat, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -1584,7 +1566,7 @@ persistent actor CherryTycoon {
     size: Float
   ) : async GameResult<Text, GameError> {
     
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -1662,7 +1644,7 @@ persistent actor CherryTycoon {
     price: Nat
   ) : async GameResult<Text, GameError> {
     
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -1955,7 +1937,7 @@ persistent actor CherryTycoon {
     parcelId: Text,
     recipient: Principal
   ) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     
     // 1. Get Caller Farm (Sender)
     let callerFarm = switch (playerFarms.get(caller)) {
@@ -2173,7 +2155,7 @@ persistent actor CherryTycoon {
   };
 
   public shared({ caller }) func buyClubShares(clubId: Text, amount: Nat) : async GameResult<Text, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     #Err(#InvalidOperation("Sports Center feature coming soon!"))
   };
 

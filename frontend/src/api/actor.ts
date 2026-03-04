@@ -2,9 +2,14 @@ import { Actor, HttpAgent, Identity } from "@dfinity/agent";
 import { idlFactory } from "../declarations/backend.did.js";
 import { _SERVICE } from "../declarations/backend.did";
 
-const canisterId = import.meta.env.VITE_BACKEND_CANISTER_ID;
+const canisterId = import.meta.env.VITE_BACKEND_CANISTER_ID || import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID;
+
+console.log("DEBUG: BACKEND_CANISTER_ID =", import.meta.env.VITE_BACKEND_CANISTER_ID);
+console.log("DEBUG: BACKEND_MAINNET_CANISTER_ID =", import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID);
 
 export const createBackendActor = async (identity?: Identity) => {
+    const canisterId = import.meta.env.VITE_BACKEND_CANISTER_ID || import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID;
+    console.log("DEBUG: Final resolved canisterId =", canisterId);
     const isLocal = window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1");
     const host = isLocal ? "http://127.0.0.1:8000" : "https://ic0.app";
 

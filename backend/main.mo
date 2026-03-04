@@ -1197,30 +1197,11 @@ actor CherryTycoon {
     // Check for Cold Storage / Warehouse to prevent rotting in Winter
     var spoiledCherries : Nat = 0;
     
-    // Use Iter to check for infrastructure presence
-    // We use variables because we need to iterate once
-    var hasColdStorage = false;
-    var hasWarehouse = false;
-    
-    for (infra in farm.infrastructure.vals()) {
-       switch (infra.infraType) {
-         case (#ColdStorage) { hasColdStorage := true };
-         case (#Warehouse) { hasWarehouse := true };
-         case (_) {};
-       };
-    };
-
     if (farm.currentSeason == #Autumn) {
-       if (not hasColdStorage and not hasWarehouse) {
-          // 100% spoilage without any storage
-          spoiledCherries := farm.inventory.cherries;
-       } else if (hasWarehouse and not hasColdStorage) {
-          // 80% spoilage with just basic warehouse
-          spoiledCherries := (farm.inventory.cherries * 80) / 100;
-       } else {
-          // 20% spoilage with Cold Storage
-          spoiledCherries := (farm.inventory.cherries * 20) / 100;
-       };
+       let spoilageRate = GameLogic.calculateSpoilageRate(farm.infrastructure);
+       // spoilageRate is Float, multiply by quantity
+       let spoiledFloat = Float.fromInt(farm.inventory.cherries) * spoilageRate;
+       spoiledCherries := Int.abs(Float.toInt(spoiledFloat));
     };
     
     let newCherries = if (farm.inventory.cherries >= spoiledCherries) {
