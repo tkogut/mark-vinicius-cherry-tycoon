@@ -1324,7 +1324,7 @@ actor CherryTycoon {
             };
 
             if (nextSeason != farm.currentSeason) {
-                return await _advanceSeasonInternal(farm, caller, nextPhase, nextSeason);
+                return await _advanceSeasonInternal(updatedFarm, caller, nextPhase, nextSeason);
             };
 
             // Weather Logic (only triggers when entering Growth phase)

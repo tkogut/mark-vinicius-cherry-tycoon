@@ -1118,7 +1118,9 @@ persistent actor CherryTycoon {
   // Internal helper to advance to next season (Called from advancePhase)
   private func _advanceSeasonInternal(
     farm: PlayerFarm,
-    caller: Principal
+    caller: Principal,
+    nextPhase: Types.SeasonPhase,
+    nextSeason: Types.Season
   ) : async GameResult<Text, GameError> {
     
     // Check for organic parcels and update certification status
@@ -1169,14 +1171,6 @@ persistent actor CherryTycoon {
 
     if (farm.cash < totalCosts) {
       return #Err(#InsufficientFunds { required = totalCosts; available = farm.cash });
-    };
-
-    // Advance season
-    let nextSeason = switch (farm.currentSeason) {
-      case (#Spring) { #Summer };
-      case (#Summer) { #Autumn };
-      case (#Autumn) { #Winter };
-      case (#Winter) { #Spring };
     };
 
     // Spoilage Logic (Phase 4)
@@ -1248,7 +1242,7 @@ persistent actor CherryTycoon {
     let updatedFarm = {
       farm with
       currentSeason = nextSeason;
-      currentPhase = #Hiring; // Reset phase on new season
+      currentPhase = nextPhase; // Transition to next phase on new season
       weather = null; // Clear weather on new season
       hiredLabor = null; // Phase 5.7: Reset labor for new season
       seasonNumber = farm.seasonNumber + 1;
@@ -1270,12 +1264,6 @@ persistent actor CherryTycoon {
         case null { return #Err(#NotFound("Player not found")) };
         case (?farm) {
             
-            // Handle automatic season switching at the end of the year/season
-            if (farm.currentPhase == #Planning) {
-                // Call the internal season logic which handles spoilage, AI turns, and stats
-                return await _advanceSeasonInternal(farm, caller);
-            };
-
             var updatedFarm = farm;
 
             // Phase 5.7: Auto-assign Emergency labor if skipped
@@ -1293,13 +1281,30 @@ persistent actor CherryTycoon {
                 case (#Storage) { #CutAndPrune };
                 case (#CutAndPrune) { #Maintenance };
                 case (#Maintenance) { #Planning };
-                case (#Planning) { #Planning }; // Handled by if block above, but needed for exhaustiveness
+                case (#Planning) { #Hiring }; 
+            };
+
+            let nextSeason : Types.Season = switch (nextPhase) {
+                case (#Hiring) { #Spring };
+                case (#Procurement) { #Spring };
+                case (#Investment) { #Spring };
+                case (#Growth) { #Summer };
+                case (#Harvest) { #Summer };
+                case (#Market) { #Autumn };
+                case (#Storage) { #Autumn };
+                case (#CutAndPrune) { #Winter };
+                case (#Maintenance) { #Winter };
+                case (#Planning) { #Winter };
+            };
+
+            if (nextSeason != farm.currentSeason) {
+                return await _advanceSeasonInternal(updatedFarm, caller, nextPhase, nextSeason);
             };
 
             // Weather Logic (only triggers when entering Growth phase)
             let newWeather = if (nextPhase == #Growth) {
                 let entropy = Int.abs(Time.now());
-                WeatherLogic.generateWeatherEvent(farm.currentSeason, entropy)
+                WeatherLogic.generateWeatherEvent(nextSeason, entropy)
             } else {
                 farm.weather // Persist existing weather event until end of season
             };
