@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # AGENT PROTOCOLS: Orchestration System [SYSTEM]
 
 ## Overview
@@ -38,19 +42,31 @@ This project uses a "Multi-Agent Simulation" workflow. Even if run by a single h
 - **Task**: Reviews every backend commit before merge. Audits against 7 security domains. Blocks Critical/High findings.
 - **Recommended Model**: **Gemini 1.5 Pro (High)** or **Claude 3.5 Sonnet**
 - **Why**: Needs deep reasoning about attack vectors, economic exploits, and ICP-specific vulnerabilities.
-- **Policy**: `directives/SECURITY_DIRECTIVE_V1.md`
-- **Backlog**: `directives/04_security_backlog.md`
+- **Policy**: `.agent/rules/SECURITY_DIRECTIVE_V1.md`
+- **Backlog**: `.agent/rules/04_security_backlog.md`
 
 ## Workflow Loop
-1. **AWARENESS (Every Turn)**: Before making any decision or tool call, check the `directives/` folder to see if the Manager or another agent has updated the roadmap or backlog.
+1. **AWARENESS (Every Turn)**: Before making any decision or tool call, check the `.agent/rules/` folder to see if the Manager or another agent has updated the roadmap or backlog.
 2. **SITUATION**: Read your specific directive file (e.g., `01_backend_backlog.md`) to see the latest tasks.
 3. **EXECUTE**:
     - Switch context to your Role.
     - Write code / Run commands.
     - Update your backlog (mark `[x]`).
-    - **CRITICAL**: When a backlog item in `directives/01_backend_backlog.md` (or any other directive) is completed, the agent must automatically update both the file and the internal Antigravity Task List (`task.md`). This prevents "split-brain" state.
+    - **CRITICAL**: When a backlog item in `.agent/rules/01_backend_backlog.md` (or any other directive) is completed, the agent must automatically update both the file and the internal Antigravity Task List (`task.md`). This prevents "split-brain" state.
 4. **SECURITY CHECK (Backend Only)**: After completing a task, the Security Agent reviews the changes.
 5. **REPORT**: Update `00_master_plan.md` or alert the user of progress/blockers.
+
+## 🦾 Technical Skill Integration
+To prevent context drift, agents MUST trigger these specific skills from `.agent/skills/` during execution:
+
+1. **Backend Logic Update**: Trigger `dual-entrypoint-sync.md` to ensure `main.mo` and `main_mainnet.mo` are aligned.
+2. **Economy/Math Changes**: Trigger `economic-math-auditor.md` to verify formulas against `math_consistency.md`.
+3. **Infrastructure Upgrades**: Trigger `infrastructure-blueprint-manager.md` to sync costs between Motoko and React.
+4. **UI Generation**: Trigger `neo-steampunk-ui-factory.md` to enforce the `.mechanical-hull` aesthetic.
+
+### 🤝 The Handshake Protocol (Execution Lock)
+No task is considered [x] COMPLETE unless the agent explicitly states:
+> "Handshake Verified: Dual-Entrypoint and Math-Consistency checked using respective .agent/skills/."
 
 ### ⌨️ Slash Commands
 Support the following short-hands by reading their definitions in `.agent/workflows/`:
@@ -92,14 +108,14 @@ Support the following short-hands by reading their definitions in `.agent/workfl
 - **How**: User opens a **New Chat**, pastes the bootstrap prompt from `BOOTSTRAP_PROMPTS.md`.
 - **Pros**: Fresh context, focused model, no distractions.
 - **Procedure**:
-    1. Manager (Window A) defines tasks in `directives/`.
+    1. Manager (Window A) defines tasks in `.agent/rules/`.
     2. User opens Window B (Backend), C (Frontend), D (QA), E (Security).
-    3. Agents work and update `directives/`.
+    3. Agents work and update `.agent/rules/`.
     4. Manager (Window A) reads updates and plans next steps.
 
 ## Inter-Agent Communication: The "File-Based Hand-off"
 
-Since agents are in separate chat windows, they do not "talk" directly. They use `directives/` as a digital whiteboard.
+Since agents are in separate chat windows, they do not "talk" directly. They use `.agent/rules/` as a digital whiteboard.
 
 ### 1. Direct Backlog Editing (Fast)
 - **QA → Backend**: When QA finds a bug, add to `01_backend_backlog.md` under `### 🐞 Bug Fixes`.
@@ -126,7 +142,7 @@ Since agents are in separate chat windows, they do not "talk" directly. They use
     4. **Agent**: Reads their respective log using `view_file`.
 
 ## Directory Structure
-- `directives/`: The "Brain". State and instructions.
+- `.agent/rules/`: The "Brain". State and instructions.
 - `execution/`: The "Hands". Scripts and tools.
 - `backend/`: Source code (Backend).
 - `frontend/`: Source code (Frontend).

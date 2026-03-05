@@ -20,10 +20,16 @@ These are the foundational 'Always-On' rules that govern every action taken by t
 * **UI Consistency Rule (`ui-consistency.md`)**: Enforces "Neo-Steampunk Cherry" aesthetics, dynamic lighting, and interactive 'Juice' rules.
 * **Security Gatekeeper (`security_directive.md`)**: Defines proactive auditing against 7 key web3 and architecture domains.
 * **Playground tester (`autometed-deploy.md`)**: Automated deployment to the Internet Computer (ICP) Playground using GitHub Actions
+* **Dual-Entrypoint Directive (`motoko-playground-mainnet-directive.md`)**: MANDATORY. Every backend change must be replicated across `main.mo` and `main_mainnet.mo`.
+
 
 ### The Skills (`.agent/skills/`)
 Reusable implementations for specific visual and technical tasks:
 * **Particle Engine (`particle-engine.md`)**: A React + Canvas/Three.js overlay system dynamically theming cinematic effects (e.g., *CherryBlossom*, *GoldenPollen*, *SteamSparks*) with `pointer-events-none` overlays to ensure UI interactivity.
+* **Dual-Entrypoint Sync (`dual-entrypoint-sync.md`)**: Automates mirroring between Playground & Mainnet.
+* **Infrastructure Blueprint Manager (`infrastructure-blueprint-manager.md`)**: Manages costs/stats for Warehouse, ColdStorage, etc.
+* **Economic Math Auditor (`economic-math-auditor.md`)**: Guards formulas against drift.
+* **Neo-Steampunk UI Factory (`neo-steampunk-ui-factory.md`)**: Enforces `.mechanical-hull` aesthetic.
 
 ### The Workflows (`.agent/workflows/`)
 Slash commands representing repeatable processes available to the orchestration team:
@@ -39,10 +45,12 @@ Slash commands representing repeatable processes available to the orchestration 
 - `/continue`: Resume current task or start next one.
 - `/test-cycle`: Execute tests relevant to the active phase.
 - `/security-audit`: Trigger a security audit of specified scope.
+* `/check-dual`: Deep-audit of `main.mo` vs `main_mainnet.mo` consistency.
+* `/audit-economy`: Cross-check `game_logic.mo` against `math_consistency.md`.
 
 ## 3. Data Integrity & Sync
 
-* **Source of Truth**: All progress, updates, and task completions MUST be updated in BOTH the file-based directives (`directives/`) and the internal Antigravity Task List (`task.md`). This symmetry prevents conflicting states ("split-brain").
+* **Source of Truth**: All progress, updates, and task completions MUST be updated in BOTH the file-based directives (`.agent/rules/`) and the internal Antigravity Task List (`task.md`). This symmetry prevents conflicting states ("split-brain").
 * **Math Formulas**: Strict adherence to the provided Yield Calculation and Shared Market constraints (`.agent/rules/math_consistency.md`) is mandatory for all code generation. No agent should invent arbitrary scaling logic.
 
 ## 4. Operational Entry Points
