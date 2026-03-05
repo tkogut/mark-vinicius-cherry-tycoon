@@ -11,6 +11,7 @@
   * **Operations**: Antigravity 2026 Native Orchestration Framework
 
 ## 2. Orchestration Framework Map
+Upon the `instantiate` command, the agent must generate and maintain this ecosystem:
 
 ### The Brain (`.agent/rules/`)
 These are the foundational 'Always-On' rules that govern every action taken by the AI agents:
@@ -18,6 +19,7 @@ These are the foundational 'Always-On' rules that govern every action taken by t
 * **Anti-Split-Brain Protocol (`agent_protocols.md`)**: Mandates that file-based directives and internal UI Task Lists are updated symmetrically.
 * **UI Consistency Rule (`ui-consistency.md`)**: Enforces "Neo-Steampunk Cherry" aesthetics, dynamic lighting, and interactive 'Juice' rules.
 * **Security Gatekeeper (`security_directive.md`)**: Defines proactive auditing against 7 key web3 and architecture domains.
+* **Playground tester (`autometed-deploy.md`)**: Automated deployment to the Internet Computer (ICP) Playground using GitHub Actions
 
 ### The Skills (`.agent/skills/`)
 Reusable implementations for specific visual and technical tasks:
@@ -29,6 +31,14 @@ Slash commands representing repeatable processes available to the orchestration 
 * `/visualize-lore`: Guides the creation of mathematically grounded concept art via Nano Banana.
 * `/ui-mockup`: Backlog-driven layout generation mapped to our existing game lore.
 * `/playtest-ui`: UX/Psychology critique audit (Validates interactive 'Juice' and structural logic).
+- `/check-logs`: Analyze your role's log file.
+- `/check-backlog`: Read your role-specific backlog and report tasks.
+- `/status`: Summarize progress and update backlog.
+- `/sync`: Re-sync with the Master Plan and other agents.
+- `/start`: Pick a new task and begin implementation.
+- `/continue`: Resume current task or start next one.
+- `/test-cycle`: Execute tests relevant to the active phase.
+- `/security-audit`: Trigger a security audit of specified scope.
 
 ## 3. Data Integrity & Sync
 

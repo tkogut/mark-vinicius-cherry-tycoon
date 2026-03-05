@@ -18,7 +18,9 @@ import {
 import { cn } from '@/lib/utils';
 import { useStability } from '@/hooks/useFarm';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ShoppingCart, CheckCircle2 } from 'lucide-react';
+import { isActionAllowed, SeasonPhase, PHASE_LABELS } from '@/config/phaseConstants';
+
 
 interface InfrastructureItem {
     id: string;
@@ -101,9 +103,17 @@ interface MarketplaceProps {
     ownedInfrastructure: any[]; // Infrastructure type from backend
     onPurchase: (id: string) => void;
     isLoading?: boolean;
+    currentPhase?: SeasonPhase | string;
 }
 
-export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastructure, onPurchase, isLoading }) => {
+export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastructure, onPurchase, isLoading, currentPhase }) => {
+    // Normalize currentPhase
+    const phaseKey = (typeof currentPhase === 'string'
+        ? currentPhase
+        : (currentPhase ? Object.keys(currentPhase)[0] : 'Planning')) as SeasonPhase;
+
+    const canBuy = isActionAllowed(phaseKey, 'buy_infrastructure');
+
     const { data: stability } = useStability();
     const estimatedSurvivalCost = stability?.estimatedCost ? Number(stability.estimatedCost) : 0;
 
@@ -176,18 +186,33 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                         <span>Effect: {item.effect}</span>
                     </div>
 
-                    <Button
-                        className={cn(
-                            "w-full mt-4 h-9 text-xs font-bold transition-all",
-                            owned
-                                ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                                : "bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-900/20"
-                        )}
-                        disabled={owned || !canAfford || isLoading}
-                        onClick={() => onPurchase(item.id)}
-                    >
-                        {owned ? "OWNED" : (isLoading ? "PURCHASING..." : "PURCHASE")}
-                    </Button>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="w-full">
+                                    <Button
+                                        className={cn(
+                                            "w-full mt-4 h-9 text-xs font-bold transition-all",
+                                            owned
+                                                ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                                : (!canBuy ? "bg-slate-800 text-slate-500 opacity-60" : "bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-900/20")
+                                        )}
+                                        disabled={owned || !canAfford || isLoading || !canBuy}
+                                        onClick={() => onPurchase(item.id)}
+                                    >
+                                        <ShoppingCart className="h-4 w-4 mr-2" />
+                                        {owned ? "OWNED" : (isLoading ? "PURCHASING..." : "PURCHASE")}
+                                    </Button>
+                                </div>
+                            </TooltipTrigger>
+                            {!canBuy && !owned && (
+                                <TooltipContent className="bg-hull border-slate-700">
+                                    <p>Purchases restricted to {PHASE_LABELS['Investment']} phase</p>
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    </TooltipProvider>
+
                 </CardContent>
             </Card>
         );

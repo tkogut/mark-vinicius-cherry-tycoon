@@ -38,10 +38,13 @@ import { WeatherEffects } from "@/components/season/WeatherEffects"
 import { AudioProvider, useAudio } from '@/contexts/AudioContext';
 import { VolumeControl } from '@/components/ui/VolumeControl';
 import { SOUNDS } from '@/config/sounds';
+import { isActionAllowed, GameAction, SeasonPhase, PHASE_DESCRIPTIONS } from "@/config/phaseConstants";
+
 
 function AppContent() {
     const { isAuthenticated, isInitializing, identity } = useAuth();
     const { playBGM, stopBGM } = useAudio();
+    const { toast } = useToast();
 
     useEffect(() => {
         // Start BGM on user interaction or immediately (depending on browser policy)
@@ -140,6 +143,17 @@ function AppContent() {
     };
 
     const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string) => {
+        const gameAction = action === 'prune' ? 'prune' : action as GameAction;
+
+        if (!isActionAllowed(currentPhase, gameAction)) {
+            toast({
+                title: "Action Restricted",
+                description: `You can't ${action} during the ${currentPhase} phase.`,
+                variant: "destructive"
+            });
+            return;
+        }
+
         if (action === 'plant') {
             setSelectedParcelId(parcelId);
             setPlantingModalOpen(true);
@@ -153,8 +167,6 @@ function AppContent() {
                 onSuccess: () => boostHarvestVelocity(),
             });
         } else if (action === 'fertilize') {
-            // Default to NPK fertilizer for quick action
-            // TODO: Add fertilizer selection modal
             fertilize.mutate({ parcelId, fertilizerType: "NPK" });
         } else if (action === 'organic') {
             startOrganicConversion.mutate(parcelId);
@@ -162,6 +174,7 @@ function AppContent() {
             cutAndPrune.mutate(parcelId);
         }
     };
+
 
     const handlePlantConfirm = async (amount: number) => {
         if (selectedParcelId) {
@@ -212,27 +225,96 @@ function AppContent() {
         infrastructureMitigation?: string;
     } | null>(null);
 
-    // 4. Initialization loading screen
+    // 4. Initialization loading screen (Neo-Steampunk Splash)
     if (isInitializing) {
         return (
-            <div className={`min-h-screen bg-slate-950 font-sans ${getThemeClass(stats.currentSeason)} flex flex-col items-center justify-center p-4 overflow-x-hidden selection:bg-rose-500/30 selection:text-rose-200 transition-colors duration-1000`}>
-                <div className="flex flex-col items-center gap-6 max-w-sm w-full text-center">
-                    <div className="relative">
-                        <div className="absolute inset-0 bg-red-500/20 blur-3xl rounded-full" />
-                        <div className="relative bg-slate-900 border border-slate-800 p-8 rounded-3xl animate-pulse">
-                            <Cherry className="h-16 w-16 text-rose-500 animate-bounce" />
+            <div className={`min-h-screen bg-slate-950 font-sans ${getThemeClass(stats.currentSeason)} flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors duration-1000`}>
+                {/* Atmospheric Effects */}
+                <div className="god-ray left-[20%] w-[30%] h-full opacity-20" />
+                <div className="god-ray right-[10%] w-[20%] h-full opacity-10" style={{ animationDelay: '2s' }} />
+                <div className="sunset-vignette opacity-60" />
+
+                <div className="relative z-10 flex flex-col items-center gap-8 max-w-lg w-full text-center">
+                    {/* Hero Graphic - Golden Harvester Splash */}
+                    <div className="relative group">
+                        <div className="absolute -inset-4 bg-amber-500/20 blur-3xl rounded-full animate-pulse transition-opacity duration-1000" />
+                        <div className="relative overflow-hidden rounded-[2rem] border-2 border-amber-500/30 shadow-[0_0_50px_rgba(212,160,86,0.2)]">
+                            <img
+                                src="/assets/golden_harvester_splash.png"
+                                alt="Golden Harvester"
+                                className="w-full aspect-[4/3] object-cover scale-105"
+                            />
+                            {/* Overlay glow */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <h1 className="text-2xl font-black tracking-tighter text-white uppercase italic">
-                            Cherry Tycoon
-                        </h1>
-                        <p className="text-slate-400 text-sm font-medium">
-                            Establishing secure connection to the Internet Computer...
-                        </p>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                        <div className="h-full bg-rose-600 animate-[loading_1.5s_ease-in-out_infinite]" />
+
+                    {/* Progress Panel - Brass Plate Aesthetic */}
+                    <div
+                        className="w-full rounded-2xl p-[2px] shadow-2xl animate-in fade-in slide-in-from-bottom-6 duration-1000"
+                        style={{
+                            background: 'linear-gradient(135deg, #d4a056 0%, #c9975a 20%, #f5d08a 40%, #e0b76c 60%, #9e7434 80%, #d4a056 100%)',
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                        }}
+                    >
+                        <div className="bg-slate-950/90 rounded-[14px] p-6 backdrop-blur-xl">
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <h1
+                                        className="text-3xl font-black tracking-tighter uppercase italic"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #f5d08a, #d4a056, #c9975a)',
+                                            WebkitBackgroundClip: 'text',
+                                            WebkitTextFillColor: 'transparent',
+                                            filter: 'drop-shadow(0 0 10px rgba(212,160,86,0.3))'
+                                        }}
+                                    >
+                                        Cherry Tycoon
+                                    </h1>
+                                    <p className="text-amber-500/60 text-[10px] font-bold uppercase tracking-[0.3em] font-mono">
+                                        Initializing Core Engines
+                                    </p>
+                                </div>
+
+                                {/* Status Message */}
+                                <p className="text-slate-400 text-xs font-medium animate-pulse">
+                                    Establishing secure connection to the Internet Computer...
+                                </p>
+
+                                {/* Progress Bar - Liquid Mercury Effect */}
+                                <div
+                                    className="relative h-2.5 w-full rounded-full overflow-hidden"
+                                    style={{
+                                        background: 'rgba(0,0,0,0.5)',
+                                        border: '1px solid rgba(212,160,86,0.2)',
+                                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+                                    }}
+                                >
+                                    <div
+                                        className="absolute top-0 left-0 h-full rounded-full animate-[mercuryShimmer_2s_infinite]"
+                                        style={{
+                                            width: '60%', // Constant pull during init
+                                            background: 'linear-gradient(180deg, #e8e8f0 0%, #c0c0d0 30%, #a8a8b8 50%, #8888a0 70%, #707088 100%)',
+                                            boxShadow: '0 0 10px rgba(192,192,208,0.5), inset 0 1px 2px rgba(255,255,255,0.6)'
+                                        }}
+                                    />
+                                    {/* Shimmer Overlay */}
+                                    <div
+                                        className="absolute top-0 left-0 h-full w-[60%] rounded-full"
+                                        style={{
+                                            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 30%, transparent 60%)',
+                                            animation: 'mercuryShimmer 1.5s ease-in-out infinite',
+                                        }}
+                                    />
+                                </div>
+
+                                <div className="flex justify-center mt-2">
+                                    <span className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+                                        Produced by JaPiTo Group
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -357,10 +439,14 @@ function AppContent() {
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Farm Overview</h1>
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-col gap-3">
                                 <PhaseIndicator currentPhase={currentPhase} />
+                                <p className="text-xs text-slate-400 italic max-w-lg">
+                                    {PHASE_DESCRIPTIONS[currentPhase as SeasonPhase]}
+                                </p>
                             </div>
                         </div>
+
 
                         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                             {/* Inventory Bar (Stats) */}
@@ -385,15 +471,16 @@ function AppContent() {
                                     disabled={!isAuthenticated || advancePhase.isPending}
                                     variant="default"
                                     size="sm"
-                                    className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white flex shadow-md font-semibold"
+                                    className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white flex shadow-md font-semibold animate-in fade-in zoom-in duration-300"
                                 >
                                     {advancePhase.isPending ? (
                                         <RefreshCcw className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <Zap className="h-4 w-4" />
                                     )}
-                                    End Phase
+                                    Next Phase
                                 </Button>
+
 
                                 <Button
                                     variant="default"
@@ -454,23 +541,39 @@ function AppContent() {
                     {isAuthenticated ? (
                         <React.Suspense fallback={<div className="flex justify-center p-12"><RefreshCcw className="animate-spin h-8 w-8 text-rose-500" /></div>}>
                             {activeTab === 'dashboard' ? (
-                                <FarmGrid
-                                    parcels={parcels}
-                                    onAction={handleParcelAction}
-                                    onBuyParcel={handleBuyParcel}
-                                    loading={
-                                        isLoading ||
-                                        advancePhase.isPending ||
-                                        plant.isPending ||
-                                        water.isPending ||
-                                        fertilize.isPending ||
-                                        harvest.isPending ||
-                                        startOrganicConversion.isPending
-                                    }
-                                    currentSeason={stats.currentSeason}
-                                    infrastructure={farm?.infrastructure || []}
-                                    currentPhase={currentPhase}
-                                />
+                                <div className="space-y-6">
+                                    {isAuthenticated && currentPhase === 'Maintenance' && (
+                                        <div className="bg-blue-900/10 border border-blue-500/20 rounded-lg p-4 text-center animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <p className="text-sm text-blue-400 font-medium">
+                                                🛠️ Maintenance Phase: Your machines are being serviced. Good time to visit the Marketplace or end the phase.
+                                            </p>
+                                        </div>
+                                    )}
+                                    {isAuthenticated && currentPhase === 'Planning' && (
+                                        <div className="bg-indigo-900/10 border border-indigo-500/20 rounded-lg p-4 text-center animate-in fade-in slide-in-from-top-4 duration-500">
+                                            <p className="text-sm text-indigo-400 font-medium">
+                                                📜 Planning Phase: The season is over. Plan next year's strategy or start the new year.
+                                            </p>
+                                        </div>
+                                    )}
+                                    <FarmGrid
+                                        parcels={parcels}
+                                        onAction={handleParcelAction}
+                                        onBuyParcel={handleBuyParcel}
+                                        loading={
+                                            isLoading ||
+                                            advancePhase.isPending ||
+                                            plant.isPending ||
+                                            water.isPending ||
+                                            fertilize.isPending ||
+                                            harvest.isPending ||
+                                            startOrganicConversion.isPending
+                                        }
+                                        currentSeason={stats.currentSeason}
+                                        infrastructure={farm?.infrastructure || []}
+                                        currentPhase={currentPhase}
+                                    />
+                                </div>
                             ) : activeTab === 'harvester' ? (
                                 <div className="animate-in slide-in-from-right-[100%] duration-500 ease-out fill-mode-forwards sm:slide-in-from-right-[150%]">
                                     <InvestmentsDashboard onBack={() => setActiveTab('dashboard')} />
@@ -481,7 +584,9 @@ function AppContent() {
                                     ownedInfrastructure={farm?.infrastructure || []}
                                     onPurchase={(id) => upgradeInfrastructure.mutate(id)}
                                     isLoading={upgradeInfrastructure.isPending}
+                                    currentPhase={currentPhase}
                                 />
+
                             ) : activeTab === 'sports' ? (
                                 <SportsCenter
                                     ownedClubs={farm?.ownedClubs || []}

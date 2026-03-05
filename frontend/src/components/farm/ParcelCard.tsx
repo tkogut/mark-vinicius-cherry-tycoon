@@ -23,17 +23,25 @@ import {
 } from "@/components/ui/tooltip";
 import { ParcelDetailsPanel } from './ParcelDetailsPanel';
 import { calculateYieldBreakdown } from '@/lib/gameLogic';
+import { isActionAllowed, SeasonPhase, PHASE_LABELS } from '@/config/phaseConstants';
+
 
 interface ParcelCardProps {
     parcel: CherryParcel;
     onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string) => void;
     currentSeason?: any; // Season type from backend
     infrastructure: Infrastructure[];
-    currentPhase?: 'Planning' | 'Hiring' | 'Procurement' | 'Investment' | 'Growth' | 'Harvest' | 'Market' | 'Storage' | 'CutAndPrune' | 'Maintenance';
+    currentPhase?: SeasonPhase | string;
 }
 
 export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure, currentPhase }) => {
     const [showDetails, setShowDetails] = useState(false);
+
+    // Normalize currentPhase
+    const phaseKey = (typeof currentPhase === 'string'
+        ? currentPhase
+        : (currentPhase ? Object.keys(currentPhase)[0] : 'Planning')) as SeasonPhase;
+
     const isPlanted = Number(parcel.plantedTrees) > 0;
     // Harvest allowed from year 5 onwards (> 4 seasons)
     const isReadyToHarvest = isPlanted && Number(parcel.treeAge) > 4;
@@ -41,24 +49,24 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
     const yieldBreakdown = calculateYieldBreakdown(parcel, infrastructure);
 
     // Determine specific season
-    const isSpring = currentSeason && 'Spring' in currentSeason;
     const isSummer = currentSeason && 'Summer' in currentSeason;
     const isAutumn = currentSeason && 'Autumn' in currentSeason;
     const isWinter = currentSeason && 'Winter' in currentSeason;
 
-    // Contextual Actions based on Phase + Season
-    const canPlant = !isPlanted && currentPhase === 'Investment';
-    const canHarvest = isReadyToHarvest && isSummer && currentPhase === 'Harvest';
-    const canCutAndPrune = isPlanted && currentPhase === 'CutAndPrune';
-    const canWater = isPlanted && currentPhase === 'Growth';
-    const canConvertOrganic = !parcel.isOrganic && (currentPhase === 'Planning' || currentPhase === 'Investment');
-    const canFertilize = (isSpring || isAutumn) && isPlanted;
+    // Contextual Actions based on Phase Gating
+    const canPlant = !isPlanted && isActionAllowed(phaseKey, 'plant');
+    const canHarvest = isReadyToHarvest && isActionAllowed(phaseKey, 'harvest');
+    const canCutAndPrune = isPlanted && isActionAllowed(phaseKey, 'prune');
+    const canWater = isPlanted && isActionAllowed(phaseKey, 'water');
+    const canConvertOrganic = !parcel.isOrganic && isActionAllowed(phaseKey, 'organic');
+    const canFertilize = isPlanted && isActionAllowed(phaseKey, 'fertilize');
+
     const isDormant = isAutumn || isWinter;
 
     const getStatusLabel = () => {
         if (!isPlanted) return "EMPTY";
         if (canHarvest) return "HARVEST";
-        if (isDormant) return "DORMANT"; // Or "AFTER SEASON"
+        if (isDormant) return "DORMANT";
         return "GROWING";
     };
 
@@ -207,7 +215,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className={cn("h-8 px-0", canPlant ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "opacity-50")}
+                                    className={cn("h-8 px-0 w-8", canPlant ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "opacity-30")}
                                     disabled={!canPlant}
                                     onClick={() => onAction('plant', parcel.id)}
                                 >
@@ -215,7 +223,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                {canPlant ? "Plant Trees" : isPlanted ? "Parcel Occupied" : "Wrong Phase (Need Prep/Growth)"}
+                                {canPlant ? "Plant Trees" : isPlanted ? "Parcel already planted" : `Requires ${PHASE_LABELS['Investment']} phase`}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -226,14 +234,14 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className={cn("h-8 px-2 min-w-8", canWater ? "hover:bg-blue-900/30 hover:text-blue-400" : "opacity-30")}
+                                    className={cn("h-8 px-0 w-8", canWater ? "hover:bg-blue-900/30 text-blue-400" : "opacity-30")}
                                     disabled={!canWater}
                                     onClick={() => onAction('water', parcel.id)}
                                 >
                                     <Droplets className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>{canWater ? "Water Parcel (200 PLN)" : "Watering only in Growth phase"}</TooltipContent>
+                            <TooltipContent>{canWater ? "Water Parcel (200 PLN)" : isPlanted ? "Watering only in Supply/Invest/Growth phase" : "Plant trees first"}</TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
 
@@ -243,7 +251,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className={cn("h-8 px-0", canHarvest ? "bg-rose-600 hover:bg-rose-700 text-white" : "opacity-50")}
+                                    className={cn("h-8 px-0 w-8", canHarvest ? "bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_10px_rgba(225,29,72,0.3)]" : "opacity-30")}
                                     disabled={!canHarvest}
                                     onClick={() => onAction('harvest', parcel.id)}
                                 >
@@ -251,23 +259,10 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                {!isReadyToHarvest ? (
-                                    "Trees not ready to harvest"
-                                ) : canHarvest ? (
-                                    "Harvest Cherries"
-                                ) : (
-                                    <div className="text-center">
-                                        <div>
-                                            {isDormant ? "❄️ Season Over (Dormant)" : "🌱 Growing Season"}
-                                        </div>
-                                        <div className="text-xs text-slate-400 mt-1">
-                                            Characters harvest in Summer
-                                        </div>
-                                        <div className="text-[10px] text-slate-500 mt-0.5">
-                                            Current: {currentSeason && Object.keys(currentSeason)[0]}
-                                        </div>
-                                    </div>
-                                )}
+                                {!isPlanted ? "Plant trees first" :
+                                    !isReadyToHarvest ? "Trees too young to harvest (need age 5+)" :
+                                        canHarvest ? "Harvest Cherries" :
+                                            `Requires ${PHASE_LABELS['Harvest']} phase (Summer)`}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -279,7 +274,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className={cn("h-8 px-2 min-w-8", canCutAndPrune ? "hover:bg-amber-700/30 text-amber-500 hover:text-amber-400" : "opacity-30")}
+                                    className={cn("h-8 px-0 w-8", canCutAndPrune ? "hover:bg-amber-700/30 text-amber-500 hover:text-amber-400" : "opacity-30")}
                                     disabled={!canCutAndPrune}
                                     onClick={() => onAction('prune', parcel.id)}
                                 >
@@ -287,11 +282,9 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                {canCutAndPrune ? (
-                                    "Prune Trees (Maintenance)"
-                                ) : (
-                                    "Pruning only possible during CutAndPrune phase"
-                                )}
+                                {!isPlanted ? "Plant trees first" :
+                                    canCutAndPrune ? "Prune Trees (+Quality)" :
+                                        `Requires ${PHASE_LABELS['CutAndPrune']} phase`}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -303,7 +296,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 <Button
                                     size="sm"
                                     variant="secondary"
-                                    className={cn("h-8 px-2 min-w-8", canFertilize ? "hover:bg-amber-900/30 hover:text-amber-400" : "opacity-30")}
+                                    className={cn("h-8 px-0 w-8", canFertilize ? "hover:bg-amber-900/30 hover:text-amber-400" : "opacity-30")}
                                     disabled={!canFertilize}
                                     onClick={() => onAction('fertilize', parcel.id)}
                                 >
@@ -311,19 +304,9 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                {canFertilize ? (
-                                    "Fertilize Soil (Uses 1 Unit)"
-                                ) : (
-                                    <div className="text-center">
-                                        <div>Creation of stronger roots</div>
-                                        <div className="text-xs text-slate-400 mt-1">
-                                            Effective in Spring & Autumn
-                                        </div>
-                                        <div className="text-[10px] text-slate-500 mt-0.5">
-                                            Current: {currentSeason && Object.keys(currentSeason)[0]}
-                                        </div>
-                                    </div>
-                                )}
+                                {!isPlanted ? "Plant trees first" :
+                                    canFertilize ? "Fertilize Soil (Uses 1 Unit)" :
+                                        `Requires Growth or Pruning phase`}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -336,8 +319,9 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                     size="sm"
                                     variant="secondary"
                                     className={cn(
-                                        "h-8 px-2 min-w-8 transition-all",
-                                        parcel.isOrganic ? "opacity-30 grayscale cursor-not-allowed" : "hover:bg-emerald-900/30 hover:text-emerald-400"
+                                        "h-8 px-0 w-8 transition-all",
+                                        parcel.isOrganic ? "bg-emerald-900/20 text-emerald-500 border border-emerald-800/50" :
+                                            canConvertOrganic ? "hover:bg-emerald-900/30 text-emerald-400" : "opacity-30"
                                     )}
                                     disabled={parcel.isOrganic || !canConvertOrganic}
                                     onClick={() => onAction('organic', parcel.id)}
@@ -347,12 +331,13 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                             </TooltipTrigger>
                             <TooltipContent>
                                 {parcel.isOrganic
-                                    ? (parcel.organicCertified ? "Already Certified" : "Already in Conversion")
-                                    : "Start Organic Conversion (5000 PLN fee)"}
+                                    ? (parcel.organicCertified ? "Certified Organic" : "Organic Conversion in Progress")
+                                    : canConvertOrganic ? "Start Organic Conversion (5000 PLN fee)" : `Requires Invest or Planning phase`}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
                 </div>
+
 
                 {/* Details Toggle Button */}
                 <Button
