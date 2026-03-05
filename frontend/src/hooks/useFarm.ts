@@ -19,7 +19,7 @@ const getErrorMessage = (error: GameError): string => {
 export const FARM_QUERY_KEY = ['farm'];
 
 export function useFarm() {
-    const { backendActor } = useAuth();
+    const { backendActor, isAuthenticated } = useAuth();
     const queryClient = useQueryClient();
     const { toast } = useToast();
     const { playSFX } = useAudio();
@@ -55,7 +55,7 @@ export function useFarm() {
             })));
             return result.Ok;
         },
-        enabled: !!backendActor,
+        enabled: !!backendActor && isAuthenticated,
         staleTime: 1000 * 60, // 1 minute
     });
 
@@ -460,7 +460,7 @@ export function useFarm() {
 }
 
 export function useStability() {
-    const { backendActor } = useAuth();
+    const { backendActor, isAuthenticated } = useAuth();
 
     return useQuery({
         queryKey: ['stability'],
@@ -470,13 +470,13 @@ export function useStability() {
             if ('Err' in result) throw new Error(getErrorMessage(result.Err));
             return result.Ok;
         },
-        enabled: !!backendActor,
+        enabled: !!backendActor && isAuthenticated,
         refetchInterval: 1000 * 30, // Refresh every 30 seconds
     });
 }
 
 export function useLeaderboard() {
-    const { backendActor } = useAuth();
+    const { backendActor, isAuthenticated } = useAuth();
 
     return useQuery({
         queryKey: ['leaderboard'],
@@ -484,13 +484,13 @@ export function useLeaderboard() {
             if (!backendActor) throw new Error('Not authenticated');
             return await backendActor.getLeaderboard();
         },
-        enabled: !!backendActor,
+        enabled: !!backendActor && isAuthenticated,
         refetchInterval: 1000 * 60 * 5, // 5 minutes
     });
 }
 
 export function useCompetitors() {
-    const { backendActor } = useAuth();
+    const { backendActor, isAuthenticated } = useAuth();
 
     return useQuery({
         queryKey: ['competitors'],
@@ -498,7 +498,7 @@ export function useCompetitors() {
             if (!backendActor) throw new Error('Not authenticated');
             return await backendActor.getCompetitorSummaries();
         },
-        enabled: !!backendActor,
+        enabled: !!backendActor && isAuthenticated,
         refetchInterval: 1000 * 60 * 5, // 5 minutes
     });
 }
