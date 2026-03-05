@@ -22,6 +22,7 @@ import { useGuestFarm } from "@/hooks/useGuestFarm"
 import { SeasonDisplay } from "@/components/season/SeasonDisplay"
 import { FinancialReportModal } from "@/components/farm/modals/FinancialReportModal"
 import { OnboardingModal } from "@/components/farm/modals/OnboardingModal"
+import { ShopModal } from "@/components/farm/modals/ShopModal";
 import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
 import { useInstallPrompt } from "@/utils/pwa"
 import { useToast } from "@/components/ui/use-toast"
@@ -39,6 +40,7 @@ import { AudioProvider, useAudio } from '@/contexts/AudioContext';
 import { VolumeControl } from '@/components/ui/VolumeControl';
 import { SOUNDS } from '@/config/sounds';
 import { isActionAllowed, GameAction, SeasonPhase, PHASE_DESCRIPTIONS } from "@/config/phaseConstants";
+import { cn } from "@/lib/utils"
 
 
 function AppContent() {
@@ -47,9 +49,6 @@ function AppContent() {
     const { toast } = useToast();
 
     useEffect(() => {
-        // Start BGM on user interaction or immediately (depending on browser policy)
-        // For now, we try immediately, but howler handles unlocking
-        playBGM(SOUNDS.BGM.MAIN);
         return () => stopBGM();
     }, []);
 
@@ -59,6 +58,7 @@ function AppContent() {
     const [sellModalOpen, setSellModalOpen] = useState(false);
     const [statsModalOpen, setStatsModalOpen] = useState(false);
     const [financialReportOpen, setFinancialReportOpen] = useState(false);
+    const [isShopModalOpen, setIsShopModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'harvester'>('dashboard');
 
     // Harvest Velocity — drives the Sunset-Glow particle intensity
@@ -128,6 +128,25 @@ function AppContent() {
     };
 
     const currentPhase = getCurrentPhaseName(farm?.currentPhase) as any;
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            playBGM(SOUNDS.BGM.MAIN);
+            return;
+        }
+
+        const season = Object.keys(stats.currentSeason)[0];
+        let bgm = SOUNDS.BGM.MAIN;
+
+        switch (season) {
+            case 'Spring': bgm = SOUNDS.BGM.SEASON_SPRING; break;
+            case 'Summer': bgm = SOUNDS.BGM.SEASON_SUMMER; break;
+            case 'Autumn': bgm = SOUNDS.BGM.SEASON_AUTUMN; break;
+            case 'Winter': bgm = SOUNDS.BGM.SEASON_WINTER; break;
+        }
+
+        playBGM(bgm);
+    }, [isAuthenticated, stats.currentSeason]);
 
     // Helper for theme class
     const getThemeClass = (season: any) => {
@@ -308,8 +327,13 @@ function AppContent() {
                                     />
                                 </div>
 
-                                <div className="flex justify-center mt-2">
-                                    <span className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+                                <div className="mt-12 flex flex-col items-center gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-1 w-1 rounded-full bg-amber-500/40 animate-ping" />
+                                        <span className="text-xs text-slate-500 uppercase tracking-widest font-medium animate-pulse">Initializing Farmstead...</span>
+                                        <div className="h-1 w-1 rounded-full bg-amber-500/40 animate-ping" style={{ animationDelay: '0.5s' }} />
+                                    </div>
+                                    <span className="text-[10px] text-slate-700 uppercase tracking-[0.4em] font-bold mt-8">
                                         Produced by JaPiTo Group
                                     </span>
                                 </div>
@@ -377,7 +401,10 @@ function AppContent() {
                 onSuccess={() => refetch()}
             />
 
-
+            <ShopModal
+                isOpen={isShopModalOpen}
+                onClose={() => setIsShopModalOpen(false)}
+            />
 
             <Sidebar
                 isOpen={sidebarOpen}
@@ -390,6 +417,7 @@ function AppContent() {
                 ownedInfrastructure={farm?.infrastructure || []}
                 parcels={farm?.parcels || []}
                 onOpenFinancialReport={() => setFinancialReportOpen(true)}
+                onOpenShop={() => setIsShopModalOpen(true)}
             />
 
             <FinancialReportModal
@@ -471,14 +499,19 @@ function AppContent() {
                                     disabled={!isAuthenticated || advancePhase.isPending}
                                     variant="default"
                                     size="sm"
-                                    className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white flex shadow-md font-semibold animate-in fade-in zoom-in duration-300"
+                                    className={cn(
+                                        "gap-2 flex shadow-md font-semibold transition-all duration-300",
+                                        currentPhase === 'Planning'
+                                            ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 animate-pulse ring-2 ring-emerald-500/20"
+                                            : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                    )}
                                 >
                                     {advancePhase.isPending ? (
                                         <RefreshCcw className="h-4 w-4 animate-spin" />
                                     ) : (
                                         <Zap className="h-4 w-4" />
                                     )}
-                                    Next Phase
+                                    {currentPhase === 'Planning' ? "Start New Year" : "Next Phase"}
                                 </Button>
 
 

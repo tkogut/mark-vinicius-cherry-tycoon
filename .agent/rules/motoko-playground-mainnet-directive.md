@@ -11,7 +11,7 @@ description: Enforcement of the parallel deployment architecture for Playground 
 
 ## 1. The Mirror Rule
 Every logic change in `backend/*.mo` MUST be implemented in:
-1. `main.mo` (Target: ICP Playground | dfx 0.24.3)
+1. `main.mo` (Target: ICP Playground and Locally | dfx 0.24.3)
 2. `main_mainnet.mo` (Target: Production/EOP | dfx 0.24.3)
 
 ## 2. Environment Scaling Constants

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingBag, Trophy, User, Cherry, X, Menu, LogOut, Coins, Zap, PieChart } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Trophy, User, Cherry, X, Menu, LogOut, Coins, Zap, PieChart, Sparkles } from 'lucide-react';
 import { RunningCosts } from '../farm/RunningCosts';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,17 +17,19 @@ interface SidebarProps {
     ownedInfrastructure: any[];
     parcels: any[];
     onOpenFinancialReport: () => void;
+    onOpenShop: () => void;
 }
 
 import { useTranslation } from 'react-i18next';
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, nextLevelXp, activeTab, onTabChange, ownedInfrastructure, parcels, onOpenFinancialReport }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, nextLevelXp, activeTab, onTabChange, ownedInfrastructure, parcels, onOpenFinancialReport, onOpenShop }) => {
     const { logout } = useAuth();
     const { t } = useTranslation();
 
     const navItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
         { id: 'marketplace', icon: ShoppingBag, label: t('nav.marketplace') },
+        { id: 'shop', icon: Sparkles, label: 'Premium Shop' },
         { id: 'rankings', icon: Trophy, label: t('nav.rankings') },
         { id: 'neighbors', icon: User, label: t('nav.neighbors') },
         { id: 'sports', icon: Zap, label: t('nav.sports') },
@@ -63,6 +65,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                 key={item.id}
                                 variant="ghost"
                                 onClick={() => {
+                                    if (item.id === 'shop') {
+                                        onOpenShop();
+                                        return;
+                                    }
                                     if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings') {
                                         onTabChange(item.id as any);
                                     }
@@ -71,7 +77,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                     "w-full justify-start gap-3 h-10 font-medium transition-all duration-200",
                                     activeTab === item.id
                                         ? "bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
-                                        : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
+                                        : item.id === 'shop'
+                                            ? "text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 border border-amber-500/20"
+                                            : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
                                 )}
                             >
                                 <item.icon className="h-4 w-4" />
@@ -159,6 +167,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                         {nextLevelXp - xp} XP to next
                                     </span>
                                 </div>
+
+                                {/* CHERRY Credits Balance — Neon Quartz Effect */}
+                                <div className="mt-4 flex items-center justify-between p-2 rounded-lg bg-indigo-500/5 border border-indigo-500/20 group cursor-help" title="CHERRY Credits: Premium currency for boosts and expansions.">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-6 w-6 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                                            <Sparkles className="h-3.3 w-3.3 text-indigo-400" />
+                                        </div>
+                                        <span className="text-[10px] uppercase font-bold text-indigo-300 tracking-wider">Credits</span>
+                                    </div>
+                                    <span className="font-mono text-sm font-bold text-indigo-400 group-hover:scale-110 transition-transform">0</span>
+                                </div>
                             </div>
                         </div>
 
@@ -189,13 +208,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                     <button
                         key={item.id}
                         onClick={() => {
+                            if (item.id === 'shop') {
+                                onOpenShop();
+                                return;
+                            }
                             if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings') {
                                 onTabChange(item.id as any);
                             }
                         }}
                         className={cn(
                             "flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px]",
-                            activeTab === item.id ? "text-rose-400" : "text-slate-500 hover:text-slate-300"
+                            activeTab === item.id ? "text-rose-400" : (item.id === 'shop' ? "text-amber-400" : "text-slate-500 hover:text-slate-300")
                         )}
                         style={{ touchAction: 'manipulation' }}
                     >
@@ -232,6 +255,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                     key={item.id}
                                     variant="ghost"
                                     onClick={() => {
+                                        if (item.id === 'shop') {
+                                            onOpenShop();
+                                            onClose();
+                                            return;
+                                        }
                                         if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings') {
                                             onTabChange(item.id as any);
                                             onClose();

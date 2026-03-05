@@ -74,9 +74,9 @@ persistent actor CherryTycoon {
   );
 
   // Global game state
-  private var globalSeasonNumber : Nat = 1;
-  private var baseRetailPrice : Nat = 15; // PLN per kg
-  private var baseWholesalePrice : Nat = 10; // PLN per kg
+  transient var globalSeasonNumber : Nat = 1;
+  transient var baseRetailPrice : Nat = 15; // PLN per kg
+  transient var baseWholesalePrice : Nat = 10; // PLN per kg
 
 
   // Market Saturation (Phase 4)

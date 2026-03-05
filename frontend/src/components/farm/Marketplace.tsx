@@ -252,6 +252,12 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                     {MARKET_ITEMS.filter(i => i.type === 'Machinery').map(renderItem)}
                 </div>
             </section>
+
+            <div className="flex justify-center mt-12 pb-12">
+                <span className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+                    Produced by JaPiTo Group
+                </span>
+            </div>
         </div>
     );
 };

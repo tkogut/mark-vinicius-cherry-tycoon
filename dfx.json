@@ -30,7 +30,8 @@
         "frontend/dist"
       ],
       "dependencies": [
-        "backend"
+        "backend",
+        "backend_mainnet"
       ]
     },
     "internet_identity": {

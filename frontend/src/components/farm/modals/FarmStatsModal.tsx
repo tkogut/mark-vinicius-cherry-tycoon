@@ -69,6 +69,11 @@ export function FarmStatsModal({ isOpen, onClose, stats }: FarmStatsModalProps) 
                         </CardContent>
                     </Card>
                 </div>
+                <div className="flex justify-center mt-2 border-t border-slate-800/50 pt-4 pb-2">
+                    <span className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+                        Produced by JaPiTo Group
+                    </span>
+                </div>
             </DialogContent>
         </Dialog>
     );

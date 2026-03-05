@@ -1,15 +1,15 @@
 # FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]
 
-> **Current Directive**: **Phase 5 — Living World: Animations, UI Themes, Competitors, i18n**
+> **Current Directive**: **Phase 5 — Living World Stabilized. Transitioning to Phase 5.7 Mechanics Deepening.**
 > **Constraint**: **WSL Terminal Required** - For `dfx generate` and environment management.
 > **Animation Directive**: Modern mobile animations — SVG morphing, Lottie, particles. No static jumps.
-> **Last Updated**: 2026-02-17
+> **Last Updated**: 2026-03-05
 
 ## Backlog
 
 ### 🔴 Phase 0: Cleanup (Pre-requisite)
 - [x] **Legacy Purge**: Remove ALL legacy references from frontend code and comments ✅ *DONE 2026-02-17*
-- [ ] **Branding**: Ensure "Produced by JaPiTo Group" in all system messages
+- [x] **Branding**: Ensure "Produced by JaPiTo Group" in all system messages ✅ *DONE*
 
 ### 🟠 Phase 5.1: Weather + Season Sub-Phases UI (Backend Ready ✅)
 - [x] **Phase Indicator**: Progress bar in header (Preparation → Growth → Harvest → Sales → OffSeason) ✅ *DONE*
@@ -56,24 +56,31 @@
   - `locales/vi.json`, `locales/th.json`, `locales/id.json`, `locales/kr.json`, `locales/ja.json`, `locales/zh.json` — Asian stubs
 - [x] **Browser Detection**: Auto-detect language + flag switcher in settings ✅ *DONE*
 
-### 🔴 Phase 5.6: Activity-Based Turn System UI Integration
-- [ ] **Unified "Next Turn" Button**: Replace separate Season/Phase buttons with a single prominent "End Phase" / "Next Turn" button that calls `advancePhase`.
-- [ ] **10-Phase Indicator**: Overhaul `PhaseIndicator` to display the specific activity name (Hiring, Procurement, Investment, Growth, Harvest, Market, Storage, CutAndPrune, Maintenance, Planning) instead of generic seasons.
-- [ ] **Action Visibility & Gating**: 
-  - Dynamically show/hide or disable action buttons based on the current phase (e.g., `plantTrees` only in `#Investment`, `harvestCherries` only in `#Harvest`).
+### 🔴 Phase 5.6: Activity-Based Turn System UI Integration (✅ COMPLETE)
+- [x] **Unified "Next Turn" Button**: Replace separate Season/Phase buttons with a single prominent "End Phase" / "Next Turn" button that calls `advancePhase`. ✅ *DONE*
+- [x] **10-Phase Indicator**: Overhaul `PhaseIndicator` to display the specific activity name (Hiring, Procurement, Investment, Growth, Harvest, Market, Storage, CutAndPrune, Maintenance, Planning) instead of generic seasons. ✅ *DONE*
+- [x] **Action Visibility & Gating**: 
+  - Dynamically show/hide or disable action buttons based on the current phase (e.g., `plantTrees` only in `#Investment`, `harvestCherries` only in `#Harvest`). ✅ *DONE*
   - `sellCherries` should remain available year-round.
   - `fertilizeParcel` should be available in Spring/Autumn phases.
-- [ ] **Empty Phase State**: If a phase has no available actions for the player (e.g., no funds for `#Investment`, nothing to `#Harvest`, or no features built yet like `#Storage`), display a very clear, obvious message/UI prompt directing the player to simply click "Next Phase".
-- [ ] **`cutAndPrune` UI**: Add interface (e.g., button + cost confirmation modal) for the new `#CutAndPrune` tree maintenance phase.
+- [x] **Empty Phase State**: If a phase has no available actions for the player (e.g., no funds for `#Investment`, nothing to `#Harvest`, or no features built yet like `#Storage`), display a very clear, obvious message/UI prompt directing the player to simply click "Next Phase". ✅ *DONE*
+- [x] **`cutAndPrune` UI**: Add interface (e.g., button + cost confirmation modal) for the new `#CutAndPrune` tree maintenance phase. ✅ *DONE*
 
+### 🟡 Phase 5.5: Monetization Foundation (Stubs)
+- [x] **CHERRY Credits**: Define types and UI for credit balance (premium currency). ✅ *DONE*
+- [x] **Consumable Boosts**: Define types for Bio-Stimulant, Cloud Summoner, etc. ✅ *DONE*
+- [x] **Strategic Map Expansion**: Define types for future geographic expansion. ✅ *DONE*
 
 ### 🟣 Phase 6: Audio System (GDD §8.2)
 - [x] **Engine**: `howler.js` integration ✅ *DONE*
 - [x] **Sound Manager**: Global context for SFX/BGM ✅ *DONE*
 - [x] **Assets**: UI Clicks, Harvest, Plant, Cash, Level Up ✅ *DONE*
 - [x] **Controls**: Mute toggle in UI ✅ *DONE*
-
----
+### 🔴 Phase 5.7: Deployment Polish & Fixes
+- [x] **MIME Type Blocker**: Fixed "text/html" MIME type error for dynamic JS modules via `base: './'` and `.ic-assets.json`. ✅ *DONE 2026-03-05*
+- [x] **CSP Alignment**: Updated `.ic-assets.json` to allow local replica connections. ✅ *DONE 2026-03-05*
+- [x] **Auth Stability**: Resolved "Anonymous Caller" unauthorized errors via AuthContext identity gating. ✅ *DONE 2026-03-05*
+- [x] **Vite Workflow**: Established `npm run dev` as primary development speed-path. ✅ *DONE 2026-03-05*
 
 ### ✅ Completed Tasks (Archive)
 

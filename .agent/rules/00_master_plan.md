@@ -1,10 +1,10 @@
 # MASTER PLAN: Mark Vinicius Cherry Tycoon [COORDINATOR]
 
-> **Current Status**: **Phase 5 Backend Complete — Ready for Frontend Implementation (Living World)**
-> **Environment**: **WSL (Ubuntu)** ✅ ACTIVE — `dfx 0.24.3` working. ⚠️ Node.js not yet native in Linux — install via `nvm`.
-> **Next Focus**: Phase 5 Frontend — UI Themes, Competitors Panel, Rankings
-> **Security**: Proactive Security Agent active — Critical+High findings all **FIXED**. Deployment UNBLOCKED.
-> **Last Updated**: 2026-02-19
+> **Current Status**: **Phase 5 Backend & Frontend Complete — Deployment & Auth Stabilized ✅**
+> **Environment**: **WSL (Ubuntu)** ✅ ACTIVE — `dfx 0.24.3` + `Motoko 0.30.2` (EOP) working.
+> **Next Focus**: Phase 5.7 Mechanics Deepening — Hiring Rework & Bulk Supply.
+> **Security**: Proactive Security Agent active — Auth fixes & CSP hardening verified.
+> **Last Updated**: 2026-03-05
 
 ## High-Level Roadmap
 
@@ -60,7 +60,7 @@
     - [x] Shared market: `Price = Base * (Demand / Total_Supply)` ✅ *DONE*
     - [x] Competitors Panel UI (Frontend Agent) ✅ *DONE*
     - [x] Market Saturation Warnings in SellModal (Frontend Agent) ✅ *DONE*
-- [ ] **5.3 Frontend Living World + Animations**:
+- [x] **5.3 Frontend Living World + Animations**:
     - [x] SVG/Lottie tree growth morphing ✅ *DONE*
     - [x] Cherry particle bursts on harvest ✅ *DONE*
     - [x] Juice Meter hydration indicator ✅ *DONE*
@@ -70,11 +70,19 @@
     - [x] `getLeaderboard()` query ✅ *DONE*
     - [x] Rankings Panel UI (Frontend Agent) ✅ *DONE*
     - [x] Enhanced FinancialReportModal (Frontend Agent) ✅ *DONE*
-- [ ] **5.5 Foundation (i18n + Monetization)**:
+- [x] **5.5 Foundation (i18n + Monetization)**:
     - [x] `react-i18next` framework (EN, PL, DE, ES + Asian stubs) ✅ *DONE*
-    - [ ] CHERRY Credits type & balance (structure only)
-    - [ ] Consumable Boosts types (Bio-Stimulant, Cloud Summoner, etc.)
-    - [ ] Strategic Map Expansion types
+    - [x] CHERRY Credits type & balance (structure only) ✅ *DONE*
+    - [x] Consumable Boosts types (Bio-Stimulant, Cloud Summoner, etc.) ✅ *DONE*
+    - [x] Strategic Map Expansion types ✅ *DONE*
+- [x] **5.6 Activity-Based Turn System (UI)**:
+    - [x] Unified "Next Turn" button ✅ *DONE*
+    - [x] 10-Phase logic integration ✅ *DONE*
+    - [x] Phase-gated action visibility ✅ *DONE*
+    - [x] **BLOCKER**: Build/MIME type errors in production deployment (Applied `base: './'` and `.ic-assets.json` fix) ✅ *FIXED*
+- [x] **Authentication**: Resolved "Anonymous callers not allowed" via AuthContext identity gating ✅ *FIXED*
+- [x] **Vite Workflow**: Transitioned to `localhost:5173` for rapid UI iteration ✅ *ACTIVE*
+- [x] **Motoko 0.30.2 Compatibility**: Actor logic aligned with Enhanced Orthogonal Persistence ✅ *FIXED*
 
 ### Phase 6: Audio System (Backend N/A, Frontend DONE ✅)
 - [x] **Engine**: `howler.js` ✅

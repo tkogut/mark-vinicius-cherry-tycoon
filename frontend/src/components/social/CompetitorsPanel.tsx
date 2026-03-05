@@ -151,6 +151,12 @@ export const CompetitorsPanel: React.FC<CompetitorsPanelProps> = ({ playerCash, 
                     </CardContent>
                 </Card>
             </div>
+
+            <div className="flex justify-center mt-12 pb-12">
+                <span className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+                    Produced by JaPiTo Group
+                </span>
+            </div>
         </div>
     );
 };

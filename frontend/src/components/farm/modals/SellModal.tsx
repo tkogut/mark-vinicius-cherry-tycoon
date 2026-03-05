@@ -322,7 +322,7 @@ export const SellModal: React.FC<SellModalProps> = ({
 
                 <DialogFooter className="sm:justify-between items-center">
                     <div className="text-[10px] text-slate-600 hidden sm:block">
-                        * Final price determined by server at moment of transaction
+                        Produced by JaPiTo Group • Final price determined by server
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto mt-4 sm:mt-0">
                         <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white hover:bg-slate-800">Cancel</Button>

@@ -8,9 +8,19 @@ console.log("DEBUG: BACKEND_CANISTER_ID =", import.meta.env.VITE_BACKEND_CANISTE
 console.log("DEBUG: BACKEND_MAINNET_CANISTER_ID =", import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID);
 
 export const createBackendActor = async (identity?: Identity) => {
-    const canisterId = import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID || import.meta.env.VITE_BACKEND_CANISTER_ID;
-    console.log("DEBUG: Final resolved canisterId =", canisterId);
     const isLocal = window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1");
+
+    // Dual Entrypoint Resolution:
+    // Local/Test: Prioritize 'backend' (main.mo)
+    // Production/IC: Prioritize 'backend_mainnet' (main_mainnet.mo)
+    const canisterId = isLocal
+        ? (import.meta.env.VITE_BACKEND_CANISTER_ID || import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID)
+        : (import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID || import.meta.env.VITE_BACKEND_CANISTER_ID);
+
+    console.log("DEBUG: Final resolved canisterId =", canisterId);
+    if (!canisterId) {
+        throw new Error("Canister ID is required for backend actor creation. Check environment variables.");
+    }
     const host = isLocal ? "http://127.0.0.1:8000" : "https://ic0.app";
 
     const agent = new HttpAgent({

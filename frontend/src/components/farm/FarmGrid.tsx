@@ -1,7 +1,7 @@
 import { CherryParcel, Infrastructure } from '@/declarations/backend.did';
 import { ParcelCard } from './ParcelCard';
 import { Button } from "@/components/ui/button";
-import { Plus, Cog } from 'lucide-react';
+import { Plus, Cog, Zap } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface FarmGridProps {
@@ -47,9 +47,13 @@ export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParc
 
             {currentPhase && ['Hiring', 'Procurement', 'Market', 'Storage', 'Maintenance'].includes(currentPhase) && parcels.length > 0 && (
                 <div className="mechanical-hull p-4 flex items-center justify-between mb-6">
-                    <div>
+                    <div className="flex-1">
                         <h3 className="font-semibold text-brass">No Parcel Actions Available</h3>
                         <p className="text-sm text-brass-light/60">The <span className="font-bold text-copper">{currentPhase}</span> phase involves general management rather than field work. Review your stats, or proceed to the next phase.</p>
+                    </div>
+                    <div className="hidden md:flex flex-col items-center gap-1 animate-bounce">
+                        <span className="text-[10px] text-brass uppercase font-bold">Proceed Here</span>
+                        <Zap className="h-5 w-5 text-indigo-400" />
                     </div>
                 </div>
             )}

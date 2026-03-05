@@ -110,9 +110,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const initTestMode = async () => {
-        console.log('[AuthContext] Initializing TEST MODE (dev only)...');
-        if (!import.meta.env.DEV) {
-            console.error('[AuthContext] Test mode only available in development!');
+        console.log('[AuthContext] Initializing TEST MODE (dev/test only)...');
+        // Allow test mode if we're not on the mainnet (IC)
+        if (import.meta.env.VITE_DFX_NETWORK === 'ic') {
+            console.error('[AuthContext] Test mode not available on Mainnet!');
             return;
         }
 
@@ -125,14 +126,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Set authenticated immediately to provide UI feedback
             setIsAuthenticated(true);
 
-            // Use anonymous identity for testing
-            const anonymousIdentity = client.getIdentity();
-            console.log('[AuthContext] Using identity:', anonymousIdentity.getPrincipal().toText());
-            setIdentity(anonymousIdentity);
+            // Generate a random Ed25519 key pair for the session identity
+            // This bypasses the "Anonymous callers not allowed" check on the backend
+            // for local development purposes.
+            const { Ed25519KeyIdentity } = await import('@dfinity/identity');
+            const sessionIdentity = Ed25519KeyIdentity.generate();
+
+            console.log('[AuthContext] Generated Session Principal:', sessionIdentity.getPrincipal().toText());
+            setIdentity(sessionIdentity);
 
             console.log('[AuthContext] Creating backend actor for test mode...');
-            const actor = await createBackendActor(anonymousIdentity);
+            const actor = await createBackendActor(sessionIdentity);
             console.log('[AuthContext] Test mode actor created:', actor ? 'SUCCESS' : 'FAILED');
+
             // Set backend actor
             if (actor) {
                 setBackendActor(actor);

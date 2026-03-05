@@ -1,10 +1,10 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Phase 0 — Close Out 2.5 Cleanup, then Phase 5 — Living World**
+> **Current Directive**: **Phase 0 — Complete. Phase 5 — Living World Core DONE. Entering Phase 5.7 Mechanics Deepening.**
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` and `npm` commands in WSL terminal manually.
 > **Architecture**: **Dual Entrypoint** - `main.mo` (Playground/dfx 0.24.3) + `main_mainnet.mo` (Mainnet/EOP). See `motoko-playground-mainnet-directive.md`.
 > **Security**: All commits reviewed by Security Agent before merge (see `SECURITY_DIRECTIVE_V1.md`)
-> **Last Updated**: 2026-02-17
+> **Last Updated**: 2026-03-05
 
 ## Backlog
 
@@ -52,6 +52,8 @@
 - [x] **Strict Action Gating**: Implement seasonal/phase locks for all public functions (e.g., `harvestCherries` ONLY in `#Harvest`). ✅ *DONE*
 - [x] **`cutAndPrune()`**: Implement the new activity logic for the `#CutAndPrune` phase. ✅ *DONE*
 - [x] **Dual Entrypoint Parity**: Apply these changes to both `main.mo` and `main_mainnet.mo`. ✅ *DONE*
+- [x] **Motoko 0.30.2 Compliance**: Updated `stable` to `transient` for persistent actor state management. ✅ *DONE 2026-03-05*
+- [x] **Handshake Verified**: Dual-Entrypoint and Math-Consistency checked using respective .agent/skills/. ✅ *DONE 2026-03-05*
 
 ---
 

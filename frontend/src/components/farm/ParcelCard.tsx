@@ -241,7 +241,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                     <Droplets className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>{canWater ? "Water Parcel (200 PLN)" : isPlanted ? "Watering only in Supply/Invest/Growth phase" : "Plant trees first"}</TooltipContent>
+                            <TooltipContent>{canWater ? "Water Parcel (200 PLN)" : isPlanted ? `Requires Procurement, Investment, or Growth phase` : "Plant trees first"}</TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
 
@@ -284,7 +284,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                             <TooltipContent>
                                 {!isPlanted ? "Plant trees first" :
                                     canCutAndPrune ? "Prune Trees (+Quality)" :
-                                        `Requires ${PHASE_LABELS['CutAndPrune']} phase`}
+                                        `Requires ${PHASE_LABELS['CutAndPrune']} phase (Autumn)`}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -306,7 +306,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                             <TooltipContent>
                                 {!isPlanted ? "Plant trees first" :
                                     canFertilize ? "Fertilize Soil (Uses 1 Unit)" :
-                                        `Requires Growth or Pruning phase`}
+                                        `Requires Growth or Pruning (CutAndPrune) phase`}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -332,7 +332,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                             <TooltipContent>
                                 {parcel.isOrganic
                                     ? (parcel.organicCertified ? "Certified Organic" : "Organic Conversion in Progress")
-                                    : canConvertOrganic ? "Start Organic Conversion (5000 PLN fee)" : `Requires Invest or Planning phase`}
+                                    : canConvertOrganic ? "Start Organic Conversion (5,000 PLN fee)" : `Requires Investment or Planning phase`}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

@@ -234,7 +234,10 @@ export const FinancialReportModal: React.FC<FinancialReportModalProps> = ({
                     </div>
                 </Tabs>
 
-                <div className="p-4 bg-slate-950/50 border-t border-slate-800/50 flex justify-end">
+                <div className="p-4 bg-slate-950/50 border-t border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <span className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+                        Produced by JaPiTo Group
+                    </span>
                     <button
                         onClick={onClose}
                         className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold rounded-xl transition-all border border-slate-700 active:scale-95"

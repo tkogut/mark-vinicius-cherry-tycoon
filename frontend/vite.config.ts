@@ -46,6 +46,7 @@ console.log("Environment definitions:", canisterEnvDefinitions);
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    base: './',
     plugins: [react()],
     resolve: {
         alias: {

@@ -136,13 +136,18 @@ export const PlantingModal: React.FC<PlantingModalProps> = ({
                     )}
                 </div>
 
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={loading} className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">
-                        Cancel
-                    </Button>
-                    <Button onClick={handlePlant} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                        {loading ? "Planting..." : "Confirm Planting"}
-                    </Button>
+                <DialogFooter className="sm:justify-between items-center">
+                    <span className="text-[10px] text-slate-600 hidden sm:block uppercase tracking-widest font-bold">
+                        Produced by JaPiTo Group
+                    </span>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={onClose} disabled={loading} className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">
+                            Cancel
+                        </Button>
+                        <Button onClick={handlePlant} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                            {loading ? "Planting..." : "Confirm Planting"}
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

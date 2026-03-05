@@ -74,13 +74,20 @@ export const WeatherEventModal: React.FC<WeatherEventModalProps> = ({ isOpen, on
                     )}
                 </div>
 
-                <div className="flex justify-center">
-                    <Button
-                        onClick={onClose}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium"
-                    >
-                        Acknowledge
-                    </Button>
+                <div className="flex flex-col gap-4">
+                    <div className="flex justify-center">
+                        <Button
+                            onClick={onClose}
+                            className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium"
+                        >
+                            Acknowledge
+                        </Button>
+                    </div>
+                    <div className="flex justify-center">
+                        <span className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
+                            Produced by JaPiTo Group
+                        </span>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
