@@ -54,8 +54,9 @@ jobs:
       - name: Build Frontend Assets
         working-directory: frontend
         env:
-          VITE_BACKEND_CANISTER_ID: ${{ env.VITE_BACKEND_CANISTER_ID }}
-          VITE_DFX_NETWORK: playground
+          CANISTER_ID_BACKEND: ${{ env.VITE_BACKEND_CANISTER_ID }}
+          CANISTER_ID_BACKEND_MAINNET: ${{ env.VITE_BACKEND_MAINNET_CANISTER_ID }}
+          DFX_NETWORK: playground
         run: npm run build
 
       - name: Deploy Frontend to Playground

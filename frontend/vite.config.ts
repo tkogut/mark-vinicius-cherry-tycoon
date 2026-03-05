@@ -13,13 +13,18 @@ interface CanisterIds {
 
 let canisterIds: CanisterIds;
 try {
-    canisterIds = JSON.parse(
-        fs.readFileSync(
-            isDev ? path.resolve(__dirname, "../.dfx/local/canister_ids.json") : path.resolve(__dirname, "../canister_ids.json")
-        ).toString()
-    );
+    const network = process.env["DFX_NETWORK"] || process.env["VITE_DFX_NETWORK"] || "local";
+    let idsPath = path.resolve(__dirname, "../canister_ids.json"); // Default
+
+    if (network === "local") {
+        idsPath = path.resolve(__dirname, "../.dfx/local/canister_ids.json");
+    } else if (network === "playground") {
+        idsPath = path.resolve(__dirname, "../.dfx/playground/canister_ids.json");
+    }
+
+    canisterIds = JSON.parse(fs.readFileSync(idsPath).toString());
 } catch (e) {
-    console.error("\n⚠️  Could not find canister_ids.json. You may need to run `dfx deploy` first.\n");
+    console.warn("\n⚠️  Could not find canister_ids.json. Falling back to environment variables.\n");
     canisterIds = {};
 }
 
@@ -28,8 +33,13 @@ const CANISTER_NAMES = ["backend", "backend_mainnet", "internet_identity"];
 
 // Generate environment variables based on canister IDs
 const canisterEnvDefinitions = CANISTER_NAMES.reduce((acc, name) => {
-    const network = process.env["DFX_NETWORK"] || "local";
-    const canisterId = process.env[`CANISTER_ID_${name.toUpperCase()}`] || canisterIds[name]?.[network];
+    const network = process.env["DFX_NETWORK"] || process.env["VITE_DFX_NETWORK"] || "local";
+
+    // Priority: CANISTER_ID_NAME > VITE_NAME_CANISTER_ID > canister_ids.json
+    const canisterId =
+        process.env[`CANISTER_ID_${name.toUpperCase()}`] ||
+        process.env[`VITE_${name.toUpperCase()}_CANISTER_ID`] ||
+        canisterIds[name]?.[network];
 
     if (canisterId) {
         acc[`import.meta.env.VITE_${name.toUpperCase()}_CANISTER_ID`] = JSON.stringify(canisterId);
