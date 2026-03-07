@@ -66,8 +66,8 @@ actor CherryTycoon {
   // STATE MANAGEMENT
   // ============================================================================
 
-  // Player farms storage
-  var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+  // Core game data (Players and Farms)
+  private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
     10,
     Principal.equal,
     Principal.hash

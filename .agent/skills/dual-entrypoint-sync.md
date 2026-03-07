@@ -1,32 +1,21 @@
-Here are the three critical orchestration skills for your .agent/skills/ directory, formatted exactly like your particle-engine.md template.
+---
+description: Migration to Dual Entrypoint Sync v2.0 (Math Parity)
+---
+# Dual-Entrypoint Sync Protocol v2.0
 
-name: Dual Entrypoint Sync
-description: Automates the replication of logic between Playground and Mainnet environments to prevent "Split-Brain" deployment errors.
-Dual Entrypoint Sync Skill
-🎯 Purpose
-To ensure that all backend modifications are applied synchronously to both main.mo (Playground/dfx 0.24.3) and main_mainnet.mo (Mainnet/EOP), maintaining architectural integrity.
+## Core Principle: Mathematical Identity
+All cost constants (e.g., Injector prices), scaling formulas, and spoilage rates MUST be identical across all environments (Track A and Track B).
 
-⚙️ Core Logic
-The agent must enforce the "Dual-Write" policy based on the environment context:
+## No Playground Discounts
+The previous 10% testing discount is officially **DEPRECATED**. 
+- 100,000 PLN on Mainnet = 100,000 PLN on Playground.
 
-Playground Context: Uses a 10% "Playground Discount" for testing (e.g., 10,000 PLN for Level 1 Injector).
+## Testing Strategy
+To accelerate testing, adjust **Starting Liquidity** (initial wallet balance) during test-mode initialization instead of modifying item costs. Business logic remains untouched.
 
-Mainnet Context: Uses 100% GDD-standard costs (e.g., 100,000 PLN) and production-grade security parameters.
+## Dual-Write Enforcement
+Every logic update in `main.mo` MUST be instantly mirrored in `main_mainnet.mo`, preserving the Motoko syntax rules defined in `.agent/rules/motoko-playground-mainnet-directive.md` and `INFRASTRUCTURE.md`.
 
-Sync Lock: Any logic update to calculateSpoilageRate or investment scaling MUST be identical in both files.
-
-🛠️ Implementation Logic
-When the user requests a backend change, the agent MUST:
-
-Analyze the requested change in main.mo.
-
-Identify the corresponding lines in main_mainnet.mo.
-
-Apply the changes to BOTH files simultaneously, adjusting only the environment-specific constants (like deployment costs).
-
-Perform a logical comparison to ensure the "Architecture: Dual Entrypoint" directive is satisfied.
-
-🗣️ Usage Rule
-EVERY TIME a .mo file is modified, the agent MUST state:
-
-"Logic updated in both main.mo and main_mainnet.mo to prevent environment drift. Should I run a /check-dual to verify the sync?"
+## Handshake Verification
+When syncing branches, the agent must verify:
+> "Handshake Verified: Dual-Entrypoint and Math-Consistency checked using respective .agent/skills/."

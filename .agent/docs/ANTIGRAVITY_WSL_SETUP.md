@@ -41,13 +41,13 @@ New-NetFirewallRule -DisplayName "Antigravity Browser Bridge" -Direction Inbound
 ```
 
 ### B. Chrome Launcher (Windows)
-Create a file at `C:\Users\tkogut\.antigravity\antigravity_chrome.bat`:
+Create a file at `C:\Users\admin_tk\.antigravity\antigravity_chrome.bat`:
 
 ```batch
 @echo off
 set CHROME="C:\Program Files\Google\Chrome\Application\chrome.exe"
 if not exist %CHROME% set CHROME="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-%CHROME% --remote-debugging-port=9222 --user-data-dir="C:\Users\tkogut\.antigravity\chrome_profile" --no-first-run
+%CHROME% --remote-debugging-port=9222 --user-data-dir="C:\Users\admin_tk\.antigravity\chrome_profile" --no-first-run
 ```
 
 ### C. WSL Tunnel (Python Bridge)
