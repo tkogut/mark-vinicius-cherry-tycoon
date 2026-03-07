@@ -28,6 +28,13 @@ jobs:
           dfx-version: '0.24.3'
           install-moc: true
 
+      - name: EOP Toolchain Bridge (Self-Healing)
+        run: |
+          MOC_PATH=$(which moc)
+          echo "DFX_MOC_PATH=$MOC_PATH" >> $GITHUB_ENV
+          echo "Injected MOC Path: $MOC_PATH"
+          moc --version
+
       - name: Import Deploy Identity
         if: ${{ env.DFX_IDENTITY_PEM != '' }}
         run: |
