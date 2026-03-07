@@ -11,7 +11,7 @@ on:
 jobs:
   deploy-mainnet:
     runs-on: ubuntu-latest
-    name: Deploy to Mainnet (EOP)
+    name: Deploy to Mainnet (Standard)
     if: github.event.inputs.confirm == 'deploy'
     steps:
       - name: Checkout

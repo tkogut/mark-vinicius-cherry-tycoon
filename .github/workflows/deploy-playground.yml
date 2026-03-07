@@ -29,8 +29,10 @@ jobs:
 
       - name: Install Compatible Motoko Compiler (EOP support)
         run: |
-          dfxvm install moc 0.11.1
-          echo "MOC_VERSION=$(moc --version)"
+          VERSION=0.11.1
+          curl -L https://github.com/dfinity/motoko/releases/download/$VERSION/motoko-linux64-$VERSION.tar.gz | tar -xz
+          echo "export DFX_MOC_PATH=$GITHUB_WORKSPACE/moc" >> $GITHUB_ENV
+          ./moc --version
 
       - name: Import Deploy Identity
         if: ${{ env.DFX_IDENTITY_PEM != '' }}
