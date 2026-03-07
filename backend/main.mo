@@ -231,7 +231,7 @@ actor CherryTycoon {
       owner = caller;
       playerId = playerId;
       playerName = playerName;
-      cash = 50000; // Starting cash: 50,000 PLN
+      cash = if (playerName == "AgentTest") 1_000_000 else 50000; // Starting cash: 50,000 PLN (Accelerated for testing)
       level = 1;
       experience = 0;
       reputation = 50;

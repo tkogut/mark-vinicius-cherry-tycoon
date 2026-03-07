@@ -2,13 +2,24 @@
 
 This document standardizes the deployment infrastructure and environmental boundaries for the Mark Vinicius Cherry Tycoon project.
 
-## Track A: Local & Playground (CURRENT)
-This is the primary development and fast-iteration environment.
+## Track A: Playground (Two Distinct Instances)
+Because the ICP Playground ties canister IDs to the deploying principal (Identity), Track A consists of two isolated environments:
 
+### 1. Local Playground
+- **Trigger**: Manual `dfx deploy --network playground` from WSL.
+- **Identity**: Local developer identity.
+- **URL**: Found locally in `.dfx/playground/canister_ids.json`.
+
+### 2. GitHub Playground
+- **Trigger**: Automated via GitHub Actions on `push` to `master`.
+- **Identity**: GitHub Actions `deploy` identity (via `DFX_IDENTITY_PEM` secret).
+- **URL**: Must be retrieved from the GitHub Actions deployment logs.
+
+**For both instances:**
 - **Dfinity Engine**: `dfx 0.24.3`
 - **Main Actor**: `backend/main.mo`
 - **Motoko Syntax**: Traditional `actor` and `stable var` (Non-EOP).
-- **Tooling Connectivity**: Browser Bridge via `wsl_bridge_universal.py` (Dynamic Gateway IP, Port `9222`).
+- **Tooling Connectivity**: Browser Bridge via `wsl_bridge_universal.py` (Local Port `9222`).
 - **Browser Profile**: Chrome `roostertk` (Folder: `Default`).
 
 ## Track B: Mainnet (FUTURE ROADMAP)
