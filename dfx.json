@@ -3,6 +3,7 @@
     "backend": {
       "type": "motoko",
       "main": "backend/main.mo",
+      "args": "--enhanced-orthogonal-persistence",
       "declarations": {
         "output": "frontend/src/declarations",
         "bindings": [
