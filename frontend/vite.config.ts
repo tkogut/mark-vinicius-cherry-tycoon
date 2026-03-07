@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 
-const isDev = process.env["DFX_NETWORK"] !== "ic";
+const network = process.env["DFX_NETWORK"] || process.env["VITE_DFX_NETWORK"] || "local";
+const isDev = network !== "ic";
 
 type Network = "ic" | "local";
 

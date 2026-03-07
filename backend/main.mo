@@ -19,7 +19,7 @@ import CompetitorLogic "competitor_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-persistent actor CherryTycoon {
+actor CherryTycoon {
   
   
   // Type aliases
@@ -43,7 +43,7 @@ persistent actor CherryTycoon {
   type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
-  transient let accessControlState = AccessControl.initState();
+  var accessControlState = AccessControl.initState();
 
   public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
     await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
@@ -65,24 +65,17 @@ persistent actor CherryTycoon {
   // STATE MANAGEMENT
   // ============================================================================
 
-  // Player farms storage
-  transient var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
-    10,
-    Principal.equal,
-    Principal.hash
-  );
-
   // Global game state
-  transient var globalSeasonNumber : Nat = 1;
-  transient var baseRetailPrice : Nat = 15; // PLN per kg
-  transient var baseWholesalePrice : Nat = 10; // PLN per kg
+  var globalSeasonNumber : Nat = 1;
+  var baseRetailPrice : Nat = 15; // PLN per kg
+  var baseWholesalePrice : Nat = 10; // PLN per kg
 
-  // Stable storage for upgrades
-  var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
-  var stableSaturation : [(Text, (Nat, Int))] = [];
-  var stableGlobalSeason : Nat = 1;
-  var stableUserRoles : [(Principal, AccessControl.UserRole)] = [];
-  var stableAdminAssigned : Bool = false;
+  // Stable storage for upgrades (Traditional Motoko paradigm)
+  stable var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
+  stable var stableSaturation : [(Text, (Nat, Int))] = [];
+  stable var stableGlobalSeason : Nat = 1;
+  stable var stableUserRoles : [(Principal, AccessControl.UserRole)] = [];
+  stable var stableAdminAssigned : Bool = false;
 
   system func preupgrade() {
     stablePlayerFarms := Iter.toArray(playerFarms.entries());
@@ -123,7 +116,7 @@ persistent actor CherryTycoon {
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
 
