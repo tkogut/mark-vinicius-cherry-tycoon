@@ -19,7 +19,7 @@ import CompetitorLogic "competitor_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-actor CherryTycoon {
+persistent actor CherryTycoon {
   
   
   // Type aliases
@@ -43,7 +43,7 @@ actor CherryTycoon {
   type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
-  var accessControlState = AccessControl.initState();
+  transient let accessControlState = AccessControl.initState();
 
   public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
     await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
@@ -116,7 +116,7 @@ actor CherryTycoon {
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
 

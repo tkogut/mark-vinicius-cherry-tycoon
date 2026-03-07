@@ -25,7 +25,7 @@ jobs:
       - name: Install DFX
         uses: aviate-labs/setup-dfx@v0.3.2
         with:
-          dfx-version: '0.30.2'
+          dfx-version: '0.24.3'
 
       - name: Import Deploy Identity
         if: ${{ env.DFX_IDENTITY_PEM != '' }}
@@ -45,7 +45,6 @@ jobs:
         run: |
           BACKEND_ID=$(dfx canister --network playground id backend)
           echo "VITE_BACKEND_CANISTER_ID=$BACKEND_ID" >> $GITHUB_ENV
-          echo "CANISTER_ID_BACKEND=$BACKEND_ID" >> $GITHUB_ENV
           echo "Backend ID: $BACKEND_ID"
 
       - name: Install Frontend Dependencies
@@ -55,7 +54,7 @@ jobs:
       - name: Build Frontend Assets
         working-directory: frontend
         env:
-          CANISTER_ID_BACKEND: ${{ env.CANISTER_ID_BACKEND }}
+          CANISTER_ID_BACKEND: ${{ env.VITE_BACKEND_CANISTER_ID }}
           DFX_NETWORK: playground
         run: npm run build
 

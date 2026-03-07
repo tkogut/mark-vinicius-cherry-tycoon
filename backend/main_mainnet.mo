@@ -44,7 +44,7 @@ actor CherryTycoon {
   type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
-  var accessControlState = AccessControl.initState();
+  let accessControlState = AccessControl.initState();
 
   public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
     await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
