@@ -120,6 +120,13 @@ actor CherryTycoon {
     16, Text.equal, Text.hash
   );
 
+  // Core game data (Players and Farms)
+  private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+    10,
+    Principal.equal,
+    Principal.hash
+  );
+
   // Helper: Get decayed volume based on time passed
   private func getDecayedVolume(regionName: Text) : Nat {
     let (storedVol, lastTime) = switch (regionalMarketSaturation.get(regionName)) {
