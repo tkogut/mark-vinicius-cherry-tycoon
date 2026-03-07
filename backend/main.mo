@@ -116,7 +116,7 @@ actor CherryTycoon {
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
 
