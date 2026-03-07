@@ -26,14 +26,6 @@ jobs:
         uses: aviate-labs/setup-dfx@v0.3.2
         with:
           dfx-version: '0.24.3'
-          install-moc: true
-
-      - name: EOP Toolchain Bridge (Self-Healing)
-        run: |
-          MOC_PATH=$(which moc)
-          echo "DFX_MOC_PATH=$MOC_PATH" >> $GITHUB_ENV
-          echo "Injected MOC Path: $MOC_PATH"
-          moc --version
 
       - name: Import Deploy Identity
         if: ${{ env.DFX_IDENTITY_PEM != '' }}
@@ -62,8 +54,8 @@ jobs:
       - name: Build Frontend Assets
         working-directory: frontend
         env:
-          CANISTER_ID_BACKEND: ${{ env.VITE_BACKEND_CANISTER_ID }}
-          DFX_NETWORK: playground
+          VITE_BACKEND_CANISTER_ID: ${{ env.VITE_BACKEND_CANISTER_ID }}
+          VITE_DFX_NETWORK: playground
         run: npm run build
 
       - name: Deploy Frontend to Playground
@@ -87,4 +79,3 @@ jobs:
             .tmp/*.log
             frontend/npm-debug.log
             *.log
-

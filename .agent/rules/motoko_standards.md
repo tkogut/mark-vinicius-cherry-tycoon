@@ -3,8 +3,8 @@
 ## Track A: Local & ICP Playground
 - **Source of Truth**: `dfx 0.24.3`
 - **File**: `backend/main.mo`
-- **Syntax**: MUST use `persistent actor` (EOP).
-- **Goal**: Rapid iteration on persistent state.
+- **Syntax**: Uses standard `actor` (Traditional) for build stability.
+- **Goal**: Rapid deployment and testing on Playground replica.
 
 ## Track B: ICP Mainnet
 - **Source of Truth**: `dfx 0.30.x+`
