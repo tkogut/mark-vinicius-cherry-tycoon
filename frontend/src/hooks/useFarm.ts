@@ -439,6 +439,60 @@ export function useFarm() {
         },
     });
 
+    const hireLaborMutation = useMutation({
+        mutationFn: async (laborChoice: string) => {
+            if (!backendActor) throw new Error("Backend actor not initialized");
+            console.log('[useFarm] Hiring labor...', { laborChoice });
+            const result = await backendActor.hireLabor(laborChoice);
+            if ('Err' in result) throw new Error(getErrorMessage(result.Err));
+            return result.Ok;
+        },
+        onSuccess: (message) => {
+            console.log('[useFarm] labor hired successfully');
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Labor Contract Signed!",
+                description: message,
+                className: "bg-emerald-900 border-emerald-800 text-emerald-100",
+            });
+            playSFX(SOUNDS.GAME.CASH);
+        },
+        onError: (error: Error) => {
+            console.error('[useFarm] Hire labor mutation error:', error);
+            toast({
+                variant: "destructive",
+                title: "Hiring Failed",
+                description: error.message,
+            });
+        },
+    });
+
+    const buySuppliesMutation = useMutation({
+        mutationFn: async ({ supplyType, amount }: { supplyType: string, amount: number }) => {
+            console.log('[useFarm] buySupplies called:', { supplyType, amount });
+            if (!backendActor) throw new Error('Not authenticated');
+            const result = await backendActor.buySupplies(supplyType, BigInt(amount));
+            if ('Err' in result) throw new Error(getErrorMessage(result.Err));
+            return result.Ok;
+        },
+        onSuccess: (message) => {
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Procurement Successful",
+                description: message,
+                className: "bg-emerald-900 border-emerald-800 text-emerald-100",
+            });
+            playSFX(SOUNDS.GAME.CASH);
+        },
+        onError: (error: Error) => {
+            toast({
+                variant: "destructive",
+                title: "Procurement Failed",
+                description: error.message,
+            });
+        },
+    });
+
     return {
         farm: farmQuery.data,
         isLoading: farmQuery.isLoading,
@@ -456,6 +510,8 @@ export function useFarm() {
         upgradeInfrastructure: upgradeInfrastructureMutation,
         upgradeGoldenHarvester: upgradeGoldenHarvesterMutation,
         advancePhase: advancePhaseMutation,
+        hireLabor: hireLaborMutation,
+        buySupplies: buySuppliesMutation,
     };
 }
 
@@ -500,5 +556,21 @@ export function useCompetitors() {
         },
         enabled: !!backendActor && isAuthenticated,
         refetchInterval: 1000 * 60 * 5, // 5 minutes
+    });
+}
+
+export function useYearlyInsights() {
+    const { backendActor, isAuthenticated } = useAuth();
+
+    return useQuery({
+        queryKey: ['yearlyInsights'],
+        queryFn: async () => {
+            if (!backendActor) throw new Error('Not authenticated');
+            const result = await backendActor.getYearlyInsights();
+            if ('Err' in result) throw new Error(getErrorMessage(result.Err));
+            return result.Ok;
+        },
+        enabled: !!backendActor && isAuthenticated,
+        staleTime: 1000 * 60, // 1 minute
     });
 }

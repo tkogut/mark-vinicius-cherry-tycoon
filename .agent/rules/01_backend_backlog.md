@@ -58,7 +58,7 @@
 ---
 
 ### 🔵 Phase 5.7: Phase Engagement & Mechanics Deepening
-- [ ] **Hiring Phase Rework (Spring)**: Introduce a Hybrid Cost Model for labor (`#Village`, `#Standard`, `#City`). Upfront retainer fees in `#Hiring` + per kg costs at `#Harvest`. Auto-assign punishing `#Emergency` labor if skipped.
+- [x] **Hiring Phase Rework (Spring)**: Introduce a Hybrid Cost Model for labor (`#Village`, `#Standard`, `#City`). Upfront retainer fees in `#Hiring` + per kg costs at `#Harvest`. Auto-assign punishing `#Emergency` labor if skipped. (Backend Logic Complete)
 - [ ] **Spring Watering**: Allow `waterParcel` action earlier (`#Procurement`, `#Investment`, `#Growth`) to combat early droughts.
 - [ ] **Bulk Supply (#Procurement)**: Market price fluctuations for fertilizers/pesticides.
 - [ ] **Forward Contract Negotiation (#Market)**: Lock-in contracts with specific AI buyers for guaranteed prices.

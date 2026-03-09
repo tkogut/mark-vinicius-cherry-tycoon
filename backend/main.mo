@@ -14,8 +14,12 @@ import Float "mo:base/Float";
 
 import Types "types";
 import GameLogic "game_logic";
+import HiringLogic "hiring_logic";
 import WeatherLogic "weather_logic";
 import CompetitorLogic "competitor_logic";
+import StorageLogic "storage_logic";
+import MarketLogic "market_logic";
+import AnalyticsLogic "analytics_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
@@ -261,6 +265,7 @@ actor CherryTycoon {
       seasonNumber = 1;
       lastActive = Int.abs(Time.now());
       hiredLabor = null; // Phase 5.7: Must be hired in Spring
+      inputMarket = MarketLogic.generateInputPrices(1, Int.abs(Time.now())); // Phase 5.7: Initialize market
       ownedClubs = [];
     };
 
@@ -285,11 +290,9 @@ actor CherryTycoon {
           return #Err(#InvalidOperation("Labor contract already secured for this season."));
         };
 
-        let (laborType, upfrontCost) : (Types.LaborType, Nat) = switch (laborChoice) {
-          case ("Village") { (#Village, 500) };
-          case ("Standard") { (#Standard, 1500) };
-          case ("City") { (#City, 3000) };
-          case (_) { return #Err(#InvalidOperation("Invalid labor type. Choose 'Village', 'Standard', or 'City'")) };
+        let (laborType, upfrontCost) = switch (HiringLogic.processHireLabor(laborChoice)) {
+          case (#Err(e)) { return #Err(e) };
+          case (#Ok(res)) { res };
         };
 
         if (farm.cash < upfrontCost) {
@@ -462,13 +465,7 @@ actor CherryTycoon {
             };
 
             // Phase 5.7: Apply Labor Yield Multiplier (Int math to avoid Float module errors)
-            let harvestedAmount : Nat = switch (farm.hiredLabor) {
-              case (?#Village) { Int.abs((weatherAdjustedAmount * 9) / 10) };
-              case (?#Standard) { Int.abs(weatherAdjustedAmount) };
-              case (?#City) { Int.abs((weatherAdjustedAmount * 11) / 10) };
-              case (?#Emergency) { Int.abs((weatherAdjustedAmount * 8) / 10) };
-              case null { Int.abs(weatherAdjustedAmount) }; // Shouldn't happen due to advancePhase auto-assignment, fallback to 1.0x
-            };
+            let harvestedAmount : Nat = HiringLogic.applyHarvestLaborMultiplier(weatherAdjustedAmount, farm.hiredLabor);
 
             // Update parcel
             let updatedParcels = Array.tabulate<CherryParcel>(
@@ -500,13 +497,7 @@ actor CherryTycoon {
             };
 
             // Phase 5.7: Calculate labor cost based on contract
-            let laborCostPerKg : Nat = switch (farm.hiredLabor) {
-              case (?#Village) { 1 };
-              case (?#Standard) { 2 };
-              case (?#City) { 3 };
-              case (?#Emergency) { 4 };
-              case null { 2 }; // fallback
-            };
+            let laborCostPerKg : Nat = HiringLogic.calculateHarvestLaborCost(farm.hiredLabor);
             let laborCost = Int.abs(harvestedAmount) * laborCostPerKg;
             
             let updatedStats = updateSeasonalReport(farm, func(r) {
@@ -1198,10 +1189,15 @@ actor CherryTycoon {
     var spoiledCherries : Nat = 0;
     
     if (farm.currentSeason == #Autumn) {
-       let spoilageRate = GameLogic.calculateSpoilageRate(farm.infrastructure);
-       // spoilageRate is Float, multiply by quantity
-       let spoiledFloat = Float.fromInt(farm.inventory.cherries) * spoilageRate;
-       spoiledCherries := Int.abs(Float.toInt(spoiledFloat));
+       // Check for ColdStorage or Warehouse reducing base rate
+       var baseRate : Nat = 15; // default 15%
+       for (infra in farm.infrastructure.vals()) {
+         if (infra.infraType == #ColdStorage) { baseRate := 2 }
+         else if (infra.infraType == #Warehouse and baseRate > 5) { baseRate := 8 };
+       };
+       let handlingQuality = HiringLogic.getHandlingQuality(farm.hiredLabor);
+       let spoilageRate = StorageLogic.calculateSpoilage(baseRate, handlingQuality);
+       spoiledCherries := (farm.inventory.cherries * spoilageRate) / 100;
     };
     
     let newCherries = if (farm.inventory.cherries >= spoiledCherries) {
@@ -1335,11 +1331,20 @@ actor CherryTycoon {
                 farm.weather // Persist existing weather event until end of season
             };
 
+            // Phase 5.7: Market Logic (triggers when entering Procurement)
+            let newInputMarket = if (nextPhase == #Procurement) {
+                let entropy = Int.abs(Time.now());
+                MarketLogic.generateInputPrices(farm.seasonNumber / 4 + 1, entropy)
+            } else {
+                farm.inputMarket
+            };
+
             let finalFarm = {
                 updatedFarm with
                 currentPhase = nextPhase;
                 currentSeason = nextSeason;
                 weather = newWeather;
+                inputMarket = newInputMarket;
             };
 
             playerFarms.put(caller, finalFarm);
@@ -1439,6 +1444,85 @@ actor CherryTycoon {
 
         playerFarms.put(caller, updatedFarm);
         #Ok("Infrastructure upgraded successfully")
+      };
+    }
+  };
+
+  // Phase 5.7: Buy Bulk Supplies in Procurement Phase
+  public shared({ caller }) func buySupplies(
+    supplyType: Text,
+    amount: Nat
+  ) : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        
+        if (farm.currentPhase != #Procurement) {
+          return #Err(#SeasonalRestriction("Supplies can only be bulk purchased during the Procurement phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        if (amount == 0) {
+          return #Err(#InvalidOperation("Must purchase at least 1 unit."));
+        };
+
+        let pricePerUnit = switch (supplyType) {
+          case ("Fertilizer") { farm.inputMarket.fertilizerPrice };
+          case ("Pesticide") { farm.inputMarket.pesticidePrice };
+          case ("OrganicTreatment") { farm.inputMarket.organicTreatmentPrice };
+          case (_) { return #Err(#InvalidOperation("Invalid supply type.")) };
+        };
+
+        let totalCost = pricePerUnit * amount;
+
+        if (farm.cash < totalCost) {
+           return #Err(#InsufficientFunds { required = totalCost; available = farm.cash });
+        };
+
+        let updatedInventory = {
+          farm.inventory with
+          fertilizers = if (supplyType == "Fertilizer") farm.inventory.fertilizers + amount else farm.inventory.fertilizers;
+          pesticides = if (supplyType == "Pesticide") farm.inventory.pesticides + amount else farm.inventory.pesticides;
+          organicTreatments = if (supplyType == "OrganicTreatment") farm.inventory.organicTreatments + amount else farm.inventory.organicTreatments;
+        };
+
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          { r with 
+            maintenanceCosts = r.maintenanceCosts + totalCost;
+            totalCosts = r.totalCosts + totalCost;
+            netProfit = r.netProfit - (totalCost : Int);
+          }
+        });
+
+        let updatedFarm = {
+          farm with
+          cash = Int.abs((farm.cash : Int) - (totalCost : Int));
+          inventory = updatedInventory;
+          statistics = { updatedStats with totalCosts = farm.statistics.totalCosts + totalCost };
+        };
+
+        playerFarms.put(caller, updatedFarm);
+        #Ok("Successfully purchased " # Nat.toText(amount) # " units of " # supplyType # " for " # Nat.toText(totalCost) # " PLN.")
+      };
+    }
+  };
+
+  // Phase 5.7: Analytics Generation
+  public query({ caller }) func getYearlyInsights() : async GameResult<[Text], GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        let reports = farm.statistics.yearlyReports;
+        if (reports.size() == 0) {
+          return #Ok(["Patience, Governor. The engines of analysis require at least one full Winter to complete their calculations. Return next year."]);
+        };
+        
+        // Get the most recent report
+        let latestReport = reports[reports.size() - 1];
+        let insights = AnalyticsLogic.generateInsights(latestReport, farm);
+        
+        return #Ok(insights);
       };
     }
   };

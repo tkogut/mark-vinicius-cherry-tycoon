@@ -227,6 +227,7 @@ module {
     seasonNumber: Nat;
     lastActive: Nat;  // Timestamp in nanoseconds (converted from Time.Time)
     hiredLabor: ?LaborType;  // [NEW] Selected labor contract for the season
+    inputMarket: InputMarket; // [NEW] Current seasonal prices for supplies
     
     // Sports Center (Phase 6)
     ownedClubs: [Text]; // IDs of owned FootballClubs
@@ -295,6 +296,13 @@ module {
     seasonMultiplier: Float;   // seasonal variation
     qualityBonus: Float;       // 0.0-0.3 based on quality score
     organicPremium: Float;     // +0.3-0.5 for certified organic
+  };
+
+  public type InputMarket = {
+    fertilizerPrice: Nat;
+    pesticidePrice: Nat;
+    organicTreatmentPrice: Nat;
+    year: Nat;
   };
 
   public type Transaction = {

@@ -36,6 +36,26 @@ export interface CherryParcel {
   'plantedTrees' : bigint,
   'treeAge' : bigint,
 }
+export interface CherryParcel__1 {
+  'id' : string,
+  'pH' : number,
+  'region' : Region,
+  'lastFertilized' : bigint,
+  'soilType' : SoilType,
+  'organicConversionSeason' : bigint,
+  'isOrganic' : boolean,
+  'ownerId' : string,
+  'waterLevel' : number,
+  'fertility' : number,
+  'quality' : bigint,
+  'permeability' : number,
+  'size' : number,
+  'lastHarvest' : bigint,
+  'organicCertified' : boolean,
+  'humidity' : number,
+  'plantedTrees' : bigint,
+  'treeAge' : bigint,
+}
 export type CommuneType = { 'Urban' : null } |
   { 'Rural' : null } |
   { 'Mixed' : null };
@@ -88,27 +108,29 @@ export type GameResult = { 'Ok' : string } |
   { 'Err' : GameError };
 export type GameResult_1 = { 'Ok' : bigint } |
   { 'Err' : GameError };
-export type GameResult_2 = { 'Ok' : Statistics } |
-  { 'Err' : GameError };
-export type GameResult_3 = { 'Ok' : PlayerFarm } |
-  { 'Err' : GameError };
-export type GameResult_4 = { 'Ok' : CherryParcel } |
-  { 'Err' : GameError };
-export type GameResult_5 = { 'Ok' : MarketPrice } |
-  { 'Err' : GameError };
-export type GameResult_6 = { 'Ok' : Inventory } |
-  { 'Err' : GameError };
-export type GameResult_7 = { 'Ok' : FarmOverview } |
-  { 'Err' : GameError };
-export type GameResult_8 = { 'Ok' : Array<FootballClub> } |
-  { 'Err' : GameError };
-export type GameResult_9 = {
+export type GameResult_10 = {
     'Ok' : {
       'available' : bigint,
       'isRisky' : boolean,
       'estimatedCost' : bigint,
     }
   } |
+  { 'Err' : GameError };
+export type GameResult_2 = { 'Ok' : Array<string> } |
+  { 'Err' : GameError };
+export type GameResult_3 = { 'Ok' : Statistics } |
+  { 'Err' : GameError };
+export type GameResult_4 = { 'Ok' : PlayerFarm } |
+  { 'Err' : GameError };
+export type GameResult_5 = { 'Ok' : CherryParcel__1 } |
+  { 'Err' : GameError };
+export type GameResult_6 = { 'Ok' : MarketPrice } |
+  { 'Err' : GameError };
+export type GameResult_7 = { 'Ok' : Inventory__1 } |
+  { 'Err' : GameError };
+export type GameResult_8 = { 'Ok' : FarmOverview } |
+  { 'Err' : GameError };
+export type GameResult_9 = { 'Ok' : Array<FootballClub> } |
   { 'Err' : GameError };
 export interface Infrastructure {
   'purchasedSeason' : bigint,
@@ -124,7 +146,20 @@ export type InfrastructureType = { 'Sprayer' : null } |
   { 'ColdStorage' : null } |
   { 'ProcessingFacility' : null } |
   { 'SocialFacilities' : null };
+export interface InputMarket {
+  'fertilizerPrice' : bigint,
+  'year' : bigint,
+  'pesticidePrice' : bigint,
+  'organicTreatmentPrice' : bigint,
+}
 export interface Inventory {
+  'fertilizers' : bigint,
+  'pesticides' : bigint,
+  'organicCherries' : bigint,
+  'cherries' : bigint,
+  'organicTreatments' : bigint,
+}
+export interface Inventory__1 {
   'fertilizers' : bigint,
   'pesticides' : bigint,
   'organicCherries' : bigint,
@@ -149,7 +184,7 @@ export interface MarketPrice {
 }
 export interface ParcelEconomics {
   'revenue' : bigint,
-  'province' : Province,
+  'province' : Province__1,
   'costs' : bigint,
   'parcelId' : string,
   'yield' : bigint,
@@ -170,12 +205,29 @@ export interface PlayerFarm {
   'hiredLabor' : [] | [LaborType],
   'infrastructure' : Array<Infrastructure>,
   'playerName' : string,
+  'inputMarket' : InputMarket,
   'weather' : [] | [WeatherEvent],
   'parcels' : Array<CherryParcel>,
   'lastActive' : bigint,
-  'statistics' : Statistics,
+  'statistics' : Statistics__1,
 }
 export type Province = { 'Swietokrzyskie' : null } |
+  { 'Warminsko_Mazurskie' : null } |
+  { 'Podlaskie' : null } |
+  { 'Kujawsko_Pomorskie' : null } |
+  { 'Malopolskie' : null } |
+  { 'Lubelskie' : null } |
+  { 'Lodzkie' : null } |
+  { 'Wielkopolskie' : null } |
+  { 'Mazowieckie' : null } |
+  { 'Opolskie' : null } |
+  { 'Pomorskie' : null } |
+  { 'Podkarpackie' : null } |
+  { 'Slaskie' : null } |
+  { 'Lubuskie' : null } |
+  { 'Zachodniopomorskie' : null } |
+  { 'Dolnoslaskie' : null };
+export type Province__1 = { 'Swietokrzyskie' : null } |
   { 'Warminsko_Mazurskie' : null } |
   { 'Podlaskie' : null } |
   { 'Kujawsko_Pomorskie' : null } |
@@ -194,7 +246,7 @@ export type Province = { 'Swietokrzyskie' : null } |
 export interface Region {
   'laborCostMultiplier' : number,
   'marketSize' : number,
-  'province' : Province,
+  'province' : Province__1,
   'commune' : string,
   'communeType' : CommuneType,
   'county' : string,
@@ -249,6 +301,17 @@ export interface Statistics {
   'totalRevenue' : bigint,
   'yearlyReports' : Array<YearlyReport>,
 }
+export interface Statistics__1 {
+  'bestYearlyProfit' : bigint,
+  'totalCosts' : bigint,
+  'totalHarvested' : bigint,
+  'totalSold' : bigint,
+  'averageYieldPerHa' : number,
+  'seasonsPlayed' : bigint,
+  'seasonalReports' : Array<SeasonReport>,
+  'totalRevenue' : bigint,
+  'yearlyReports' : Array<YearlyReport>,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -267,7 +330,7 @@ export interface YearlyReport {
   'wholesaleRevenue' : bigint,
   'maintenanceCosts' : bigint,
   'certificationCosts' : bigint,
-  'bestPerformingProvince' : [] | [Province],
+  'bestPerformingProvince' : [] | [Province__1],
   'year' : bigint,
   'totalCosts' : bigint,
   'totalHarvested' : bigint,
@@ -291,17 +354,18 @@ export interface _SERVICE {
   'assignParcelToPlayer' : ActorMethod<[string, Principal], GameResult>,
   'buyClubShares' : ActorMethod<[string, bigint], GameResult>,
   'buyParcel' : ActorMethod<[string, bigint], GameResult>,
-  'checkStability' : ActorMethod<[], GameResult_9>,
+  'buySupplies' : ActorMethod<[string, bigint], GameResult>,
+  'checkStability' : ActorMethod<[], GameResult_10>,
   'cutAndPrune' : ActorMethod<[string], GameResult>,
   'debugResetPlayer' : ActorMethod<[], GameResult>,
   'fertilizeParcel' : ActorMethod<[string, string], GameResult>,
-  'getAvailableFootballClubs' : ActorMethod<[], GameResult_8>,
+  'getAvailableFootballClubs' : ActorMethod<[], GameResult_9>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCashBalance' : ActorMethod<[], GameResult_1>,
   'getCompetitorSummaries' : ActorMethod<[], Array<AICompetitorSummary>>,
-  'getFarmOverview' : ActorMethod<[], GameResult_7>,
+  'getFarmOverview' : ActorMethod<[], GameResult_8>,
   'getGlobalSeason' : ActorMethod<[], bigint>,
-  'getInventory' : ActorMethod<[], GameResult_6>,
+  'getInventory' : ActorMethod<[], GameResult_7>,
   'getLeaderboard' : ActorMethod<
     [],
     Array<
@@ -316,11 +380,12 @@ export interface _SERVICE {
       }
     >
   >,
-  'getMarketPrices' : ActorMethod<[], GameResult_5>,
-  'getParcelDetails' : ActorMethod<[string], GameResult_4>,
-  'getPlayerFarm' : ActorMethod<[], GameResult_3>,
-  'getPlayerStats' : ActorMethod<[], GameResult_2>,
+  'getMarketPrices' : ActorMethod<[], GameResult_6>,
+  'getParcelDetails' : ActorMethod<[string], GameResult_5>,
+  'getPlayerFarm' : ActorMethod<[], GameResult_4>,
+  'getPlayerStats' : ActorMethod<[], GameResult_3>,
   'getTotalPlayers' : ActorMethod<[], bigint>,
+  'getYearlyInsights' : ActorMethod<[], GameResult_2>,
   'harvestCherries' : ActorMethod<[string], GameResult_1>,
   'hireLabor' : ActorMethod<[string], GameResult>,
   'initializePlayer' : ActorMethod<[string, string], GameResult>,

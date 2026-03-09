@@ -2,22 +2,25 @@ import { Actor, HttpAgent, Identity } from "@dfinity/agent";
 import { idlFactory } from "../declarations/backend.did.js";
 import { _SERVICE } from "../declarations/backend.did";
 
-const canisterId = import.meta.env.VITE_BACKEND_CANISTER_ID || import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID;
+// OFFICIAL Backend Canister ID for Playground (6mce5)
+// Hardcoded to break any "ID Ghost" loops from stale service-worker caches.
+// This resolves IC0537: "Canister has no wasm module" caused by stale `5vsfh` routing.
+const OFFICIAL_BACKEND_CANISTER_ID = "6mce5-laaaa-aaaab-qacsq-cai";
 
-console.log("DEBUG: BACKEND_CANISTER_ID =", import.meta.env.VITE_BACKEND_CANISTER_ID);
-console.log("DEBUG: BACKEND_MAINNET_CANISTER_ID =", import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID);
 
 export const createBackendActor = async (identity?: Identity) => {
     const isLocal = window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1");
 
     // Dual Entrypoint Resolution:
-    // Local/Test: Prioritize 'backend' (main.mo)
-    // Production/IC: Prioritize 'backend_mainnet' (main_mainnet.mo)
-    const canisterId = isLocal
-        ? (import.meta.env.VITE_BACKEND_CANISTER_ID || import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID)
-        : (import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID || import.meta.env.VITE_BACKEND_CANISTER_ID);
+    // Priority: explicit env var -> OFFICIAL hardcoded fallback
+    const canisterId =
+        (isLocal || window.location.hostname.includes("icp0.io"))
+            ? (import.meta.env.VITE_BACKEND_CANISTER_ID || OFFICIAL_BACKEND_CANISTER_ID)
+            : (import.meta.env.VITE_BACKEND_MAINNET_CANISTER_ID || import.meta.env.VITE_BACKEND_CANISTER_ID || OFFICIAL_BACKEND_CANISTER_ID);
 
-    console.log("DEBUG: Final resolved canisterId =", canisterId);
+    console.log("[actor.ts] OFFICIAL_BACKEND_CANISTER_ID =", OFFICIAL_BACKEND_CANISTER_ID);
+    console.log("[actor.ts] Final resolved canisterId =", canisterId);
+
     if (!canisterId) {
         throw new Error("Canister ID is required for backend actor creation. Check environment variables.");
     }

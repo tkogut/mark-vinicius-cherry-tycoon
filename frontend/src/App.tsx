@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Trophy, Coins, Zap, TrendingUp } from "lucide-react"
+import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Users, Trophy, Coins, Zap, TrendingUp } from "lucide-react"
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/hooks/useAuth"
@@ -22,8 +22,11 @@ import { useGuestFarm } from "@/hooks/useGuestFarm"
 import { SeasonDisplay } from "@/components/season/SeasonDisplay"
 import { FinancialReportModal } from "@/components/farm/modals/FinancialReportModal"
 import { OnboardingModal } from "@/components/farm/modals/OnboardingModal"
+import { ProcurementModal } from "@/components/ProcurementModal"
+import { PlanningBoard } from "@/components/PlanningBoard"
 import { ShopModal } from "@/components/farm/modals/ShopModal";
 import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
+import { HiringModal } from "@/components/farm/HiringModal"
 import { useInstallPrompt } from "@/utils/pwa"
 import { useToast } from "@/components/ui/use-toast"
 import { calculateYieldBreakdown } from "@/lib/gameLogic"
@@ -59,6 +62,8 @@ function AppContent() {
     const [statsModalOpen, setStatsModalOpen] = useState(false);
     const [financialReportOpen, setFinancialReportOpen] = useState(false);
     const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+    const [hiringModalOpen, setHiringModalOpen] = useState(false);
+    const [procurementModalOpen, setProcurementModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'harvester'>('dashboard');
 
     // Harvest Velocity — drives the Sunset-Glow particle intensity
@@ -95,7 +100,8 @@ function AppContent() {
         startOrganicConversion,
         upgradeInfrastructure,
         advancePhase,
-        cutAndPrune
+        cutAndPrune,
+        hireLabor
     } = useGuestFarm();
 
     const showOnboarding = isAuthenticated && !!identity && !isLoading && !farm;
@@ -406,6 +412,23 @@ function AppContent() {
                 onClose={() => setIsShopModalOpen(false)}
             />
 
+            <HiringModal
+                isOpen={hiringModalOpen}
+                onClose={() => setHiringModalOpen(false)}
+                onHire={async (type) => {
+                    await hireLabor.mutateAsync(type);
+                }}
+                isLoading={hireLabor.isPending}
+                userCash={stats.cash}
+            />
+
+            {procurementModalOpen && (
+                <ProcurementModal
+                    onClose={() => setProcurementModalOpen(false)}
+                    onPurchased={() => setProcurementModalOpen(false)}
+                />
+            )}
+
             <Sidebar
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
@@ -492,6 +515,34 @@ function AppContent() {
                                     seasonNumber={stats.seasonNumber}
                                     className="flex"
                                 />
+
+                                {/* Hire Labor Button */}
+                                {currentPhase === 'Hiring' && (!farm?.hiredLabor || farm.hiredLabor.length === 0) && (
+                                    <Button
+                                        onClick={() => setHiringModalOpen(true)}
+                                        disabled={!isAuthenticated}
+                                        variant="default"
+                                        size="sm"
+                                        className="gap-2 bg-amber-600 hover:bg-amber-700 text-white flex shadow-[0_0_10px_rgba(217,119,6,0.5)] animate-pulse"
+                                    >
+                                        <Users className="h-4 w-4" />
+                                        Hire Labor
+                                    </Button>
+                                )}
+
+                                {/* Buy Supplies Button */}
+                                {currentPhase === 'Procurement' && (
+                                    <Button
+                                        onClick={() => setProcurementModalOpen(true)}
+                                        disabled={!isAuthenticated}
+                                        variant="default"
+                                        size="sm"
+                                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white flex shadow-[0_0_10px_rgba(4,120,87,0.5)] animate-pulse"
+                                    >
+                                        <Coins className="h-4 w-4" />
+                                        Procure Supplies
+                                    </Button>
+                                )}
 
                                 {/* Advance Phase Button */}
                                 <Button
@@ -583,11 +634,7 @@ function AppContent() {
                                         </div>
                                     )}
                                     {isAuthenticated && currentPhase === 'Planning' && (
-                                        <div className="bg-indigo-900/10 border border-indigo-500/20 rounded-lg p-4 text-center animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <p className="text-sm text-indigo-400 font-medium">
-                                                📜 Planning Phase: The season is over. Plan next year's strategy or start the new year.
-                                            </p>
-                                        </div>
+                                        <PlanningBoard />
                                     )}
                                     <FarmGrid
                                         parcels={parcels}

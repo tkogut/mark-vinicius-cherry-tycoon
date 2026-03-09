@@ -55,6 +55,12 @@ const createInitialGuestFarm = (): PlayerFarm => ({
         organicTreatments: 0n,
     },
     hiredLabor: [], // Added for Motoko 0.30 backend compatibility
+    inputMarket: {
+        fertilizerPrice: 50n,
+        pesticidePrice: 120n,
+        organicTreatmentPrice: 200n,
+        year: 1n,
+    },
     statistics: {
         totalHarvested: 0n,
         totalSold: 0n,
@@ -248,6 +254,68 @@ export function useGuestFarm() {
         return revenue;
     }, [mutateLocal]);
 
+    const mockHireLabor = useCallback(async (laborChoice: string) => {
+        let upfrontCost = 0n;
+        mutateLocal(f => {
+            if (f.currentPhase && !('Hiring' in f.currentPhase)) {
+                throw new Error("Labor can only be hired during the Hiring phase");
+            }
+            if (f.hiredLabor && f.hiredLabor.length > 0) {
+                throw new Error("Labor contract already secured");
+            }
+
+            let laborTypeOpt: any = [];
+            switch (laborChoice) {
+                case "Village": upfrontCost = 500n; laborTypeOpt = [{ Village: null }]; break;
+                case "Standard": upfrontCost = 1500n; laborTypeOpt = [{ Standard: null }]; break;
+                case "City": upfrontCost = 3000n; laborTypeOpt = [{ City: null }]; break;
+                default: throw new Error("Invalid labor type");
+            }
+
+            if (f.cash < upfrontCost) {
+                throw new Error("Insufficient funds");
+            }
+
+            f.cash -= upfrontCost;
+            f.hiredLabor = laborTypeOpt;
+
+            return f;
+        });
+        return `Successfully hired ${laborChoice} labor for ${upfrontCost} PLN upfront.`;
+    }, [mutateLocal]);
+
+    const mockBuySupplies = useCallback(async ({ supplyType, amount }: { supplyType: string, amount: number }) => {
+        let totalCost = 0n;
+        mutateLocal(f => {
+            if (f.currentPhase && !('Procurement' in f.currentPhase)) {
+                throw new Error("Supplies can only be bought during the Procurement phase");
+            }
+
+            let price = 0n;
+            switch (supplyType) {
+                case "Fertilizer": price = f.inputMarket.fertilizerPrice; break;
+                case "Pesticide": price = f.inputMarket.pesticidePrice; break;
+                case "OrganicTreatment": price = f.inputMarket.organicTreatmentPrice; break;
+                default: throw new Error("Invalid supply type");
+            }
+
+            totalCost = price * BigInt(amount);
+
+            if (f.cash < totalCost) {
+                throw new Error("Insufficient funds");
+            }
+
+            f.cash -= totalCost;
+
+            if (supplyType === "Fertilizer") f.inventory.fertilizers += BigInt(amount);
+            if (supplyType === "Pesticide") f.inventory.pesticides += BigInt(amount);
+            if (supplyType === "OrganicTreatment") f.inventory.organicTreatments += BigInt(amount);
+
+            return f;
+        });
+        return `Successfully purchased ${amount} units of ${supplyType} for ${totalCost} PLN.`;
+    }, [mutateLocal]);
+
     // Determine which interface to expose
     if (isAuthenticated) {
         return realFarmOptions;
@@ -284,5 +352,18 @@ export function useGuestFarm() {
         advancePhase: mockMutation(mockAdvancePhase) as any,
         startOrganicConversion: mockMutation(async () => { }) as any,
         upgradeInfrastructure: mockMutation(async () => { }) as any,
+        hireLabor: mockMutation(mockHireLabor) as any,
+        buySupplies: mockMutation(mockBuySupplies) as any,
+    };
+}
+
+export function useGuestYearlyInsights() {
+    const { isAuthenticated } = useAuth();
+    // Real insights query happens outside this hook usually, but we can provide a mock wrapper.
+    // If not authenticated, return static text.
+    return {
+        data: isAuthenticated ? undefined : ["Patience, Governor. The engines of analysis require at least one full Winter to complete their calculations."],
+        isLoading: false,
+        isError: false,
     };
 }

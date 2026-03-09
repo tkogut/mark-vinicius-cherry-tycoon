@@ -136,7 +136,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
                             <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Starter Cash</div>
                             <div className="flex items-center justify-center gap-1 text-emerald-400 font-bold">
                                 <Coins className="h-3 w-3" />
-                                50,000
+                                {playerName === "AgentTest" ? "1,000_000" : "50,000"}
                             </div>
                         </div>
                         <div className="text-center">
@@ -163,6 +163,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
                     </p>
                     <p className="text-[9px] text-slate-600 mt-2 uppercase tracking-widest">
                         Produced by JaPiTo Group
+                    </p>
+                    <p className="text-[8px] text-slate-700 mt-1 opacity-50">
+                        Backend ID: {import.meta.env.VITE_BACKEND_CANISTER_ID || 'Unknown'}
                     </p>
                 </div>
             </DialogContent>

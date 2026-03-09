@@ -76,11 +76,12 @@
 - [x] **Sound Manager**: Global context for SFX/BGM ✅ *DONE*
 - [x] **Assets**: UI Clicks, Harvest, Plant, Cash, Level Up ✅ *DONE*
 - [x] **Controls**: Mute toggle in UI ✅ *DONE*
-### 🔴 Phase 5.7: Deployment Polish & Fixes
+### 🔴 Phase 5.7: Deployment Polish & Mechanics Deepening
 - [x] **MIME Type Blocker**: Fixed "text/html" MIME type error for dynamic JS modules via `base: './'` and `.ic-assets.json`. ✅ *DONE 2026-03-05*
 - [x] **CSP Alignment**: Updated `.ic-assets.json` to allow local replica connections. ✅ *DONE 2026-03-05*
 - [x] **Auth Stability**: Resolved "Anonymous Caller" unauthorized errors via AuthContext identity gating. ✅ *DONE 2026-03-05*
 - [x] **Vite Workflow**: Established `npm run dev` as primary development speed-path. ✅ *DONE 2026-03-05*
+- [x] **Hiring Rework Modal**: Built and integrated `HiringModal.tsx` utilizing React Query targeting updated backend logic. ✅ *DONE*
 
 ### ✅ Completed Tasks (Archive)
 
