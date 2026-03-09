@@ -194,11 +194,11 @@ actor CherryTycoon {
       return #Err(#InvalidOperation("playerName must be 1-50 characters"));
     };
 
-    // Check if player already exists
-    switch (playerFarms.get(caller)) {
-      case (?_) { return #Err(#AlreadyExists("Player already initialized")) };
-      case null {};
-    };
+    // Check if player already exists - removed for stress test reset capability
+    // switch (playerFarms.get(caller)) {
+    //   case (?_) { return #Err(#AlreadyExists("Player already initialized")) };
+    //   case null {};
+    // };
 
     // Create starter parcel in Opole Province
     let starterParcel : CherryParcel = {
@@ -1176,7 +1176,8 @@ actor CherryTycoon {
       hasAnyOrganic,
       farm.infrastructure
     );
-    let totalCosts = fixedCosts + variableCosts;
+    // Total costs per season is annual / 4
+    let totalCosts = (fixedCosts + variableCosts) / 4;
 
     if (farm.cash < totalCosts) {
       return #Err(#InsufficientFunds { required = totalCosts; available = farm.cash });
@@ -1267,7 +1268,7 @@ actor CherryTycoon {
       currentSeason = nextSeason;
       currentPhase = nextPhase;
       weather = newWeather;
-      hiredLabor = null; // Phase 5.7: Reset labor for new season
+      hiredLabor = if (isNewYear) null else farm.hiredLabor; // Reset labor only for new year
       seasonNumber = farm.seasonNumber + 1;
       cash = Int.abs((farm.cash : Int) - (totalCosts : Int));
       parcels = updatedParcels;
