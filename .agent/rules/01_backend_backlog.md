@@ -1,10 +1,10 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Phase 0 — Complete. Phase 5 — Living World Core DONE. Entering Phase 5.7 Mechanics Deepening.**
+> **Current Directive**: **Phase 5.8 Stress Test COMPLETE. Resuming Phase 5.7 Mechanics Deepening.**
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` and `npm` commands in WSL terminal manually.
-> **Architecture**: **Dual Entrypoint** - `main.mo` (Playground/dfx 0.24.3) + `main_mainnet.mo` (Mainnet/EOP). See `motoko-playground-mainnet-directive.md`.
-> **Security**: All commits reviewed by Security Agent before merge (see `SECURITY_DIRECTIVE_V1.md`)
-> **Last Updated**: 2026-03-05
+> **Architecture**: **Dual Entrypoint** - `main.mo` (Playground) + `main_mainnet.mo` (Mainnet). **STRICT PARITY REQUIRED.**
+> **Protocol**: **Remote Browser** via Port 9222 (Profile: `roostertk`).
+> **Last Updated**: 2026-03-09
 
 ## Backlog
 
@@ -64,6 +64,10 @@
 - [ ] **Forward Contract Negotiation (#Market)**: Lock-in contracts with specific AI buyers for guaranteed prices.
 - [ ] **Machine Degradation (#Maintenance)**: Implement `inspectAndRepair` mechanic to avoid permanent infrastructure downgrades.
 - [ ] **Market Forecasting (#Planning)**: Optional paid "Weather & Market Forecasts" revealing upcoming standard deviations for AI/Weather.
+- [x] **Phase 5.8: Advanced Economic Stress Testing**:
+    - [x] Multi-year survival proof (Year 4 sustainability verified) ✅
+    - [x] Dual-Entrypoint logic parity (Audit complete) ✅
+    - [x] Victorian Insight Generation (Fiscal Hemorrhage verified) ✅
 
 ---
 
