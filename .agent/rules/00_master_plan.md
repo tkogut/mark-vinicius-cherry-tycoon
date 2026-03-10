@@ -1,10 +1,10 @@
 # MASTER PLAN: Mark Vinicius Cherry Tycoon [COORDINATOR]
 
-> **Current Status**: **Phase 5.8 Advanced Economic Stress Testing — COMPLETE ✅**
+> **Current Status**: **Phase 8.0 The Competitive Pool — ACTIVE 🏆**
 > **Environment**: **WSL (Ubuntu)** ✅ ACTIVE — `dfx 0.24.3` + `Motoko 0.30.2` (EOP) working.
 > **Protocol**: **Remote Browser** via Port 9222 (Profile: `roostertk`).
 > **Dual-Entrypoint**: `main.mo` (Playground) / `main_mainnet.mo` (Mainnet) strictly maintained.
-> **Last Updated**: 2026-03-09
+> **Last Updated**: 2026-03-10
 
 ## High-Level Roadmap
 
@@ -51,29 +51,55 @@
 > The Producer has mandated a "Headless-First" focus. The UI layer (Frontend) will pause development until the underlying backend mathematical logic and content systems (Phases 5-7) are **feature-complete and security audited**. 
 > - **Immutable Rules:** Dual-entrypoint mirroring is absolute. `initializePlayer` signature MUST remain `(text, text)`. All math is STRICT integer precision (zero floating point).
 
-### Phase 5.7: Mechanics Deepening (DONE ✅)
-- [x] Backend logic complete (Bulk Supply, Drought Watering, Contracts, Machine Decay).
+### 🟢 IRON FOUNDATION STAGE (COMPLETE ✅)
+> The core "Headless" backend is now a fully decoupled, secure "Single Source of Truth".
+> - **API Lock**: `initializePlayer` is strictly `(text, text)`.
+> - **Parity**: 100% logic alignment between `main.mo` and `main_mainnet.mo`.
+> - **Scalability**: Incremental Ledger / Pre-computed Cache implemented for O(1) performance.
+> - **Math**: Integer precision math verified across all economy modules.
 
-### Phase 5.9: Security Exploitation Audit (ACTIVE — Security Agent PENDING)
-- [ ] Audit Phase 5.7 Backend code for double-spend, integer wrap, and market price manipulation vulnerabilities.
+#### Phase 5.7: Mechanics Deepening (DONE ✅)
+- [x] Backend logic: Bulk Supply, Phase-based Watering, Contracts, Machine Decay.
+- [x] Economic Stability: "Death Spiral" fixed and verified.
 
-### Phase 6.1: Competitive Foundation (ACTIVE — Backend Agent PENDING)
-- [ ] Global Leaderboards & Prestige Score Implementation (Refer to `.agent/plans/002_Phase_6_1_Leaderboards.md`)
+#### Phase 5.9: Security Excellence (DONE ✅)
+- [x] **SEC-019**: All 23 anonymous principal guards in `main_mainnet.mo` restored.
+- [x] **SEC-020**: Legacy `buySupplies` ghost function purged.
 
-### Phase 7.0: Content Deepening (Upcoming)
-- [ ] Random backend events & specific weather encounters.
+#### Phase 6.1: Competitive Foundation (DONE ✅)
+- [x] Global Leaderboards with Prestige Scoring implemented.
+- [x] O(1) Scalability Patch: Incremental updates via `topPlayersCache`.
 
-### Phase 7.5: Frontend Execution (Paused)
-- [ ] Build the UI layer for 5.7, 6.1, and 7.0 once the backend canister ecosystem is rock solid.
+#### Phase 7.0: The Living World (COMPLETE ✅)
+- [x] **Event System Architecture**: Modular trigger logic for random occurrences.
+- [x] **Weather Encounters**: Direct backend impact on farm state via specialized events.
+- [x] **Trigger Logic**: Weighted probability tables for seasonal events.
+- [x] **Crop Insurance**: Payout and reset logic implemented and verified.
+
+### Phase 8.0: The Competitive Pool (ACTIVE ✅)
+- [x] **`auction_logic.mo`**: New module — Pre-Season Futures, Post-Harvest Auctions, Shortfall Logic, Flood Factor.
+- [x] **Type Definitions**: `AuctionContract`, `Bid`, `ContractStatus`, `ContractCategory` in `types.mo`.
+- [x] **API Surface**: 4 new public endpoints in both `main.mo` and `main_mainnet.mo`.
+- [x] **AI Archetypes**: Marek (undercutter), Kasia (bio-specialist), Hans (trap logic) bidding behavior.
+- [x] **Math**: V_bid formula with scaled-integer precision. Market Saturation (Flood Factor) implemented.
+
+### Phase 9.0: Frontend Implementation (Paused)
+- [ ] Build the UI layer for 5.7, 6.1, 7.0, and 8.0 once Backend is "Feature Complete".
+
+### Phase 10.0: Sports Patron (District League) (DEFERRED — Endgame)
+> **Deferred** by Producer directive. Implement after Phase 8.0 auction engine is verified.
+- [ ] **GDD Integration**: Map `gdd_sports_patron.md` to backend logic.
+- [ ] **Team Power Index (TPI)**: Implement squad simulation math.
+- [ ] **Local Reputation**: Link football results to Orchard prestige and labor costs.
 
 ## Active Directives (Delegate Tasks)
 
 | Domain | Assigned To | Directive File | Status |
 | :--- | :--- | :--- | :--- |
-| **Backend** | Backend Agent | `.agent/rules/01_backend_backlog.md` | **ACTIVE** — Implement Phase 6.1 Leaderboards |
+| **Backend** | Backend Agent | `.agent/rules/01_backend_backlog.md` | **ACTIVE** — Phase 8.0 Competitive Pool in progress. |
 | **Frontend** | Frontend Agent | `.agent/rules/02_frontend_backlog.md` | **PAUSED** — On hold for Headless-First Strategy |
-| **QA** | QA Agent | `.agent/rules/03_qa_checklist.md` | **PAUSED** — Awaiting Phase 6/7 Backend deployments |
-| **Security** | Security Agent | `.agent/rules/04_security_backlog.md` | **ACTIVE** — Audit Phase 5.7 (Phase 5.9 Focus) |
+| **QA** | QA Agent | `.agent/rules/03_qa_checklist.md` | **ACTIVE** — Verify Phase 6.1 Leaderboard logic via Candid |
+| **Security** | Security Agent | `.agent/rules/04_security_backlog.md` | **ACTIVE** — Monitoring for new Phase 7 commits |
 
 ## Inter-Agent Communication
 - **Coordinator**: Monitor this file. Update roadmap. Assign tasks to domain backlogs.

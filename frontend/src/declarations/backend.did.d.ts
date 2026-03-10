@@ -92,6 +92,24 @@ export interface FootballClub {
   'ticketRevenue' : bigint,
   'ownershipPercent' : bigint,
 }
+export interface ForecastReport {
+  'targetSeason' : string,
+  'wholesaleRangeMax' : bigint,
+  'wholesaleRangeMin' : bigint,
+  'forecastCost' : bigint,
+  'confidence' : string,
+  'priceRangeMax' : bigint,
+  'priceRangeMin' : bigint,
+  'weatherWarning' : string,
+}
+export interface ForwardContractResult {
+  'commitmentFeePaid' : bigint,
+  'saleCategory' : string,
+  'lockedQuantityKg' : bigint,
+  'pricePerKg' : bigint,
+  'totalRevenue' : bigint,
+  'buyerName' : string,
+}
 export type GameError = { 'SeasonalRestriction' : string } |
   {
     'BankruptcyRisk' : {
@@ -108,7 +126,11 @@ export type GameResult = { 'Ok' : string } |
   { 'Err' : GameError };
 export type GameResult_1 = { 'Ok' : bigint } |
   { 'Err' : GameError };
-export type GameResult_10 = {
+export type GameResult_10 = { 'Ok' : FarmOverview } |
+  { 'Err' : GameError };
+export type GameResult_11 = { 'Ok' : Array<FootballClub> } |
+  { 'Err' : GameError };
+export type GameResult_12 = {
     'Ok' : {
       'available' : bigint,
       'isRisky' : boolean,
@@ -116,21 +138,21 @@ export type GameResult_10 = {
     }
   } |
   { 'Err' : GameError };
-export type GameResult_2 = { 'Ok' : Array<string> } |
+export type GameResult_2 = { 'Ok' : ForecastReport } |
   { 'Err' : GameError };
-export type GameResult_3 = { 'Ok' : Statistics } |
+export type GameResult_3 = { 'Ok' : ForwardContractResult } |
   { 'Err' : GameError };
-export type GameResult_4 = { 'Ok' : PlayerFarm } |
+export type GameResult_4 = { 'Ok' : Array<string> } |
   { 'Err' : GameError };
-export type GameResult_5 = { 'Ok' : CherryParcel__1 } |
+export type GameResult_5 = { 'Ok' : Statistics } |
   { 'Err' : GameError };
-export type GameResult_6 = { 'Ok' : MarketPrice } |
+export type GameResult_6 = { 'Ok' : PlayerFarm } |
   { 'Err' : GameError };
-export type GameResult_7 = { 'Ok' : Inventory__1 } |
+export type GameResult_7 = { 'Ok' : CherryParcel__1 } |
   { 'Err' : GameError };
-export type GameResult_8 = { 'Ok' : FarmOverview } |
+export type GameResult_8 = { 'Ok' : MarketPrice } |
   { 'Err' : GameError };
-export type GameResult_9 = { 'Ok' : Array<FootballClub> } |
+export type GameResult_9 = { 'Ok' : Inventory__1 } |
   { 'Err' : GameError };
 export interface Infrastructure {
   'purchasedSeason' : bigint,
@@ -170,6 +192,14 @@ export type LaborType = { 'City' : null } |
   { 'Village' : null } |
   { 'Emergency' : null } |
   { 'Standard' : null };
+export interface LeaderboardEntry {
+  'id' : string,
+  'isAI' : boolean,
+  'name' : string,
+  'prestige' : PrestigeScore,
+  'seasonsCompleted' : bigint,
+  'totalRevenue' : bigint,
+}
 export type League = { 'Liga1' : null } |
   { 'Liga2' : null } |
   { 'Liga3' : null } |
@@ -199,6 +229,7 @@ export interface PlayerFarm {
   'playerId' : string,
   'inventory' : Inventory,
   'reputation' : bigint,
+  'hasCropInsurance' : boolean,
   'level' : bigint,
   'experience' : bigint,
   'seasonNumber' : bigint,
@@ -211,6 +242,7 @@ export interface PlayerFarm {
   'lastActive' : bigint,
   'statistics' : Statistics__1,
 }
+export type PrestigeScore = bigint;
 export type Province = { 'Swietokrzyskie' : null } |
   { 'Warminsko_Mazurskie' : null } |
   { 'Podlaskie' : null } |
@@ -316,13 +348,17 @@ export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
 export type Weather = { 'Sunny' : null } |
+  { 'PestOutbreak' : null } |
   { 'Heatwave' : null } |
   { 'Rainy' : null } |
+  { 'Flood' : null } |
   { 'Frost' : null } |
-  { 'Drought' : null };
+  { 'Drought' : null } |
+  { 'DiseaseOutbreak' : null };
 export interface WeatherEvent {
   'impact' : string,
   'season' : bigint,
+  'mitigated' : boolean,
   'severity' : number,
   'weather' : Weather,
 }
@@ -354,44 +390,36 @@ export interface _SERVICE {
   'assignParcelToPlayer' : ActorMethod<[string, Principal], GameResult>,
   'buyClubShares' : ActorMethod<[string, bigint], GameResult>,
   'buyParcel' : ActorMethod<[string, bigint], GameResult>,
-  'buySupplies' : ActorMethod<[string, bigint], GameResult>,
-  'checkStability' : ActorMethod<[], GameResult_10>,
+  'checkStability' : ActorMethod<[], GameResult_12>,
   'cutAndPrune' : ActorMethod<[string], GameResult>,
   'debugResetPlayer' : ActorMethod<[], GameResult>,
   'fertilizeParcel' : ActorMethod<[string, string], GameResult>,
-  'getAvailableFootballClubs' : ActorMethod<[], GameResult_9>,
+  'getAvailableFootballClubs' : ActorMethod<[], GameResult_11>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCashBalance' : ActorMethod<[], GameResult_1>,
   'getCompetitorSummaries' : ActorMethod<[], Array<AICompetitorSummary>>,
-  'getFarmOverview' : ActorMethod<[], GameResult_8>,
+  'getFarmOverview' : ActorMethod<[], GameResult_10>,
+  'getGlobalLeaderboard' : ActorMethod<[], Array<LeaderboardEntry>>,
   'getGlobalSeason' : ActorMethod<[], bigint>,
-  'getInventory' : ActorMethod<[], GameResult_7>,
-  'getLeaderboard' : ActorMethod<
-    [],
-    Array<
-      {
-        'efficiency' : number,
-        'isAI' : boolean,
-        'name' : string,
-        'rank' : bigint,
-        'reputation' : bigint,
-        'profit' : bigint,
-        'totalRevenue' : bigint,
-      }
-    >
-  >,
-  'getMarketPrices' : ActorMethod<[], GameResult_6>,
-  'getParcelDetails' : ActorMethod<[string], GameResult_5>,
-  'getPlayerFarm' : ActorMethod<[], GameResult_4>,
-  'getPlayerStats' : ActorMethod<[], GameResult_3>,
+  'getInventory' : ActorMethod<[], GameResult_9>,
+  'getMarketPrices' : ActorMethod<[], GameResult_8>,
+  'getParcelDetails' : ActorMethod<[string], GameResult_7>,
+  'getPlayerFarm' : ActorMethod<[], GameResult_6>,
+  'getPlayerRank' : ActorMethod<[Principal], [] | [bigint]>,
+  'getPlayerStats' : ActorMethod<[], GameResult_5>,
   'getTotalPlayers' : ActorMethod<[], bigint>,
-  'getYearlyInsights' : ActorMethod<[], GameResult_2>,
+  'getYearlyInsights' : ActorMethod<[], GameResult_4>,
   'harvestCherries' : ActorMethod<[string], GameResult_1>,
   'hireLabor' : ActorMethod<[string], GameResult>,
   'initializePlayer' : ActorMethod<[string, string], GameResult>,
+  'inspectAndRepair' : ActorMethod<[], GameResult>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'negotiateForwardContract' : ActorMethod<[string, bigint], GameResult_3>,
   'plantTrees' : ActorMethod<[string, bigint], GameResult>,
+  'purchaseCropInsurance' : ActorMethod<[], GameResult>,
+  'purchaseMarketForecast' : ActorMethod<[], GameResult_2>,
   'purchaseParcel' : ActorMethod<[Province, number], GameResult>,
+  'purchaseSupplies' : ActorMethod<[string, bigint], GameResult>,
   'sellCherries' : ActorMethod<[bigint, string], GameResult_1>,
   'startOrganicConversion' : ActorMethod<[string], GameResult>,
   'upgradeInfrastructure' : ActorMethod<[string], GameResult>,

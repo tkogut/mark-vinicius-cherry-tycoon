@@ -2,7 +2,6 @@ import Nat "mo:base/Nat";
 import Float "mo:base/Float";
 import Time "mo:base/Time";
 import Int "mo:base/Int";
-import Random "mo:base/Random";
 
 import Types "types";
 
@@ -10,105 +9,104 @@ module {
 
   // Deterministic random number generator helper
   private func nextRandom(seed : Nat) : (Nat, Float) {
-    // Linear Congruential Generator parameters
     let a : Nat = 1664525;
     let c : Nat = 1013904223;
     let m : Nat = 4294967296; // 2^32
-
     let newSeed = (a * seed + c) % m;
     let val = Float.fromInt(newSeed) / Float.fromInt(m);
     (newSeed, val)
   };
 
-  // Generate a random weather event based on season
-  public func generateWeatherEvent(season: Types.Season, entropy: Nat) : ?Types.WeatherEvent {
+  // Generate a random weather event based on season, considering infrastructure defenses
+  public func generateEvent(season: Types.Season, entropy: Nat, hasSprayer: Bool) : ?Types.WeatherEvent {
     
     var currentSeed = entropy;
     let (s1, roll) = nextRandom(currentSeed);
     currentSeed := s1;
     
-    // Default: Sunny (No event)
     var eventType : ?Types.Weather = null;
     var impactDesc = "";
     var severity = 0.0;
+    var mitigated = false;
 
     switch (season) {
       case (#Spring) {
-        // Spring: 15% Late Frost, 20% Heavy Rain
-        if (roll < 0.15) {
+        // Spring: 20% Late Frost, 15% Disease
+        if (roll < 0.20) {
           eventType := ?#Frost;
           impactDesc := "Late Frost! Protect young buds.";
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
           severity := 0.4 + (r2 * 0.4); // 0.4 - 0.8
         } else if (roll < 0.35) {
-          eventType := ?#Rainy; // Representing Heavy Rain
-          impactDesc := "Heavy Spring Rain. Monitoring disease risk.";
+          eventType := ?#DiseaseOutbreak; 
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
-          severity := 0.3 + (r2 * 0.4);
-        } else {
-          // Phase 5.1: Pest event — Monilinia fungus (15% in Spring)
-          let (s2, pestRoll) = nextRandom(currentSeed);
-          currentSeed := s2;
-          if (pestRoll < 0.15) {
-            eventType := ?#Rainy; // Using Rainy as proxy for pest until pest variant added
-            impactDesc := "Monilinia fungus detected! Flower blight spreading. Sprayer mitigates.";
-            let (s3, r3) = nextRandom(currentSeed);
-            currentSeed := s3;
-            severity := 0.3 + (r3 * 0.3); // 0.3 - 0.6 (moderate)
+          
+          if (hasSprayer) {
+            impactDesc := "Monilinia fungus detected, but your Sprayers neutralized the threat.";
+            severity := 0.0;
+            mitigated := true;
+          } else {
+            impactDesc := "Monilinia fungus spreading! Flower blight reducing yield.";
+            severity := 0.3 + (r2 * 0.3); // 0.3 - 0.6
           };
+        } else {
+          // 65% Sunny
         };
       };
+
       case (#Summer) {
-        // Summer: 20% Drought, 15% Heatwave, 5% Hail
+        // Summer: 20% Drought, 15% Heatwave, 20% Pest Outbreak
         if (roll < 0.20) {
           eventType := ?#Drought;
-          impactDesc := "Drought conditions detected. Irrigation critical.";
+          impactDesc := "Severe Drought conditions! Water sources depleting.";
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
-          severity := 0.5 + (r2 * 0.5);
+          severity := 0.7 + (r2 * 0.3); // 0.7 - 1.0
         } else if (roll < 0.35) {
           eventType := ?#Heatwave;
           impactDesc := "Heatwave alert! Trees under stress.";
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
-          severity := 0.6 + (r2 * 0.4);
-        } else if (roll < 0.40) {
-          eventType := ?#Rainy; // Representing Hailstorm for now (as damaging rain)
-          impactDesc := "Hailstorm! Potential physical damage.";
+          severity := 0.6 + (r2 * 0.4); // 0.6 - 1.0
+        } else if (roll < 0.55) {
+          eventType := ?#PestOutbreak; 
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
-          severity := 0.7 + (r2 * 0.3);
-        } else {
-          // Phase 5.1: Pest event — Cherry Fruit Fly (20% in Summer)
-          let (s2, pestRoll) = nextRandom(currentSeed);
-          currentSeed := s2;
-          if (pestRoll < 0.20) {
-            eventType := ?#Rainy; // Using Rainy as proxy for pest until pest variant added
-            impactDesc := "Cherry Fruit Fly infestation! Larvae damaging fruit. Sprayer mitigates.";
-            let (s3, r3) = nextRandom(currentSeed);
-            currentSeed := s3;
-            severity := 0.4 + (r3 * 0.4); // 0.4 - 0.8
+          
+          if (hasSprayer) {
+            impactDesc := "Cherry Fruit Flies repelled by active Sprayer defenses.";
+            severity := 0.0;
+            mitigated := true;
+          } else {
+            impactDesc := "Cherry Fruit Fly infestation! Larvae damaging fruit yield.";
+            severity := 0.4 + (r2 * 0.4); // 0.4 - 0.8
           };
+        } else {
+           // 45% Sunny
         };
       };
+
       case (#Autumn) {
-        // Autumn: 10% Early Frost, 15% Storm
+        // Autumn: 10% Early Frost, 10% Flood
         if (roll < 0.10) {
           eventType := ?#Frost;
           impactDesc := "Early Frost. Harvest quickly!";
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
           severity := 0.3 + (r2 * 0.4);
-        } else if (roll < 0.25) {
-          eventType := ?#Rainy; // Storm
-          impactDesc := "Autumn Storms. Field work delayed.";
+        } else if (roll < 0.20) {
+          eventType := ?#Flood;
+          impactDesc := "Catastrophic Autumn Floods impacting the region.";
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
-          severity := 0.4 + (r2 * 0.4);
+          severity := 0.8 + (r2 * 0.2); // 0.8 - 1.0
+        } else {
+          // 80% Sunny / Normal
         };
       };
+
       case (#Winter) {
         // Winter: 25% Deep Freeze
         if (roll < 0.25) {
@@ -117,6 +115,8 @@ module {
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
           severity := 0.8 + (r2 * 0.2);
+        } else {
+          // 75% Normal Winter
         };
       };
     };
@@ -127,8 +127,9 @@ module {
         ?{
           weather = weather;
           severity = severity;
-          season = 0; // Will be set by caller
+          season = 0; // Handled by caller to use actual numeric season 
           impact = impactDesc;
+          mitigated = mitigated;
         }
       };
     };
@@ -141,6 +142,9 @@ module {
       case (#Frost) { "Frost" };
       case (#Drought) { "Drought" };
       case (#Heatwave) { "Heatwave" };
+      case (#Flood) { "Flood" };
+      case (#PestOutbreak) { "Pest Outbreak" };
+      case (#DiseaseOutbreak) { "Disease Outbreak" };
     };
   };
 

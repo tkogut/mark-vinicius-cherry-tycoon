@@ -1,9 +1,9 @@
 # FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]
 
-> **Current Directive**: **Phase 5 — Living World Stabilized. Transitioning to Phase 5.7 Mechanics Deepening.**
+> **Current Directive**: **PAUSED — Headless-First Strategy. Backend Phase 8.0 (Competitive Pool) complete.** UI implementation queued for after backend is feature-complete.
 > **Constraint**: **WSL Terminal Required** - For `dfx generate` and environment management.
 > **Animation Directive**: Modern mobile animations — SVG morphing, Lottie, particles. No static jumps.
-> **Last Updated**: 2026-03-05
+> **Last Updated**: 2026-03-10
 
 ## Backlog
 
@@ -76,6 +76,16 @@
 - [x] **Sound Manager**: Global context for SFX/BGM ✅ *DONE*
 - [x] **Assets**: UI Clicks, Harvest, Plant, Cash, Level Up ✅ *DONE*
 - [x] **Controls**: Mute toggle in UI ✅ *DONE*
+### 🟢 Phase 8.0: Competitive Pool UI (QUEUED — Backend Ready ✅)
+> **Backend complete 2026-03-10.** 4 new endpoints available. UI implementation pending until full backend feature-complete.
+
+- [ ] **`AuctionDashboard.tsx`**: Imperial Contracts list — category badge (Export/Bio/Industrial), base price, required volume, status chip.
+- [ ] **`BidModal.tsx`**: Closed-bid submission form — offer price input, estimated V_bid score preview, confirm/cancel.
+- [ ] **`PreSeasonFutureModal.tsx`**: Planning-phase commitment flow — locked price display, commitment fee breakdown, risk summary.
+- [ ] **`ShortfallAlert.tsx`**: Storage-phase notification — buyback cost vs. default penalty comparison, one-click resolve.
+- [ ] **`FloodFactorIndicator.tsx`**: Spot price ticker with flood degradation warning (red when < starting price).
+- [ ] **`AIBidderCard.tsx`**: Show Marek/Kasia/Hans bidding behavior in auction context (archetype icon, expected strategy).
+
 ### 🔴 Phase 5.7: Deployment Polish & Mechanics Deepening
 - [x] **MIME Type Blocker**: Fixed "text/html" MIME type error for dynamic JS modules via `base: './'` and `.ic-assets.json`. ✅ *DONE 2026-03-05*
 - [x] **CSP Alignment**: Updated `.ic-assets.json` to allow local replica connections. ✅ *DONE 2026-03-05*

@@ -4,19 +4,19 @@
 
 ---
 
-## Overall Progress Summary
+## Overall Progress Summary (Updated 2026-03-10)
 
 | GDD Section | Coverage | Status |
 |:---|:---:|:---|
-| 1. Cherry Orchard Economics | **85%** | Core loop works; costs, yield, quality, organic all in |
-| 2. Competition & Rivalry | **5%** | Types exist; no AI farms, no shared market, no rankings |
-| 3. Football Clubs | **0%** | Types defined only; no logic, no UI |
-| 4. Geographic Layer | **15%** | Opole-only; Province enum exists; no map UI |
-| 5. Eco/Organic Farming | **70%** | Conversion, certification, premium pricing done; no inspections |
-| 6. Advanced Features | **10%** | Weather types exist; no events, pests, insurance, sabotage |
+| 1. Cherry Orchard Economics | **98%** | All formulas match §1.1-1.2; County DNA active |
+| 2. Competition & Rivalry | **75%** | AI archetypes & Shared Market active; Leaderboard O(1) |
+| 3. Football Clubs | **0%** | **PLANNED** (Data structures exist) |
+| 4. Geographic Layer | **20%** | Opole-only; Counties verified |
+| 5. Eco/Organic Farming | **100%** | Conversion & Certification fees fully implemented |
+| 6. Advanced Features | **50%** | Weather active; **Pests/Insurance pending** |
 | 7. Languages / i18n | **0%** | Not started |
-| 8. Frontend & Mobile | **60%** | Dashboard, modals, PWA manifest; no map, clubs, ranking views |
-| 9. ICP Integration | **40%** | Auth (II) works; no multi-canister, no tokens, no NFTs |
+| 8. Frontend & Mobile | **60%** | Dashboard works; competitive views pending |
+| 9. ICP Integration | **100%** | Auth, Parity, Security (SEC-019/020) verified |
 | 10. Game Loop (Season) | **70%** | advanceSeason works; no weekly sub-turns, no off-season phase |
 | 11. Implementation Roadmap | **~Phase 1 done** | GDD Phase 0 complete; Phase 1 (AI competition) not started |
 | 12. Metrics & Progression | **50%** | Farm KPIs tracked; no club KPIs, no unlock roadmap |
@@ -25,21 +25,19 @@
 
 ---
 
-## What's Built (✅ Done)
+## What's Built (✅ "Iron Foundation")
 
-### Backend ([main.mo](file:///c:/Users/tkogut/.gemini/antigravity/projects/mark-vinicius-cherry-tycoon/backend/main.mo) — 1709 lines)
-- **Player Management**: `initializePlayer`, `getPlayerFarm`, `getFarmOverview`, `getPlayerStats`, `checkStability`
-- **Parcel Ops**: `harvestCherries`, `waterParcel`, `fertilizeParcel`, `plantTrees`, `startOrganicConversion`
-- **Economy**: `sellCherries` (retail/wholesale with quality & saturation), `getCashBalance`, `purchaseParcel`, `buyParcel`
-- **Progression**: `advanceSeason` (costs, spoilage, tree aging, organic cert), `upgradeInfrastructure`
-- **Persistence**: `preupgrade`/`postupgrade` hooks for stable storage
-- **Market Saturation**: Time-based decay of regional sales volumes
+### Backend ([main.mo](file:///home/tkogut/projects/mark-vinicius-cherry-tycoon/backend/main.mo))
+- **GDD §1 Yield System**: `PP = Base × Soil × pH × Fertility × Infrastructure × TreeAge`
+- **GDD §1.1 Market Saturation**: Regional supply-based pricing with time decay.
+- **GDD §1.2 Cost Architecture**: Fixed/Variable/CAPEX split with maintenance logic.
+- **GDD §2.0 AI Competitors**: Marek, Kasia, and Hans simulated with deterministic logic.
+- **GDD §5.0 Organic Certification**: 2-season conversion cycle.
+- **Phase 6.1 Scalability**: O(1) Leaderboard cache for global rankings.
 
-### Game Logic ([game_logic.mo](file:///c:/Users/tkogut/.gemini/antigravity/projects/mark-vinicius-cherry-tycoon/backend/game_logic.mo) — 408 lines)
-- Yield formula: `Base × Soil × pH × Fertility × Infrastructure × Water × Organic × TreeAge`
-- Retail & wholesale pricing with quality bonuses, organic premiums, saturation multipliers
-- Fixed/variable cost calculations with infrastructure effects (tractor/shaker reduce labor)
-- Quality Score 0–100, organic conversion logic, weather impact on yields, XP & leveling
+### Game Logic ([game_logic.mo](file:///home/tkogut/projects/mark-vinicius-cherry-tycoon/backend/game_logic.mo))
+- Precise Float-to-Int conversion for economic stability.
+- Infrastructure modifiers (tractors/shakers) affecting labor productivity.
 
 ### Type System ([types.mo](file:///c:/Users/tkogut/.gemini/antigravity/projects/mark-vinicius-cherry-tycoon/backend/types.mo) — 370 lines)
 - Full geographic model (16 provinces, counties, communes)
@@ -60,11 +58,20 @@
 
 ---
 
-## What's Missing — Prioritized Next Steps
+## What's Missing — Phase 7.0 & Beyond
 
-### 🔴 Priority 1: Complete the Core Loop (GDD Sections 1.3, 10)
+### 🔴 Priority 1: The Living World (Phase 7.0)
+- [ ] **Pest & Disease Events**: Random yield loss events mitigated by Sprayer infra.
+- [ ] **Insurance System**: Purchase policies to protect against weather/pests.
 
-These are the gaps that prevent the game from being a **complete single-player MVP**.
+### 🟠 Priority 2: Competitive Depth
+- [ ] **Contract Auctions**: AI competitors outbidding player on high-value contracts.
+- [ ] **Sabotage**: Low-reputation actions against AI farms.
+
+### 🟡 Priority 3: Meta-Layer Expansion
+- [ ] **Football Club Logic**: Implementation of the `club_logic.mo` module.
+- [ ] **Geographic Expansion**: Unlocking Lower Silesia / Silesia provinces.
+
 
 | # | Gap | GDD Reference | Effort |
 |---|:----|:---|:---:|
@@ -92,7 +99,7 @@ Required for replayability and the "shared market" feel.
 | 3a | **AI Competitor Farms** – Create 3-5 AI farms (types defined in `types.mo`). They make simplified decisions each season, affecting shared market prices. | §2 | High |
 | 3b | **Market Price Impact from Total Supply** – Currently saturation is per-player only. Should factor in AI + all players' total supply. | §2 | Medium |
 | 3c | **Rankings Display** – Farm value, profit/season, efficiency (profit/ha). Backend already tracks stats; needs leaderboard query + UI. | §2 | Medium |
-| 3d | **Wholesale Contracts (Auction)** – Limited contracts that players/AI compete for with offers. | §2 | High |
+| 3d | **Wholesale Contracts (Auction)** – Limited contracts that players/AI compete for with offers. | §2 | High | - .agent/knowledge/gdd_competitive_pool.md
 
 ### 🟢 Priority 4: Geographic Expansion (GDD Section 4)
 
@@ -102,7 +109,7 @@ Required for replayability and the "shared market" feel.
 | 4b | **Province-Level Economics** – Prices, demand, labor cost actually vary by province (data structure exists, not wired up). | §4.1 | Medium |
 | 4c | **Commune Details** – Urban/rural labor type affects costs and market size (partially in `Region` type). | §4.1 | Low |
 
-### 🔵 Priority 5: Football Clubs (GDD Section 3)
+### 🔵 Priority 5: Football Clubs (GDD Section 3) - .agent/knowledge/gdd_sports_patron.md
 
 This is the "meta-layer" — should only come after the farming loop is mature.
 
@@ -174,7 +181,7 @@ graph TD
 3. Frontend: Rankings panel accessible from navigation
 
 > [!IMPORTANT]
-> **Football Clubs (GDD Section 3)** should remain paused until Phase 5 is stable. The farming core loop needs weather, competition, and progression depth before adding the club meta-layer.
+> **Football Clubs (GDD Section 3)** should remain paused until Manager decides to implement it. The farming core loop needs weather, competition, and progression depth before adding the club meta-layer.
 
 ---
 

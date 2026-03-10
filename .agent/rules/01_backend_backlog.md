@@ -1,6 +1,7 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Phase 6.1 Mechanics (Leaderboards) — ACTIVE.**
+> **Current Directive**: **Phase 8.0 Competitive Pool — ACTIVE.** Implementing Market Rivalry & Auction Systems. Sports Patron deferred to Phase 10.0. 🏆
+> **Handshake**: Dual-Entrypoint parity verified for all changes. Event system and Insurance active.
 > **Strategy Shift**: **Headless-First (Backend-Heavy)**. Frontend UI is paused. We are building the engine core first.
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` and `npm` commands in WSL terminal manually.
 > **Architecture**: **Dual Entrypoint** - `main.mo` (Playground) + `main_mainnet.mo` (Mainnet). **STRICT PARITY REQUIRED.**
@@ -9,14 +10,64 @@
 
 ## Backlog
 
-### 🔴 Phase 6.1: Global Leaderboards & Prestige Scoring (PRIORITY 2)
-- [ ] **Blueprint Review**: Read `.agent/plans/002_Phase_6_1_Leaderboards.md` for architectural constraints.
-- [ ] **Data Structures**: Implement `PrestigeScore` and `LeaderboardEntry` in `types.mo`.
-- [ ] **[NEW] `leaderboard_logic.mo`**: Implement `calculatePrestige` pure function.
-- [ ] **State Updates**: Update `advanceSeasonInternal` in both main actors to recalculate prestige/ledger.
-- [ ] **Public Queries**: Implement `getGlobalLeaderboard()` and `getPlayerRank(playerId: Principal)`.
-- [ ] **Constraint Check**: Verify `initializePlayer(text, text)` remains untouched.
-- [ ] **Dual-Entrypoint Parity**: Ensure functions are injected into BOTH `main.mo` and `main_mainnet.mo`.
+### 🔴 **SECURITY BLOCKER (Phase 5.9 Audit — PRIORITY 0) — Fix before Phase 6.1**
+
+> **From Security Agent [2026-03-10]**: Phase 5.9 audit complete. SEC-019 is a new **Critical** finding.
+
+- [x] **SEC-019: Uncomment `isAnonymous` checks in `main_mainnet.mo`** — ALL 23 anonymous principal guards restored. ✅ *FIXED 2026-03-10*
+- [x] **SEC-020: Purge Legacy `buySupplies`** — Removed duplicate legacy function from both entrypoints. All purchases now route through `purchaseSupplies` (Phase 5.7). ✅ *DONE 2026-03-10*
+
+---
+
+### ✅ Phase 8.0: The Competitive Pool (COMPLETE)
+> **Primary Spec**: `.agent/knowledge/gdd_competitive_pool.md`
+> **Audit Status**: ✅ FULLY RESOLVED — All 6 anomalies including BUG-06 (Ghost Marketplace) patched.
+> **Module**: `auction_logic.mo` (new)
+
+#### Sub-system A: Pre-Season Futures (Phases 1-2)
+- [x] **Type Definitions**: `AuctionContract`, `Bid`, `ContractStatus`, `ContractCategory` added to `types.mo`. ✅
+- [x] **`auction_logic.mo`**: Module created with Pre-Season Future logic. ✅
+- [x] **Commitment Fee**: 5% deducted on `commitPreSeasonFuture()`. ✅
+- [x] **Locked-Price Discount**: 5-10% Security Discount applied at commitment time. ✅
+
+#### Sub-system B: Post-Harvest Auctions (Phase 9 → #Market)
+- [x] **Contract Generation**: `generateImperialContracts()` — 3-5 Export/Bio/Industrial contracts. ✅
+- [x] **Closed-Bid Resolution**: `resolveAuctions()` with `calculateBidAttractiveness()` V_bid formula. ✅
+- [x] **AI Bidding Archetypes**: Marek (aggressive undercutter), Kasia (Bio specialist), Hans (trap logic). ✅
+
+#### Sub-system C: Shortfall & Penalty Logic
+- [x] **Market Buyback**: Missing volume purchased at `Spot * 1.25` from rivals. ✅
+- [x] **Financial Default**: 150% penalty + permanent Prestige/Reputation hit if cash insufficient. ✅
+
+#### Sub-system D: Market Saturation (Flood Factor)
+- [x] **`applyFloodFactor()`**: Every uncontracted unit reduces SpotPrice by 0.1%. ✅
+
+#### Integration & Guards
+- [x] **API Exposure**: 4 new public functions in `main.mo` + `main_mainnet.mo`. ✅
+- [x] **`isAnonymous` Guards**: On all mutation functions. ✅
+- [x] **Integer Math**: No floats — V_bid uses ×1000 scaled integers throughout. ✅
+- [x] **`initializePlayer` Signature**: Remains `(text, text)` — unchanged. ✅
+
+### 🟣 Phase 10.0: Sports Patron (DEFERRED — Endgame Expansion)
+> **Status**: Deferred by Producer directive. Implement AFTER Phase 8.0 and 9.0 are complete.
+- [ ] **GDD Analysis**: Align with `gdd_sports_patron.md` (Autumn-Spring Round sync).
+- [ ] **[NEW] `patron_logic.mo`**: Create module for football simulation and reputation scoring.
+- [ ] **Team Power Index (TPI)**: Implement squad power and match simulation math.
+- [ ] **Phase Integration**: Hook league rounds into Backend Phases 1-10.
+- [ ] **Orchard Impact**: Implement Prestige/Reputation bonuses (Labor cost / Negotiation power).
+- [ ] **Dual-Entrypoint**: Maintain strict parity between `main.mo` and `main_mainnet.mo`.
+
+### ✅ Phase 7.0: The Living World (ARCHIVED)
+- [x] **Event logic**: `event_logic.mo` implemented with weighted probabilities. ✅
+- [x] **Mitigation**: Sprayers neutralize Pests/Disease. ✅
+- [x] **Insurance**: `purchaseCropInsurance` and payout logic verified. ✅
+- [x] **Persistence**: All state captured in Stable storage. ✅
+
+### ✅ Phase 6.1: Global Leaderboards & Prestige Scoring (ARCHIVED)
+- [x] **Prestige Score**: `calculatePrestige` pure logic implemented.
+- [x] **Scalability**: Incremental updates via `topPlayersCache`.
+- [x] **Auth Guards**: All 23 `isAnonymous` checks restored. ✅
+- [x] **Hygiene**: Legacy `buySupplies` purged. ✅
 
 ### 🟠 Phase 0: Close Out Phase 2.5 (FIRST — Pre-requisite)
 - [x] **Full Function Verification**: All 22 public functions verified via `dfx canister call` ✅ *DONE 2026-02-19*

@@ -106,3 +106,55 @@ quality_score = base + soil_bonus + ph_bonus + fertility_bonus + water_bonus + i
 
 > [!WARNING]
 > If a task requires modifying how money or yield is calculated, you MUST verify that the changes do not break the bounds defined in this document.
+
+---
+
+## 6. Phase 8.0 Auction System Formulas
+
+### V_bid — Bid Attractiveness Score (Scaled Integer)
+
+**GDD Formula**: $V_{bid} = (P_{base} - P_{offer}) \times (1 + \frac{Prestige}{1000}) \times QualityBonus$
+
+**Motoko Implementation**: All values are `Nat`. No `Float`. Scaling factor: ×1000 for prestige, ×120/100 for organic Bio bonus.
+
+```
+margin         = P_base - P_offer          (guarded: if P_offer > P_base → score = 0)
+prestigeFactor = 1000 + prestige           (prestige = globalPrestige + localReputation, range 0-200)
+qualityMult    = 120 (organic Bio)         or 100 (all others)
+score          = (margin × prestigeFactor × qualityMult) / 100
+```
+
+**Example**: base=7, offer=6, prestige=85, organic+Bio → score = (1 × 1085 × 120) / 100 = **1302**
+
+### Flood Factor — Market Saturation
+
+**GDD Rule**: Every unit sold outside of a contract reduces the Spot Price by 0.1% per unit.
+
+**Motoko Implementation**:
+```
+UNIT_DIVISOR  = 100 kg per "flood unit"
+floodUnits    = min(uncontractedKg / 100, 900)   (cap at 900 = 90% max degradation)
+newSpotPrice  = spotPrice × (1000 - floodUnits) / 1000
+floor         = 1 PLN/kg absolute minimum
+```
+
+### Pre-Season Future Discount
+```
+lockedPricePLN = basePricePLN × 93 / 100    (7% security discount)
+commitmentFee  = lockedPrice × volumeKg × 5 / 100    (5% upfront)
+```
+
+### Shortfall: Market Buyback
+```
+buybackCost = shortfallKg × spotPrice × 125 / 100    (25% urgent premium)
+```
+
+### Shortfall: Financial Default Penalty
+```
+defaultPenalty = shortfallKg × lockedPricePLN × 150 / 100    (150% of undelivered value)
+prestigeLost   = playerPrestige × 10 / 100                    (10% permanent prestige hit)
+```
+
+> [!IMPORTANT]
+> All Phase 8.0 auction math uses **Nat only**. Every subtraction is guarded. No `Float` imports in `auction_logic.mo`.
+

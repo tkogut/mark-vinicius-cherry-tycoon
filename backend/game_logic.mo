@@ -346,14 +346,20 @@ module {
   public func applyWeatherImpact(
     baseYield: Nat,
     weather: Types.Weather,
-    severity: Float
+    severity: Float,
+    mitigated: Bool
   ) : Nat {
+    if (mitigated) { return baseYield };
+
     let impact = switch (weather) {
       case (#Sunny) { 1.0 };
       case (#Rainy) { 0.95 - (severity * 0.1) }; // slight reduction
       case (#Frost) { 0.6 - (severity * 0.3) };  // major damage
       case (#Drought) { 0.7 - (severity * 0.2) };
       case (#Heatwave) { 0.8 - (severity * 0.15) };
+      case (#Flood) { 0.4 - (severity * 0.4) };  // devastating damage
+      case (#PestOutbreak) { 0.8 - (severity * 0.3) }; 
+      case (#DiseaseOutbreak) { 0.7 - (severity * 0.25) };
     };
     
     Int.abs(Float.toInt(Float.fromInt(baseYield) * impact))

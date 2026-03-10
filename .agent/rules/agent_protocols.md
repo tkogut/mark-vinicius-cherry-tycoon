@@ -122,8 +122,9 @@ Since agents are in separate chat windows, they do not "talk" directly. They use
 - **Security → Backend**: When Security finds a vulnerability, add `**BLOCKED**` to `01_backend_backlog.md`.
 
 ### 2. The Coordinator's Role (Big Picture)
-- If a change affects multiple domains, the Agent reports to the User.
+- **Roadmap Sync**: If a change affects multiple domains, the Agent reports to the User.
 - The Coordinator updates `00_master_plan.md` and cascades to all backlogs.
+- **Bootstrap Sync Rule**: Whenever a phase completes or strategies shift, the Coordinator **MUST** update `.agent/rules/BOOTSTRAP_PROMPTS.md` and ALL `.agent/workflows/bootstrap-*.md` files so that new multi-agent sessions inherit the correct directives. Failing to do this causes "prompt drift."
 
 ### 3. "Blocked" Flags
 - If an agent cannot proceed, add `**BLOCKED**` to its directive status.

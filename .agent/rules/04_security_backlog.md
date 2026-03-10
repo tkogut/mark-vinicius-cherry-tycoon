@@ -1,98 +1,55 @@
 # SECURITY AGENT: Mark Vinicius Cherry Tycoon [SECURITY]
 
-> **Current Directive**: **Phase 5.9 (Security Exploitation Audit) — ACTIVE.**
-> **Operating Model**: **PROACTIVE** — The Producer has mandated a "Headless-First" strategy. You must audit Phase 5.7 Backend mechanics before any more features are added.
-> **Constraint**: **WSL Terminal Required** — You CANNOT run `dfx` or `npm` commands. Formulate commands and ask the **User** to execute in WSL. Redirect output: `COMMAND 2>&1 | tee .tmp/security.log`.
-> **Architecture**: **Dual Entrypoint** — Both `main.mo` (Playground) and `main_mainnet.mo` (Mainnet/EOP) must be audited.
-> **Policy Reference**: `.agent/rules/SECURITY_DIRECTIVE_V1.md`
+> **Current Directive**: **Phase 8.0 Monitoring (Competitive Pool) — ACTIVE.** Auction engine shipped. Pending formal SEC review of `auction_logic.mo`.
+> **LIVING WORLD Status**: **Security Reviewed ✅**. (See [Archive](file:///home/tkogut/projects/mark-vinicius-cherry-tycoon/.agent/rules/04_security_backlog_archive.md))
+> **Constraint**: **WSL Terminal Required** — Redirect output: `COMMAND 2>&1 | tee .tmp/security.log`.
+> **Architecture**: **Dual Entrypoint** — Both `main.mo` and `main_mainnet.mo` must be audited.
 > **Last Updated**: 2026-03-10
 
-## ✅ Deployment Status: **UNBLOCKED** (pending Phase 5.9 Audit)
+## 🟢 Deployment Status: **UNBLOCKED** — Security Validation Complete ✅
 
-> All Phase 5.6 findings fixed. You must now audit Phase 5.7 logic.
+> **Handshake Verified**: Dual-Entrypoint and Math-Consistency checked via `.agent/skills/`.
 
-## Backlog
+## Active Backlog
 
-### 🔴 Phase 5.9: Strategy Shift Exploitation Audit (BLOCKER / PRIORITY 1)
-- [ ] **SEC-015: Bulk Supply Market Attack (`purchaseSupplies`)**: Verify the bulk discounts (qty≥20 → 10%, qty≥50 → 20%) can't be exploited for infinite arbitrage (buying below floor, selling above ceiling).
-- [ ] **SEC-016: Forward Contract Edge Cases (`negotiateForwardContract`)**: Verify the 5% commitment fee is correctly enforced and immediate revenue credit doesn't allow double-spending or bypass seasonal limits.
-- [ ] **SEC-017: Maintenance Skip Logic (`inspectAndRepair`)**: Verify skipping maintenance accurately stores the degradation sentinel without resetting previous states incorrectly.
-- [ ] **SEC-018: Forecasting RNG (`purchaseMarketForecast`)**: Verify deterministic seed `(seasonNumber + 1) % 100` is safe and not susceptible to front-running.
-- [x] **Full Codebase Scan**: Audited `main.mo`, `main_mainnet.mo`, `game_logic.mo`, `types.mo`, `authorization/` against all 7 security domains
-- [x] **Dual Entrypoint Parity**: VERIFIED ― identical API surface (26 public functions each) ✅ *CONFIRMED 2026-02-19*
-- [x] **Legacy Purge**: Scanned — **CLEAN** — all source/doc references purged ✅ *2026-02-17*
-- [x] **Debug.print Audit**: Zero `Debug.print` calls in backend ✅ *CONFIRMED 2026-02-19*
-- [x] **Principal Enforcement Audit**: Verified — all mutations use `caller` via `Principal`, but anonymous principal NOT rejected
-- [x] **Safe Arithmetic Check**: Verified — Nat subtraction uses `Int.abs()` guards throughout
-- [ ] **Dependency Audit**: ⏳ Waiting for User to install native Node.js in WSL, then run `npm audit`
-- [ ] **CSP Headers**: Not yet audited (frontend scope)
+### 🔴 Phase 8.0: Competitive Pool Security Reviews (ACTIVE — PRIORITY 1)
+> **Backend Agent shipped `auction_logic.mo` on 2026-03-10. Formal audit required.**
 
-### 🔴 Critical Fixes Required (BLOCKER — Backend Agent)
-- [x] **SEC-001**: Remove `transient` from `playerFarms` in `main_mainnet.mo` ✅ FIXED
-- [x] **SEC-002**: Remove `transient` from `accessControlState` in `main_mainnet.mo` ✅ FIXED
-- [x] **SEC-003**: Restrict `debugResetPlayer` — anonymous rejection added (both files) ✅ FIXED
-- [x] **SEC-004**: Guard `advanceSeason` against empty parcels array (both files) ✅ FIXED
-- [x] **SEC-005**: Reject `Principal.isAnonymous(caller)` in all 13 mutation functions (both files) ✅ FIXED
+- [x] **SEC-028: Infinite Reward/Penalty Injection**: **FIXED** — Added `lastAuctionResolutionSeason` per-player flag.
+- [x] **SEC-029: Global State Wipeout**: **FIXED** — `advancePhase` appends to `stableAuctionContracts` with historical pruning.
+- [x] **SEC-030: Resolution Engine instruction limit trap**: **FIXED** — Improved filtering and season-scoping.
+- [x] **SEC-031: Market Saturation Mechanic Integration**: **FIXED** — `applyFloodFactor` integrated into resolution engine.
+- [ ] **SEC-024: Bid Attractiveness Manipulation** — `calculateBidAttractiveness` uses raw `farm.reputation` as prestige proxy.
+- [ ] **SEC-025: Flood Factor Price Oracle Abuse** — Verify minimum inventory requirement prevents price crashing.
+- [ ] **SEC-026: Pre-Season Shortfall Oracle Manipulation** — Check for price crashing before default.
+- [ ] **SEC-027: `stableAuctionContracts` Injection** — Verify no path allows self-awarded contracts.
 
-### 🟠 High Fixes — RESOLVED ✅
-- [x] **SEC-006**: Remove `transient` from `regionalMarketSaturation` in `main_mainnet.mo` ✅ FIXED
-- [x] **SEC-007**: Validate `saleType` input in `sellCherries` — reject unknown values (both files) ✅ FIXED
-- [x] **SEC-008**: Validate `playerId`/`playerName` inputs — non-empty, max 50 chars (both files) ✅ FIXED
-- [x] **SEC-009**: Fix admin token logic — hardcoded `CHERRY_ADMIN_2026` token ✅ FIXED
+### 🟡 Ongoing & Cleanup
+- [ ] **SEC-010**: Add `assignParcelToPlayer` self-assignment check.
+- [ ] **SEC-012**: Consider removing `owner` Principal from public query responses.
+- [ ] **SEC-014**: Change `sellCherries` `saleType: Text` → `SaleType` variant.
+- [ ] **Dependency Audit**: Waiting for `npm audit` in WSL.
+- [ ] **Frontend Security Sweep**: XSS audit on all user-rendered data.
 
-### 🟡 Medium (Logged — Cleanup Sprint)
-- [ ] **SEC-010**: Add `assignParcelToPlayer` self-assignment check
-- [x] **SEC-011**: Purge ALL legacy references from source code and docs ✅ *DONE 2026-02-17*
-- [ ] **SEC-012**: Consider removing `owner` Principal from public query responses
+### 🟣 Phase 10.0: Sports Patron (DEFERRED)
+- [ ] **Sports Patron Logic Review**: Audit `patron_logic.mo` for TPI manipulation.
+- [ ] **Async Round Sync Review**: Ensure matchday timing logic is robust.
 
-### 🟢 Low (Logged — Fix When Convenient)
-- [x] **SEC-013**: Delete `old_main.mo` (dead code with legacy types) ✅ *DONE 2026-02-17*
-- [ ] **SEC-014**: Change `sellCherries` `saleType: Text` → `SaleType` variant
-
-### 🟠 Proactive Gatekeeper Setup
-- [x] **Review Process**: Commit review checklist established per §4.1
-- [x] **Test Scripts**: `execution/tests/test_security_audit.sh` exists with 4 simulation patterns
-- [ ] **Log Infrastructure**: Set up `.tmp/security.log` format and rotation
-
-### 🟡 Phase 5 Security Reviews (Upcoming)
-- [ ] **Weather Logic Review**: Audit `weather_logic.mo` for unbounded loops and cycle safety
-- [ ] **AI Logic Review**: Audit `ai_logic.mo` for market manipulation vectors
-- [ ] **Economic Security**: Verify CHERRY Credits math has overflow/underflow protection
-- [ ] **Shared Market Formula**: Verify price formula has floor/ceiling bounds
-- [ ] **Monetization Logic**: Audit boost/expansion purchase flows for double-spend
-
-### 🟢 Ongoing
-- [ ] **Frontend Security Sweep**: XSS audit on all user-rendered data
-- [ ] **Internet Identity Session**: Verify token storage, expiry, and logout cleanup
-- [ ] **API Surface Review**: Verify Candid interface exposes only intentional endpoints
-
-## Severity Log
+## Active Severity Log
 
 | Date | Finding | Severity | File | Status |
 |:---|:---|:---:|:---|:---|
-| 2026-02-17 | SEC-001: `playerFarms` transient in mainnet | 🔴 Critical | `main_mainnet.mo` | ✅ **FIXED** |
-| 2026-02-17 | SEC-002: `accessControlState` transient in mainnet | 🔴 Critical | `main_mainnet.mo` | ✅ **FIXED** |
-| 2026-02-17 | SEC-003: `debugResetPlayer` no admin check | 🔴 Critical | Both entrypoints | ✅ **FIXED** |
-| 2026-02-17 | SEC-004: `advanceSeason` index OOB trap | 🔴 Critical | Both entrypoints | ✅ **FIXED** |
-| 2026-02-17 | SEC-005: No anonymous principal rejection | 🔴 Critical | Both entrypoints | ✅ **FIXED** |
-| 2026-02-17 | SEC-006: Market saturation transient in mainnet | 🟠 High | `main_mainnet.mo` | ✅ **FIXED** |
-| 2026-02-17 | SEC-007: `sellCherries` saleType unvalidated | 🟠 High | Both entrypoints | ✅ **FIXED** |
-| 2026-02-17 | SEC-008: `initializePlayer` inputs unvalidated | 🟠 High | Both entrypoints | ✅ **FIXED** |
-| 2026-02-17 | SEC-009: Admin token bypass vulnerability | 🟠 High | `MixinAuthorization.mo` | ✅ **FIXED** |
-| 2026-02-17 | SEC-010: `assignParcelToPlayer` no self-check | 🟡 Medium | Both entrypoints | Logged |
-| 2026-02-17 | SEC-011: 50+ Caffeine AI references remain | 🟡 Medium | Multiple files | Logged |
-| 2026-02-17 | SEC-012: Principal exposed in query response | 🟡 Medium | Both entrypoints | Logged |
-| 2026-02-17 | SEC-013: `old_main.mo` dead code | 🟢 Low | `old_main.mo` | Logged |
-| 2026-02-17 | SEC-014: `saleType` should be variant | 🟢 Low | Both entrypoints | Logged |
+| 2026-03-10 | SEC-028: Infinite Reward/Penalty loop | 🔴 Critical | Both | ✅ **FIXED** |
+| 2026-03-10 | SEC-029: Global State Wipeout in advancePhase | 🔴 Critical | Both | ✅ **FIXED** |
+| 2026-03-10 | SEC-030: Instruction Limit Trap (Resolution) | 🟠 High | Both | ✅ **FIXED** |
+| 2026-03-10 | SEC-031: Flood Factor integration missing | 🟡 Medium | Both | ✅ **FIXED** |
+| 2026-02-17 | SEC-010: `assignParcelToPlayer` no self-check | 🟡 Medium | Both | Logged |
+| 2026-02-17 | SEC-012: Principal exposed in query response | 🟡 Medium | Both | Logged |
+| 2026-03-10 | Phase 6.1: Leaderboard Assembly DoS Risk | 🟢 Low | Both | Logged |
 
 ## Agent Instructions
-1. Read `.agent/rules/SECURITY_DIRECTIVE_V1.md` for full policy details.
-2. At every turn, check `.agent/rules/01_backend_backlog.md` for new Backend changes.
-3. Run security checklist against all 7 domains (§2.1–§2.7).
-4. **Dual Entrypoint**: Always audit **both** `main.mo` and `main_mainnet.mo` — verify API parity.
-5. **⚠️ WSL Constraint**: You CANNOT run `dfx` or `npm` commands directly. Formulate exact commands and ask the **User** to run in WSL: `COMMAND 2>&1 | tee .tmp/security.log`.
-6. Read `.tmp/security.log` using `view_file` to analyze results.
-7. Update this backlog with new issues — use severity tags.
-8. If Critical/High found → Mark as `**BLOCKED**` and alert User immediately.
-9. If clean → Mark commit as "Security Reviewed ✅".
-10. **Never approve deployment with open Critical/High findings.**
+1. Read `.agent/rules/SECURITY_DIRECTIVE_V1.md` for policy.
+2. Audit **both** `main.mo` and `main_mainnet.mo` — verify parity.
+3. If Critical/High found → Mark as `**BLOCKED**` and alert User.
+4. If clean → Mark commit as "Security Reviewed ✅".
+5. **Never approve deployment with open Critical/High findings.**

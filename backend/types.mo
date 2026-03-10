@@ -208,6 +208,7 @@ module {
     
     // Economy
     cash: Nat;               // PLN
+    debt: Nat;               // [NEW] Unpaid penalties/loans (PLN)
     
     // Progression
     level: Nat;
@@ -219,6 +220,7 @@ module {
     infrastructure: [Infrastructure];
     inventory: Inventory;
     statistics: Statistics;
+    hasCropInsurance: Bool;   // Phase 7.0: Crop Insurance policy active for the year
     
     // Game state
     currentSeason: Season;
@@ -228,6 +230,7 @@ module {
     lastActive: Nat;  // Timestamp in nanoseconds (converted from Time.Time)
     hiredLabor: ?LaborType;  // [NEW] Selected labor contract for the season
     inputMarket: InputMarket; // [NEW] Current seasonal prices for supplies
+    lastAuctionResolutionSeason: Nat; // [NEW] SEC-028: Prevents duplicate resolution
     
     // Sports Center (Phase 6)
     ownedClubs: [Text]; // IDs of owned FootballClubs
@@ -265,18 +268,22 @@ module {
   };
 
   public type Weather = {
-    #Sunny;      // normal growth
-    #Rainy;      // +water, +disease risk
-    #Frost;      // damage to flowers/young fruit
-    #Drought;    // -water, stress
-    #Heatwave;   // stress, +water needs
+    #Sunny;            // normal growth
+    #Rainy;            // +water, +disease risk
+    #Frost;            // damage to flowers/young fruit
+    #Drought;          // -water, stress
+    #Heatwave;         // stress, +water needs
+    #Flood;            // severe damage to crops
+    #PestOutbreak;     // biological risk, targets yield
+    #DiseaseOutbreak;  // biological risk, targets fruit quality/yield
   };
 
   public type WeatherEvent = {
     weather: Weather;
-    severity: Float;  // 0.0-1.0
+    severity: Float;   // 0.0-1.0
     season: Nat;
-    impact: Text;     // description of what happened
+    impact: Text;      // description of what happened
+    mitigated: Bool;   // true if infrastructure (e.g., Sprayers) prevented damage
   };
 
   // ============================================================================
@@ -397,6 +404,7 @@ module {
     playerId: Text;
     playerName: Text;
     cash: Nat;
+    debt: Nat;
     level: Nat;
     experience: Nat;
     parcelCount: Nat;
@@ -406,6 +414,7 @@ module {
     currentPhase: SeasonPhase;
     weather: ?WeatherEvent; // [NEW] Active weather event
     seasonNumber: Nat;
+    lastAuctionResolutionSeason: Nat; // [NEW] SEC-028
     ownedClubs: [Text]; // [NEW] Phase 6 prep
   };
 
@@ -433,5 +442,97 @@ module {
     wholesaleRangeMax: Nat;
     confidence: Text;             // "Low" | "Medium" | "High"
     forecastCost: Nat;            // Always 2000 PLN
+  };
+
+  // ============================================================================
+  // PHASE 6.1: GLOBAL LEADERBOARDS & PRESTIGE SCORING
+  // ============================================================================
+
+  // Alias for clarity — calculated on-the-fly via LeaderboardLogic.calculatePrestige
+  public type PrestigeScore = Nat;
+
+  // Unified entry for both human players and AI competitors.
+  // id: Text (not Principal) to support AI competitors which use Text identifiers.
+  // Human entries use Principal.toText(callerPrincipal) as the id.
+  public type LeaderboardEntry = {
+    id: Text;
+    name: Text;
+    isAI: Bool;
+    prestige: PrestigeScore;
+    seasonsCompleted: Nat;
+    totalRevenue: Nat;
+  };
+
+  // ============================================================================
+  // PHASE 8.0: THE COMPETITIVE POOL — AUCTION SYSTEM
+  // ============================================================================
+
+  // Lifecycle state of an Imperial Contract
+  public type ContractStatus = {
+    #Open;       // Accepting bids (Post-Harvest window only)
+    #Awarded;    // Winner selected, volume transfer pending
+    #Fulfilled;  // Delivery confirmed — contract complete
+    #Defaulted;  // Player failed delivery — penalty applied
+  };
+
+  // Category of the Imperial Contract — determines eligible bidders and quality bonus
+  public type ContractCategory = {
+    #Export;      // Standard volume export; any cherries accepted
+    #Bio;         // Organic-certified ONLY; QualityBonus = 1.2x (×120/100) in V_bid
+    #Industrial;  // Juice/jam processing; price-insensitive, pure volume play
+  };
+
+  // An Imperial Contract (Post-Harvest) or Pre-Season Future (Planning window)
+  // SEC: All Nat fields; no floats. Outer optional fields safely handled via pattern match.
+  public type AuctionContract = {
+    id              : Text;                // Unique: "contract_S{season}_{idx}"
+    category        : ContractCategory;
+    requiredVolumeKg: Nat;                 // Minimum delivery volume (kg)
+    basePricePLN    : Nat;                 // Buyer's reference price (PLN/kg)
+    status          : ContractStatus;
+    winnerPlayerId  : ?Text;               // Set on award; null = Open
+    winnerBidPLN    : ?Nat;               // Winning offer price per kg
+    awardedSeason   : ?Nat;               // Season number when awarded
+
+    // Pre-Season Future fields (committed during #Planning phase)
+    isPreSeason       : Bool;             // true = Pre-Season Future
+    lockedPricePLN    : ?Nat;            // basePricePLN × (90–95) / 100 (security discount)
+    committedByPlayer : ?Text;            // Principal.toText of committing player
+    shortfallKg       : ?Nat;            // Set at Phase 9 resolution if under-delivered
+  };
+
+  // A closed bid submitted against a Post-Harvest Imperial Contract
+  // SEC: All Nat. Guard: offerPricePLN must be ≤ basePricePLN or score = 0.
+  public type Bid = {
+    contractId       : Text;
+    bidderId         : Text;             // Principal.toText or AI id
+    isAI             : Bool;
+    offerPricePLN    : Nat;             // Bidder's offer per kg
+    volumeCommittedKg: Nat;             // Volume the bidder can guarantee
+    isOrganic        : Bool;            // true → QualityBonus in Bio contracts
+    globalPrestige   : Nat;            // Prestige score at bid time
+    localReputation  : Nat;            // Farm reputation (0–100)
+    submittedSeason  : Nat;            // Season number when bid placed
+  };
+
+  // Result returned from resolveAuctions — one per input contract
+  public type AuctionResult = {
+    contractId   : Text;
+    winnerId     : ?Text;              // null = no valid bids
+    winnerScore  : Nat;               // V_bid attractiveness score (×1000 scaled)
+    winnerPricePLN: ?Nat;
+    revenueEarned: Nat;               // PLN credited to winner (price × volume)
+    runnerUpId   : ?Text;             // 2nd-place bidder (partial volume trickle)
+  };
+
+  // Result from resolvePreSeasonShortfall
+  public type ShortfallResult = {
+    contractId    : Text;
+    shortfallKg   : Nat;
+    buybackCost   : Nat;               // Spot × 1.25 × shortfallKg
+    defaultPenalty: Nat;               // 150% of undelivered value (if cash insufficient)
+    prestigeLost  : Nat;               // Reputation/prestige points deducted (10% per default)
+    cashDeducted  : Nat;               // Actual cash removed from player
+    isDefault     : Bool;              // true = Financial Default triggered
   };
 }
