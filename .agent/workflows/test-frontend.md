@@ -23,4 +23,4 @@ description: Run standardized frontend build & verify tests in WSL.
     - Report the results to the user.
 
 4.  **Log Issues**:
-    - If build fails, add the specific error details to `directives/02_frontend_backlog.md` under a `### 🐞 Build Issues` section.
+    - If build fails, add the specific error details to `.agent/rules/02_frontend_backlog.md` under a `### 🐞 Build Issues` section.

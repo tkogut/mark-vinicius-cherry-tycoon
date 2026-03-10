@@ -24,4 +24,4 @@ description: Run standardized backend verification tests in WSL.
     - Report the results to the user (e.g., "All 22 tests passed", or "Test failed at step X").
 
 4.  **Log Issues**:
-    - If any tests fail, add the specific error details to `directives/01_backend_backlog.md` under a `### 🐞 Bug Fixes` section.
+    - If any tests fail, add the specific error details to `.agent/rules/01_backend_backlog.md` under a `### 🐞 Bug Fixes` section.

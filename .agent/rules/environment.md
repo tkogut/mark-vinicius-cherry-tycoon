@@ -22,15 +22,15 @@
 - **Rule**: When browser automation is needed, ensure the ntigravity_chrome.bat launcher is active on the Windows host.
 
 ## 🤖 Agent Protocols & Communication
-- **Central Intelligence**: All planning and state are stored in the directives/ folder.
+- **Central Intelligence**: All planning and state are stored in the .agent/rules/ folder.
 - **Domain Hand-offs**:
-  - Use directives/01_backend_backlog.md to communicate logic changes.
-  - Use directives/02_frontend_backlog.md for UI tasks.
-  - Use directives/03_qa_checklist.md for testing results.
+  - Use .agent/rules/01_backend_backlog.md to communicate logic changes.
+  - Use .agent/rules/02_frontend_backlog.md for UI tasks.
+  - Use .agent/rules/03_qa_checklist.md for testing results.
 - **Workflow**:
-  1. Read directives/00_master_plan.md before starting any task.
+  1. Read .agent/rules/00_master_plan.md before starting any task.
   2. Perform work in your assigned domain.
-  3. Update the corresponding .md file in directives/ to reflect progress or blockers.
+  3. Update the corresponding .md file in .agent/rules/ to reflect progress or blockers.
   4. If a task requires terminal output (e.g., dfx deploy), pipe logs to .tmp/ for analysis.
 
 ## 🛠️ Command Execution Rules

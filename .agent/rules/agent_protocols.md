@@ -51,8 +51,7 @@ This project uses a "Multi-Agent Simulation" workflow. Even if run by a single h
 3. **EXECUTE**:
     - Switch context to your Role.
     - Write code / Run commands.
-    - Update your backlog (mark `[x]`).
-    - **CRITICAL**: When a backlog item in `.agent/rules/01_backend_backlog.md` (or any other directive) is completed, the agent must automatically update both the file and the internal Antigravity Task List (`task.md`). This prevents "split-brain" state.
+    - **CRITICAL / MANDATORY TOOL TRIGGER**: When a backlog item in `.agent/rules/01_backend_backlog.md` (or any other directive) is completed, your **VERY NEXT ACTION** must be using the file editing tools (`replace_file_content` or `multi_replace_file_content`) to change `[ ]` to `[x]` in the specific file and your internal Antigravity Task List (`task.md`). If completing this task unblocks or requires action from another agent, you must ALSO use the tool to update their respective backlog file or the Master Plan to alert them. You are **NOT ALLOWED** to suggest the next task to the user until these file edits have been executed and confirmed. This prevents "split-brain" state.
 4. **SECURITY CHECK (Backend Only)**: After completing a task, the Security Agent reviews the changes.
 5. **REPORT**: Update `00_master_plan.md` or alert the user of progress/blockers.
 

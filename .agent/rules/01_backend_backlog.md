@@ -1,14 +1,24 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Phase 5.8 Stress Test COMPLETE. Resuming Phase 5.7 Mechanics Deepening.**
+> **Current Directive**: **Phase 6.1 Mechanics (Leaderboards) — ACTIVE.**
+> **Strategy Shift**: **Headless-First (Backend-Heavy)**. Frontend UI is paused. We are building the engine core first.
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` and `npm` commands in WSL terminal manually.
 > **Architecture**: **Dual Entrypoint** - `main.mo` (Playground) + `main_mainnet.mo` (Mainnet). **STRICT PARITY REQUIRED.**
 > **Protocol**: **Remote Browser** via Port 9222 (Profile: `roostertk`).
-> **Last Updated**: 2026-03-09
+> **Last Updated**: 2026-03-10
 
 ## Backlog
 
-### 🔴 Phase 0: Close Out Phase 2.5 (FIRST — Pre-requisite)
+### 🔴 Phase 6.1: Global Leaderboards & Prestige Scoring (PRIORITY 2)
+- [ ] **Blueprint Review**: Read `.agent/plans/002_Phase_6_1_Leaderboards.md` for architectural constraints.
+- [ ] **Data Structures**: Implement `PrestigeScore` and `LeaderboardEntry` in `types.mo`.
+- [ ] **[NEW] `leaderboard_logic.mo`**: Implement `calculatePrestige` pure function.
+- [ ] **State Updates**: Update `advanceSeasonInternal` in both main actors to recalculate prestige/ledger.
+- [ ] **Public Queries**: Implement `getGlobalLeaderboard()` and `getPlayerRank(playerId: Principal)`.
+- [ ] **Constraint Check**: Verify `initializePlayer(text, text)` remains untouched.
+- [ ] **Dual-Entrypoint Parity**: Ensure functions are injected into BOTH `main.mo` and `main_mainnet.mo`.
+
+### 🟠 Phase 0: Close Out Phase 2.5 (FIRST — Pre-requisite)
 - [x] **Full Function Verification**: All 22 public functions verified via `dfx canister call` ✅ *DONE 2026-02-19*
 - [x] **Error Handling Verification**: `#SeasonalRestriction` errors verified for harvest (Spring) and fertilize (Summer) ✅ *DONE 2026-02-19*
 - [x] **Code Cleanup**: No `Debug.print` statements found in backend ✅ *CONFIRMED 2026-02-19*

@@ -5,7 +5,7 @@ description: Visualize an element of the Cherry Tycoon lore using Nano Banana
 
 This workflow generates concept art based on the project's established lore and economic guidelines.
 
-1. **Read Knowledge & Rules**: Read `.agent/knowledge/game_lore.md` (for Tone and Settings), `.agent/rules/math_consistency.md` (for soil, pH, and fertility visual cues), and `directives/02_frontend_backlog.md` (to find relevant Backlog IDs for tagging). Read `assets/concept-art/manifest.md` to see previous prompt styles.
+1. **Read Knowledge & Rules**: Read `.agent/knowledge/game_lore.md` (for Tone and Settings), `.agent/rules/math_consistency.md` (for soil, pH, and fertility visual cues), and `.agent/rules/02_frontend_backlog.md` (to find relevant Backlog IDs for tagging). Read `assets/concept-art/manifest.md` to see previous prompt styles.
 2. **User Inquiry**: Ask the user: "Which element of the Cherry Tycoon lore should I visualize right now? (You can also ask to match a style from the manifest log)." Wait for their response.
 3. **Security Gatekeeper Check**: Before generating any asset, ensure the concept strictly adheres to project branding ("Produced by JaPiTo Group", absolutely zero "Caffeine" legacy references) as per `.agent/rules/security_directive.md`.
 4. **Style Synthesis**: Construct a detailed image generation prompt. It MUST combine:
@@ -17,7 +17,7 @@ This workflow generates concept art based on the project's established lore and 
 6. **Export & Tag**: 
    - The generated image is saved automatically as an artifact.
    - You MUST log the exact generation prompt used into `assets/concept-art/manifest.md`. 
-   - Ensure the asset is tagged with its relevant Phase or Task ID from `directives/02_frontend_backlog.md`. Format the log entry as: 
+   - Ensure the asset is tagged with its relevant Phase or Task ID from `.agent/rules/02_frontend_backlog.md`. Format the log entry as: 
      `### [Image Name]`
      `**Backlog ID:** [Relevant Phase or Task]`
      `**Prompt:** [Your Prompt]`

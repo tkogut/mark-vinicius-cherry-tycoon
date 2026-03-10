@@ -23,6 +23,9 @@ Phase 5.8 (Stress Testing) is COMPLETE. Economic survival through Year 4 is prov
 3. Coordinate the transition to the remaining Phase 5.7 Mechanics (Spring Watering, Bulk Supply).
 4. Ensure the **roostertk** browser profile is used for all UI verification via Port 9222.
 
+> ⚠️ **MANDATORY TOOL TRIGGER:**
+> The moment you decide to update the status of a phase or task, your **VERY NEXT ACTION** must be using the file editing tools (`replace_file_content` or `multi_replace_file_content`) to modify `00_master_plan.md` or the respective backlog file. If your decision unblocks or requires action from a specific agent, you must ALSO use the tool to update their respective backlog file to alert them. You are **NOT ALLOWED** to just tell the user the plan is updated without actually using the tools to update these files.
+
 Start by summarizing the next priorities based on the Master Plan and the latest Sync Report.
 ```
 
@@ -47,6 +50,9 @@ Resume Phase 5.7 Mechanics Deepening (Spring Watering, Bulk Supply, Forward Cont
 ### Initial Tasks:
 1. Read `.agent/rules/01_backend_backlog.md` and `.agent/rules/SYNC_REPORT_2026_03_09.md`.
 2. check the logic in `main.mo` vs `main_mainnet.mo` to ensure your context is synced.
+
+> ⚠️ **MANDATORY TOOL TRIGGER:**
+> The moment you verify a task was successful via `.tmp/backend.log`, your **VERY NEXT ACTION** must be using the file editing tools (`replace_file_content` or `multi_replace_file_content`) to change `[ ]` to `[x]` in your backlog file. If completing this task unblocks or requires action from another agent, you must ALSO use the tool to update their respective backlog file or the Master Plan to alert them. You are **NOT ALLOWED** to suggest the next task to the user until these file edits have been executed and confirmed.
 
 Start by reporting the next function you intend to implement from the Phase 5.7 backlog.
 ```
@@ -74,6 +80,9 @@ Verify Dashboard responsiveness with 5+ years of historical data (YearlyReports)
 2. Verify that the `PlanningBoard.tsx` handles the grown `YearlyReport` array without lag.
 3. Align UI state with the latest `getPlayerFarm` return types.
 
+> ⚠️ **MANDATORY TOOL TRIGGER:**
+> The moment you verify a task was successful via `.tmp/frontend.log`, your **VERY NEXT ACTION** must be using the file editing tools (`replace_file_content` or `multi_replace_file_content`) to change `[ ]` to `[x]` in your backlog file. If completing this task unblocks or requires action from another agent, you must ALSO use the tool to update their respective backlog file or the Master Plan to alert them. You are **NOT ALLOWED** to suggest the next task to the user until these file edits have been executed and confirmed.
+
 Identify any UI performance blockers and report your plan for the Phase 5.7 dashboard updates.
 ```
 
@@ -97,6 +106,9 @@ The math fix for Phase 5.8 (dividing annual costs by 4) was critical for surviva
 1. Read `.agent/rules/04_security_backlog.md` and `.agent/rules/SYNC_REPORT_2026_03_09.md`.
 2. Perform a baseline audit of the recent `_advanceSeasonInternal` parity fix across `main.mo` and `main_mainnet.mo`.
 3. Monitor the Backend Agent's implementation of "Bulk Supply" for market manipulation or overflow risks.
+
+> ⚠️ **MANDATORY TOOL TRIGGER:**
+> The moment your review is complete, your **VERY NEXT ACTION** must be using the file editing tools (`replace_file_content` or `multi_replace_file_content`) to update `04_security_backlog.md` with issues + severity tags. If clean, mark it as "Security Reviewed ✅". If your review unblocks or requires action from another agent, you must ALSO use the tool to update their respective backlog file or the Master Plan to alert them. You are **NOT ALLOWED** to just tell the user the audit is complete without actually using the tools to update these files.
 
 Report any findings or mark the current Phase 5.8 logic as "Security Reviewed ✅".
 ```
@@ -124,6 +136,9 @@ Economic Stress Testing. You must ensure the 10-year simulation remains stable t
 2. Formulate a verification script for Phase 5.7 "Spring Watering" to ensure it correctly identifies drought markers.
 3. Validate that `advancePhase` transitions continue to maintain atomic state preservation.
 
+> ⚠️ **MANDATORY TOOL TRIGGER:**
+> The moment you verify a task was successful via `.tmp/qa.log`, your **VERY NEXT ACTION** must be using the file editing tools (`replace_file_content` or `multi_replace_file_content`) to change `[ ]` to `[x]` in your checklist file. If completing this task unblocks or requires action from another agent, you must ALSO use the tool to update their respective backlog file or the Master Plan to alert them. You are **NOT ALLOWED** to suggest the next task to the user until these file edits have been executed and confirmed.
+
 Report your test plan for the Phase 5.7 features.
 ```
 
@@ -138,7 +153,7 @@ Report your test plan for the Phase 5.7 features.
 4. The agent will read its directive file and start working.
 
 ### 🔄 Awareness Loop
-At the start of **every response/turn**, check `directives/` for updates.
+At the start of **every response/turn**, check `.agent/rules/` for updates.
 
 ### ⌨️ Slash Commands
 - `/check-logs`: Analyze your role's log file.

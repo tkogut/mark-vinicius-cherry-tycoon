@@ -97,7 +97,7 @@
 </details>
 
 ## Agent Instructions
-1. Read `directives/00_master_plan.md` to see the global roadmap.
+1. Read `.agent/rules/00_master_plan.md` to see the global roadmap.
 2. Complete Phase 0 cleanup first.
 3. **WSL Workflow**: Formulate `dfx` commands → User runs → Read `.tmp/frontend.log`.
 4. **Animation Standard**: Use SVG morphing, Lottie, CSS particles — no static jumps.

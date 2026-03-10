@@ -16,5 +16,5 @@ This workflow guides the QA and Frontend agents in validating the interactive "J
 
 3. **Reporting & Action**:
    - Provide a brief critique listing any missing feedback or visual polish.
-   - If issues are identified, generate specific actionable tasks and append them to `directives/02_frontend_backlog.md` (or `.agent/rules/02_frontend_backlog.md`).
+   - If issues are identified, generate specific actionable tasks and append them to `.agent/rules/02_frontend_backlog.md` (or `.agent/rules/02_frontend_backlog.md`).
    - If the component passes, mark it as `[x] VALIDATED` in the relevant backlog.

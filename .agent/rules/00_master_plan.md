@@ -47,68 +47,33 @@
 - [x] **Node.js gap identified**: Native Linux node not installed — install via `nvm` before frontend work
 - [ ] **Security Baseline**: `npm audit` pending (blocked on native Node.js install in WSL)
 
-### Phase 5: Living World (ACTIVE — Backend DONE ✅, Frontend PENDING)
-- [x] **5.1 Weather + Season Sub-Phases**:
-    - [x] Weather event system (`weather_logic.mo`) ✅ *IMPLEMENTED + VERIFIED 2026-02-19*
-    - [x] Season sub-phases: Preparation → Growth → Harvest → Sales → OffSeason ✅
-    - [x] Phase-gated actions (`advancePhase`, `advanceSeason`) ✅
-    - [x] `dfx deploy backend` + E2E verification ✅ *DONE 2026-02-19*
-    - [x] Weather-Based UI Themes (Frontend Agent) ✅ *DONE*
-    - [x] Opole DNA county multipliers active ✅
-- [x] **5.2 AI Competitors + Shared Market**:
-    - [x] Marek, Kasia, Hans AI farms (`ai_logic.mo`) ✅ *DONE*
-    - [x] Shared market: `Price = Base * (Demand / Total_Supply)` ✅ *DONE*
-    - [x] Competitors Panel UI (Frontend Agent) ✅ *DONE*
-    - [x] Market Saturation Warnings in SellModal (Frontend Agent) ✅ *DONE*
-- [x] **5.3 Frontend Living World + Animations**:
-    - [x] SVG/Lottie tree growth morphing ✅ *DONE*
-    - [x] Cherry particle bursts on harvest ✅ *DONE*
-    - [x] Juice Meter hydration indicator ✅ *DONE*
-    - [x] Micro-animations on all buttons ✅ *DONE*
-    - [x] Historical Price Chart ✅ *DONE*
-- [x] **5.4 Rankings + End-of-Season Summary**:
-    - [x] `getLeaderboard()` query ✅ *DONE*
-    - [x] Rankings Panel UI (Frontend Agent) ✅ *DONE*
-    - [x] Enhanced FinancialReportModal (Frontend Agent) ✅ *DONE*
-- [x] **5.5 Foundation (i18n + Monetization)**:
-    - [x] `react-i18next` framework (EN, PL, DE, ES + Asian stubs) ✅ *DONE*
-    - [x] CHERRY Credits type & balance (structure only) ✅ *DONE*
-    - [x] Consumable Boosts types (Bio-Stimulant, Cloud Summoner, etc.) ✅ *DONE*
-    - [x] Strategic Map Expansion types ✅ *DONE*
-- [x] **5.6 Activity-Based Turn System (UI)**:
-    - [x] Unified "Next Turn" button ✅ *DONE*
-    - [x] 10-Phase logic integration ✅ *DONE*
-    - [x] Phase-gated action visibility ✅ *DONE*
-    - [x] **BLOCKER**: Build/MIME type errors in production deployment (Applied `base: './'` and `.ic-assets.json` fix) ✅ *FIXED*
-- [x] **Authentication**: Resolved "Anonymous callers not allowed" via AuthContext identity gating ✅ *FIXED*
-- [x] **Vite Workflow**: Transitioned to `localhost:5173` for rapid UI iteration ✅ *ACTIVE*
-- [x] **Motoko 0.30.2 Compatibility**: Actor logic aligned with Enhanced Orthogonal Persistence ✅ *FIXED*
-- [x] **Phase 5.8 Advanced Economic Stress Testing**:
-    - [x] Fix Labor Reset "Emergency Rate" bug ✅
-    - [x] Multi-year simulation (Year 4 survival proven) ✅
-    - [x] Victorian Analytics Insights parity ✅
-    - [x] Dual-Entrypoint Mirror Status audit (100% logic alignment) ✅
+### 🔴 STRATEGIC SHIFT: HEADLESS-FIRST (Backend-Heavy)
+> The Producer has mandated a "Headless-First" focus. The UI layer (Frontend) will pause development until the underlying backend mathematical logic and content systems (Phases 5-7) are **feature-complete and security audited**. 
+> - **Immutable Rules:** Dual-entrypoint mirroring is absolute. `initializePlayer` signature MUST remain `(text, text)`. All math is STRICT integer precision (zero floating point).
 
-### Phase 6: Audio System (Backend N/A, Frontend DONE ✅)
-- [x] **Engine**: `howler.js` ✅
-- [x] **Sound Effects**: UI & Farm Actions ✅
-- [x] **Background Music**: Ambient Loops ✅
+### Phase 5.7: Mechanics Deepening (DONE ✅)
+- [x] Backend logic complete (Bulk Supply, Drought Watering, Contracts, Machine Decay).
 
-### Phase 6+: Advanced Features (Paused)
-- [ ] **Football Clubs**: Deferred until core loop maturity achieved
-- [ ] **Geographic Expansion**: Interactive Poland Map
-- [ ] **NFT Integration**: Parcels & clubs as NFTs
-- [ ] **Multi-Canister Architecture**
-- [ ] **DAO Governance**
+### Phase 5.9: Security Exploitation Audit (ACTIVE — Security Agent PENDING)
+- [ ] Audit Phase 5.7 Backend code for double-spend, integer wrap, and market price manipulation vulnerabilities.
+
+### Phase 6.1: Competitive Foundation (ACTIVE — Backend Agent PENDING)
+- [ ] Global Leaderboards & Prestige Score Implementation (Refer to `.agent/plans/002_Phase_6_1_Leaderboards.md`)
+
+### Phase 7.0: Content Deepening (Upcoming)
+- [ ] Random backend events & specific weather encounters.
+
+### Phase 7.5: Frontend Execution (Paused)
+- [ ] Build the UI layer for 5.7, 6.1, and 7.0 once the backend canister ecosystem is rock solid.
 
 ## Active Directives (Delegate Tasks)
 
 | Domain | Assigned To | Directive File | Status |
 | :--- | :--- | :--- | :--- |
-| **Backend** | Backend Agent | `directives/01_backend_backlog.md` | **ACTIVE** — Phase 0 cleanup, then Phase 5 |
-| **Frontend** | Frontend Agent | `directives/02_frontend_backlog.md` | **ACTIVE** — Phase 0 cleanup, then Phase 5 |
-| **QA** | QA Agent | `directives/03_qa_checklist.md` | **ACTIVE** — Verify Phase 0, prepare Phase 5 tests |
-| **Security** | Security Agent | `directives/04_security_backlog.md` | **NEW** — Baseline audit + proactive review |
+| **Backend** | Backend Agent | `.agent/rules/01_backend_backlog.md` | **ACTIVE** — Implement Phase 6.1 Leaderboards |
+| **Frontend** | Frontend Agent | `.agent/rules/02_frontend_backlog.md` | **PAUSED** — On hold for Headless-First Strategy |
+| **QA** | QA Agent | `.agent/rules/03_qa_checklist.md` | **PAUSED** — Awaiting Phase 6/7 Backend deployments |
+| **Security** | Security Agent | `.agent/rules/04_security_backlog.md` | **ACTIVE** — Audit Phase 5.7 (Phase 5.9 Focus) |
 
 ## Inter-Agent Communication
 - **Coordinator**: Monitor this file. Update roadmap. Assign tasks to domain backlogs.
@@ -116,4 +81,4 @@
 - **Frontend Agent**: Check `02_frontend_backlog.md`. Execute tasks.
 - **QA Agent**: Check `03_qa_checklist.md`. Run tests. Report failures.
 - **Security Agent**: Check `04_security_backlog.md`. Review commits. Block on Critical/High findings.
-- **Security Policy**: `directives/SECURITY_DIRECTIVE_V1.md` — all agents must comply.
+- **Security Policy**: `.agent/rules/SECURITY_DIRECTIVE_V1.md` — all agents must comply.

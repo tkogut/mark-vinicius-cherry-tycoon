@@ -32,6 +32,27 @@
 - [ ] **Verify `getLeaderboard()`**: Returns valid rankings with player + AI farms
 - [ ] **Verify Sort Order**: Profit, Value, Efficiency sortable
 
+### 🟡 Phase 5.6: Activity-Based Turn System
+- [x] **[NEW] `test_phase5_6.sh`**: ✅ *VERIFIED 2026-03-10*
+  - [x] Verify linear 10-turn sequence and `advancePhase` logic.
+  - [x] Verify strict phase/action locks (e.g., `harvestCherries` ONLY in `#Harvest`).
+  - [x] Verify `#CutAndPrune` logic.
+
+### 🟣 Phase 5.7: Economy & Mechanics Deepening
+- [x] **[NEW] `test_phase5_7.sh`**: ✅ *VERIFIED 2026-03-10*
+  - [x] Verify Phase Gating: `waterParcel` in Procurement/Investment/Growth only.
+  - [x] Verify Bulk Supplies discount and purchase limits.
+  - [x] Verify Forward Contracts logic and commitment fees.
+  - [x] Verify `inspectAndRepair` mechanic to prevent infrastructure degradation.
+  - [x] Verify `purchaseMarketForecast`.
+  - [x] Verify atomic state preservation during `advancePhase` (Emergency labor fallback).
+
+### ⚪ Phase 5.8: Advanced Economic Stress Testing
+- [x] **[NEW] Multi-year Stress Test**: ✅ *VERIFIED 2026-03-10*
+  - [x] Verify Multi-year survival proof (Year 4 sustainability).
+  - [x] Review Dual-Entrypoint logic parity audit.
+  - [x] Verify Victorian Insight Generation (Fiscal Hemorrhage).
+
 ### 🔵 Security Coordination
 - [ ] **Coordinate with Security Agent**: Share test results from `.tmp/qa.log`
 - [ ] **Run Security Test Script**: Ask User to execute `execution/tests/test_security_audit.sh` in WSL — log to `.tmp/security.log`
@@ -53,6 +74,6 @@
 3. **⚠️ WSL Constraint**: You CANNOT run `dfx` or `npm` commands. Formulate exact commands and ask the **User** to run in WSL: `COMMAND 2>&1 | tee .tmp/qa.log`.
 4. Read the log yourself using `view_file` to analyze test results.
 5. **Dual Entrypoint**: Verify both `main.mo` and `main_mainnet.mo` compile and expose the same API.
-6. Log bugs in `directives/01_backend_backlog.md` (add "Bug Fix" tasks).
+6. Log bugs in `.agent/rules/01_backend_backlog.md` (add "Bug Fix" tasks).
 7. **Share findings** with Security Agent via `04_security_backlog.md`.
 8. Update the checklist as you complete tasks.

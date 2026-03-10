@@ -180,13 +180,13 @@ graph TD
 
 ## Current Backlog Items Still Open
 
-From [frontend backlog](file:///c:/Users/tkogut/.gemini/antigravity/projects/mark-vinicius-cherry-tycoon/directives/02_frontend_backlog.md):
+From [frontend backlog](file:///c:/Users/tkogut/.gemini/antigravity/projects/mark-vinicius-cherry-tycoon/.agent/rules/02_frontend_backlog.md):
 - [ ] Yield Comparison View (peak production indicator)
 - [ ] Market Saturation Visuals (volume penalty display)
 - [ ] Historical Price Graph (optional)
 - [ ] Weather-Based UI Themes
 
-From [master plan](file:///c:/Users/tkogut/.gemini/antigravity/projects/mark-vinicius-cherry-tycoon/directives/00_master_plan.md):
+From [master plan](file:///c:/Users/tkogut/.gemini/antigravity/projects/mark-vinicius-cherry-tycoon/.agent/rules/00_master_plan.md):
 - [ ] Backend verification of all functions via `dfx canister call`
 - [ ] Error handling for seasonal restrictions (toast testing)
 - [ ] Code cleanup (remove debug logs)

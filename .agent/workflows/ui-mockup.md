@@ -6,7 +6,7 @@ description: Generate high-fidelity UI mockups for pending frontend tasks using 
 This workflow automatically designs UI mockups based on pending tasks in the frontend backlog, ensuring visual consistency with the game's established lore and HUD standards.
 
 1. **Context Retrieval**:
-   - Use `view_file` to read `directives/02_frontend_backlog.md` (to identify the next pending UI task).
+   - Use `view_file` to read `.agent/rules/02_frontend_backlog.md` (to identify the next pending UI task).
    - Read `.agent/knowledge/game_lore.md` (for the "Cherry Tycoon Universe" Tone, Palette, and Textures).
 
 2. **Requirement Check**:

@@ -1,19 +1,23 @@
 # SECURITY AGENT: Mark Vinicius Cherry Tycoon [SECURITY]
 
-> **Current Directive**: **Initial Baseline Audit — COMPLETED. Findings logged.**
-> **Operating Model**: **PROACTIVE** — Reviews every backend commit before merge
+> **Current Directive**: **Phase 5.9 (Security Exploitation Audit) — ACTIVE.**
+> **Operating Model**: **PROACTIVE** — The Producer has mandated a "Headless-First" strategy. You must audit Phase 5.7 Backend mechanics before any more features are added.
 > **Constraint**: **WSL Terminal Required** — You CANNOT run `dfx` or `npm` commands. Formulate commands and ask the **User** to execute in WSL. Redirect output: `COMMAND 2>&1 | tee .tmp/security.log`.
 > **Architecture**: **Dual Entrypoint** — Both `main.mo` (Playground) and `main_mainnet.mo` (Mainnet/EOP) must be audited.
-> **Policy Reference**: `directives/SECURITY_DIRECTIVE_V1.md`
-> **Last Updated**: 2026-02-17
+> **Policy Reference**: `.agent/rules/SECURITY_DIRECTIVE_V1.md`
+> **Last Updated**: 2026-03-10
 
-## ✅ Deployment Status: **UNBLOCKED** (pending build verification)
+## ✅ Deployment Status: **UNBLOCKED** (pending Phase 5.9 Audit)
 
-> All Critical + High findings fixed. User must verify build before deployment.
+> All Phase 5.6 findings fixed. You must now audit Phase 5.7 logic.
 
 ## Backlog
 
-### 🔴 Initial Baseline Audit — Findings (BLOCKER)
+### 🔴 Phase 5.9: Strategy Shift Exploitation Audit (BLOCKER / PRIORITY 1)
+- [ ] **SEC-015: Bulk Supply Market Attack (`purchaseSupplies`)**: Verify the bulk discounts (qty≥20 → 10%, qty≥50 → 20%) can't be exploited for infinite arbitrage (buying below floor, selling above ceiling).
+- [ ] **SEC-016: Forward Contract Edge Cases (`negotiateForwardContract`)**: Verify the 5% commitment fee is correctly enforced and immediate revenue credit doesn't allow double-spending or bypass seasonal limits.
+- [ ] **SEC-017: Maintenance Skip Logic (`inspectAndRepair`)**: Verify skipping maintenance accurately stores the degradation sentinel without resetting previous states incorrectly.
+- [ ] **SEC-018: Forecasting RNG (`purchaseMarketForecast`)**: Verify deterministic seed `(seasonNumber + 1) % 100` is safe and not susceptible to front-running.
 - [x] **Full Codebase Scan**: Audited `main.mo`, `main_mainnet.mo`, `game_logic.mo`, `types.mo`, `authorization/` against all 7 security domains
 - [x] **Dual Entrypoint Parity**: VERIFIED ― identical API surface (26 public functions each) ✅ *CONFIRMED 2026-02-19*
 - [x] **Legacy Purge**: Scanned — **CLEAN** — all source/doc references purged ✅ *2026-02-17*
@@ -82,8 +86,8 @@
 | 2026-02-17 | SEC-014: `saleType` should be variant | 🟢 Low | Both entrypoints | Logged |
 
 ## Agent Instructions
-1. Read `directives/SECURITY_DIRECTIVE_V1.md` for full policy details.
-2. At every turn, check `directives/01_backend_backlog.md` for new Backend changes.
+1. Read `.agent/rules/SECURITY_DIRECTIVE_V1.md` for full policy details.
+2. At every turn, check `.agent/rules/01_backend_backlog.md` for new Backend changes.
 3. Run security checklist against all 7 domains (§2.1–§2.7).
 4. **Dual Entrypoint**: Always audit **both** `main.mo` and `main_mainnet.mo` — verify API parity.
 5. **⚠️ WSL Constraint**: You CANNOT run `dfx` or `npm` commands directly. Formulate exact commands and ask the **User** to run in WSL: `COMMAND 2>&1 | tee .tmp/security.log`.
