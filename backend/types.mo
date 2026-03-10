@@ -408,4 +408,30 @@ module {
     seasonNumber: Nat;
     ownedClubs: [Text]; // [NEW] Phase 6 prep
   };
+
+  // ============================================================================
+  // PHASE 5.7: NEW MECHANIC RETURN TYPES
+  // ============================================================================
+
+  // Result type for negotiateForwardContract
+  public type ForwardContractResult = {
+    buyerName: Text;
+    lockedQuantityKg: Nat;
+    pricePerKg: Nat;
+    totalRevenue: Nat;
+    commitmentFeePaid: Nat;
+    saleCategory: Text; // "wholesale" or "retail"
+  };
+
+  // Result type for purchaseMarketForecast
+  public type ForecastReport = {
+    targetSeason: Text;           // e.g. "Summer (Season 5)"
+    weatherWarning: Text;         // Plain-text risk description
+    priceRangeMin: Nat;           // PLN/kg lower bound for retail
+    priceRangeMax: Nat;           // PLN/kg upper bound for retail
+    wholesaleRangeMin: Nat;
+    wholesaleRangeMax: Nat;
+    confidence: Text;             // "Low" | "Medium" | "High"
+    forecastCost: Nat;            // Always 2000 PLN
+  };
 }

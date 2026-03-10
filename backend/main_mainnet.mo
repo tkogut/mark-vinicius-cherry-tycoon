@@ -293,6 +293,88 @@ actor CherryTycoon {
     }
   };
 
+  // Phase 5.7: Bulk Supply Purchase (#Procurement phase)
+  // Buys fertilizers, pesticides, or organic treatments at seasonal market prices with bulk discounts.
+  // Bulk tiers: qty >= 20 → 10% off; qty >= 50 → 20% off. Max 100 units per call.
+  public shared({ caller }) func purchaseSupplies(
+    supplyType: Text,
+    quantity: Nat
+  ) : async GameResult<Text, GameError> {
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+
+        if (farm.currentPhase != #Procurement) {
+          return #Err(#SeasonalRestriction("Bulk supply purchases only allowed in Procurement phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        // Validate supply type
+        if (supplyType != "fertilizer" and supplyType != "pesticide" and supplyType != "organicTreatment") {
+          return #Err(#InvalidOperation("Invalid supply type. Must be 'fertilizer', 'pesticide', or 'organicTreatment'"));
+        };
+
+        // Cap at 100 units per call (overflow guard)
+        if (quantity == 0 or quantity > 100) {
+          return #Err(#InvalidOperation("Quantity must be between 1 and 100 units"));
+        };
+
+        // Resolve base unit price from the seasonal input market
+        let baseUnitPrice : Nat = switch (supplyType) {
+          case ("fertilizer")       { farm.inputMarket.fertilizerPrice };
+          case ("pesticide")        { farm.inputMarket.pesticidePrice };
+          case ("organicTreatment") { farm.inputMarket.organicTreatmentPrice };
+          case (_)                  { return #Err(#InvalidOperation("Unknown supply type")) };
+        };
+
+        // Apply bulk discount (integer math — no Float imports)
+        let discountedUnitPrice : Nat =
+          if (quantity >= 50) { (baseUnitPrice * 80) / 100 }
+          else if (quantity >= 20) { (baseUnitPrice * 90) / 100 }
+          else { baseUnitPrice };
+
+        let totalCost = discountedUnitPrice * quantity;
+
+        if (farm.cash < totalCost) {
+          return #Err(#InsufficientFunds { required = totalCost; available = farm.cash });
+        };
+
+        // Update inventory
+        let updatedInventory : Inventory = switch (supplyType) {
+          case ("fertilizer")       { { farm.inventory with fertilizers = farm.inventory.fertilizers + quantity } };
+          case ("pesticide")        { { farm.inventory with pesticides  = farm.inventory.pesticides  + quantity } };
+          case ("organicTreatment") { { farm.inventory with organicTreatments = farm.inventory.organicTreatments + quantity } };
+          case (_)                  { farm.inventory };
+        };
+
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          { r with
+            operationalCosts = r.operationalCosts + totalCost;
+            totalCosts       = r.totalCosts + totalCost;
+            netProfit        = r.netProfit - (totalCost : Int);
+          }
+        });
+
+        let updatedFarm = {
+          farm with
+          cash      = Int.abs((farm.cash : Int) - (totalCost : Int));
+          inventory = updatedInventory;
+          statistics = { farm.statistics with
+            totalCosts = farm.statistics.totalCosts + totalCost;
+            seasonalReports = updatedStats.seasonalReports;
+          };
+        };
+
+        playerFarms.put(caller, updatedFarm);
+        let discountLabel =
+          if (quantity >= 50) " (20% bulk discount applied)"
+          else if (quantity >= 20) " (10% bulk discount applied)"
+          else "";
+        #Ok("Purchased " # Nat.toText(quantity) # " units of " # supplyType # " for " # Nat.toText(totalCost) # " PLN" # discountLabel)
+      };
+    }
+  };
+
   // Get player's farm
   public shared query({ caller }) func getPlayerFarm() : async GameResult<PlayerFarm, GameError> {
     switch (playerFarms.get(caller)) {
@@ -531,9 +613,9 @@ actor CherryTycoon {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
         
-        // Phase 5.7: Phase gate — watering allowed in Spring and Summer to combat early droughts
-        if (farm.currentSeason != #Spring and farm.currentSeason != #Summer) {
-          return #Err(#SeasonalRestriction("Watering only allowed in Spring or Summer. Current Season: " # debug_show(farm.currentSeason)));
+        // Phase 5.7: Phase gate — watering allowed in Procurement, Investment, or Growth to combat early droughts
+        if (farm.currentPhase != #Procurement and farm.currentPhase != #Investment and farm.currentPhase != #Growth) {
+          return #Err(#SeasonalRestriction("Watering allowed in Procurement, Investment, or Growth phases. Current: " # debug_show(farm.currentPhase)));
         };
 
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
@@ -773,6 +855,62 @@ actor CherryTycoon {
             #Ok("Organic conversion started successfully (Certification takes 2 seasons)")
           };
         };
+      };
+    }
+  };
+
+  // Phase 5.7: Inspect and Repair (#Maintenance phase)
+  // Player pays to service all infrastructure and prevent degradation.
+  // Skipping this phase causes advancePhase to silently downgrade infra levels.
+  public shared({ caller }) func inspectAndRepair() : async GameResult<Text, GameError> {
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+
+        if (farm.currentPhase != #Maintenance) {
+          return #Err(#SeasonalRestriction("Inspection and repair only allowed in Maintenance phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        // Repair cost: 500 PLN per infrastructure level point
+        var totalRepairCost : Nat = 0;
+        for (infra in farm.infrastructure.vals()) {
+          totalRepairCost += infra.level * 500;
+        };
+
+        // Minimum charge (even with no infrastructure, still a basic inspection)
+        let finalCost = if (totalRepairCost == 0) { 500 } else { totalRepairCost };
+
+        if (farm.cash < finalCost) {
+          return #Err(#InsufficientFunds { required = finalCost; available = farm.cash });
+        };
+
+        // Mark infrastructure as maintained — refresh maintenanceCost sentinel
+        let maintainedInfra = Array.map<Infrastructure, Infrastructure>(farm.infrastructure, func(i) {
+          { i with maintenanceCost = i.level * 100 }
+        });
+
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          { r with
+            maintenanceCosts = r.maintenanceCosts + finalCost;
+            totalCosts       = r.totalCosts + finalCost;
+            netProfit        = r.netProfit - (finalCost : Int);
+          }
+        });
+
+        let updatedFarm = {
+          farm with
+          cash           = Int.abs((farm.cash : Int) - (finalCost : Int));
+          infrastructure = maintainedInfra;
+          statistics     = { farm.statistics with
+            totalCosts = farm.statistics.totalCosts + finalCost;
+            seasonalReports = updatedStats.seasonalReports;
+          };
+        };
+
+        playerFarms.put(caller, updatedFarm);
+        let infraCount = farm.infrastructure.size();
+        #Ok("Infrastructure inspection complete. Repaired " # Nat.toText(infraCount) # " asset(s) for " # Nat.toText(finalCost) # " PLN. Degradation prevented.")
       };
     }
   };
@@ -1345,6 +1483,192 @@ actor CherryTycoon {
             
             #Ok("Advanced to phase: " # debug_show(nextPhase) # weatherMsg # aiText)
         };
+    }
+  };
+
+  // Phase 5.7: Forward Contract Negotiation (#Market phase)
+  // Lock a guaranteed price with a specific AI buyer for a fixed quantity.
+  // A 5% commitment fee is charged upfront. Revenue is credited immediately (simplified).
+  public shared({ caller }) func negotiateForwardContract(
+    buyerName: Text,
+    quantity: Nat
+  ) : async GameResult<Types.ForwardContractResult, GameError> {
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+
+        if (farm.currentPhase != #Market) {
+          return #Err(#SeasonalRestriction("Forward contracts can only be negotiated in Market phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        if (quantity == 0) {
+          return #Err(#InvalidOperation("Quantity must be greater than 0"));
+        };
+
+        // Resolve buyer terms
+        let (pricePerKg, minQty, requiresOrganic, saleCategory) : (Nat, Nat, Bool, Text) =
+          switch (buyerName) {
+            case ("Marek") { (10, 50,  false, "wholesale") };
+            case ("Kasia") { (24, 20,  true,  "retail")    };
+            case ("Hans")  { (13, 500, false, "wholesale") };
+            case (_) {
+              return #Err(#InvalidOperation("Unknown buyer. Valid buyers: 'Marek', 'Kasia', 'Hans'"));
+            };
+          };
+
+        if (quantity < minQty) {
+          return #Err(#InvalidOperation("Minimum quantity for " # buyerName # " is " # Nat.toText(minQty) # " kg"));
+        };
+
+        if (requiresOrganic and farm.inventory.organicCherries < quantity) {
+          return #Err(#InvalidOperation("Kasia requires certified organic cherries. Available: " # Nat.toText(farm.inventory.organicCherries) # " kg"));
+        };
+
+        let totalRegularAvailable = farm.inventory.cherries;
+        if (not requiresOrganic and totalRegularAvailable < quantity) {
+          return #Err(#InvalidOperation("Insufficient cherries for contract. Available: " # Nat.toText(totalRegularAvailable) # " kg"));
+        };
+
+        let grossRevenue  = pricePerKg * quantity;
+        let commitmentFee = (grossRevenue * 5) / 100;
+        let netRevenue    = Int.abs((grossRevenue : Int) - (commitmentFee : Int));
+
+        // Deduct inventory (using Int.abs pattern to satisfy M0155 — guards above already validate qty <= available)
+        let updatedInventory : Inventory = if (requiresOrganic) {
+          { farm.inventory with organicCherries = Int.abs((farm.inventory.organicCherries : Int) - (quantity : Int)) }
+        } else {
+          { farm.inventory with cherries = Int.abs((farm.inventory.cherries : Int) - (quantity : Int)) }
+        };
+
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          let updatedReport = if (saleCategory == "wholesale") {
+            { r with
+              wholesaleRevenue = r.wholesaleRevenue + netRevenue;
+              wholesaleVolume  = r.wholesaleVolume  + quantity;
+              totalRevenue     = r.totalRevenue + netRevenue;
+              netProfit        = r.netProfit + (netRevenue : Int);
+            }
+          } else {
+            { r with
+              retailRevenue = r.retailRevenue + netRevenue;
+              retailVolume  = r.retailVolume  + quantity;
+              totalRevenue  = r.totalRevenue + netRevenue;
+              netProfit     = r.netProfit + (netRevenue : Int);
+            }
+          };
+          updatedReport
+        });
+
+        let updatedFarm = {
+          farm with
+          cash      = farm.cash + netRevenue;
+          inventory = updatedInventory;
+          statistics = { farm.statistics with
+            totalRevenue = farm.statistics.totalRevenue + netRevenue;
+            totalSold    = farm.statistics.totalSold + quantity;
+            seasonalReports = updatedStats.seasonalReports;
+          };
+        };
+
+        playerFarms.put(caller, updatedFarm);
+
+        let result : Types.ForwardContractResult = {
+          buyerName         = buyerName;
+          lockedQuantityKg  = quantity;
+          pricePerKg        = pricePerKg;
+          totalRevenue      = netRevenue;
+          commitmentFeePaid = commitmentFee;
+          saleCategory      = saleCategory;
+        };
+        #Ok(result)
+      };
+    }
+  };
+
+  // Phase 5.7: Market Forecast (#Planning phase)
+  // Paid intelligence about the upcoming season's weather risk and price range.
+  // Cost: 2000 PLN. Uses deterministic seed to preview next-season conditions.
+  public shared({ caller }) func purchaseMarketForecast() : async GameResult<Types.ForecastReport, GameError> {
+    // if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+
+        if (farm.currentPhase != #Planning) {
+          return #Err(#SeasonalRestriction("Market forecasts only available in Planning phase. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        let forecastCost : Nat = 2000;
+        if (farm.cash < forecastCost) {
+          return #Err(#InsufficientFunds { required = forecastCost; available = farm.cash });
+        };
+
+        let nextSeason = farm.seasonNumber + 1;
+        let seed = nextSeason % 100;
+
+        let (weatherWarning, confidence) : (Text, Text) = switch (farm.currentSeason) {
+          case (#Winter) {
+            if      (seed < 15) { ("Late Frost risk in Spring. Consider frost protection.",          "Medium") }
+            else if (seed < 35) { ("Heavy Rain expected. Drainage maintenance recommended.",         "High")   }
+            else if (seed < 50) { ("Monilinia fungal pressure elevated. Stock fungicide early.",    "Medium") }
+            else                { ("Conditions appear favourable. No major weather risk detected.", "Low")    }
+          };
+          case (#Spring) {
+            if      (seed < 20) { ("Drought risk in Summer. Pre-irrigate and water parcels early.", "High")   }
+            else if (seed < 35) { ("Heatwave risk. Water levels will deplete faster than usual.",   "Medium") }
+            else if (seed < 40) { ("Hailstorm risk. Inspect Sprayer infrastructure.",               "Low")    }
+            else if (seed < 60) { ("Cherry Fruit Fly pressure. Pesticide stock advised.",           "Medium") }
+            else                { ("Conditions appear favourable. Expect normal yield.",            "Low")    }
+          };
+          case (#Summer) {
+            if      (seed < 10) { ("Early Frost risk in Autumn. Harvest windows may shorten.",      "Low")    }
+            else if (seed < 25) { ("Storms forecast. Secure storage and review warehouse.",         "Medium") }
+            else                { ("Stable Autumn expected. Good conditions for market activity.",  "Low")    }
+          };
+          case (#Autumn) {
+            if (seed < 25)      { ("Deep Freeze risk in Winter. Cold Storage investment advised.",  "Medium") }
+            else                { ("Mild Winter expected. Standard maintenance costs apply.",       "Low")    }
+          };
+        };
+
+        let nextYear = (nextSeason / 4) + 1;
+        let yearInflationFactor = 100 + (nextYear * 5);
+        let retailBase    = (15 * yearInflationFactor) / 100;
+        let wholesaleBase = (12 * yearInflationFactor) / 100;
+        let priceMin      = (retailBase    * 80) / 100;
+        let priceMax      = (retailBase    * 120) / 100;
+        let whlMin        = (wholesaleBase * 80) / 100;
+        let whlMax        = (wholesaleBase * 120) / 100;
+
+        let nextSeasonName = switch (farm.currentSeason) {
+          case (#Winter)  { "Spring" };
+          case (#Spring)  { "Summer" };
+          case (#Summer)  { "Autumn" };
+          case (#Autumn)  { "Winter" };
+        };
+
+        let updatedFarm = {
+          farm with
+          cash = Int.abs((farm.cash : Int) - (forecastCost : Int));
+          statistics = { farm.statistics with
+            totalCosts = farm.statistics.totalCosts + forecastCost;
+          };
+        };
+        playerFarms.put(caller, updatedFarm);
+
+        let report : Types.ForecastReport = {
+          targetSeason      = nextSeasonName # " (Season " # Nat.toText(nextSeason) # ")";
+          weatherWarning    = weatherWarning;
+          priceRangeMin     = priceMin;
+          priceRangeMax     = priceMax;
+          wholesaleRangeMin = whlMin;
+          wholesaleRangeMax = whlMax;
+          confidence        = confidence;
+          forecastCost      = forecastCost;
+        };
+        #Ok(report)
+      };
     }
   };
 

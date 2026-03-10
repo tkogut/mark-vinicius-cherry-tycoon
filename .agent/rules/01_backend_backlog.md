@@ -59,11 +59,11 @@
 
 ### 🔵 Phase 5.7: Phase Engagement & Mechanics Deepening
 - [x] **Hiring Phase Rework (Spring)**: Introduce a Hybrid Cost Model for labor (`#Village`, `#Standard`, `#City`). Upfront retainer fees in `#Hiring` + per kg costs at `#Harvest`. Auto-assign punishing `#Emergency` labor if skipped. (Backend Logic Complete)
-- [ ] **Spring Watering**: Allow `waterParcel` action earlier (`#Procurement`, `#Investment`, `#Growth`) to combat early droughts.
-- [ ] **Bulk Supply (#Procurement)**: Market price fluctuations for fertilizers/pesticides.
-- [ ] **Forward Contract Negotiation (#Market)**: Lock-in contracts with specific AI buyers for guaranteed prices.
-- [ ] **Machine Degradation (#Maintenance)**: Implement `inspectAndRepair` mechanic to avoid permanent infrastructure downgrades.
-- [ ] **Market Forecasting (#Planning)**: Optional paid "Weather & Market Forecasts" revealing upcoming standard deviations for AI/Weather.
+- [x] **Spring Watering**: `waterParcel` now phase-gated to `#Procurement | #Investment | #Growth` (was erroneously season-gated). Enables early drought combat. ✅ *DONE 2026-03-10*
+- [x] **Bulk Supply (`purchaseSupplies`, `#Procurement`)**: Market price fluctuations via `inputMarket`. Bulk discount tiers (qty≥20 → 10%, qty≥50 → 20%). Max 100 units/call. ✅ *DONE 2026-03-10*
+- [x] **Forward Contract Negotiation (`negotiateForwardContract`, `#Market`)**: Lock-in contracts with Marek (wholesale), Kasia (organic retail), Hans (export). 5% commitment fee. Revenue credited immediately. ✅ *DONE 2026-03-10*
+- [x] **Machine Degradation (`inspectAndRepair`, `#Maintenance`)**: Pay 500 PLN/infra-level to prevent degradation. Sentinel stored in `maintenanceCost` field. Skip = degradation on next advance. ✅ *DONE 2026-03-10*
+- [x] **Market Forecasting (`purchaseMarketForecast`, `#Planning`)**: 2000 PLN for `ForecastReport` with weather warnings + price range for next season. Deterministic seed = `(seasonNumber + 1) % 100`. ✅ *DONE 2026-03-10*
 - [x] **Phase 5.8: Advanced Economic Stress Testing**:
     - [x] Multi-year survival proof (Year 4 sustainability verified) ✅
     - [x] Dual-Entrypoint logic parity (Audit complete) ✅
