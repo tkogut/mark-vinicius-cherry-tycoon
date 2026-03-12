@@ -77,6 +77,7 @@ const createInitialGuestFarm = (): PlayerFarm => ({
     weather: [] as any, // Option type mapped to array in frontend
     seasonNumber: 1n,
     lastActive: BigInt(Date.now()),
+    hasCropInsurance: false,
 });
 
 // Helper for generic mutations on local state

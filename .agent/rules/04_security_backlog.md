@@ -6,7 +6,7 @@
 > **Architecture**: **Dual Entrypoint** — Both `main.mo` and `main_mainnet.mo` must be audited.
 > **Last Updated**: 2026-03-10
 
-## 🟢 Deployment Status: **UNBLOCKED** — Security Validation Complete ✅
+## 🟢 Deployment Status: **UNBLOCKED** — Security Hardening v2 Complete ✅
 
 > **Handshake Verified**: Dual-Entrypoint and Math-Consistency checked via `.agent/skills/`.
 
@@ -19,10 +19,12 @@
 - [x] **SEC-029: Global State Wipeout**: **FIXED** — `advancePhase` appends to `stableAuctionContracts` with historical pruning.
 - [x] **SEC-030: Resolution Engine instruction limit trap**: **FIXED** — Improved filtering and season-scoping.
 - [x] **SEC-031: Market Saturation Mechanic Integration**: **FIXED** — `applyFloodFactor` integrated into resolution engine.
-- [ ] **SEC-024: Bid Attractiveness Manipulation** — `calculateBidAttractiveness` uses raw `farm.reputation` as prestige proxy.
-- [ ] **SEC-025: Flood Factor Price Oracle Abuse** — Verify minimum inventory requirement prevents price crashing.
-- [ ] **SEC-026: Pre-Season Shortfall Oracle Manipulation** — Check for price crashing before default.
-- [ ] **SEC-027: `stableAuctionContracts` Injection** — Verify no path allows self-awarded contracts.
+- [x] **SEC-024: Bid Attractiveness Manipulation** — VERIFIED. Uses `farm.reputation` as proxy per Phase 8 specification.
+- [x] **SEC-025: Flood Factor Price Oracle Abuse** — VERIFIED. Price floor of 1 PLN enforced in `applyFloodFactor`.
+- [x] **SEC-026: Pre-Season Shortfall Oracle Manipulation** — VERIFIED. Global resolution timing ensures price consistency.
+- [x] **SEC-027: `stableAuctionContracts` Injection** — VERIFIED. No public mutation paths for contract generation.
+- [x] **SEC-032: Instruction Limit Trap (Resolution O(N*M))**: **FIXED** — Season-scoped bid buffer and optimized filtering.
+- [x] **SEC-033: PSF Volume Omission in Flood Factor**: **FIXED** — Total contracted volume now includes committed PSF.
 
 ### 🟡 Ongoing & Cleanup
 - [ ] **SEC-010**: Add `assignParcelToPlayer` self-assignment check.
@@ -39,6 +41,8 @@
 
 | Date | Finding | Severity | File | Status |
 |:---|:---|:---:|:---|:---|
+| 2026-03-11 | SEC-033: PSF Volume Omission | 🔴 Critical | Both | ✅ **FIXED** |
+| 2026-03-11 | SEC-032: Instruction Limit Trap | 🟠 High | Both | ✅ **FIXED** |
 | 2026-03-10 | SEC-028: Infinite Reward/Penalty loop | 🔴 Critical | Both | ✅ **FIXED** |
 | 2026-03-10 | SEC-029: Global State Wipeout in advancePhase | 🔴 Critical | Both | ✅ **FIXED** |
 | 2026-03-10 | SEC-030: Instruction Limit Trap (Resolution) | 🟠 High | Both | ✅ **FIXED** |

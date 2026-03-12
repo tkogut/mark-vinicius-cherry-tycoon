@@ -107,12 +107,25 @@ export default {
 					'10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-2px)' },
 					'20%, 40%, 60%, 80%': { transform: 'translateX(2px)' },
 				},
+				vibrate: {
+					'0%, 100%': { transform: 'translate(0, 0)' },
+					'25%': { transform: 'translate(1px, 1px)' },
+					'50%': { transform: 'translate(-1px, 1px)' },
+					'75%': { transform: 'translate(1px, -1px)' },
+				},
+				rise: {
+					'0%': { transform: 'translateY(100%)', opacity: '0' },
+					'50%': { opacity: '1' },
+					'100%': { transform: 'translateY(-100%)', opacity: '0' },
+				},
 			},
 			animation: {
 				shimmer: 'shimmer 2s infinite',
 				'god-ray': 'god-ray 8s ease-in-out infinite',
 				'gear-spin': 'gear-spin 12s linear infinite',
 				shake: 'shake 0.5s ease-in-out',
+				vibrate: 'vibrate 0.1s linear infinite',
+				rise: 'rise 3s linear infinite',
 			},
 		}
 	},

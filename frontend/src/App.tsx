@@ -34,6 +34,7 @@ import { PhaseIndicator } from "@/components/season/PhaseIndicator"
 import { WeatherEventModal, WeatherEventType } from "@/components/season/WeatherEventModal"
 import { WeatherOverlay } from "@/components/season/WeatherOverlay"
 import { SeasonalEffects } from "@/components/season/SeasonalEffects"
+import { BidModal } from "@/components/pools/BidModal"
 
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
@@ -370,6 +371,8 @@ function AppContent() {
             <SeasonalEffects
                 season={stats.currentSeason ? Object.keys(stats.currentSeason)[0] as any : null}
             />
+            {/* TEMPORARY MOUNT FOR SPRINT VERIFICATION */}
+            <BidModal />
             <Toaster />
             <WeatherEventModal
                 isOpen={!!weatherEvent}
@@ -714,8 +717,15 @@ function AppContent() {
             </div>
             {/* PWA Install Button (Conditional) */}
             <InstallPrompt />
+
+            {/* VERSION TAG: Unmistakable verification hook */}
+            <div className="fixed top-4 left-4 z-[9999] pointer-events-none">
+                <span className="text-[10px] font-mono text-emerald-500/50 bg-black/40 px-2 py-1 rounded-md border border-emerald-500/20 backdrop-blur-sm">
+                    v3.8
+                </span>
+            </div>
         </div>
-    )
+    );
 }
 
 function InstallPrompt() {

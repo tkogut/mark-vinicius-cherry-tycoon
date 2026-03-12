@@ -220,7 +220,7 @@ module {
     infrastructure: [Infrastructure];
     inventory: Inventory;
     statistics: Statistics;
-    hasCropInsurance: Bool;   // Phase 7.0: Crop Insurance policy active for the year
+    activeInsurance: ?InsurancePolicy; // Phase 7.0: Crop Insurance policy
     
     // Game state
     currentSeason: Season;
@@ -284,6 +284,26 @@ module {
     season: Nat;
     impact: Text;      // description of what happened
     mitigated: Bool;   // true if infrastructure (e.g., Sprayers) prevented damage
+  };
+
+  // ============================================================================
+  // RISK MANAGEMENT - INSURANCE (GDD Section 6)
+  // ============================================================================
+
+  public type InsuranceType = {
+    #Frost;
+    #Drought;
+    #Flood;
+    #Pest;
+    #AllIn;
+  };
+
+  public type InsurancePolicy = {
+    id: Text;
+    category: InsuranceType;
+    premium: Nat;
+    payout: Nat;
+    activeUntilSeason: Nat;
   };
 
   // ============================================================================

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emerald Gauge Animation Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes vibrate {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(1px, 1px); }
+            50% { transform: translate(-1px, 1px); }
+            75% { transform: translate(1px, -1px); }
+        }
+        @keyframes rise {
+            0% { transform: translateY(100%); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-100%); opacity: 0; }
+        }
+        .animate-vibrate { animation: vibrate 0.1s linear infinite; }
+        .animate-rise { animation: rise 3s linear infinite; }
+    </style>
+</head>
+<body class="bg-gray-950 min-h-screen flex flex-col items-center justify-center space-y-8 p-8" style="font-family: monospace;">
+
+    <div class="text-emerald-400 text-center mb-8">
+        <h1 class="text-2xl font-bold mb-2">Emerald Gauge Animation Demo</h1>
+        <p class="text-sm text-gray-400">Notice how the container stays fixed while the liquid smoothly drops and rises.</p>
+    </div>
+
+    <!-- The Gauge Component -->
+    <div class="flex flex-col items-center justify-center space-y-2 w-full max-w-[80px]">
+        <!-- Frame / Static Background -->
+        <div id="gauge-container" class="relative w-16 h-64 rounded-full border-4 border-[#b87333] bg-gray-900/40 backdrop-blur-md overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.8),_0_0_15px_rgba(212,175,55,0.1)]">
+            
+            <!-- Brass Fittings (Top & Bottom) -->
+            <div class="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-[#d4af37] to-[#8a5626] border-b border-[#d4af37]/50 rounded-t-full z-30"></div>
+            <div class="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-[#d4af37] to-[#8a5626] border-t border-[#d4af37]/50 rounded-b-full z-30"></div>
+
+            <!-- Glass Edge Refraction Reflection -->
+            <div class="absolute inset-0 rounded-full border-2 border-white/20 shadow-[inset_0_0_15px_rgba(255,255,255,0.1)] pointer-events-none z-30"></div>
+
+            <!-- Steam particles when near full -->
+            <div id="steam-layer" class="absolute top-4 left-0 right-0 h-10 bg-gradient-to-b from-white/20 to-transparent animate-pulse z-30 pointer-events-none opacity-0 transition-opacity"></div>
+
+            <!-- Dynamic Liquid Layer (Masked container) -->
+            <div id="liquid-container" class="absolute bottom-4 left-0 right-0 w-full overflow-hidden z-10" style="height: calc((50 * (100% - 2rem)) / 100); transform-origin: bottom; transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s;">
+                
+                <!-- The Surface Wave Effect -->
+                <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-b from-white/40 to-transparent rounded-t-full z-20"></div>
+                
+                <!-- The actual emerald fluid texture -->
+                <div class="w-full h-full relative" style="background-image: url('./frontend/public/assets/textures/emerald_liquid_texture.png'); background-size: cover; background-position: bottom center; box-shadow: inset 0 0 10px rgba(255,255,255,0.3);">
+                    
+                    <!-- Inner glow -->
+                    <div id="glow-layer" class="absolute inset-0 pointer-events-none mix-blend-screen" style="box-shadow: inset 0 0 10px 2.5px rgba(0,255,65,0.8);"></div>
+
+                    <!-- Bubbles Simulation -->
+                    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMiIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNSIvPjwvc3ZnPg==')] animate-rise opacity-50 bg-[length:20px_20px]"></div>
+                </div>
+            </div>
+        </div>
+
+        <span class="text-xs font-bold text-gray-300 uppercase tracking-wider font-mono">Harvest</span>
+        <span id="value-display" class="text-sm font-bold text-[#00FF41] shadow-[#00FF41] drop-shadow-md">50%</span>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex gap-4 mt-8">
+        <button onclick="setValue(15)" class="px-4 py-2 bg-gray-800 text-emerald-500 rounded border border-emerald-900 hover:bg-gray-700">Set 15%</button>
+        <button onclick="setValue(50)" class="px-4 py-2 bg-gray-800 text-emerald-500 rounded border border-emerald-900 hover:bg-gray-700">Set 50%</button>
+        <button onclick="setValue(95)" class="px-4 py-2 bg-gray-800 text-emerald-500 rounded border border-emerald-900 hover:bg-gray-700">Set 95% (Near Full)</button>
+    </div>
+
+    <script>
+        function setValue(val) {
+            const container = document.getElementById('liquid-container');
+            const display = document.getElementById('value-display');
+            const steam = document.getElementById('steam-layer');
+            const gauge = document.getElementById('gauge-container');
+            const glowLayer = document.getElementById('glow-layer');
+            
+            // Adjust height using CSS transition
+            container.style.height = `calc((${val} * (100% - 2rem)) / 100)`;
+            
+            // Update Number
+            display.innerText = `${val}%`;
+
+            // Slosh effect calculation
+            const prevVal = parseInt(display.innerText);
+            if(Math.abs(prevVal - val) > 10) {
+                container.style.transform = `skewY(${val > prevVal ? -5 : 5}deg)`;
+                setTimeout(() => { container.style.transform = `skewY(0deg)`; }, 300);
+            }
+
+            // Glow Intensity
+            const glowInt = val / 100;
+            glowLayer.style.boxShadow = `inset 0 0 ${20 * glowInt}px ${5 * glowInt}px rgba(0,255,65,0.8)`;
+
+            // Near Full Vibrations + Steam
+            if (val >= 90) {
+                gauge.classList.add('animate-vibrate');
+                steam.style.opacity = '1';
+            } else {
+                gauge.classList.remove('animate-vibrate');
+                steam.style.opacity = '0';
+            }
+        }
+    </script>
+
+</body>
+</html>

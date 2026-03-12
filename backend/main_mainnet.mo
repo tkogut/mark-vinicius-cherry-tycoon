@@ -25,6 +25,7 @@ import LeaderboardLogic "leaderboard_logic";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AuctionLogic "auction_logic";
+import RiskLogic "risk_logic";
 
 actor CherryTycoon {
   
@@ -232,6 +233,7 @@ actor CherryTycoon {
       lastAuctionResolutionSeason = 0;
       parcels = [starterParcel];
       infrastructure = [];
+      activeInsurance = null;
       inventory = {
         cherries = 0;
         organicCherries = 0;
@@ -256,7 +258,7 @@ actor CherryTycoon {
       seasonNumber = 1;
       lastActive = Int.abs(Time.now());
       hiredLabor = null; // Phase 5.7: Must be hired in Spring
-      hasCropInsurance = false; // Phase 7.0
+      activeInsurance = null; // Phase 7.0
       inputMarket = MarketLogic.generateInputPrices(1, Int.abs(Time.now())); // Phase 5.7: Initialize market
       ownedClubs = [];
     };
@@ -449,6 +451,16 @@ actor CherryTycoon {
     #Ok("Player reset successfully")
   };
 
+  // DEBUG ONLY: Clear global auction pool
+  public shared({ caller }) func debugClearMarket() : async GameResult<Text, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    stableAuctionContracts := [];
+    stableBids := [];
+    stableSpotPrice := 10;
+    lastResolutionSeason := 0;
+    #Ok("Global market state cleared")
+  };
+
   // SEC-023: debugSetWeather intentionally removed from Mainnet entrypoint.
   // Debug/test functions minimize attack surface in production. Use main.mo (Playground) for testing.
 
@@ -551,11 +563,16 @@ actor CherryTycoon {
               farm.parcels.size(),
               func(i: Nat) : CherryParcel {
                 if (i == index) {
-                  {
-                    parcel with
-                    lastHarvest = farm.seasonNumber;
-                    quality = GameLogic.calculateQualityScore(parcel, farm.infrastructure);
-                  }
+                    let baseQuality = GameLogic.calculateQualityScore(parcel, farm.infrastructure);
+                    let finalQuality = switch (farm.weather) {
+                        case (null) { baseQuality };
+                        case (?w) { GameLogic.applyWeatherQualityImpact(baseQuality, w.weather, w.severity) };
+                    };
+                    {
+                      parcel with
+                      lastHarvest = farm.seasonNumber;
+                      quality = finalQuality;
+                    }
                 } else {
                   farm.parcels[i]
                 }
@@ -1147,8 +1164,9 @@ actor CherryTycoon {
           let computedRevenue = Int.abs(Float.toInt(totalFloatRevenue));
           if (computedRevenue < quantity) quantity else computedRevenue // Floor: 1 PLN/kg
         } else {
+          // Phase 8.0: Apply Flood Factor to Wholesale
           let basePrice = GameLogic.calculateWholesalePrice(
-            baseWholesalePrice,
+            stableSpotPrice,
             quantity,
             60, // average quality
             saturationMult
@@ -1413,7 +1431,7 @@ actor CherryTycoon {
 
     // Phase 7.0: Crop Insurance Payout calculation
     var insurancePayout : Nat = 0;
-    if (farm.hasCropInsurance) {
+    if (farm.activeInsurance != null) {
       // Check either new weather being generated or existing weather from previous phase
       let weatherToCheck = switch (newWeather) {
         case (?w) { ?w };
@@ -1422,9 +1440,10 @@ actor CherryTycoon {
 
       switch (weatherToCheck) {
         case (?w) {
-          if (w.weather == #Frost or w.weather == #Drought or w.weather == #Flood) {
-            insurancePayout := farm.parcels.size() * 5000;
-          };
+          switch (farm.activeInsurance) {
+            case (?policy) { insurancePayout := RiskLogic.calculatePayout(w, policy); };
+            case null {};
+          }
         };
         case null {};
       };
@@ -1436,7 +1455,7 @@ actor CherryTycoon {
       currentPhase = nextPhase; 
       weather = newWeather;
       hiredLabor = if (nextSeason == #Spring) null else farm.hiredLabor; 
-      hasCropInsurance = if (nextSeason == #Spring) false else farm.hasCropInsurance; // Reset insurance annually
+      activeInsurance = if (nextSeason == #Spring) null else farm.activeInsurance; // Reset insurance annually
       seasonNumber = farm.seasonNumber + 1;
       cash = Int.abs((farm.cash : Int) - (totalCosts : Int)) + insurancePayout;
       parcels = updatedParcels;
@@ -1493,16 +1512,30 @@ actor CherryTycoon {
                 _performGlobalAuctionResolution(farm.seasonNumber);
             };
 
-            // BUG-06: Automatic Contract Generation
             if (nextPhase == #Planning) {
-                // Entering New Season: Generate Pre-Season Futures. 
-                // SEC-029: DO NOT CLEAR. Append new ones.
-                let newPSFs = [
-                  AuctionLogic.buildPreSeasonContract(0, farm.seasonNumber + 1, #Export),
-                  AuctionLogic.buildPreSeasonContract(1, farm.seasonNumber + 1, #Bio),
-                  AuctionLogic.buildPreSeasonContract(2, farm.seasonNumber + 1, #Industrial)
-                ];
-                stableAuctionContracts := Array.append<Types.AuctionContract>(stableAuctionContracts, newPSFs);
+                // Entering New Season: Generate Pre-Season Futures (Global Pool)
+                let seasonText = "S" # Nat.toText(farm.seasonNumber + 1);
+                let psfExist = Array.find<Types.AuctionContract>(stableAuctionContracts, func(c) {
+                    c.isPreSeason and Text.contains(c.id, #text(seasonText))
+                }) != null;
+
+                if (not psfExist) {
+                    let newPSFs = [
+                      AuctionLogic.buildPreSeasonContract(0, farm.seasonNumber + 1, #Export),
+                      AuctionLogic.buildPreSeasonContract(1, farm.seasonNumber + 1, #Bio),
+                      AuctionLogic.buildPreSeasonContract(2, farm.seasonNumber + 1, #Industrial)
+                    ];
+                    stableAuctionContracts := Array.append<Types.AuctionContract>(stableAuctionContracts, newPSFs);
+
+                    // Phase 8.0: Price Recovery (Economic Stability Fix)
+                    if (stableSpotPrice < 10) {
+                        let recovery = (10 - stableSpotPrice) / 10;
+                        stableSpotPrice += (if (recovery == 0) 1 else recovery);
+                    } else if (stableSpotPrice > 10) {
+                        let recovery = (stableSpotPrice - 10) / 10;
+                        stableSpotPrice -= (if (recovery == 0) 1 else recovery);
+                    };
+                };
                 
                 if (farm.seasonNumber > 3) {
                   stableAuctionContracts := Array.filter<Types.AuctionContract>(stableAuctionContracts, func(c) {
@@ -1513,11 +1546,30 @@ actor CherryTycoon {
                   });
                 };
             } else if (nextPhase == #Harvest) {
-                // Entering Harvest: Generate Post-Harvest Auctions
-                let entropy = (Int.abs(Time.now()) + farm.seasonNumber * 7919) % 1_000_000_000;
-                let newContracts = AuctionLogic.generateImperialContracts(farm.seasonNumber, entropy);
-                // Preserve awarded Pre-Seasons, append new auctions
-                stableAuctionContracts := Array.append<Types.AuctionContract>(stableAuctionContracts, newContracts);
+                // Entering Harvest: Generate Post-Harvest Auctions (Global Pool)
+                let seasonText = "S" # Nat.toText(farm.seasonNumber);
+                let contractsExist = Array.find<Types.AuctionContract>(stableAuctionContracts, func(c) {
+                    Text.contains(c.id, #text(seasonText))
+                }) != null;
+
+                if (not contractsExist) {
+                    let entropy = (Int.abs(Time.now()) + farm.seasonNumber * 7919) % 1_000_000_000;
+                    let newContracts = AuctionLogic.generateImperialContracts(farm.seasonNumber, entropy);
+                    
+                    // Inject AI Bids into the global pool immediately
+                    for (c in newContracts.vals()) {
+                        let mBid = AuctionLogic.getMarekBid(c, entropy, farm.seasonNumber);
+                        let kBid = AuctionLogic.getKasiaBid(c, entropy + 1, farm.seasonNumber);
+                        let hBid = AuctionLogic.getHansBid(c, entropy + 2, farm.seasonNumber, stableHansStorage);
+                        stableBids := Array.append<Types.Bid>(stableBids, Array.flatten<Types.Bid>([
+                            switch (mBid) { case (?b) [b]; case null [] },
+                            switch (kBid) { case (?b) [b]; case null [] },
+                            switch (hBid) { case (?b) [b]; case null [] }
+                        ]));
+                    };
+
+                    stableAuctionContracts := Array.append<Types.AuctionContract>(stableAuctionContracts, newContracts);
+                };
             };
 
             if (nextSeason != farm.currentSeason) {
@@ -1546,12 +1598,59 @@ actor CherryTycoon {
                 farm.inputMarket
             };
 
-            let finalFarm : PlayerFarm = {
-                updatedFarm with
-                currentPhase = nextPhase;
-                currentSeason = nextSeason;
-                weather = newWeather;
-                inputMarket = newInputMarket;
+            // Phase 7.0: Rainy weather boosts water level during advancePhase
+            let farmWithRain = switch (newWeather) {
+                case (?w) {
+                    if (w.weather == #Rainy) {
+                        let rainBoost = 0.25 * w.severity;
+                        let rainParcels = Array.tabulate<Types.CherryParcel>(updatedFarm.parcels.size(), func(i) {
+                            let p = updatedFarm.parcels[i];
+                            let newLvl = if (p.waterLevel + rainBoost > 1.0) 1.0 else p.waterLevel + rainBoost;
+                            { p with waterLevel = newLvl }
+                        });
+                        { updatedFarm with parcels = rainParcels }
+                    } else { updatedFarm };
+                };
+                case null { updatedFarm };
+            };
+
+            // Phase 7.0: Insurance Resolution
+            var insurancePayout : Nat = 0;
+            let finalFarm : PlayerFarm = switch (newWeather) {
+                case (null) { 
+                    { farmWithRain with 
+                      currentPhase = nextPhase;
+                      currentSeason = nextSeason;
+                      weather = null;
+                      inputMarket = newInputMarket;
+                    }
+                };
+                case (?event) {
+                    let eventWithSeason = { event with season = farm.seasonNumber };
+                    let payout = switch (farmWithRain.activeInsurance) {
+                        case (null) { 0 };
+                        case (?policy) { RiskLogic.calculatePayout(eventWithSeason, policy) };
+                    };
+                    insurancePayout := payout;
+                    
+                    // Reset insurance if expired or payout occurred
+                    let stillActive = switch (farmWithRain.activeInsurance) {
+                        case (null) { null };
+                        case (?policy) {
+                            if (payout > 0 or policy.activeUntilSeason <= farm.seasonNumber) { null }
+                            else { ?policy };
+                        };
+                    };
+
+                    { farmWithRain with
+                      currentPhase = nextPhase;
+                      currentSeason = nextSeason;
+                      weather = ?eventWithSeason;
+                      inputMarket = newInputMarket;
+                      cash = farmWithRain.cash + payout;
+                      activeInsurance = stillActive;
+                    }
+                };
             };
 
             playerFarms.put(caller, finalFarm);
@@ -1571,7 +1670,11 @@ actor CherryTycoon {
                 " | AI Harvest Results: Marek=" # Nat.toText(_marekKg) # "kg, Kasia=" # Nat.toText(_kasiaKg) # "kg, Hans=" # Nat.toText(_hansKg) # "kg"
             } else { "" };
             
-            #Ok("Advanced to phase: " # debug_show(nextPhase) # weatherMsg # aiText)
+            let insuranceMsg = if (insurancePayout > 0) {
+                " | Insurance Payout: " # Nat.toText(insurancePayout) # " PLN."
+            } else { "" };
+
+            #Ok("Advanced to phase: " # debug_show(nextPhase) # weatherMsg # aiText # insuranceMsg)
         };
     }
   };
@@ -1599,9 +1702,15 @@ actor CherryTycoon {
         // Resolve buyer terms
         let (pricePerKg, minQty, requiresOrganic, saleCategory) : (Nat, Nat, Bool, Text) =
           switch (buyerName) {
-            case ("Marek") { (10, 50,  false, "wholesale") };
+            case ("Marek") { 
+              let p = (stableSpotPrice * 85) / 100;
+              (if (p == 0) 1 else p, 50,  false, "wholesale") 
+            };
             case ("Kasia") { (24, 20,  true,  "retail")    };
-            case ("Hans")  { (13, 500, false, "wholesale") };
+            case ("Hans")  { 
+              let p = (stableSpotPrice * 115) / 100;
+              (if (p == 0) 1 else p, 500, false, "wholesale") 
+            };
             case (_) {
               return #Err(#InvalidOperation("Unknown buyer. Valid buyers: 'Marek', 'Kasia', 'Hans'"));
             };
@@ -1672,6 +1781,49 @@ actor CherryTycoon {
           saleCategory      = saleCategory;
         };
         #Ok(result)
+      };
+    }
+  };
+
+  // Phase 7.0: Crop Insurance (#Planning or #Procurement phases)
+  // Protects against specific weather events for 1 year (4 seasons).
+  public shared({ caller }) func buyInsurance(
+    policyType: Types.InsuranceType
+  ) : async GameResult<Types.InsurancePolicy, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        if (farm.currentPhase != #Planning and farm.currentPhase != #Procurement) {
+          return #Err(#SeasonalRestriction("Insurance can only be purchased in Planning or Procurement phases. Current: " # debug_show(farm.currentPhase)));
+        };
+
+        let policy = RiskLogic.generatePolicy(policyType, farm.seasonNumber);
+        
+        if (farm.cash < policy.premium) {
+          return #Err(#InsufficientFunds { required = policy.premium; available = farm.cash });
+        };
+
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+           { r with
+             operationalCosts = r.operationalCosts + policy.premium;
+             totalCosts       = r.totalCosts + policy.premium;
+             netProfit        = r.netProfit - (policy.premium : Int);
+           }
+        });
+
+        let updatedFarm = {
+          farm with
+          cash = farm.cash - policy.premium;
+          activeInsurance = ?policy;
+          statistics = { farm.statistics with
+            totalCosts = farm.statistics.totalCosts + policy.premium;
+            seasonalReports = updatedStats.seasonalReports;
+          };
+        };
+
+        playerFarms.put(caller, updatedFarm);
+        #Ok(policy)
       };
     }
   };
@@ -2595,7 +2747,7 @@ actor CherryTycoon {
             if (farm.currentPhase != #Procurement) {
                 return #Err(#SeasonalRestriction("Insurance can only be purchased during the Procurement Phase (Spring)"));
             };
-            if (farm.hasCropInsurance) {
+            if (farm.activeInsurance != null) {
                 return #Err(#AlreadyExists("You already have crop insurance for this year."));
             };
 
@@ -2606,10 +2758,11 @@ actor CherryTycoon {
                 return #Err(#InsufficientFunds({ required = cost; available = farm.cash }));
             };
 
+            let policy = RiskLogic.generatePolicy(#AllIn, farm.seasonNumber);
             let updatedFarm = {
               farm with
-              cash = farm.cash - cost;
-              hasCropInsurance = true;
+              cash = Int.abs((farm.cash : Int) - (cost : Int));
+              activeInsurance = ?policy;
             };
 
             playerFarms.put(caller, updatedFarm);
@@ -2625,7 +2778,7 @@ actor CherryTycoon {
 
   // Stable state for active auction contracts and AI surplus simulation.
   stable var stableAuctionContracts : [Types.AuctionContract] = [];
-  stable var stableSpotPrice : Nat = 5; // PLN/kg — adjusted by Flood Factor
+  stable var stableSpotPrice : Nat = 10; // PLN/kg — adjusted by Flood Factor
   stable var stableHansStorage : Nat = 0; // simulated Hans surplus kg
   stable var stableBids : [Types.Bid] = []; // [NEW] Buffer for closed-bid auctions
   stable var lastResolutionSeason : Nat = 0; // [NEW] Prevents double-resolution
@@ -2634,6 +2787,14 @@ actor CherryTycoon {
   public shared query({ caller }) func getActiveContracts() : async GameResult<[Types.AuctionContract], GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     #Ok(stableAuctionContracts)
+  };
+
+  public shared query({ caller }) func getMarketState() : async GameResult<{ spotPrice: Nat; contracts: [Types.AuctionContract] }, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    #Ok({
+      spotPrice = stableSpotPrice;
+      contracts = stableAuctionContracts;
+    })
   };
 
   // [MUTATION] Commit to a Pre-Season Future during #Planning phase.
@@ -2728,16 +2889,8 @@ actor CherryTycoon {
           isOrganic = isOrganic; globalPrestige = farm.reputation; localReputation = farm.reputation;
           submittedSeason = farm.seasonNumber;
         };
-        let marekBidOpt = AuctionLogic.getMarekBid(contract, farm.seasonNumber, farm.seasonNumber);
-        let kasiaBidOpt = AuctionLogic.getKasiaBid(contract, farm.seasonNumber, farm.seasonNumber);
-        let hansBidOpt  = AuctionLogic.getHansBid(contract, farm.seasonNumber, farm.seasonNumber, stableHansStorage);
-        let aiBids = Array.flatten<Types.Bid>([
-          switch (marekBidOpt) { case (?b) [b]; case null [] },
-          switch (kasiaBidOpt) { case (?b) [b]; case null [] },
-          switch (hansBidOpt)  { case (?b) [b]; case null [] },
-        ]);
-        // DESIGN GAP FIX: Buffer all bids
-        stableBids := Array.append<Types.Bid>(stableBids, Array.append([playerBid], aiBids));
+        // Buffer player bid
+        stableBids := Array.append<Types.Bid>(stableBids, [playerBid]);
         #Ok("Bid submitted to the pool. Resolution in Storage phase.")
       };
     }
@@ -2747,14 +2900,20 @@ actor CherryTycoon {
   // [INTERNAL] Determine winners for the current season once.
   // SEC-030: Optimized to O(N+M) and SEC-031: Integrated Flood Factor.
   func _performGlobalAuctionResolution(season: Nat) {
+    // Trigger global resolution if not already done for this season
     if (lastResolutionSeason >= season) return;
     
     var totalContractedKg : Nat = 0;
-    let seasonText = "S" # Nat.toText(season);
+
+    // SEC-033: Pre-calculate PSF volume
+    for (c in stableAuctionContracts.vals()) {
+        if (c.isPreSeason and c.status == #Awarded) {
+          totalContractedKg += c.requiredVolumeKg;
+        };
+    };
 
     let updatedContracts = Array.map<Types.AuctionContract, Types.AuctionContract>(stableAuctionContracts, func(c) {
-      let isCurrentSeason = Text.contains(c.id, #text(seasonText));
-      if (isCurrentSeason and not c.isPreSeason and c.status == #Open) {
+      if (not c.isPreSeason and c.status == #Open) {
         let contractBids = Array.filter<Types.Bid>(stableBids, func(b) { b.contractId == c.id });
         if (contractBids.size() == 0) return c;
         let result = AuctionLogic.resolveContract(c, contractBids);
@@ -2816,26 +2975,33 @@ actor CherryTycoon {
           };
         };
 
-        // Shortfalls
-        let totalDelivered = remCherries + remOrganic;
-        for (c in stableAuctionContracts.vals()) {
-          switch (c.committedByPlayer) {
-            case (?(pid)) {
-              if (pid == callerText and c.isPreSeason and c.status == #Awarded) {
-                let sr = AuctionLogic.resolvePreSeasonShortfall(c, totalDelivered, stableSpotPrice, farm.cash, farm.reputation, farm.reputation);
-                if (sr.shortfallKg > 0) {
-                  cashDelta -= (sr.cashDeducted : Int);
-                  prestigeDelta += sr.prestigeLost;
-                  if (sr.isDefault) { defaultCount += 1; cashDelta -= (sr.defaultPenalty : Int); };
-                };
-                let deliveredKg = if (totalDelivered >= c.requiredVolumeKg) c.requiredVolumeKg else totalDelivered;
-                if (remCherries >= deliveredKg) { remCherries -= deliveredKg }
-                else { let leftover = Int.abs((deliveredKg : Int) - (remCherries : Int)); remCherries := 0; remOrganic := if(remOrganic>=leftover)remOrganic-leftover else 0 };
+        // 2. Resolve Pre-Season Future shortfalls (after Imperial deductions)
+        let totalDelivered = remCherries + remOrganic; // Available after Imperial contracts
+
+        let finalContracts = Array.map<Types.AuctionContract, Types.AuctionContract>(
+          stableAuctionContracts,
+          func(c) {
+            switch (c.committedByPlayer) {
+              case (?(pid)) {
+                if (pid == callerText and c.isPreSeason and c.status == #Awarded) {
+                  let sr = AuctionLogic.resolvePreSeasonShortfall(c, totalDelivered, stableSpotPrice, farm.cash, farm.reputation, farm.reputation);
+                  if (sr.shortfallKg > 0) {
+                    cashDelta := cashDelta - (sr.cashDeducted : Int);
+                    prestigeDelta := prestigeDelta + sr.prestigeLost;
+                    if (sr.isDefault) { defaultCount := defaultCount + 1; cashDelta := cashDelta - (sr.defaultPenalty : Int); };
+                  };
+                  let deliveredKg = if (totalDelivered >= c.requiredVolumeKg) c.requiredVolumeKg else totalDelivered;
+                  if (remCherries >= deliveredKg) { remCherries -= deliveredKg }
+                  else { let leftover = Int.abs((deliveredKg : Int) - (remCherries : Int)); remCherries := 0; remOrganic := if(remOrganic>=leftover)remOrganic-leftover else 0 };
+                  
+                  { c with status = if (sr.isDefault) #Defaulted else #Fulfilled; shortfallKg = ?sr.shortfallKg }
+                } else { c };
               };
+              case null { c };
             };
-            case(_) {};
-          };
-        };
+          }
+        );
+        stableAuctionContracts := finalContracts;
 
         let newCash : Int = (farm.cash : Int) + cashDelta;
         let newReputation : Nat = if (prestigeDelta > farm.reputation) 0 else farm.reputation - prestigeDelta;

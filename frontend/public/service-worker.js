@@ -19,7 +19,8 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
     // If it's an API call (to backend canister) or hot module reload, go to network
-    if (url.pathname.startsWith('/api') || url.pathname.includes('.canister') || url.port === '5173') {
+    // Also ignore non-http protocols like chrome-extension://
+    if (url.pathname.startsWith('/api') || url.pathname.includes('.canister') || url.port === '5173' || !url.protocol.startsWith('http')) {
         return;
     }
 

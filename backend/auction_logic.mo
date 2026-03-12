@@ -147,18 +147,18 @@ module {
     let industrialCount : Nat = 1 + (r0 % 3); // 1, 2, or 3
 
     // Build the 3 base contracts (Export, Bio, 1st Industrial)
-    let export1 = buildPostHarvestContract(0, season, #Export);
-    let bio1    = buildPostHarvestContract(1, season, #Bio);
-    let ind1    = buildPostHarvestContract(2, season, #Industrial);
+    let export1 = buildPostHarvestContract(0, season, #Export, entropy);
+    let bio1    = buildPostHarvestContract(1, season, #Bio, entropy + 1);
+    let ind1    = buildPostHarvestContract(2, season, #Industrial, entropy + 2);
 
     // Optional 2nd Industrial
     let ind2Opt : [Types.AuctionContract] = if (industrialCount >= 2) {
-      [buildPostHarvestContract(3, season, #Industrial)]
+      [buildPostHarvestContract(3, season, #Industrial, entropy + 3)]
     } else { [] };
 
     // Optional 3rd Industrial
     let ind3Opt : [Types.AuctionContract] = if (industrialCount >= 3) {
-      [buildPostHarvestContract(4, season, #Industrial)]
+      [buildPostHarvestContract(4, season, #Industrial, entropy + 4)]
     } else { [] };
 
     Array.flatten([[export1, bio1, ind1], ind2Opt, ind3Opt])
@@ -169,15 +169,23 @@ module {
   private func buildPostHarvestContract(
     idx      : Nat,
     season   : Nat,
-    category : Types.ContractCategory
+    category : Types.ContractCategory,
+    entropy  : Nat
   ) : Types.AuctionContract {
     // Season cycle premium: every 4 seasons adds 1 PLN (capped to avoid runaway)
     let cycleBonus : Nat = (season / 4) % 5; // 0–4 PLN extra
+    let (_, r) = lcgNext(entropy + idx);
 
     let basePrice : Nat = switch (category) {
-      case (#Export)     { 7 + cycleBonus };   // 7–11 PLN/kg
-      case (#Bio)        { 10 + cycleBonus };  // 10–14 PLN/kg
-      case (#Industrial) { INDUSTRIAL_BASE_PRICE }; // 3 PLN flat
+      case (#Export)     { 7 + cycleBonus + (r % 2) }; // 7–13 PLN/kg range
+      case (#Bio)        { 10 + cycleBonus + (r % 3) }; // 10–17 PLN/kg range
+      case (#Industrial) { 
+        // Industrial: 3 PLN average, fluctuates ±1 PLN
+        let fluctuation = (r % 3); // 0, 1, 2
+        if (fluctuation == 0) INDUSTRIAL_BASE_PRICE - 1 // 2 PLN
+        else if (fluctuation == 2) INDUSTRIAL_BASE_PRICE + 1 // 4 PLN
+        else INDUSTRIAL_BASE_PRICE // 3 PLN
+      };
     };
     let required : Nat = switch (category) {
       case (#Export)     { 15_000 };

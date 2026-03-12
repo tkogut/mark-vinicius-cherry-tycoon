@@ -28,7 +28,7 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
 
     // Transform backend literal data to UI structure, sorting by rank
     const leaderboard: RankingEntry[] = (rawLeaderboard || [])
-        .map(entry => ({
+        .map((entry: any) => ({
             rank: Number(entry.rank),
             id: entry.name,
             name: entry.name,
@@ -36,7 +36,7 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
             efficiency: Number(entry.efficiency),
             isPlayer: !entry.isAI
         }))
-        .sort((a, b) => a.rank - b.rank);
+        .sort((a: RankingEntry, b: RankingEntry) => a.rank - b.rank);
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto">

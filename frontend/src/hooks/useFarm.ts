@@ -469,9 +469,9 @@ export function useFarm() {
 
     const buySuppliesMutation = useMutation({
         mutationFn: async ({ supplyType, amount }: { supplyType: string, amount: number }) => {
-            console.log('[useFarm] buySupplies called:', { supplyType, amount });
+            console.log('[useFarm] purchaseSupplies called:', { supplyType, amount });
             if (!backendActor) throw new Error('Not authenticated');
-            const result = await backendActor.buySupplies(supplyType, BigInt(amount));
+            const result = await backendActor.purchaseSupplies(supplyType, BigInt(amount));
             if ('Err' in result) throw new Error(getErrorMessage(result.Err));
             return result.Ok;
         },
@@ -538,7 +538,7 @@ export function useLeaderboard() {
         queryKey: ['leaderboard'],
         queryFn: async () => {
             if (!backendActor) throw new Error('Not authenticated');
-            return await backendActor.getLeaderboard();
+            return await backendActor.getGlobalLeaderboard();
         },
         enabled: !!backendActor && isAuthenticated,
         refetchInterval: 1000 * 60 * 5, // 5 minutes

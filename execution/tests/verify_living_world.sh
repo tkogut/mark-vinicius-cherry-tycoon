@@ -134,10 +134,10 @@ dfx canister call backend advancePhase '()' >/dev/null # Maintenance -> Planning
 dfx canister call backend advancePhase '()' >/dev/null # Planning -> Hiring (New Year)
 
 FARM_Y3=$(dfx canister call backend getPlayerFarm '()')
-if echo "$FARM_Y3" | grep -q "hasCropInsurance = false"; then
+if echo "$FARM_Y3" | grep -q "activeInsurance = null"; then
     pass "Insurance policy reset annually ✅"
 else
-    log "Debug: Insurance state: $(echo "$FARM_Y3" | grep "hasCropInsurance")"
+    log "Debug: Insurance state: $(echo "$FARM_Y3" | grep "activeInsurance")"
     fail "Insurance reset failed"
 fi
 

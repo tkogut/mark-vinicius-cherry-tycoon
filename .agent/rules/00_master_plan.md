@@ -1,10 +1,10 @@
 # MASTER PLAN: Mark Vinicius Cherry Tycoon [COORDINATOR]
 
-> **Current Status**: **Phase 8.0 The Competitive Pool — ACTIVE 🏆**
+> **Current Status**: **Phase 9.0 Frontend Implementation — ACTIVE 🎨**
 > **Environment**: **WSL (Ubuntu)** ✅ ACTIVE — `dfx 0.24.3` + `Motoko 0.30.2` (EOP) working.
 > **Protocol**: **Remote Browser** via Port 9222 (Profile: `roostertk`).
 > **Dual-Entrypoint**: `main.mo` (Playground) / `main_mainnet.mo` (Mainnet) strictly maintained.
-> **Last Updated**: 2026-03-10
+> **Last Updated**: 2026-03-11
 
 ## High-Level Roadmap
 
@@ -74,16 +74,16 @@
 - [x] **Event System Architecture**: Modular trigger logic for random occurrences.
 - [x] **Weather Encounters**: Direct backend impact on farm state via specialized events.
 - [x] **Trigger Logic**: Weighted probability tables for seasonal events.
-- [x] **Crop Insurance**: Payout and reset logic implemented and verified.
+- [x] **Crop Insurance**: Payout and reset logic implementation.
 
-### Phase 8.0: The Competitive Pool (ACTIVE ✅)
+### Phase 8.0: The Competitive Pool (COMPLETE ✅)
 - [x] **`auction_logic.mo`**: New module — Pre-Season Futures, Post-Harvest Auctions, Shortfall Logic, Flood Factor.
 - [x] **Type Definitions**: `AuctionContract`, `Bid`, `ContractStatus`, `ContractCategory` in `types.mo`.
 - [x] **API Surface**: 4 new public endpoints in both `main.mo` and `main_mainnet.mo`.
 - [x] **AI Archetypes**: Marek (undercutter), Kasia (bio-specialist), Hans (trap logic) bidding behavior.
-- [x] **Math**: V_bid formula with scaled-integer precision. Market Saturation (Flood Factor) implemented.
+- [x] **Math**: V_bid formula with scaled-integer precision. Market Saturation (Flood Factor) and Recovery implemented.
 
-### Phase 9.0: Frontend Implementation (Paused)
+### Phase 9.0: Frontend Implementation (TODO ⭕)
 - [ ] Build the UI layer for 5.7, 6.1, 7.0, and 8.0 once Backend is "Feature Complete".
 
 ### Phase 10.0: Sports Patron (District League) (DEFERRED — Endgame)
@@ -96,7 +96,7 @@
 
 | Domain | Assigned To | Directive File | Status |
 | :--- | :--- | :--- | :--- |
-| **Backend** | Backend Agent | `.agent/rules/01_backend_backlog.md` | **ACTIVE** — Phase 8.0 Competitive Pool in progress. |
+| **Backend** | Backend Agent | `.agent/rules/01_backend_backlog.md` | **COMPLETE** — Phase 8.0 Competitive Pool implemented. |
 | **Frontend** | Frontend Agent | `.agent/rules/02_frontend_backlog.md` | **PAUSED** — On hold for Headless-First Strategy |
 | **QA** | QA Agent | `.agent/rules/03_qa_checklist.md` | **ACTIVE** — Verify Phase 6.1 Leaderboard logic via Candid |
 | **Security** | Security Agent | `.agent/rules/04_security_backlog.md` | **ACTIVE** — Monitoring for new Phase 7 commits |

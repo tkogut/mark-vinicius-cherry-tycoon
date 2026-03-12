@@ -31,7 +31,7 @@ module {
 
     switch (season) {
       case (#Spring) {
-        // Spring: 20% Late Frost, 15% Disease
+        // Spring: 20% Late Frost, 15% Disease, 15% Rainy
         if (roll < 0.20) {
           eventType := ?#Frost;
           impactDesc := "Late Frost! Protect young buds.";
@@ -51,13 +51,17 @@ module {
             impactDesc := "Monilinia fungus spreading! Flower blight reducing yield.";
             severity := 0.3 + (r2 * 0.3); // 0.3 - 0.6
           };
+        } else if (roll < 0.50) {
+          eventType := ?#Rainy;
+          impactDesc := "Steady Rain. Good for soil, but high disease risk.";
+          severity := 0.3 + (roll * 0.4);
         } else {
-          // 65% Sunny
+          // 50% Sunny
         };
       };
 
       case (#Summer) {
-        // Summer: 20% Drought, 15% Heatwave, 20% Pest Outbreak
+        // Summer: 20% Drought, 15% Heatwave, 20% Pest Outbreak, 10% Rainy
         if (roll < 0.20) {
           eventType := ?#Drought;
           impactDesc := "Severe Drought conditions! Water sources depleting.";
@@ -83,13 +87,17 @@ module {
             impactDesc := "Cherry Fruit Fly infestation! Larvae damaging fruit yield.";
             severity := 0.4 + (r2 * 0.4); // 0.4 - 0.8
           };
+        } else if (roll < 0.65) {
+          eventType := ?#Rainy;
+          impactDesc := "Summer Storms. Provides much-needed water.";
+          severity := 0.5;
         } else {
-           // 45% Sunny
+           // 35% Sunny
         };
       };
 
       case (#Autumn) {
-        // Autumn: 10% Early Frost, 10% Flood
+        // Autumn: 10% Early Frost, 10% Flood, 30% Rainy
         if (roll < 0.10) {
           eventType := ?#Frost;
           impactDesc := "Early Frost. Harvest quickly!";
@@ -102,8 +110,12 @@ module {
           let (s2, r2) = nextRandom(currentSeed);
           currentSeed := s2;
           severity := 0.8 + (r2 * 0.2); // 0.8 - 1.0
+        } else if (roll < 0.50) {
+          eventType := ?#Rainy;
+          impactDesc := "Persistent Rain. Soil becoming waterlogged.";
+          severity := 0.6;
         } else {
-          // 80% Sunny / Normal
+          // 50% Sunny / Normal
         };
       };
 

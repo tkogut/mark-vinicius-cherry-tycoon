@@ -80,7 +80,7 @@
 > **Backend complete 2026-03-10.** 4 new endpoints available. UI implementation pending until full backend feature-complete.
 
 - [ ] **`AuctionDashboard.tsx`**: Imperial Contracts list — category badge (Export/Bio/Industrial), base price, required volume, status chip.
-- [ ] **`BidModal.tsx`**: Closed-bid submission form — offer price input, estimated V_bid score preview, confirm/cancel.
+- [x] **`BidModal.tsx`**: Closed-bid submission form — offer price input, estimated V_bid score preview, confirm/cancel.
 - [ ] **`PreSeasonFutureModal.tsx`**: Planning-phase commitment flow — locked price display, commitment fee breakdown, risk summary.
 - [ ] **`ShortfallAlert.tsx`**: Storage-phase notification — buyback cost vs. default penalty comparison, one-click resolve.
 - [ ] **`FloodFactorIndicator.tsx`**: Spot price ticker with flood degradation warning (red when < starting price).

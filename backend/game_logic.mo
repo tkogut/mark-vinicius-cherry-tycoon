@@ -365,6 +365,28 @@ module {
     Int.abs(Float.toInt(Float.fromInt(baseYield) * impact))
   };
 
+  public func applyWeatherQualityImpact(
+    baseQuality: Nat,
+    weather: Types.Weather,
+    severity: Float
+  ) : Nat {
+    let impact = switch (weather) {
+      case (#Sunny) { 0.0 };
+      case (#Rainy) { -(severity * 5.0) };    // -0 to -5 points
+      case (#Frost) { -(severity * 20.0) };   // -0 to -20 points
+      case (#Drought) { -(severity * 10.0) };  // -0 to -10 points
+      case (#Heatwave) { -(severity * 15.0) }; // -0 to -15 points
+      case (#Flood) { -(severity * 30.0) };    // -0 to -30 points
+      case (#PestOutbreak) { -(severity * 25.0) }; 
+      case (#DiseaseOutbreak) { -(severity * 40.0) };
+    };
+
+    let newQuality = (baseQuality : Int) + Float.toInt(impact);
+    if (newQuality < 0) return 0;
+    if (newQuality > 100) return 100;
+    Int.abs(newQuality)
+  };
+
   // ============================================================================
   // EXPERIENCE AND LEVELING
   // ============================================================================

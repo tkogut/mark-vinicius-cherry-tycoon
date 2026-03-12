@@ -1,12 +1,12 @@
 # BACKEND AGENT: Mark Vinicius Cherry Tycoon [BACKEND]
 
-> **Current Directive**: **Phase 8.0 Competitive Pool — ACTIVE.** Implementing Market Rivalry & Auction Systems. Sports Patron deferred to Phase 10.0. 🏆
+> **Current Directive**: **Phase 9.0 Frontend Implementation — PENDING.** All Backend core logic is feature-complete. 🚀
 > **Handshake**: Dual-Entrypoint parity verified for all changes. Event system and Insurance active.
 > **Strategy Shift**: **Headless-First (Backend-Heavy)**. Frontend UI is paused. We are building the engine core first.
 > **Constraint**: **WSL Terminal Required** - Use Windows path for files, but User executes `dfx` and `npm` commands in WSL terminal manually.
 > **Architecture**: **Dual Entrypoint** - `main.mo` (Playground) + `main_mainnet.mo` (Mainnet). **STRICT PARITY REQUIRED.**
 > **Protocol**: **Remote Browser** via Port 9222 (Profile: `roostertk`).
-> **Last Updated**: 2026-03-10
+> **Last Updated**: 2026-03-11
 
 ## Backlog
 
@@ -18,6 +18,16 @@
 - [x] **SEC-020: Purge Legacy `buySupplies`** — Removed duplicate legacy function from both entrypoints. All purchases now route through `purchaseSupplies` (Phase 5.7). ✅ *DONE 2026-03-10*
 
 ---
+
+---
+
+### ✅ Phase 7.0: The Living World (COMPLETE)
+- [x] **GDD Alignment Review**: Read `.agent/knowledge/gdd_alignment_report.md` and `.agent/knowledge/gdd_analysis.md`. ✅
+- [x] **Insurance System**: Implement `buyInsurance` and payout logic tied to events. ✅
+- [x] **Trigger Logic**: Implement weighted probability engine in `advancePhase`. ✅
+- [x] **Weather Encounters**: Add specific data-driven events (Heatwaves, Floods, Pest Outbreaks). ✅
+- [x] **Persistence**: Ensure event states are captured in `Stable` storage. ✅
+- [x] **Dual-Entrypoint**: Mirror all logic in `main.mo` and `main_mainnet.mo`. ✅
 
 ### ✅ Phase 8.0: The Competitive Pool (COMPLETE)
 > **Primary Spec**: `.agent/knowledge/gdd_competitive_pool.md`
