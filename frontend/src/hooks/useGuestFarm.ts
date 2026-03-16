@@ -296,9 +296,9 @@ export function useGuestFarm() {
 
             let price = 0n;
             switch (supplyType) {
-                case "Fertilizer": price = f.inputMarket.fertilizerPrice; break;
-                case "Pesticide": price = f.inputMarket.pesticidePrice; break;
-                case "OrganicTreatment": price = f.inputMarket.organicTreatmentPrice; break;
+                case "fertilizer": price = f.inputMarket.fertilizerPrice; break;
+                case "pesticide": price = f.inputMarket.pesticidePrice; break;
+                case "organicTreatment": price = f.inputMarket.organicTreatmentPrice; break;
                 default: throw new Error("Invalid supply type");
             }
 
@@ -310,9 +310,9 @@ export function useGuestFarm() {
 
             f.cash -= totalCost;
 
-            if (supplyType === "Fertilizer") f.inventory.fertilizers += BigInt(amount);
-            if (supplyType === "Pesticide") f.inventory.pesticides += BigInt(amount);
-            if (supplyType === "OrganicTreatment") f.inventory.organicTreatments += BigInt(amount);
+            if (supplyType === "fertilizer") f.inventory.fertilizers += BigInt(amount);
+            if (supplyType === "pesticide") f.inventory.pesticides += BigInt(amount);
+            if (supplyType === "organicTreatment") f.inventory.organicTreatments += BigInt(amount);
 
             return f;
         });

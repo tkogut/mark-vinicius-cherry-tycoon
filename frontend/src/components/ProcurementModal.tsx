@@ -21,7 +21,7 @@ export function ProcurementModal({ onPurchased, onClose }: ProcurementModalProps
 
     const supplies = [
         {
-            id: "Fertilizer",
+            id: "fertilizer",
             name: "NPK Fertilizer",
             description: "Standard industrial yield booster.",
             price: Number(market.fertilizerPrice),
@@ -30,7 +30,7 @@ export function ProcurementModal({ onPurchased, onClose }: ProcurementModalProps
             bgHover: "hover:border-amber-500/50 hover:bg-amber-950/30"
         },
         {
-            id: "Pesticide",
+            id: "pesticide",
             name: "Chemical Pesticide",
             description: "Aggressive pest control.",
             price: Number(market.pesticidePrice),
@@ -39,7 +39,7 @@ export function ProcurementModal({ onPurchased, onClose }: ProcurementModalProps
             bgHover: "hover:border-rose-500/50 hover:bg-rose-950/30"
         },
         {
-            id: "OrganicTreatment",
+            id: "organicTreatment",
             name: "Organic Treatment",
             description: "Victorian botanic brew. Certified safe.",
             price: Number(market.organicTreatmentPrice),
@@ -96,8 +96,8 @@ export function ProcurementModal({ onPurchased, onClose }: ProcurementModalProps
                                     key={supply.id}
                                     onClick={() => setSelectedSupply(supply.id)}
                                     className={`relative p-4 rounded-lg border text-left transition-all duration-300 w-full flex flex-col justify-between ${isSelected
-                                            ? `border-${supply.color.split('-')[1]}-500 bg-[#2a241e] ring-1 ring-${supply.color.split('-')[1]}-500/50 shadow-inner`
-                                            : `border-[#3d2e1f] bg-[#161210] ${supply.bgHover}`
+                                        ? `border-${supply.color.split('-')[1]}-500 bg-[#2a241e] ring-1 ring-${supply.color.split('-')[1]}-500/50 shadow-inner`
+                                        : `border-[#3d2e1f] bg-[#161210] ${supply.bgHover}`
                                         }`}
                                 >
                                     <div className="mb-4">
@@ -178,10 +178,10 @@ export function ProcurementModal({ onPurchased, onClose }: ProcurementModalProps
                             onClick={handlePurchase}
                             disabled={buySupplies.isPending || !selectedSupply || !canAfford}
                             className={`h-12 px-8 font-bold font-serif uppercase tracking-wider transition-all duration-300 ${buySupplies.isPending
-                                    ? 'bg-amber-900/50 text-amber-100/50'
-                                    : canAfford && selectedSupply
-                                        ? 'bg-emerald-700 hover:bg-emerald-600 text-white shadow-[0_0_15px_rgba(4,120,87,0.4)] border border-emerald-500/50'
-                                        : 'bg-[#2a241e] text-amber-100/30'
+                                ? 'bg-amber-900/50 text-amber-100/50'
+                                : canAfford && selectedSupply
+                                    ? 'bg-emerald-700 hover:bg-emerald-600 text-white shadow-[0_0_15px_rgba(4,120,87,0.4)] border border-emerald-500/50'
+                                    : 'bg-[#2a241e] text-amber-100/30'
                                 }`}
                         >
                             {buySupplies.isPending ? "Processing..." : "Authorize Transaction"}
