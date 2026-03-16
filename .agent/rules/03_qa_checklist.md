@@ -46,6 +46,13 @@
 - [ ] **[TODO] Flood Factor degradation test**:
   - Submit losing bid → verify `stableSpotPrice` decreased
 
+### 🎨 Phase 8.1: Frontend Refinement (ACTIVE — PRIORITY 2)
+- [x] **Bid Modal Layout Verification**: Gauges, Dial, and Rivalry Cards correctly spaced (v3.8). ✅
+- [x] **Currency Localization**: Verified "PLN" and "PLN / t" labels across all controls. ✅
+- [x] **Tooltip System**: Verified help clouds appear on hover and toggle correctly. ✅
+- [x] **Pricing Accuracy**: Verified that 5500 PLN/t displays correctly as 5.50 PLN/kg equivalent. ✅
+- [ ] **Mobile Responsiveness**: Verify layout on 375px width (iPhone SE).
+
 ### 🟣 Phase 10.0: Sports Patron Tests (DEFERRED — Endgame)
 > **Status**: Deferred by Producer directive. Tests pending until `patron_logic.mo` is implemented.
 - [ ] **[FUTURE] `test_patron_logic.sh`**:

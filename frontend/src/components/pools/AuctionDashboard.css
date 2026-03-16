@@ -1,0 +1,143 @@
+/* 
+  Mark Vinicius Cherry Tycoon - Auction Dashboard Styling
+  Aesthetic: .mechanical-hull (Brass, Mahogany, Steam)
+*/
+
+.auction-dashboard {
+  padding: 2rem;
+  background: radial-gradient(circle at center, #1a1510 0%, #0d0b09 100%);
+  min-height: 80vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.mechanical-hull-header {
+  border-bottom: 2px solid #b8860b;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mechanical-hull-header h2 {
+  font-family: 'Inter', sans-serif;
+  color: #d4af37;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.market-ticker {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.5rem 1rem;
+  border: 1px solid #4a3728;
+  border-radius: 4px;
+  font-family: 'Courier New', Courier, monospace;
+  color: #00ff41; /* Vintage green phosphor display style */
+  box-shadow: inset 0 0 5px rgba(0, 255, 65, 0.3);
+}
+
+.contracts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.contract-card {
+  background: url('/assets/textures/old-parchment.jpg'), #f4e4bc;
+  background-blend-mode: multiply;
+  border: 4px double #8b4513;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 30px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+
+.contract-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 15px 30px rgba(212, 175, 55, 0.3);
+}
+
+.contract-card::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border: 1px solid rgba(139, 69, 19, 0.3);
+  pointer-events: none;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 2px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  border: 1px solid currentColor;
+}
+
+.category-export { color: #2a4d69; background: rgba(42, 77, 105, 0.1); }
+.category-bio { color: #2e7d32; background: rgba(46, 125, 50, 0.1); }
+.category-industrial { color: #bf360c; background: rgba(191, 54, 12, 0.1); }
+
+.contract-stat {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px dotted rgba(0,0,0,0.1);
+  padding-bottom: 0.25rem;
+}
+
+.stat-label { font-size: 0.8rem; color: #5d4037; }
+.stat-value { font-weight: bold; color: #3e2723; }
+
+/* Steam Vent Animation */
+.steam-vent {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: steam-hiss 3s infinite;
+  opacity: 0;
+}
+
+@keyframes steam-hiss {
+  0% { transform: translateY(0) scale(1); opacity: 0; filter: blur(2px); }
+  20% { opacity: 0.6; }
+  100% { transform: translateY(-100px) scale(4); opacity: 0; filter: blur(8px); }
+}
+
+.bid-action-btn {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  background: linear-gradient(to bottom, #d4af37, #b8860b);
+  border: 1px solid #8b4513;
+  color: #3e2723;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #5d4037;
+  transition: all 0.1s ease;
+}
+
+.bid-action-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #5d4037;
+}
+
+.bid-action-btn:disabled {
+  background: #ccc;
+  border-color: #999;
+  box-shadow: 0 4px 0 #666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}

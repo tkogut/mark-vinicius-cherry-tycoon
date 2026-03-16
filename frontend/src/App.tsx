@@ -34,7 +34,7 @@ import { PhaseIndicator } from "@/components/season/PhaseIndicator"
 import { WeatherEventModal, WeatherEventType } from "@/components/season/WeatherEventModal"
 import { WeatherOverlay } from "@/components/season/WeatherOverlay"
 import { SeasonalEffects } from "@/components/season/SeasonalEffects"
-import { BidModal } from "@/components/pools/BidModal"
+import { AuctionDashboard } from "@/components/pools/AuctionDashboard";
 
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
@@ -65,7 +65,7 @@ function AppContent() {
     const [isShopModalOpen, setIsShopModalOpen] = useState(false);
     const [hiringModalOpen, setHiringModalOpen] = useState(false);
     const [procurementModalOpen, setProcurementModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'harvester'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'harvester' | 'pool'>('dashboard');
 
     // Harvest Velocity — drives the Sunset-Glow particle intensity
     const [harvestVelocity, setHarvestVelocity] = useState(0);
@@ -372,7 +372,6 @@ function AppContent() {
                 season={stats.currentSeason ? Object.keys(stats.currentSeason)[0] as any : null}
             />
             {/* TEMPORARY MOUNT FOR SPRINT VERIFICATION */}
-            <BidModal />
             <Toaster />
             <WeatherEventModal
                 isOpen={!!weatherEvent}
@@ -680,6 +679,8 @@ function AppContent() {
                                     playerReputation={farm?.reputation}
                                     playerName={farm?.playerName}
                                 />
+                            ) : activeTab === 'pool' ? (
+                                <AuctionDashboard />
                             ) : activeTab === 'rankings' ? (
                                 <RankingsPanel
                                     playerStats={{

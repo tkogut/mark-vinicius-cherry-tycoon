@@ -16,6 +16,31 @@ export interface AICompetitorSummary {
 export type AIPersonality = { 'Businessman' : null } |
   { 'Innovator' : null } |
   { 'Traditionalist' : null };
+export interface AuctionContract {
+  'id' : string,
+  'status' : ContractStatus,
+  'committedByPlayer' : [] | [string],
+  'basePricePLN' : bigint,
+  'awardedSeason' : [] | [bigint],
+  'lockedPricePLN' : [] | [bigint],
+  'isPreSeason' : boolean,
+  'winnerPlayerId' : [] | [string],
+  'category' : ContractCategory,
+  'shortfallKg' : [] | [bigint],
+  'winnerBidPLN' : [] | [bigint],
+  'requiredVolumeKg' : bigint,
+}
+export interface Bid {
+  'isOrganic' : boolean,
+  'offerPricePLN' : bigint,
+  'isAI' : boolean,
+  'submittedSeason' : bigint,
+  'globalPrestige' : bigint,
+  'bidderId' : string,
+  'localReputation' : bigint,
+  'contractId' : string,
+  'volumeCommittedKg' : bigint,
+}
 export interface CherryParcel {
   'id' : string,
   'pH' : number,
@@ -59,11 +84,19 @@ export interface CherryParcel__1 {
 export type CommuneType = { 'Urban' : null } |
   { 'Rural' : null } |
   { 'Mixed' : null };
+export type ContractCategory = { 'Bio' : null } |
+  { 'Industrial' : null } |
+  { 'Export' : null };
+export type ContractStatus = { 'Open' : null } |
+  { 'Awarded' : null } |
+  { 'Defaulted' : null } |
+  { 'Fulfilled' : null };
 export interface FarmOverview {
   'currentPhase' : SeasonPhase,
   'totalTrees' : bigint,
   'ownedClubs' : Array<string>,
   'cash' : bigint,
+  'debt' : bigint,
   'currentSeason' : Season,
   'playerId' : string,
   'inventory' : Inventory,
@@ -72,6 +105,7 @@ export interface FarmOverview {
   'seasonNumber' : bigint,
   'playerName' : string,
   'parcelCount' : bigint,
+  'lastAuctionResolutionSeason' : bigint,
   'weather' : [] | [WeatherEvent],
 }
 export interface FootballClub {
@@ -126,17 +160,25 @@ export type GameResult = { 'Ok' : string } |
   { 'Err' : GameError };
 export type GameResult_1 = { 'Ok' : bigint } |
   { 'Err' : GameError };
-export type GameResult_10 = { 'Ok' : FarmOverview } |
+export type GameResult_10 = { 'Ok' : Inventory__1 } |
   { 'Err' : GameError };
-export type GameResult_11 = { 'Ok' : Array<FootballClub> } |
+export type GameResult_11 = { 'Ok' : FarmOverview } |
   { 'Err' : GameError };
-export type GameResult_12 = {
+export type GameResult_12 = { 'Ok' : Array<FootballClub> } |
+  { 'Err' : GameError };
+export type GameResult_13 = { 'Ok' : Array<AuctionContract> } |
+  { 'Err' : GameError };
+export type GameResult_14 = { 'Ok' : Array<Bid> } |
+  { 'Err' : GameError };
+export type GameResult_15 = {
     'Ok' : {
       'available' : bigint,
       'isRisky' : boolean,
       'estimatedCost' : bigint,
     }
   } |
+  { 'Err' : GameError };
+export type GameResult_16 = { 'Ok' : InsurancePolicy } |
   { 'Err' : GameError };
 export type GameResult_2 = { 'Ok' : ForecastReport } |
   { 'Err' : GameError };
@@ -150,9 +192,11 @@ export type GameResult_6 = { 'Ok' : PlayerFarm } |
   { 'Err' : GameError };
 export type GameResult_7 = { 'Ok' : CherryParcel__1 } |
   { 'Err' : GameError };
-export type GameResult_8 = { 'Ok' : MarketPrice } |
+export type GameResult_8 = {
+    'Ok' : { 'contracts' : Array<AuctionContract>, 'spotPrice' : bigint }
+  } |
   { 'Err' : GameError };
-export type GameResult_9 = { 'Ok' : Inventory__1 } |
+export type GameResult_9 = { 'Ok' : MarketPrice } |
   { 'Err' : GameError };
 export interface Infrastructure {
   'purchasedSeason' : bigint,
@@ -174,6 +218,18 @@ export interface InputMarket {
   'pesticidePrice' : bigint,
   'organicTreatmentPrice' : bigint,
 }
+export interface InsurancePolicy {
+  'id' : string,
+  'premium' : bigint,
+  'category' : InsuranceType,
+  'activeUntilSeason' : bigint,
+  'payout' : bigint,
+}
+export type InsuranceType = { 'Pest' : null } |
+  { 'Flood' : null } |
+  { 'Frost' : null } |
+  { 'AllIn' : null } |
+  { 'Drought' : null };
 export interface Inventory {
   'fertilizers' : bigint,
   'pesticides' : bigint,
@@ -225,18 +281,20 @@ export interface PlayerFarm {
   'owner' : Principal,
   'ownedClubs' : Array<string>,
   'cash' : bigint,
+  'debt' : bigint,
   'currentSeason' : Season,
   'playerId' : string,
   'inventory' : Inventory,
   'reputation' : bigint,
-  'hasCropInsurance' : boolean,
   'level' : bigint,
   'experience' : bigint,
   'seasonNumber' : bigint,
   'hiredLabor' : [] | [LaborType],
   'infrastructure' : Array<Infrastructure>,
+  'activeInsurance' : [] | [InsurancePolicy],
   'playerName' : string,
   'inputMarket' : InputMarket,
+  'lastAuctionResolutionSeason' : bigint,
   'weather' : [] | [WeatherEvent],
   'parcels' : Array<CherryParcel>,
   'lastActive' : bigint,
@@ -389,20 +447,30 @@ export interface _SERVICE {
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'assignParcelToPlayer' : ActorMethod<[string, Principal], GameResult>,
   'buyClubShares' : ActorMethod<[string, bigint], GameResult>,
+  'buyInsurance' : ActorMethod<[InsuranceType], GameResult_16>,
   'buyParcel' : ActorMethod<[string, bigint], GameResult>,
-  'checkStability' : ActorMethod<[], GameResult_12>,
+  'checkStability' : ActorMethod<[], GameResult_15>,
+  'commitPreSeasonFuture' : ActorMethod<[string, bigint], GameResult>,
   'cutAndPrune' : ActorMethod<[string], GameResult>,
+  'debugClearBidsAndContracts' : ActorMethod<[], GameResult>,
+  'debugClearMarket' : ActorMethod<[], GameResult>,
+  'debugGetBids' : ActorMethod<[], GameResult_14>,
   'debugResetPlayer' : ActorMethod<[], GameResult>,
+  'debugSetHansStorage' : ActorMethod<[bigint], GameResult>,
+  'debugSetInventory' : ActorMethod<[bigint, bigint], GameResult>,
+  'debugSetWeather' : ActorMethod<[Weather, number, boolean], GameResult>,
   'fertilizeParcel' : ActorMethod<[string, string], GameResult>,
-  'getAvailableFootballClubs' : ActorMethod<[], GameResult_11>,
+  'getActiveContracts' : ActorMethod<[], GameResult_13>,
+  'getAvailableFootballClubs' : ActorMethod<[], GameResult_12>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCashBalance' : ActorMethod<[], GameResult_1>,
   'getCompetitorSummaries' : ActorMethod<[], Array<AICompetitorSummary>>,
-  'getFarmOverview' : ActorMethod<[], GameResult_10>,
+  'getFarmOverview' : ActorMethod<[], GameResult_11>,
   'getGlobalLeaderboard' : ActorMethod<[], Array<LeaderboardEntry>>,
   'getGlobalSeason' : ActorMethod<[], bigint>,
-  'getInventory' : ActorMethod<[], GameResult_9>,
-  'getMarketPrices' : ActorMethod<[], GameResult_8>,
+  'getInventory' : ActorMethod<[], GameResult_10>,
+  'getMarketPrices' : ActorMethod<[], GameResult_9>,
+  'getMarketState' : ActorMethod<[], GameResult_8>,
   'getParcelDetails' : ActorMethod<[string], GameResult_7>,
   'getPlayerFarm' : ActorMethod<[], GameResult_6>,
   'getPlayerRank' : ActorMethod<[Principal], [] | [bigint]>,
@@ -420,8 +488,10 @@ export interface _SERVICE {
   'purchaseMarketForecast' : ActorMethod<[], GameResult_2>,
   'purchaseParcel' : ActorMethod<[Province, number], GameResult>,
   'purchaseSupplies' : ActorMethod<[string, bigint], GameResult>,
+  'resolveSeasonAuctions' : ActorMethod<[], GameResult>,
   'sellCherries' : ActorMethod<[bigint, string], GameResult_1>,
   'startOrganicConversion' : ActorMethod<[string], GameResult>,
+  'submitAuctionBid' : ActorMethod<[string, bigint], GameResult>,
   'upgradeInfrastructure' : ActorMethod<[string], GameResult>,
   'upgrade_golden_harvester' : ActorMethod<[], GameResult_1>,
   'waterParcel' : ActorMethod<[string], GameResult>,

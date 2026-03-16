@@ -8,25 +8,25 @@ description: Orchestration for remote browser-subagent connection over CDP bridg
 ## Overview
 This skill governs how agents interact with the web browser when running in a WSL2 environment. It bypasses local browser launches in favor of a bridged CDP connection to a Windows-hosted Chrome instance.
 
-## Connection Protocol
-- **Endpoint**: `http://localhost:9222`
-- **Method**: `browserType.connectOverCDP`
-- **Constraint**: NEVER use `browser.launch()`. agents must share the single bridged session.
+## Connection Protocol (Dual-Port Strategy)
+- **Endpoint**: `http://127.0.0.1:9222` (Mapped locally in WSL).
+- **Remote Target**: `WINDOWS_IP:9223` (Host Windows).
+- **Method**: `browserType.connectOverCDP`.
+- **Constraint**: NEVER use `browser.launch()`. Use `roostertk` profile.
 
-## Verification Workflow
-Before performing any browser actions, verify the bridge integrity:
-1. **Bridge Audit**: Check if `python3 wsl_bridge.py` is running in WSL.
-2. **Target Discovery**: Query `http://localhost:9222/json`.
-3. **Responsive Check**: Ensure the AntiGravity extension is detected in the target list.
+## Verification Workflow (Check_Bridge_Health)
+1. **IP Detection**: `ip route show | grep default | awk '{print $3}'`.
+2. **Bridge Audit**: Ensure `start_tunnel.py` or `wsl_bridge_universal.py` is active.
+3. **Endpoint Ping**: `curl -I http://127.0.0.1:9222/json/version`.
+4. **Diagnostic Filter**:
+   - `Exit Code 7 (Failed to connect)` -> Bridge script is DEAD.
+   - `Empty reply from server` -> Chrome is running but CDP Port is CLOSED.
+   - `HTTP 200` -> Connection Stable.
 
 ## Error Recovery
-- If "Connection Refused":
-  - Validate that `wsl_bridge.py` is running.
-  - Restart bridge: `nohup python3 /home/tkogut/projects/mark-vinicius-cherry-tycoon/execution/wsl_bridge.py > /tmp/wsl_bridge.log 2>&1 &`
-- If bridge is running but `curl` hangs:
-  - Verify Windows Gateway IP (usually `172.20.32.1` or `172.27.32.1`).
-  - Ensure Windows Chrome is launched with `--remote-debugging-port=9222`.
-  - Check Windows `netsh interface portproxy` settings.
+- **If Bridge is Dead**: Run `python3 execution/start_tunnel.py`.
+- **If Port 9223 Blocked**: Tell user: "Proszę zresetować netsh: `netsh interface portproxy reset`".
+- **If Chrome Unresponsive**: Verify flags: `--remote-debugging-port=9222` is mandatory.
 
 ## Handshake Protocol
-> "Browser Handshake: CDP Connection verified at http://localhost:9222 via wsl_bridge.py."
+> "Browser Handshake: CDP Connection verified at http://localhost:9222 via wsl_bridge_universal.py."

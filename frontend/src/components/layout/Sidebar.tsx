@@ -13,7 +13,7 @@ interface SidebarProps {
     xp: number;
     nextLevelXp: number;
     activeTab: string;
-    onTabChange: (tab: 'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings') => void;
+    onTabChange: (tab: 'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'pool') => void;
     ownedInfrastructure: any[];
     parcels: any[];
     onOpenFinancialReport: () => void;
@@ -32,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
         { id: 'shop', icon: Sparkles, label: 'Premium Shop' },
         { id: 'rankings', icon: Trophy, label: t('nav.rankings') },
         { id: 'neighbors', icon: User, label: t('nav.neighbors') },
+        { id: 'pool', icon: PieChart, label: 'Imperial Pool' },
         { id: 'sports', icon: Zap, label: t('nav.sports') },
     ];
 
@@ -69,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                         onOpenShop();
                                         return;
                                     }
-                                    if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings') {
+                                    if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool') {
                                         onTabChange(item.id as any);
                                     }
                                 }}
@@ -212,7 +213,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                 onOpenShop();
                                 return;
                             }
-                            if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings') {
+                            if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool') {
                                 onTabChange(item.id as any);
                             }
                         }}
@@ -260,7 +261,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                             onClose();
                                             return;
                                         }
-                                        if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings') {
+                                        if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool') {
                                             onTabChange(item.id as any);
                                             onClose();
                                         }

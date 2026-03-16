@@ -1,10 +1,10 @@
 # MASTER PLAN: Mark Vinicius Cherry Tycoon [COORDINATOR]
 
-> **Current Status**: **Phase 9.0 Frontend Implementation — ACTIVE 🎨**
+> **Current Status**: **Phase 11.0: Advanced AI Market Competitors — PLANNING 🤖**
 > **Environment**: **WSL (Ubuntu)** ✅ ACTIVE — `dfx 0.24.3` + `Motoko 0.30.2` (EOP) working.
 > **Protocol**: **Remote Browser** via Port 9222 (Profile: `roostertk`).
 > **Dual-Entrypoint**: `main.mo` (Playground) / `main_mainnet.mo` (Mainnet) strictly maintained.
-> **Last Updated**: 2026-03-11
+> **Last Updated**: 2026-03-16
 
 ## High-Level Roadmap
 
@@ -83,8 +83,16 @@
 - [x] **AI Archetypes**: Marek (undercutter), Kasia (bio-specialist), Hans (trap logic) bidding behavior.
 - [x] **Math**: V_bid formula with scaled-integer precision. Market Saturation (Flood Factor) and Recovery implemented.
 
-### Phase 9.0: Frontend Implementation (TODO ⭕)
-- [ ] Build the UI layer for 5.7, 6.1, 7.0, and 8.0 once Backend is "Feature Complete".
+### Phase 9.0: Frontend Implementation (PROD-READY (Local) ✅)
+- [x] **Phase 8.1**: Imperial Contract Bid Modal + Refined Gauge System. ✅ *DONE v3.8*
+- [x] **Phase 9.0**: Auction Dashboard core implementation and verification. ✅ *DONE 2026-03-16*
+- [ ] **Phase 7.0**: Weather & Event UI integration.
+- [ ] **Phase 6.1**: Enhanced Leaderboard & Rankings UI.
+
+### Phase 11.0: Advanced AI Market Competitors (PLANNING 🤖)
+- [ ] **Archetype Core**: Define Aggressive, Eco, and Balanced bidding strategies.
+- [ ] **Behavioral Logic**: Implement strategy-selection based on season and inventory.
+- [ ] **Vibe Integration**: Link AI status to visual dashboard feedback.
 
 ### Phase 10.0: Sports Patron (District League) (DEFERRED — Endgame)
 > **Deferred** by Producer directive. Implement after Phase 8.0 auction engine is verified.
@@ -97,7 +105,7 @@
 | Domain | Assigned To | Directive File | Status |
 | :--- | :--- | :--- | :--- |
 | **Backend** | Backend Agent | `.agent/rules/01_backend_backlog.md` | **COMPLETE** — Phase 8.0 Competitive Pool implemented. |
-| **Frontend** | Frontend Agent | `.agent/rules/02_frontend_backlog.md` | **PAUSED** — On hold for Headless-First Strategy |
+| **Frontend** | Frontend Agent | `.agent/rules/02_frontend_backlog.md` | **ACTIVE** — Phase 8.1 (Bid Modal) complete. Refining UI. |
 | **QA** | QA Agent | `.agent/rules/03_qa_checklist.md` | **ACTIVE** — Verify Phase 6.1 Leaderboard logic via Candid |
 | **Security** | Security Agent | `.agent/rules/04_security_backlog.md` | **ACTIVE** — Monitoring for new Phase 7 commits |
 

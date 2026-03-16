@@ -168,16 +168,18 @@ type Province =
 type PrestigeScore = nat;
 type PlayerFarm = 
  record {
+   activeInsurance: opt InsurancePolicy;
    cash: nat;
    currentPhase: SeasonPhase;
    currentSeason: Season;
+   debt: nat;
    experience: nat;
-   hasCropInsurance: bool;
    hiredLabor: opt LaborType;
    infrastructure: vec Infrastructure;
    inputMarket: InputMarket;
    inventory: Inventory;
    lastActive: nat;
+   lastAuctionResolutionSeason: nat;
    level: nat;
    ownedClubs: vec text;
    owner: principal;
@@ -246,6 +248,22 @@ type Inventory =
    organicTreatments: nat;
    pesticides: nat;
  };
+type InsuranceType = 
+ variant {
+   AllIn;
+   Drought;
+   Flood;
+   Frost;
+   Pest;
+ };
+type InsurancePolicy = 
+ record {
+   activeUntilSeason: nat;
+   category: InsuranceType;
+   id: text;
+   payout: nat;
+   premium: nat;
+ };
 type InputMarket = 
  record {
    fertilizerPrice: nat;
@@ -274,12 +292,15 @@ type Infrastructure =
 type GameResult_9 = 
  variant {
    Err: GameError;
-   Ok: Inventory__1;
+   Ok: MarketPrice;
  };
 type GameResult_8 = 
  variant {
    Err: GameError;
-   Ok: MarketPrice;
+   Ok: record {
+         contracts: vec AuctionContract;
+         spotPrice: nat;
+       };
  };
 type GameResult_7 = 
  variant {
@@ -311,7 +332,12 @@ type GameResult_2 =
    Err: GameError;
    Ok: ForecastReport;
  };
-type GameResult_12 = 
+type GameResult_16 = 
+ variant {
+   Err: GameError;
+   Ok: InsurancePolicy;
+ };
+type GameResult_15 = 
  variant {
    Err: GameError;
    Ok: record {
@@ -320,15 +346,30 @@ type GameResult_12 =
          isRisky: bool;
        };
  };
-type GameResult_11 = 
+type GameResult_14 = 
+ variant {
+   Err: GameError;
+   Ok: vec Bid;
+ };
+type GameResult_13 = 
+ variant {
+   Err: GameError;
+   Ok: vec AuctionContract;
+ };
+type GameResult_12 = 
  variant {
    Err: GameError;
    Ok: vec FootballClub;
  };
-type GameResult_10 = 
+type GameResult_11 = 
  variant {
    Err: GameError;
    Ok: FarmOverview;
+ };
+type GameResult_10 = 
+ variant {
+   Err: GameError;
+   Ok: Inventory__1;
  };
 type GameResult_1 = 
  variant {
@@ -400,8 +441,10 @@ type FarmOverview =
    cash: nat;
    currentPhase: SeasonPhase;
    currentSeason: Season;
+   debt: nat;
    experience: nat;
    inventory: Inventory;
+   lastAuctionResolutionSeason: nat;
    level: nat;
    ownedClubs: vec text;
    parcelCount: nat;
@@ -410,6 +453,19 @@ type FarmOverview =
    seasonNumber: nat;
    totalTrees: nat;
    weather: opt WeatherEvent;
+ };
+type ContractStatus = 
+ variant {
+   Awarded;
+   Defaulted;
+   Fulfilled;
+   Open;
+ };
+type ContractCategory = 
+ variant {
+   Bio;
+   Export;
+   Industrial;
  };
 type CommuneType = 
  variant {
@@ -459,6 +515,33 @@ type CherryParcel =
    treeAge: nat;
    waterLevel: float64;
  };
+type Bid = 
+ record {
+   bidderId: text;
+   contractId: text;
+   globalPrestige: nat;
+   isAI: bool;
+   isOrganic: bool;
+   localReputation: nat;
+   offerPricePLN: nat;
+   submittedSeason: nat;
+   volumeCommittedKg: nat;
+ };
+type AuctionContract = 
+ record {
+   awardedSeason: opt nat;
+   basePricePLN: nat;
+   category: ContractCategory;
+   committedByPlayer: opt text;
+   id: text;
+   isPreSeason: bool;
+   lockedPricePLN: opt nat;
+   requiredVolumeKg: nat;
+   shortfallKg: opt nat;
+   status: ContractStatus;
+   winnerBidPLN: opt nat;
+   winnerPlayerId: opt text;
+ };
 type AIPersonality = 
  variant {
    Businessman;
@@ -483,20 +566,30 @@ service : {
   assignCallerUserRole: (principal, UserRole) -> ();
   assignParcelToPlayer: (text, principal) -> (GameResult);
   buyClubShares: (text, nat) -> (GameResult);
+  buyInsurance: (InsuranceType) -> (GameResult_16);
   buyParcel: (text, nat) -> (GameResult);
-  checkStability: () -> (GameResult_12) query;
+  checkStability: () -> (GameResult_15) query;
+  commitPreSeasonFuture: (text, nat) -> (GameResult);
   cutAndPrune: (text) -> (GameResult);
+  debugClearBidsAndContracts: () -> (GameResult);
+  debugClearMarket: () -> (GameResult);
+  debugGetBids: () -> (GameResult_14) query;
   debugResetPlayer: () -> (GameResult);
+  debugSetHansStorage: (nat) -> (GameResult);
+  debugSetInventory: (nat, nat) -> (GameResult);
+  debugSetWeather: (Weather, float64, bool) -> (GameResult);
   fertilizeParcel: (text, text) -> (GameResult);
-  getAvailableFootballClubs: () -> (GameResult_11) query;
+  getActiveContracts: () -> (GameResult_13) query;
+  getAvailableFootballClubs: () -> (GameResult_12) query;
   getCallerUserRole: () -> (UserRole) query;
   getCashBalance: () -> (GameResult_1) query;
   getCompetitorSummaries: () -> (vec AICompetitorSummary) query;
-  getFarmOverview: () -> (GameResult_10) query;
+  getFarmOverview: () -> (GameResult_11) query;
   getGlobalLeaderboard: () -> (vec LeaderboardEntry) query;
   getGlobalSeason: () -> (nat) query;
-  getInventory: () -> (GameResult_9) query;
-  getMarketPrices: () -> (GameResult_8) query;
+  getInventory: () -> (GameResult_10) query;
+  getMarketPrices: () -> (GameResult_9) query;
+  getMarketState: () -> (GameResult_8) query;
   getParcelDetails: (text) -> (GameResult_7) query;
   getPlayerFarm: () -> (GameResult_6) query;
   getPlayerRank: (principal) -> (opt nat) query;
@@ -514,8 +607,10 @@ service : {
   purchaseMarketForecast: () -> (GameResult_2);
   purchaseParcel: (Province, float64) -> (GameResult);
   purchaseSupplies: (text, nat) -> (GameResult);
+  resolveSeasonAuctions: () -> (GameResult);
   sellCherries: (nat, text) -> (GameResult_1);
   startOrganicConversion: (text) -> (GameResult);
+  submitAuctionBid: (text, nat) -> (GameResult);
   upgradeInfrastructure: (text) -> (GameResult);
   upgrade_golden_harvester: () -> (GameResult_1);
   waterParcel: (text) -> (GameResult);

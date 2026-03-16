@@ -54,13 +54,15 @@ const createInitialGuestFarm = (): PlayerFarm => ({
         pesticides: 5n,
         organicTreatments: 0n,
     },
-    hiredLabor: [], // Added for Motoko 0.30 backend compatibility
+    hiredLabor: [],
     inputMarket: {
         fertilizerPrice: 50n,
         pesticidePrice: 120n,
         organicTreatmentPrice: 200n,
         year: 1n,
     },
+    debt: 0n,
+    activeInsurance: [],
     statistics: {
         totalHarvested: 0n,
         totalSold: 0n,
@@ -74,10 +76,10 @@ const createInitialGuestFarm = (): PlayerFarm => ({
     },
     currentSeason: { Spring: null },
     currentPhase: { Hiring: null },
-    weather: [] as any, // Option type mapped to array in frontend
+    weather: [] as any,
     seasonNumber: 1n,
     lastActive: BigInt(Date.now()),
-    hasCropInsurance: false,
+    lastAuctionResolutionSeason: 0n,
 });
 
 // Helper for generic mutations on local state

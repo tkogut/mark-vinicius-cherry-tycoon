@@ -3,7 +3,15 @@ import { ImperialDial } from '../ui/ImperialDial';
 import { EmeraldGauge } from '../ui/EmeraldGauge';
 import { RivalCard, RivalStatus } from './RivalCard';
 import { SteampunkTooltip } from '../ui/SteampunkTooltip';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, X } from 'lucide-react';
+import { AuctionContract } from '@/declarations/backend.did';
+
+interface BidModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    contract: AuctionContract;
+    onSubmit: (offerPrice: number) => void;
+}
 
 const RivalryDeck = () => {
     return (
@@ -15,23 +23,37 @@ const RivalryDeck = () => {
     );
 };
 
-export const BidModal: React.FC = () => {
-    const [bidValue, setBidValue] = useState(5000);
+export const BidModal: React.FC<BidModalProps> = ({
+    isOpen,
+    onClose,
+    contract,
+    onSubmit
+}) => {
+    const [bidValue, setBidValue] = useState(Number(contract.basePricePLN));
     const [showHelp, setShowHelp] = useState(false);
     const [hoveredEl, setHoveredEl] = useState<string | null>(null);
 
-    // Example V_bid score preview (mock logic)
+    if (!isOpen) return null;
+
+    // Example V_bid score preview (mock logic for Phase 9 prototype)
     const estimatedVbid = Math.floor(bidValue * 1.5 + 200);
 
     const isVisible = (id: string) => showHelp || hoveredEl === id;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="mechanical-hull w-full max-w-md p-6 flex flex-col items-center gap-6">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="mechanical-hull w-full max-w-md p-6 flex flex-col items-center gap-6 relative">
+
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 left-4 p-2 text-[#d4af37]/60 hover:text-[#d4af37] transition-colors"
+                >
+                    <X className="w-5 h-5" />
+                </button>
 
                 <div className="w-full text-center relative">
-                    <h2 className="hull-header text-xl">Imperial Contract Bid</h2>
-                    <p className="text-sm text-yellow-500/70 mt-1">Set your competitive offer</p>
+                    <h2 className="hull-header text-xl">Imperial Bid</h2>
+                    <p className="text-[10px] text-yellow-500/70 mt-1 uppercase tracking-widest">{contract.id}</p>
 
                     <button
                         onClick={() => setShowHelp(!showHelp)}
@@ -61,26 +83,26 @@ export const BidModal: React.FC = () => {
                         </SteampunkTooltip>
                     </div>
 
-                    {/* CENTRAL DIAL - SCALED UP BY 10% FOR v1.8 */}
+                    {/* CENTRAL DIAL */}
                     <div className="flex-shrink-0 w-[154px] sm:w-[176px] flex flex-col items-center relative -top-[10px]">
                         <SteampunkTooltip
-                            content="The price per ton you are willing to accept. Adjusting in increments of 1000 PLN/t allows for grosze-level precision in the final tally."
+                            content="The price per kg you are willing to accept. Lower offers are more attractive to the Imperial inspectors."
                             isVisible={isVisible('price')}
                             position="top"
                         >
                             <div onMouseEnter={() => setHoveredEl('price')} onMouseLeave={() => setHoveredEl(null)}>
                                 <ImperialDial
                                     value={bidValue}
-                                    min={1000}
-                                    max={15000}
+                                    min={1}
+                                    max={Number(contract.basePricePLN)}
                                     onChange={setBidValue}
-                                    label="OFFER PRICE (per ton)"
+                                    label="OFFER PRICE (PLN/kg)"
                                 />
                             </div>
                         </SteampunkTooltip>
                     </div>
 
-                    {/* RIGHT GAUGES - SYMMETRIC GROUP */}
+                    {/* RIGHT GAUGES */}
                     <div className="flex flex-row items-end gap-3 sm:gap-6 flex-shrink-0 w-[130px] sm:w-[160px] justify-end">
                         <SteampunkTooltip
                             content="Current space available in your cargo holds for incoming Contract materials."
@@ -127,14 +149,16 @@ export const BidModal: React.FC = () => {
 
                 <div className="w-full grid grid-cols-2 gap-4 mt-2">
                     <button
-                        className="py-3 px-4 bg-red-900/40 border border-red-500/30 text-red-200 rounded-lg uppercase tracking-wider text-sm font-bold hover:bg-red-900/60 transition-colors"
+                        onClick={onClose}
+                        className="py-3 px-4 bg-red-900/10 border border-red-500/20 text-red-500/60 rounded-lg uppercase tracking-wider text-xs font-bold hover:bg-red-900/30 hover:text-red-400 transition-colors"
                     >
-                        Withdraw
+                        Retract
                     </button>
                     <button
-                        className="py-3 px-4 bg-[#b87333]/20 border border-[#d4af37]/50 text-[#d4af37] rounded-lg uppercase tracking-wider text-sm font-bold hover:bg-[#d4af37]/20 hover:text-yellow-300 transition-colors shadow-[0_0_15px_rgba(212,175,55,0.1)]"
+                        onClick={() => onSubmit(bidValue)}
+                        className="py-3 px-4 bg-[#b87333]/20 border border-[#d4af37]/50 text-[#d4af37] rounded-lg uppercase tracking-wider text-xs font-bold hover:bg-[#d4af37]/20 hover:text-yellow-300 transition-colors shadow-[0_0_15px_rgba(212,175,55,0.1)]"
                     >
-                        Seal Bid
+                        Seal & Submit
                     </button>
                 </div>
 

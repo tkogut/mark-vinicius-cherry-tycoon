@@ -22,7 +22,8 @@ Phase 7.0 (Living World) is COMPLETE. Event engine and Crop Insurance verified o
 2. Monitor progress from all agents (Backend, Frontend, QA, Security).
 3. Coordinate the transition to Phase 8.0: Sports Patron (District League). Phase 9.0 Frontend remains paused.
 4. **BOOTSTRAP SYNC RULE**: Whenever a phase completes or strategies shift, you MUST update `.agent/rules/BOOTSTRAP_PROMPTS.md` and ALL `.agent/workflows/bootstrap-*.md` files so that new multi-agent sessions inherit the correct directives.
-5. Ensure the **roostertk** browser profile is used for all UI verification via Port 9222.
+5. **Bridge Connectivity**: All browser interactions MUST use the tunnel at `http://127.0.0.1:9222`. If connection fails, run `python3 execution/start_tunnel.py`. 
+6. Ensure the **roostertk** browser profile is used for all UI verification.
 
 > ⚠️ **MANDATORY TOOL TRIGGER:**
 > The moment you decide to update the status of a phase or task, your **VERY NEXT ACTION** must be using the file editing tools (`replace_file_content` or `multi_replace_file_content`) to modify `00_master_plan.md` or the respective backlog file. If your decision unblocks or requires action from a specific agent, you must ALSO use the tool to update their respective backlog file to alert them. You are **NOT ALLOWED** to just tell the user the plan is updated without actually using the tools to update these files.
@@ -70,16 +71,17 @@ Producer: JaPiTo Group.
 
 ### 🎭 Animation & UI Standards
 - High-fidelity steampunk aesthetics (.mechanical-hull).
-- Use **roostertk** browser profile for all preview/test sessions via Port 9222.
+- Use **roostertk** browser profile via Port 9222.
+- **Bridge Stability**: Before any UI task, run `python3 execution/start_tunnel.py`.
 - SVG morphing for tree growth and cherry particle bursts are mandatory.
 
 ### 📋 Current Goal:
-**PAUSED** — The Producer has mandated a "Headless-First" focus. Do not proceed with Phase 5.7 UI until Backend and Security are complete.
+**ACTIVE** — Phase 9.0 Frontend Implementation is underway. Phase 8.1 (Imperial Bid Modal) is COMPLETE. Your next priority is to continue building out the remaining components from Phase 8.0 (Competitive Pool).
 
 ### Tasks:
-1. Read `.agent/rules/02_frontend_backlog.md`.
-2. Verify that the `PlanningBoard.tsx` handles the grown `YearlyReport` array without lag.
-3. Align UI state with the latest `getPlayerFarm` return types.
+1. Read `.agent/rules/02_frontend_backlog.md` and `.agent/rules/00_master_plan.md`.
+2. Review the completed `BidModal.tsx` and `ImperialDial.tsx` as the aesthetic baseline (1000-15000 PLN/t precision scaling).
+3. Begin implementation of the next outstanding UI component in the backlog (e.g., `AuctionDashboard.tsx` or `PreSeasonFutureModal.tsx`).
 
 > ⚠️ **MANDATORY TOOL TRIGGER:**
 > The moment you verify a task was successful via `.tmp/frontend.log`, your **VERY NEXT ACTION** must be using the file editing tools (`replace_file_content` or `multi_replace_file_content`) to change `[ ]` to `[x]` in your backlog file. If completing this task unblocks or requires action from another agent, you must ALSO use the tool to update their respective backlog file or the Master Plan to alert them. You are **NOT ALLOWED** to suggest the next task to the user until these file edits have been executed and confirmed.

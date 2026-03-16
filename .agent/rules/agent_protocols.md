@@ -148,7 +148,13 @@ Since agents are in separate chat windows, they do not "talk" directly. They use
 - `frontend/`: Source code (Frontend).
 - `.tmp/`: Scratchpad and logs.
 
-## 🏗️ Added: Browser Tunnel Protocol
-- The browser subagent is bridged to Windows via socat on port 9222.
-- **Profile**: Use the `roostertk` profile for browser sessions.
-- Ensure WIN_IP is correctly mapped in ~/.bashrc to 172.27.32.1.
+## 🏗️ Added: Hardened Browser Bridge Protocol (Dual-Port)
+- **Architecture**: WSL (Admin) <-> Windows Proxy (User/tkogut).
+- **Port Mapping**:
+    - **WSL Local**: Nasłuchuje na `127.0.0.1:9222`.
+    - **Windows Host**: Nasłuchuje na `0.0.0.0:9223` (via `netsh interface portproxy`).
+    - **Chrome Debug**: Nasłuchuje lokalnie na porcie `9222` na Windowsie.
+- **Why**: `netsh` on port 9222 on Windows conflicts with Chrome binding to 9222.
+- **Profile**: Use the `roostertk` profile.
+- **Mandatory Flags**: `--remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --remote-allow-origins=* --user-data-dir=...`
+- **Automation**: Execute `python3 execution/start_tunnel.py` to auto-detect Gateway IP and verify port integrity.

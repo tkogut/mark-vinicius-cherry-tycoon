@@ -1,9 +1,9 @@
 # FRONTEND AGENT: Mark Vinicius Cherry Tycoon [FRONTEND]
 
-> **Current Directive**: **PAUSED — Headless-First Strategy. Backend Phase 8.0 (Competitive Pool) complete.** UI implementation queued for after backend is feature-complete.
+> **Current Directive**: **ACTIVE — Phase 9.0 Frontend Implementation. Phase 8.1 (Imperial Bid Modal) complete.**
 > **Constraint**: **WSL Terminal Required** - For `dfx generate` and environment management.
 > **Animation Directive**: Modern mobile animations — SVG morphing, Lottie, particles. No static jumps.
-> **Last Updated**: 2026-03-10
+> **Last Updated**: 2026-03-12
 
 ## Backlog
 
@@ -76,11 +76,14 @@
 - [x] **Sound Manager**: Global context for SFX/BGM ✅ *DONE*
 - [x] **Assets**: UI Clicks, Harvest, Plant, Cash, Level Up ✅ *DONE*
 - [x] **Controls**: Mute toggle in UI ✅ *DONE*
-### 🟢 Phase 8.0: Competitive Pool UI (QUEUED — Backend Ready ✅)
-> **Backend complete 2026-03-10.** 4 new endpoints available. UI implementation pending until full backend feature-complete.
-
-- [ ] **`AuctionDashboard.tsx`**: Imperial Contracts list — category badge (Export/Bio/Industrial), base price, required volume, status chip.
-- [x] **`BidModal.tsx`**: Closed-bid submission form — offer price input, estimated V_bid score preview, confirm/cancel.
+### 🟢 Phase 8.0: Competitive Pool UI (ACTIVE — Backend Ready ✅)
+- [x] **Backend Type Sync**: Regenerate declarations to include Phase 8.0 endpoints (`getActiveContracts`, `submitAuctionBid`, etc.). ✅ *DONE 2026-03-15*
+- [/] **`AuctionDashboard.tsx`**: Imperial Contracts list — category badge (Export/Bio/Industrial), base price, required volume, status chip.
+- [x] **`BidModal.tsx`**: Closed-bid submission form — offer price input, estimated V_bid score preview, confirm/cancel. ✅ *DONE v3.8*
+- [x] **`EmeraldGauge.tsx`**: Refined alchemical visualization for resource levels. ✅ *DONE*
+- [x] **`ImperialDial.tsx`**: Steampunk rotary control for bid inputs (support for PLN/t). ✅ *DONE*
+- [x] **`SteampunkTooltip.tsx`**: Advanced help-cloud system with parchment styling. ✅ *DONE*
+- [x] **`RivalCard.tsx`**: Animated AI competitor cards for rivalry context. ✅ *DONE*
 - [ ] **`PreSeasonFutureModal.tsx`**: Planning-phase commitment flow — locked price display, commitment fee breakdown, risk summary.
 - [ ] **`ShortfallAlert.tsx`**: Storage-phase notification — buyback cost vs. default penalty comparison, one-click resolve.
 - [ ] **`FloodFactorIndicator.tsx`**: Spot price ticker with flood degradation warning (red when < starting price).
