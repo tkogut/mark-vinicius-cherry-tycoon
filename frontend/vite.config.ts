@@ -72,6 +72,8 @@ export default defineConfig({
         "import.meta.env.VITE_DFX_NETWORK": JSON.stringify(process.env["DFX_NETWORK"] || "local"),
     },
     server: {
+        port: 5173,
+        strictPort: true,
         fs: {
             allow: ["."],
         },

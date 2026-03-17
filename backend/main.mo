@@ -814,9 +814,10 @@ actor CherryTycoon {
           return #Err(#InvalidOperation("No fertilizers in inventory"));
         };
 
-        // Seasonal Check: Fertilization only effective in Spring (growth) or Autumn (post-harvest)
-        if (farm.currentSeason != #Spring and farm.currentSeason != #Autumn) {
-          return #Err(#SeasonalRestriction("Fertilization is only effective in Spring or Autumn"));
+        // Seasonal Check: Fertilization effective in all seasons except for extreme dormancy if/when implemented
+        // Currently allowing all seasons to match frontend phase gating
+        if (farm.currentSeason != #Spring and farm.currentSeason != #Summer and farm.currentSeason != #Autumn and farm.currentSeason != #Winter) {
+          return #Err(#SeasonalRestriction("Fertilization is only effective during active lifecycle phases. Current: " # debug_show(farm.currentSeason)));
         };
         
         // TODO: Future enhancement - use _fertilizerType quality parameter to influence productivity

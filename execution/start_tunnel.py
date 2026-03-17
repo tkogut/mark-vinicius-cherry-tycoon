@@ -26,6 +26,10 @@ def start_bridge():
 def main():
     print("--- 🦾 BROWSER BRIDGE AUTO-RECOVERY ---")
     
+    # 0. Ghost Clean (Port Lockdown)
+    print("[WSL] Performing Ghost Clean on Vite ports (5173-5175)...")
+    subprocess.run("fuser -k 5173/tcp 5174/tcp 5175/tcp || true", shell=True)
+
     # 1. Detect Gateway
     gw_ip = get_gateway_ip()
     print(f"[WSL] Detected Windows Gateway: {gw_ip}")

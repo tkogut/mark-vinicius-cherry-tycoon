@@ -35,3 +35,9 @@ Agents should trigger `python3 execution/start_tunnel.py` before any browser tas
 - Always use the **roostertk** profile.
 - Default Vite port: `5173`.
 - Gateway IP must be dynamically detected via `ip route show | grep default`.
+- **🚨 PORT SAFETY RULE**: Port 9222 is for **Agent Control** (CDP). For **User Interaction/Test**, use `http://localhost:5173/`.
+
+## 5. Rule 05.1: Port Lockdown
+- **Frontend MUST** always run on `http://127.0.0.1:5173`.
+- **Strict Port**: Use `strictPort: true` in `vite.config.ts` to prevent environmental drift.
+- **Ghost Clean**: Before `dfx deploy` or starting Vite, perform a fuser-based cleanup of ports 5173-5175.

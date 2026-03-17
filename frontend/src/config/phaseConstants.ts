@@ -23,12 +23,12 @@ export type GameAction =
 
 export const PHASE_ACTION_GATING: Record<SeasonPhase, GameAction[]> = {
     'Hiring': ['sell'],
-    'Procurement': ['water', 'sell'],
-    'Investment': ['plant', 'organic', 'buy_infrastructure', 'buy_parcel', 'water', 'sell'],
+    'Procurement': ['water', 'fertilize', 'sell'],
+    'Investment': ['plant', 'organic', 'buy_infrastructure', 'buy_parcel', 'water', 'fertilize', 'sell'],
     'Growth': ['water', 'fertilize', 'sell'],
     'Harvest': ['harvest', 'sell'],
-    'Market': ['sell'],
-    'Storage': ['sell'],
+    'Market': ['fertilize', 'sell'],
+    'Storage': ['fertilize', 'sell'],
     'CutAndPrune': ['prune', 'fertilize', 'sell'],
     'Maintenance': ['buy_infrastructure', 'sell'],
     'Planning': ['organic', 'buy_parcel', 'sell']

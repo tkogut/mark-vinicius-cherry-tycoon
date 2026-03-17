@@ -158,3 +158,10 @@ Since agents are in separate chat windows, they do not "talk" directly. They use
 - **Profile**: Use the `roostertk` profile.
 - **Mandatory Flags**: `--remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --remote-allow-origins=* --user-data-dir=...`
 - **Automation**: Execute `python3 execution/start_tunnel.py` to auto-detect Gateway IP and verify port integrity.
+- **🚨 PORT SAFETY RULE (Rule 05.1: Port Lockdown)**:
+    - **Frontend MUST** always run on `http://127.0.0.1:5173`.
+    - **Strict Port**: Use `strictPort: true` in `vite.config.ts` to prevent environmental drift.
+    - **Ghost Clean**: Before `dfx deploy` or starting Vite, perform a fuser-based cleanup using `start_tunnel.py`.
+    - **Backend Integrity**: For structural changes, use `dfx stop && dfx start --clean --background && dfx deploy`.
+    - **Port 9222 (WSL/Local)**: Dedicated to **Remote Debugging (CDP)**. NEVER use this for manual browsing.
+    - **Port 5173 (Local/Vite)**: Dedicated to the **Vite Dev Server**. ALWAYS use this for manual verification.
