@@ -31,13 +31,16 @@ Since native menus `/` may be unstable, **every message starting with `/` is a s
 |---|---|
 | `/ui-factory [component name]` | `.ai/skills/ui-factory/SKILL.md` |
 | `/visualize-concept [description]` | `.ai/skills/ui-factory/SKILL.md` § Nano Banana 2 |
+| `/lore-guardian [character/scene]` | `.ai/skills/ui-factory/SKILL.md` § Lore Guardian |
 | `/connectivity` | `.ai/skills/browser-connectivity/SKILL.md` |
 | `/audit-economy` | `.ai/skills/economic-math-auditor/SKILL.md` |
 | `/check-dual` | `.ai/skills/dual-entrypoint-sync/SKILL.md` |
 | `/particles [preset]` | `.ai/skills/particle-engine/SKILL.md` |
 | `/infrastructure [asset]` | `.ai/skills/infrastructure-blueprint/SKILL.md` |
+| `/security-audit [scope]` | `.ai/skills/security-audit/SKILL.md` |
+| `/deploy [track]` | `.ai/skills/ci-cd-deployment/SKILL.md` |
+| `/qa-test [scope]` | `.ai/skills/qa-testing/SKILL.md` |
 | `/start`, `/continue`, `/status`, `/sync` | Read `.agent/workflows/` for operational workflow |
-| `/test-backend`, `/test-frontend` | Read `.agent/workflows/` for test workflows |
 | `/github-push` | Read `.agent/workflows/github-push.md` |
 
 ---
@@ -96,6 +99,10 @@ When executing, agents MUST activate corresponding skills:
 | Infrastructure upgrade | `infrastructure-blueprint` |
 | New UI component | `ui-factory` — run `/ui-factory [name]` |
 | Browser/automation task | `browser-connectivity` — run `/connectivity` |
+| **Before any deploy** | `security-audit` — run `/security-audit` FIRST. `/deploy` is BLOCKED until CLEAN. |
+| Deployment (any track) | `ci-cd-deployment` — run `/deploy [track]` |
+| Post-change verification | `qa-testing` — run `/qa-test [scope]` |
+| AI character / dialogue | `ui-factory` § Lore Guardian — run `/lore-guardian [character]` |
 
 ---
 

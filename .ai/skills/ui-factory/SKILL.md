@@ -112,14 +112,48 @@ Bridging Game Lore → Frontend Assets via AI image generation.
 
 ---
 
+## § Lore Guardian — AI Character Consistency
+
+**Purpose**: Enforce narrative and visual coherence for the three AI rival characters.
+Lore is directly tied to UI assets (rivalry card portraits, dialogue tooltips, steam effects).
+
+### AI Rival Profiles
+
+| Character | Archetype | Home County | Personality | Bid Behavior |
+|---|---|---|---|---|
+| **Marek** | The Pragmatist | Namysłów | Aggressive volume trader. Uses Shakers. | Organic/Bio contracts → null bid (no interest) |
+| **Kasia** | The Specialist | Głubczyce | Premium organic focus. High quality. | Export contracts → null bid (local only) |
+| **Hans** | The Risk Manager | Opole | Conservative. Storage-heavy. | Bids only when `stableHansStorage < 120%` |
+
+### Character-UI Binding Rules
+- Rivalry card emits **SteamSparks** + vibration on outbid — unique to each character's card.
+- Portrait textures: Aged Brass plate style, unique engravings per character.
+- Dialogue "Steam Hiss" animation fires on bid submission (Framer Motion, 200ms).
+
+### Lore Anti-Patterns
+- 🚫 Hans never bids aggressively — he is conservative.
+- 🚫 Kasia does not do Export. Marek does not do Bio.
+- 🚫 No generic "AI" labels — always use character names in UI.
+
+### Workflow (`/lore-guardian [character|scene]` activation)
+1. Identify the character or scene (e.g., `"Marek outbid event"`).
+2. Read relevant profile from table above.
+3. Read `references/game_lore.md` for broader narrative context.
+4. Verify the requested UI change matches the character's archetype and visual binding.
+5. If texture needed: invoke Nano Banana 2 with character-specific style (e.g., `"Marek — Brass plate, worn, industrial"`).
+6. Output: `"Lore Verified: [Character] archetype enforced. Visual binding correct."`
+
+---
+
 ## Workflow (`/ui-factory [component name]` activation)
 
 1. Read component spec from relevant knowledge file (`references/component_*.md`).
 2. Check if a particle layer is needed — if yes, trigger `/particles [CherryBlossom|GoldenPollen|SteamSparks]`.
-3. Generate React component code following `.mechanical-hull` standard.
-4. Verify component against checklist above.
-5. Ask user: `"Should I invoke Nano Banana 2 to generate a texture for [component]?"`
-6. Output handshake: `"Handshake Verified: ui-factory applied. Neo-Steampunk standard enforced."`
+3. If the component involves an AI character, trigger `/lore-guardian [character]` first.
+4. Generate React component code following `.mechanical-hull` standard.
+5. Verify component against checklist above.
+6. Ask user: `"Should I invoke Nano Banana 2 to generate a texture for [component]?"`
+7. Output handshake: `"Handshake Verified: ui-factory applied. Neo-Steampunk standard enforced."`
 
 ## References
 - `references/ui_design_system.md` — full AUI spec
