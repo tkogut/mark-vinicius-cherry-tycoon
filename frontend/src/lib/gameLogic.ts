@@ -74,17 +74,51 @@ export const getOrganicModifier = (isOrganic: boolean): number => {
     return isOrganic ? 0.8 : 1.0;
 };
 
+// Weather yield impact
+export const getWeatherYieldImpact = (weather: any, severity: number): number => {
+    if (!weather) return 1.0;
+    const type = Object.keys(weather)[0];
+
+    switch (type) {
+        case 'Sunny': return 1.0;
+        case 'Rainy': return 0.95 - (severity * 0.1);
+        case 'Frost': return 0.6 - (severity * 0.3);
+        case 'Drought': return 0.7 - (severity * 0.2);
+        case 'Heatwave': return 0.8 - (severity * 0.15);
+        case 'Flood': return 0.4 - (severity * 0.4);
+        case 'PestOutbreak': return 0.8 - (severity * 0.3);
+        case 'DiseaseOutbreak': return 0.7 - (severity * 0.25);
+        default: return 1.0;
+    }
+};
+
+// Labor yield multiplier (mirror of hiring_logic.mo)
+export const getLaborYieldMultiplier = (labor: any): number => {
+    if (!labor) return 0.8; // Fallback to Emergency
+    const type = Object.keys(labor)[0];
+
+    switch (type) {
+        case 'Village': return 0.9;
+        case 'Standard': return 1.0;
+        case 'City': return 1.1;
+        case 'Emergency': return 0.8;
+        default: return 0.8;
+    }
+};
+
 /**
  * Calculates the full yield breakdown for a parcel.
  */
 export const calculateYieldBreakdown = (
     parcel: CherryParcel,
-    infrastructure: Infrastructure[] = []
-): YieldBreakdown => {
+    infrastructure: Infrastructure[] = [],
+    weather: any = null,
+    labor: any = null
+): YieldBreakdown & { adjustedYield: number; weatherMod: number; laborMod: number } => {
     const baseYield = 25.0; // tons/ha
     const soilMod = getSoilModifier(parcel.soilType);
     const phMod = getPhModifier(parcel.pH);
-    const fertilityMod = parcel.fertility;
+    const fertilityMod = Number(parcel.fertility);
     const infraMod = getInfraModifier(infrastructure);
     const waterMod = getWaterModifier(parcel.waterLevel);
     const organicMod = getOrganicModifier(parcel.isOrganic);
@@ -92,7 +126,12 @@ export const calculateYieldBreakdown = (
 
     const totalYieldTons = baseYield * soilMod * phMod * fertilityMod * infraMod * waterMod * organicMod * ageMod;
     const totalYieldKg = totalYieldTons * 1000;
-    const parcelYield = totalYieldKg * parcel.size;
+    const parcelYield = totalYieldKg * Number(parcel.size);
+
+    // Weather and Labor impacts (calculated during harvesting)
+    const weatherMod = weather ? getWeatherYieldImpact(weather.weather, weather.severity) : 1.0;
+    const laborMod = getLaborYieldMultiplier(labor);
+    const adjustedYield = parcelYield * weatherMod * laborMod;
 
     return {
         baseYield,
@@ -103,7 +142,10 @@ export const calculateYieldBreakdown = (
         waterMod,
         organicMod,
         ageMod,
+        weatherMod,
+        laborMod,
         totalYield: totalYieldKg,
-        parcelYield
+        parcelYield,
+        adjustedYield
     };
 };

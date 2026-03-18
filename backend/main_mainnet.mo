@@ -1309,7 +1309,7 @@ actor CherryTycoon {
           p with 
           organicCertified = isCertifiedNow;
           treeAge = newAge;
-          waterLevel = p.waterLevel * 0.7; // water depletes
+          waterLevel = GameLogic.calculateNextWaterLevel(p.waterLevel, farm.weather);
         }
       }
     );
@@ -1324,12 +1324,13 @@ actor CherryTycoon {
     } else {
       { province = #Opolskie; county = "Opole"; commune = "Opole"; communeType = #Mixed : Types.CommuneType; population = 120000; marketSize = 0.8; laborCostMultiplier = 1.0 }
     };
-    let variableCosts = GameLogic.calculateVariableCosts(
+    let variableCostsData = GameLogic.calculateVariableCosts(
       updatedParcels,
       parcelRegion,
       hasAnyOrganic,
       farm.infrastructure
     );
+    let variableCosts = variableCostsData.total;
     // Total costs per season is annual / 4
     let totalCosts = (fixedCosts + variableCosts) / 4;
 
@@ -1365,16 +1366,19 @@ actor CherryTycoon {
     let _currentSeasonName = farm.currentSeason;
     let _currentSeasonNum = farm.seasonNumber;
     
-    let laborShare = (variableCosts * 80) / 100;
-    let operationalShare = Int.abs((variableCosts : Int) - (laborShare : Int));
+    // Divide annual costs by 4 for seasonal reporting
+    let seasonalFixed = fixedCosts / 4;
+    let seasonalLabor = variableCostsData.labor / 4;
+    let seasonalOps = variableCostsData.operations / 4;
+    let seasonalTotal = totalCosts; // already annual / 4
     
     let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
       { r with 
-        maintenanceCosts = r.maintenanceCosts + fixedCosts;
-        laborCosts = r.laborCosts + laborShare;
-        operationalCosts = r.operationalCosts + operationalShare;
-        totalCosts = r.totalCosts + fixedCosts + variableCosts;
-        netProfit = r.netProfit - ((fixedCosts + variableCosts) : Int);
+        maintenanceCosts = r.maintenanceCosts + seasonalFixed;
+        laborCosts = r.laborCosts + seasonalLabor;
+        operationalCosts = r.operationalCosts + seasonalOps;
+        totalCosts = r.totalCosts + seasonalTotal;
+        netProfit = r.netProfit - (seasonalTotal : Int);
       }
     });
 

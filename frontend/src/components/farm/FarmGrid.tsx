@@ -12,9 +12,11 @@ interface FarmGridProps {
     currentSeason?: any; // Season type from backend
     infrastructure: Infrastructure[];
     currentPhase?: 'Planning' | 'Hiring' | 'Procurement' | 'Investment' | 'Growth' | 'Harvest' | 'Market' | 'Storage' | 'CutAndPrune' | 'Maintenance';
+    weather?: any;
+    labor?: any;
 }
 
-export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParcel, loading, currentSeason, infrastructure, currentPhase }) => {
+export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParcel, loading, currentSeason, infrastructure, currentPhase, weather, labor }) => {
     if (loading) {
         return (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-pulse">
@@ -72,6 +74,8 @@ export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParc
                         currentSeason={currentSeason}
                         infrastructure={infrastructure}
                         currentPhase={currentPhase}
+                        weather={weather}
+                        labor={labor}
                     />
                 ))}
 

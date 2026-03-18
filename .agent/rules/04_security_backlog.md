@@ -51,6 +51,10 @@
 | 2026-02-17 | SEC-012: Principal exposed in query response | 🟡 Medium | Both | Logged |
 | 2026-03-10 | Phase 6.1: Leaderboard Assembly DoS Risk | 🟢 Low | Both | Logged |
 
+### 📅 Audit History
+
+- **Security Reviewed ✅ [2026-03-17]** - Phase 9.1: Weather/Water Correlation & Yield Transparency. Checked logic in `game_logic.mo` and `main.mo`. Clamping and multipliers verified. 🔐 Security CLEAR.
+
 ## Agent Instructions
 1. Read `.agent/rules/SECURITY_DIRECTIVE_V1.md` for policy.
 2. Audit **both** `main.mo` and `main_mainnet.mo` — verify parity.

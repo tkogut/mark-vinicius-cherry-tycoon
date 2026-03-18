@@ -92,7 +92,6 @@
   - [x] Verify Forward Contracts logic and commitment fees.
   - [x] Verify `inspectAndRepair` mechanic to prevent infrastructure degradation.
   - [x] Verify `purchaseMarketForecast`.
-  - [x] Verify `fertilizeParcel` logic parity and multi-state transition (+0.1 fertility, -1 inventory, 500 PLN cost). ✅ *VERIFIED 2026-03-17*
   - [x] Verify atomic state preservation during `advancePhase` (Emergency labor fallback).
 
 ### ⚪ Phase 5.8: Advanced Economic Stress Testing

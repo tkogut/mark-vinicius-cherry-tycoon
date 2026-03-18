@@ -10,45 +10,27 @@ description: >
 
 # Infrastructure Blueprint Skill
 
-## Purpose
-Maintain a strict link between Motoko backend infrastructure types
-and the React UI (`InvestmentsDashboard.tsx`) tooltips.
-Players must always see accurate economic data — no UI/backend drift allowed.
+🎯 **Purpose**: 
+Maintain a strict link between Motoko backend infrastructure types and React UI tooltips. Ensures players always see accurate economic data with zero UI/backend drift.
 
-## Validated Blueprints (Single Source of Truth)
+🛠️ **Implementation Logic**:
+- **Source of Truth**: `references/INFRASTRUCTURE.md` and `economic-math-auditor/references/math_consistency.md`.
+- **Logic**: COMPOUNDING cost scaling (`1.15^Level`) enforced.
+- **Priority**: Cold Storage over Warehouse.
 
-| Asset | Cost (PLN) | Spoilage | Quality Impact | Maintenance |
-|---|---|---|---|---|
-| **Warehouse** | 25,000 | 80% | — | 1%/season |
-| **Cold Storage** | 40,000 | 20% | +3.0 quality pts/lvl | — |
-| **Tractor** | 30,000 | — | — | −15% labor cost |
-| **Shaker** | 60,000 | — | −2.0 quality pts/lvl | −30% labor cost |
-| **Sprayer** | *(see math_consistency.md)* | — | +5.0 quality pts/lvl | — |
-| **Golden Harvester** | Base × `1.15^Level` | — | Yield × `1.05^Level` | — |
+🗣️ **Usage Rule**:
+Activate via `/infrastructure [asset]`. 
+Handshake: `"I have applied [Asset Name] stats (Cost: [X], Spoilage: [Y]). Verified against math_consistency.md."`
 
-## Implementation Rules
+## Workflow:
 
-1. **Spoilage function**: `calculateSpoilageRate` must return exactly:
-   - `0.20` for `#ColdStorage`
-   - `0.80` for `#Warehouse`
-
-2. **Tooltip parity**: `InvestmentsDashboard.tsx` tooltip content must match backend values 1:1.
-
-3. **Cost scaling**: Golden Harvester upgrade cost MUST use `1.15^Level` compounding — NOT linear.
-
-4. **Cold Storage priority**: When both Warehouse and Cold Storage are present, Cold Storage takes priority.
-
-## Workflow (`/infrastructure [asset]` activation)
-
-1. Identify the asset: read its blueprint from the table above.
-2. Cross-reference against `references/math_consistency.md` for the latest validated values.
-3. Update `game_logic.mo` → `calculateSpoilageRate` function if spoilage changed.
-4. Update `InvestmentsDashboard.tsx` tooltip content to reflect new values.
-5. Trigger `/check-dual` — verify both `main.mo` and `main_mainnet.mo` reflect the change.
-6. Output confirmation:
-   > `"I have applied [Asset Name] stats (Cost: [X], Spoilage: [Y]). Verified against math_consistency.md."`
+1. **Identify Asset**: Read blueprint from `references/INFRASTRUCTURE.md`.
+2. **Audit Logic**: Cross-reference against `math_consistency.md`.
+3. **Backend Update**: Update `game_logic.mo` spoilage/cost functions if changed.
+4. **UI Update**: Update `InvestmentsDashboard.tsx` tooltips to match 1:1.
+5. **Sync Check**: Trigger `/check-dual` for both actors.
 
 ## References
-- `../.ai/skills/economic-math-auditor/references/math_consistency.md` — cost/spoilage constants
-- `frontend/src/components/InvestmentsDashboard.tsx` — UI implementation target
-- `backend/game_logic.mo` — calculateSpoilageRate implementation target
+- `references/INFRASTRUCTURE.md` — Blueprint table and cost constants
+- `../../economic-math-auditor/references/math_consistency.md` — formula cross-check
+- `assets/cost_tables.md` — Spoilage rate reference

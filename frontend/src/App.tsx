@@ -654,6 +654,8 @@ function AppContent() {
                                         currentSeason={stats.currentSeason}
                                         infrastructure={farm?.infrastructure || []}
                                         currentPhase={currentPhase}
+                                        weather={farm?.weather}
+                                        labor={farm?.hiredLabor?.[0]}
                                     />
                                 </div>
                             ) : activeTab === 'harvester' ? (

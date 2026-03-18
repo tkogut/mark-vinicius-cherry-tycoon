@@ -225,59 +225,63 @@ module {
     parcels: [CherryParcel],
     region: Region,
     hasOrganic: Bool,
-    infrastructure: [Infrastructure] // New argument
-  ) : Nat {
-    var total : Nat = 0;
+    infrastructure: [Infrastructure]
+  ) : { labor: Nat; operations: Nat; total: Nat } {
+    var labor : Nat = 0;
+    var operations : Nat = 0;
     var totalArea : Float = 0.0;
     
     // Calculate labor efficiency from infrastructure
     var laborEfficiency = 1.0;
     for (infra in infrastructure.vals()) {
       switch (infra.infraType) {
-        case (#Tractor) { laborEfficiency -= 0.15 * Float.fromInt(infra.level) }; // -15% per level
-        case (#Shaker) { laborEfficiency -= 0.30 * Float.fromInt(infra.level) };  // -30% per level
-        case (#SocialFacilities) { laborEfficiency -= 0.05 * Float.fromInt(infra.level) }; // Better morale = efficiency
+        case (#Tractor) { laborEfficiency -= 0.15 * Float.fromInt(infra.level) };
+        case (#Shaker) { laborEfficiency -= 0.30 * Float.fromInt(infra.level) };
+        case (#SocialFacilities) { laborEfficiency -= 0.05 * Float.fromInt(infra.level) };
         case (_) {};
       };
     };
-    // Cap efficiency at 0.2 (min 20% labor cost remains)
     if (laborEfficiency < 0.2) { laborEfficiency := 0.2 };
 
     for (parcel in parcels.vals()) {
       totalArea += parcel.size;
       
-      // Fertilizer costs
+      // Fertilizer costs (Operations)
       if (parcel.isOrganic) {
-        total += Int.abs(Float.toInt(parcel.size * 3000.0)); // organic fertilizers more expensive
+        operations += Int.abs(Float.toInt(parcel.size * 3000.0));
       } else {
-        total += Int.abs(Float.toInt(parcel.size * 1500.0)); // conventional
+        operations += Int.abs(Float.toInt(parcel.size * 1500.0));
       };
       
-      // Plant protection
+      // Plant protection (Operations)
       if (parcel.isOrganic) {
-        total += Int.abs(Float.toInt(parcel.size * 2000.0)); // natural treatments
+        operations += Int.abs(Float.toInt(parcel.size * 2000.0));
       } else {
-        total += Int.abs(Float.toInt(parcel.size * 1000.0)); // pesticides
+        operations += Int.abs(Float.toInt(parcel.size * 1000.0));
       };
     };
     
-    // Labor costs (varies by region AND infrastructure)
+    // Labor costs
     let laborCostBase = totalArea * 8000.0 * region.laborCostMultiplier;
     let laborCostOptimized = laborCostBase * laborEfficiency;
-    total += Int.abs(Float.toInt(laborCostOptimized));
+    labor += Int.abs(Float.toInt(laborCostOptimized));
     
-    // Fuel costs (Machines increase fuel usage slightly, but we simplify to area)
-    total += Int.abs(Float.toInt(totalArea * 500.0));
+    // Fuel costs (Operations)
+    operations += Int.abs(Float.toInt(totalArea * 500.0));
     
-    // Organic certification (GDD Section 5)
+    // Organic certification (Operations)
     if (hasOrganic) {
-      if (totalArea < 5.0) { total += 1500 }
-      else if (totalArea < 20.0) { total += 1800 }
-      else if (totalArea < 50.0) { total += 2090 }
-      else { total += 2500 };
+      if (totalArea < 5.0) { operations += 1500 }
+      else if (totalArea < 20.0) { operations += 1800 }
+      else if (totalArea < 50.0) { operations += 2090 }
+      else { operations += 2500 };
     };
     
-    total
+    {
+      labor = labor;
+      operations = operations;
+      total = labor + operations;
+    }
   };
 
   // ============================================================================
@@ -365,6 +369,37 @@ module {
     Int.abs(Float.toInt(Float.fromInt(baseYield) * impact))
   };
 
+  /**
+   * Phase 9.1: Weather/Water Correlation
+   * Calculates the water level depletion/replenishment for the next season transition.
+   */
+  public func calculateNextWaterLevel(
+    current: Float, 
+    weatherOpt: ?Types.WeatherEvent
+  ) : Float {
+    // Base seasonal depletion (e.g. 20% loss due to natural absorption/evaporation)
+    var nextLevel = current * 0.8;
+
+    switch (weatherOpt) {
+      case (?w) {
+        let impact = switch (w.weather) {
+          case (#Rainy) { 0.15 * w.severity };       // +0% to +15%
+          case (#Flood) { 0.30 * w.severity };       // +0% to +30%
+          case (#Drought) { -(0.15 * w.severity) };  // -0% to -15%
+          case (#Heatwave) { -(0.10 * w.severity) }; // -0% to -10%
+          case (_) { 0.0 };
+        };
+        nextLevel += impact;
+      };
+      case (null) {};
+    };
+
+    // Clamp between 0.0 and 1.0
+    if (nextLevel < 0.0) { 0.0 }
+    else if (nextLevel > 1.0) { 1.0 }
+    else { nextLevel };
+  };
+
   public func applyWeatherQualityImpact(
     baseQuality: Nat,
     weather: Types.Weather,
@@ -450,7 +485,7 @@ module {
        }
     };
     let variable = calculateVariableCosts(parcels, region, hasOrganic, infrastructure);
-    fixed + variable
+    fixed + variable.total
   };
 
   public func estimateHarvestCosts(
