@@ -44,10 +44,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setBackendActor(actor);
                 setIsAuthenticated(true);
             } else {
-                // If not authenticated, still create an anonymous actor
-                console.log('[AuthContext] Not authenticated. Creating anonymous backend actor...');
-                const anonymousActor = await createBackendActor();
-                setBackendActor(anonymousActor);
+                // AUTO-LOGIN BYPASS FOR LOCAL/PLAYGROUND
+                const network = import.meta.env.VITE_DFX_NETWORK;
+                if (network !== 'ic') {
+                    console.log(`[AuthContext] Detected ${network} network. Triggering Auto-Login...`);
+                    // We can't call initTestMode directly here because it depends on 'client' being in state
+                    // and we just set it. We'll use the client from this scope.
+                    try {
+                        setIsAuthenticated(true);
+                        const { Ed25519KeyIdentity } = await import('@dfinity/identity');
+                        const sessionIdentity = Ed25519KeyIdentity.generate();
+                        setIdentity(sessionIdentity);
+                        const actor = await createBackendActor(sessionIdentity);
+                        if (actor) setBackendActor(actor);
+                        console.log('[AuthContext] Auto-Login successful');
+                    } catch (e) {
+                        console.error('[AuthContext] Auto-Login failed:', e);
+                        // Fallback to anonymous
+                        const anonymousActor = await createBackendActor();
+                        setBackendActor(anonymousActor);
+                    }
+                } else {
+                    console.log('[AuthContext] Not authenticated. Creating anonymous backend actor...');
+                    const anonymousActor = await createBackendActor();
+                    setBackendActor(anonymousActor);
+                }
             }
 
             console.log('[AuthContext] Initialization complete. Authenticated:', isAuth);

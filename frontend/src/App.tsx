@@ -48,7 +48,7 @@ import { cn } from "@/lib/utils"
 
 
 function AppContent() {
-    const { isAuthenticated, isInitializing, identity } = useAuth();
+    const { isAuthenticated, isInitializing, identity, backendActor } = useAuth();
     const { playBGM, stopBGM } = useAudio();
     const { toast } = useToast();
 
@@ -106,6 +106,25 @@ function AppContent() {
     } = useGuestFarm();
 
     const showOnboarding = isAuthenticated && !!identity && !isLoading && !farm;
+
+    // AUTO-ONBOARDING BYPASS
+    useEffect(() => {
+        const network = import.meta.env.VITE_DFX_NETWORK;
+        if (showOnboarding && network !== 'ic' && !isLoading) {
+            console.log('[App] Auto-Login detected. Automatically establishing farm for AgentTest...');
+            const autoInit = async () => {
+                try {
+                    // Using a stable test ID and name for easy debugging
+                    const result = await backendActor?.initializePlayer("agent_test", "Agent Test");
+                    console.log('[App] Auto-initialization result:', result);
+                    refetch();
+                } catch (e) {
+                    console.error('[App] Auto-onboarding failed:', e);
+                }
+            };
+            autoInit();
+        }
+    }, [showOnboarding, isLoading, backendActor, refetch]);
 
     // Derived state
     const stats = {

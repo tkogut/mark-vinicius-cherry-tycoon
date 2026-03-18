@@ -30,6 +30,14 @@ Handshake: `"Handshake Verified: [Skill Name] applied. No drift detected."`
 4. **Deploy**: `dfx deploy --network [target] 2>&1 | tee .tmp/deploy.log`.
 5. **Verify**: Check `cat .dfx/[target]/canister_ids.json` for live URLs.
 
+## § Git Commit & Push
+**Usage**: `/git-commit-push "[message]"`
+
+1. **Stage**: `git add .`
+2. **Commit**: `git commit -m "[standardized message]"`
+3. **Push**: `git push origin [current-branch]`
+4. **Link**: Provide GitHub URL to the user.
+
 ## References
 - `references/deploy_logic.md` — Full automated-deploy guide
 - `../../security-audit/SKILL.md` — Mandatory pre-deploy gate
