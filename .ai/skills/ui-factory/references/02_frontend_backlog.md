@@ -78,16 +78,16 @@
 - [x] **Controls**: Mute toggle in UI ✅ *DONE*
 ### 🟢 Phase 8.0: Competitive Pool UI (ACTIVE — Backend Ready ✅)
 - [x] **Backend Type Sync**: Regenerate declarations to include Phase 8.0 endpoints (`getActiveContracts`, `submitAuctionBid`, etc.). ✅ *DONE 2026-03-15*
-- [/] **`AuctionDashboard.tsx`**: Imperial Contracts list — category badge (Export/Bio/Industrial), base price, required volume, status chip.
+- [x] **`AuctionDashboard.tsx`**: Imperial Contracts list — category badge (Export/Bio/Industrial), base price, required volume, status chip. ✅ *DONE*
 - [x] **`BidModal.tsx`**: Closed-bid submission form — offer price input, estimated V_bid score preview, confirm/cancel. ✅ *DONE v3.8*
 - [x] **`EmeraldGauge.tsx`**: Refined alchemical visualization for resource levels. ✅ *DONE*
 - [x] **`ImperialDial.tsx`**: Steampunk rotary control for bid inputs (support for PLN/t). ✅ *DONE*
 - [x] **`SteampunkTooltip.tsx`**: Advanced help-cloud system with parchment styling. ✅ *DONE*
 - [x] **`RivalCard.tsx`**: Animated AI competitor cards for rivalry context. ✅ *DONE*
-- [ ] **`PreSeasonFutureModal.tsx`**: Planning-phase commitment flow — locked price display, commitment fee breakdown, risk summary.
-- [ ] **`ShortfallAlert.tsx`**: Storage-phase notification — buyback cost vs. default penalty comparison, one-click resolve.
-- [ ] **`FloodFactorIndicator.tsx`**: Spot price ticker with flood degradation warning (red when < starting price).
-- [ ] **`AIBidderCard.tsx`**: Show Marek/Kasia/Hans bidding behavior in auction context (archetype icon, expected strategy).
+- [x] **`PreSeasonFutureModal.tsx`**: Planning-phase commitment flow — locked price display, commitment fee breakdown, risk summary. ✅ *DONE*
+- [x] **`ShortfallAlert.tsx`**: Storage-phase notification — buyback cost vs. default penalty comparison, one-click resolve. ✅ *DONE*
+- [x] **`FloodFactorIndicator.tsx`**: Spot price ticker with flood degradation warning (red when < starting price). ✅ *DONE*
+- [x] **`AIBidderCard.tsx`**: Show Marek/Kasia/Hans bidding behavior in auction context (archetype icon, expected strategy). ✅ *DONE*
 
 ### 🔴 Phase 5.7: Deployment Polish & Mechanics Deepening
 - [x] **MIME Type Blocker**: Fixed "text/html" MIME type error for dynamic JS modules via `base: './'` and `.ic-assets.json`. ✅ *DONE 2026-03-05*

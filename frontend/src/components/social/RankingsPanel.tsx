@@ -10,8 +10,9 @@ interface RankingEntry {
     rank: number;
     id: string;
     name: string;
-    farmValue: number;
-    efficiency: number; // Yield per Hectare
+    prestige: number;
+    seasons: number;
+    revenue: number;
     isPlayer: boolean;
 }
 
@@ -26,17 +27,16 @@ interface RankingsPanelProps {
 export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => {
     const { data: rawLeaderboard, isLoading, isError } = useLeaderboard();
 
-    // Transform backend literal data to UI structure, sorting by rank
     const leaderboard: RankingEntry[] = (rawLeaderboard || [])
-        .map((entry: any) => ({
-            rank: Number(entry.rank),
-            id: entry.name,
+        .map((entry: any, index: number) => ({
+            rank: index + 1, // Backend returns sorted, assume consecutive rank
+            id: entry.id,
             name: entry.name,
-            farmValue: Number(entry.profit || entry.totalRevenue || 0),
-            efficiency: Number(entry.efficiency),
+            prestige: Number(entry.prestige),
+            seasons: Number(entry.seasonsCompleted),
+            revenue: Number(entry.totalRevenue),
             isPlayer: !entry.isAI
-        }))
-        .sort((a: RankingEntry, b: RankingEntry) => a.rank - b.rank);
+        }));
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
@@ -50,13 +50,14 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
                 </div>
             </div>
 
-            <Card className="bg-slate-950 border-slate-800">
-                <CardHeader>
-                    <div className="grid grid-cols-12 text-xs font-semibold text-slate-500 uppercase tracking-wider px-2">
-                        <div className="col-span-1 text-center">Rank</div>
-                        <div className="col-span-5">Farm Name</div>
-                        <div className="col-span-3 text-right">Farm Value</div>
-                        <div className="col-span-3 text-right">Efficiency</div>
+            <Card className="mechanical-hull border-[#d4af37]/30 bg-black/40 shadow-2xl overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-[#d4af37]/10 to-transparent border-b border-[#d4af37]/10">
+                    <div className="grid grid-cols-12 text-[10px] font-bold text-[#d4af37] uppercase tracking-[0.2em] px-2 opacity-80">
+                        <div className="col-span-1 text-center">Pos</div>
+                        <div className="col-span-4 pl-4">Orchard Name</div>
+                        <div className="col-span-3 text-right">Global Prestige</div>
+                        <div className="col-span-2 text-right">Seasons</div>
+                        <div className="col-span-2 text-right pr-4">Production</div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -77,43 +78,58 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
                             {leaderboard.map((entry) => (
                                 <div
                                     key={entry.id}
-                                    className={`grid grid-cols-12 items-center p-4 hover:bg-slate-900/50 transition-colors ${entry.isPlayer ? 'bg-rose-950/10 border-l-2 border-rose-500' : ''}`}
+                                    className={`grid grid-cols-12 items-center py-5 hover:bg-[#d4af37]/5 transition-all duration-300 relative group
+                                        ${entry.isPlayer ? 'bg-[#d4af37]/10 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-[#d4af37]' : ''}`}
                                 >
                                     <div className="col-span-1 flex justify-center">
                                         {entry.rank === 1 ? (
-                                            <Medal className="h-5 w-5 text-yellow-400" />
+                                            <Trophy className="h-6 w-6 text-[#d4af37] drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]" />
                                         ) : entry.rank === 2 ? (
-                                            <Medal className="h-5 w-5 text-slate-300" />
+                                            <Medal className="h-5 w-5 text-slate-300 opacity-80" />
                                         ) : entry.rank === 3 ? (
-                                            <Medal className="h-5 w-5 text-amber-600" />
+                                            <Medal className="h-5 w-5 text-amber-700 opacity-80" />
                                         ) : (
-                                            <span className="font-mono text-slate-500 font-bold">#{entry.rank}</span>
+                                            <span className="font-mono text-slate-500 font-bold text-xs">#{entry.rank}</span>
                                         )}
                                     </div>
-
-                                    <div className="col-span-5 flex items-center gap-3">
-                                        <Avatar className="h-8 w-8 border border-slate-700">
-                                            <AvatarFallback className={`text-xs font-bold ${entry.isPlayer ? 'bg-rose-900 text-rose-200' : 'bg-slate-800 text-slate-400'}`}>
-                                                {entry.name.substring(0, 2).toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
+                                    <div className="col-span-4 flex items-center gap-4 pl-4">
+                                        <div className={`p-[1px] rounded-full ${entry.isPlayer ? 'bg-gradient-to-tr from-[#d4af37] to-[#b87333]' : 'bg-slate-700'}`}>
+                                            <Avatar className="h-9 w-9 border-2 border-black">
+                                                <AvatarFallback className={`text-xs font-bold ${entry.isPlayer ? 'bg-black text-[#d4af37]' : 'bg-slate-900 text-slate-600'}`}>
+                                                    {entry.name.substring(0, 2).toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </div>
                                         <div className="flex flex-col">
-                                            <span className={`font-medium ${entry.isPlayer ? 'text-rose-400' : 'text-slate-200'}`}>
+                                            <span className={`font-bold tracking-wide uppercase text-sm ${entry.isPlayer ? 'hull-header' : 'text-slate-300'}`}>
                                                 {entry.name}
-                                                {entry.isPlayer && <Badge variant="secondary" className="ml-2 text-[10px] h-4 px-1 bg-rose-500/20 text-rose-300">YOU</Badge>}
                                             </span>
+                                            {entry.isPlayer && (
+                                                <span className="text-[9px] text-[#d4af37]/60 font-mono tracking-widest">CURRENT DOMINANCE</span>
+                                            )}
                                         </div>
                                     </div>
-
-                                    <div className="col-span-3 text-right font-mono text-sm text-slate-300">
-                                        ${entry.farmValue.toLocaleString()}
+                                    <div className="col-span-3 text-right flex flex-col pr-2">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <span className="font-mono text-lg font-bold text-amber-500/90 leading-none">
+                                                {entry.prestige.toLocaleString()}
+                                            </span>
+                                            <div className="h-3 w-3 rounded-full bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,0.6)]" />
+                                        </div>
+                                        <span className="text-[10px] text-slate-500 uppercase tracking-tighter">Imperial Prestige</span>
                                     </div>
 
-                                    <div className="col-span-3 text-right flex items-center justify-end gap-2">
+                                    <div className="col-span-2 text-right pr-2">
                                         <span className="font-mono text-sm text-slate-400">
-                                            {entry.efficiency.toFixed(1)} t/ha
+                                            {entry.seasons} Seasons
                                         </span>
-                                        {entry.efficiency > 10 && <Sprout className="h-3 w-3 text-emerald-500" />}
+                                    </div>
+
+                                    <div className="col-span-2 text-right pr-4">
+                                        <div className="font-mono text-sm text-emerald-500/80">
+                                            {(entry.revenue / 1000).toFixed(1)}k
+                                        </div>
+                                        <div className="text-[9px] text-slate-600 uppercase font-bold tracking-tighter">Gross Yield</div>
                                     </div>
                                 </div>
                             ))}

@@ -107,3 +107,52 @@ python3 execution/start_tunnel.py
 
 ## 6. Agent Protocols Reference
 → See `.ai/AGENTS.md` for collaboration rules, Yarn standards, and Virtual CLI specification.
+
+---
+
+## 7. Master Plan & Roadmap
+> **Current Status**: **Phase 11.0: Advanced AI Market Competitors — PLANNING 🤖**
+> **Environment**: **WSL (Ubuntu)** ✅ ACTIVE — `dfx 0.24.3` + `Motoko 0.30.2` (EOP) working.
+> **Dual-Entrypoint**: `main.mo` (Playground) / `main_mainnet.mo` (Mainnet) strictly maintained.
+
+### High-Level Roadmap
+
+#### Phase 1 to Phase 8.0 (COMPLETE ✅)
+- **Phase 1-4**: Core logic, MVP integration, economy, infrastructure, multiplayer prep.
+- **Phase 5.7**: Mechanics deepening (Bulk Supply, Phase Watering, Machine Decay).
+- **Phase 5.9**: Security Excellence (SEC-019, SEC-020).
+- **Phase 6.1**: Global Leaderboards & Prestige Scoring implemented. `topPlayersCache` active.
+- **Phase 7.0**: The Living World (Event system, Weather, Crop Insurance).
+- **Phase 8.0**: The Competitive Pool (`auction_logic.mo`, Bids, Flood Factor, Base AI Archetypes).
+
+#### Phase 9.0: Frontend Implementation (PROD-READY (Local) ✅)
+- [x] **Phase 8.1**: Imperial Contract Bid Modal + Refined Gauge System.
+- [x] **Phase 9.0**: Auction Dashboard core implementation.
+- [ ] **Phase 7.0**: Weather & Event UI integration.
+- [ ] **Phase 6.1**: Enhanced Leaderboard & Rankings UI.
+
+#### Phase 11.0: Advanced AI Market Competitors (PLANNING 🤖)
+*Objective: Enhance the competitive pool by introducing specialized AI archetypes.*
+- **The Aggressive (Marek)**: High-volatility Imperial Contracts, aggressive step-ups.
+- **The Eco (Kasia)**: Low-risk, high-quality organic bundles, methodical increments.
+- **The Tactician (Hans)**: Adaptive response, diversified portfolio.
+- **Backend**: Dynamic strategy updates in `auction_logic.mo` and `game_logic.mo`.
+- **Frontend**: Visual variants for `AIBidderCard.tsx` based on strategy.
+
+#### Phase 10.0: Sports Patron (District League) (DEFERRED — Endgame)
+- GDD Integration (`gdd_sports_patron.md`).
+- Team Power Index (TPI) math.
+- Local Reputation linking football results to Orchard prestige.
+
+#### Cinematic Upgrade: "The Golden Harvester" (BLUEPRINT)
+*Implement the ultimate infrastructure upgrade combining robust economic scaling with a premium "Neo-Steampunk Cherry" frontend.*
+- **Backend**: `golden_harvester_level` tracking, safe cost deductions, `(1.05^Level)` multiplier.
+- **Frontend**: `GoldenHarvesterView.tsx` with God Rays, Golden Hour lighting, `GoldenPollen` particles, and haptic feedback.
+
+### Active Directives
+| Domain | Assigned To | Status |
+| :--- | :--- | :--- |
+| **Backend** | Backend Agent | **COMPLETE** — Phase 8.0 Competitive Pool implemented. |
+| **Frontend** | Frontend Agent | **ACTIVE** — Phase 8.1 / 9.0 complete. Refining UI. |
+| **QA** | QA Agent | **ACTIVE** — Verify Phase 6.1 Leaderboard logic via Candid |
+| **Security** | Security Agent | **ACTIVE** — Monitoring for new Phase 7 commits |

@@ -65,40 +65,85 @@ module {
   private let KASIA_SEED  : Nat = 137;
   private let HANS_SEED   : Nat = 999;
 
-  public let AI_MAREK : AICompetitorSummary = {
+  public let AI_MAREK : Types.AICompetitor = {
     id                = "ai_marek_GL02";
     name              = "Marek \"The Traditionalist\"";
     personality       = #Traditionalist;
-    county            = "Głubczyce (GL-02)";
+    currentStrategy   = #Aggressive;
     totalArea         = 15.0;
     baseCapacity      = 45_000;
+    inventoryKg       = 0;
+    prestige          = 600;
     reputation        = 60;
-    preferredSaleType = "wholesale";
+    county            = "Głubczyce (GL-02)";
     isOrganic         = false;
+    preferredSaleType = "wholesale";
+    lastSeasonProduction = 0;
+    totalRevenue      = 0;
+    seasonsActive     = 10;
   };
 
-  public let AI_KASIA : AICompetitorSummary = {
+  public let AI_KASIA : Types.AICompetitor = {
     id                = "ai_kasia_NM01";
     name              = "Kasia \"The Eco-Visionary\"";
     personality       = #Innovator;
-    county            = "Namysłów (NM-01)";
+    currentStrategy   = #Passive;
     totalArea         = 8.0;
     baseCapacity      = 18_000;
+    inventoryKg       = 0;
+    prestige          = 850;
     reputation        = 85;
-    preferredSaleType = "retail";
+    county            = "Namysłów (NM-01)";
     isOrganic         = true;
+    preferredSaleType = "retail";
+    lastSeasonProduction = 0;
+    totalRevenue      = 0;
+    seasonsActive     = 5;
   };
 
-  public let AI_HANS : AICompetitorSummary = {
+  public let AI_HANS : Types.AICompetitor = {
     id                = "ai_hans_OPCITY";
     name              = "Hans \"The Aggressor\"";
     personality       = #Businessman;
-    county            = "Opole (OP-CITY)";
+    currentStrategy   = #Neutral;
     totalArea         = 22.0;
     baseCapacity      = 70_000;
+    inventoryKg       = 0;
+    prestige          = 720;
     reputation        = 72;
-    preferredSaleType = "wholesale";
+    county            = "Opole (OP-CITY)";
     isOrganic         = false;
+    preferredSaleType = "wholesale";
+    lastSeasonProduction = 0;
+    totalRevenue      = 0;
+    seasonsActive     = 8;
+  };
+
+  // ============================================================================
+  // PUBLIC: RESOLVE AI STRATEGY
+  // Determines the bidding strategy for the next season based on state.
+  // ============================================================================
+  public func resolveStrategy(ai: Types.AICompetitor, season: Types.Season) : Types.AIStrategyState {
+    // 1. Desperate: Low prestige or extreme inventory surplus during market phase
+    if (ai.prestige < 200 or (ai.inventoryKg > ai.baseCapacity and season == #Autumn)) {
+        return #Desperate;
+    };
+
+    // 2. Personality-driven defaults
+    switch (ai.personality) {
+        case (#Traditionalist) {
+            // Marek gets aggressive if he has stock to clear
+            if (ai.inventoryKg > 5000) #Aggressive else #Neutral;
+        };
+        case (#Innovator) {
+            // Kasia stays passive to protect organic margins
+            #Passive;
+        };
+        case (#Businessman) {
+            // Hans is neutral but becomes aggressive if prestige is high (market lead)
+            if (ai.prestige > 800) #Aggressive else #Neutral;
+        };
+    }
   };
 
   // ============================================================================

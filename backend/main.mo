@@ -94,6 +94,7 @@ actor CherryTycoon {
     stableUserRoles := Iter.toArray(accessControlState.userRoles.entries());
     stableAdminAssigned := accessControlState.adminAssigned;
     stableTopPlayersCache := topPlayersCache;
+    stableAICompetitors := Iter.toArray(aiCompetitors.entries());
   };
 
   system func postupgrade() {
@@ -125,12 +126,43 @@ actor CherryTycoon {
       Principal.hash
     );
     stableUserRoles := [];
+    
+    let aiIter = HashMap.fromIter<Text, Types.AICompetitor>(Iter.fromArray(stableAICompetitors), 10, Text.equal, Text.hash);
+    if (aiIter.size() == 0) {
+        let defaults = CompetitorLogic.getCompetitorSummaries();
+        for (d in defaults.vals()) {
+            aiIter.put(d.id, {
+                id = d.id;
+                name = d.name;
+                personality = d.personality;
+                currentStrategy = #Neutral;
+                totalArea = d.totalArea;
+                productionCapacity = d.baseCapacity;
+                inventoryKg = 0;
+                prestige = d.prestige;
+                reputation = d.reputation;
+                county = d.county;
+                isOrganic = d.isOrganic;
+                preferredSaleType = d.preferredSaleType;
+                lastSeasonProduction = 0;
+                totalRevenue = 0;
+                seasonsActive = d.seasonsActive;
+            });
+        };
+    };
+    aiCompetitors := aiIter;
+    stableAICompetitors := [];
   };
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
   var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
+  );
+
+  // AI Competitor Map (Persistent State)
+  var aiCompetitors = HashMap.HashMap<Text, Types.AICompetitor>(
+    10, Text.equal, Text.hash
   );
 
   // Core game data (Players and Farms)
@@ -479,7 +511,16 @@ actor CherryTycoon {
     stableBids := [];
     stableSpotPrice := 10;
     lastResolutionSeason := 0;
-    stableHansStorage := 0;
+    
+    // Clear AI inventories
+    let aiIds = ["ai_marek_GL02", "ai_kasia_NM01", "ai_hans_OPCITY"];
+    for (aiId in aiIds.vals()) {
+        switch (aiCompetitors.get(aiId)) {
+            case (?ai) { aiCompetitors.put(aiId, { ai with inventoryKg = 0; totalRevenue = 0 }) };
+            case null {};
+        }
+    };
+    
     Debug.print("DEBUG: Global market state cleared");
     #Ok("Global market state cleared")
   };
@@ -498,11 +539,16 @@ actor CherryTycoon {
     #Ok(stableBids)
   };
 
-  // DEBUG ONLY: Force set Hans storage for AI testing
-  public shared({ caller }) func debugSetHansStorage(amount: Nat) : async GameResult<Text, GameError> {
+  // DEBUG ONLY: Force set AI inventory for AI testing
+  public shared({ caller }) func debugSetAIInventory(aiId: Text, amount: Nat) : async GameResult<Text, GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
-    stableHansStorage := amount;
-    #Ok("Hans storage forced to: " # Nat.toText(amount) # " kg")
+    switch (aiCompetitors.get(aiId)) {
+        case (?ai) {
+            aiCompetitors.put(aiId, { ai with inventoryKg = amount });
+            #Ok("AI " # ai.name # " inventory forced to: " # Nat.toText(amount) # " kg")
+        };
+        case null { #Err(#NotFound("AI not found")) };
+    }
   };
 
   // DEBUG ONLY: Force set weather for testing payouts/mitigation
@@ -1668,9 +1714,14 @@ actor CherryTycoon {
                     
                     // Inject AI Bids into the global pool immediately
                     for (c in newContracts.vals()) {
-                        let mBid = AuctionLogic.getMarekBid(c, entropy, farm.seasonNumber);
-                        let kBid = AuctionLogic.getKasiaBid(c, entropy + 1, farm.seasonNumber);
-                        let hBid = AuctionLogic.getHansBid(c, entropy + 2, farm.seasonNumber, stableHansStorage);
+                        let mOpt = aiCompetitors.get("ai_marek_GL02");
+                        let kOpt = aiCompetitors.get("ai_kasia_NM01");
+                        let hOpt = aiCompetitors.get("ai_hans_OPCITY");
+
+                        let mBid = switch (mOpt) { case (?ai) AuctionLogic.getMarekBid(ai, c, entropy, farm.seasonNumber); case null null };
+                        let kBid = switch (kOpt) { case (?ai) AuctionLogic.getKasiaBid(ai, c, entropy + 1, farm.seasonNumber); case null null };
+                        let hBid = switch (hOpt) { case (?ai) AuctionLogic.getHansBid(ai, c, entropy + 2, farm.seasonNumber); case null null };
+                        
                         stableBids := Array.append<Types.Bid>(stableBids, Array.flatten<Types.Bid>([
                             switch (mBid) { case (?b) [b]; case null [] },
                             switch (kBid) { case (?b) [b]; case null [] },
@@ -1767,13 +1818,36 @@ actor CherryTycoon {
             };
 
             let aiText = if (nextPhase == #Harvest) {
-                let aiEntropy = Int.abs(Time.now()) % 1_000_000_000;
-                let _marekKg = CompetitorLogic.simulateAITurn(42,  45_000, #Summer, aiEntropy);
-                let _kasiaKg = CompetitorLogic.simulateAITurn(137, 18_000, #Summer, aiEntropy);
-                let _hansKg  = CompetitorLogic.simulateAITurn(999, 70_000, #Summer, aiEntropy);
-                // BUG-03: Update AI states to prevent stagnation (Ghost Rivals)
-                stableHansStorage := (stableHansStorage / 2) + _hansKg; // 50% decay + new harvest
-                " | AI Harvest Results: Marek=" # Nat.toText(_marekKg) # "kg, Kasia=" # Nat.toText(_kasiaKg) # "kg, Hans=" # Nat.toText(_hansKg) # "kg"
+                let aiEntropy = (Int.abs(Time.now()) + farm.seasonNumber * 7919) % 1_000_000_000;
+                let aiIds = ["ai_marek_GL02", "ai_kasia_NM01", "ai_hans_OPCITY"];
+                var resultsText = " | AI Harvest Results: ";
+                
+                for (aiId in aiIds.vals()) {
+                    switch (aiCompetitors.get(aiId)) {
+                        case (?ai) {
+                            let idSeed : Nat = switch (aiId) {
+                                case ("ai_marek_GL02") 42;
+                                case ("ai_kasia_NM01") 137;
+                                case ("ai_hans_OPCITY") 999;
+                                case (_) 0;
+                            };
+                            let harvested = CompetitorLogic.simulateAITurn(idSeed, ai.productionCapacity, #Summer, farm.seasonNumber);
+                            let newInventory = (ai.inventoryKg / 2) + harvested;
+                            let nextStrategy = CompetitorLogic.resolveStrategy({ ai with inventoryKg = newInventory }, #Summer);
+                            
+                            aiCompetitors.put(aiId, { ai with 
+                                inventoryKg = newInventory; 
+                                currentStrategy = nextStrategy;
+                                seasonsActive = ai.seasonsActive + 1;
+                                lastSeasonProduction = harvested;
+                            });
+                            
+                            resultsText := resultsText # ai.name # "=" # Nat.toText(harvested) # "kg, ";
+                        };
+                        case null {};
+                    };
+                };
+                resultsText
             } else { "" };
             
             let insuranceMsg = if (insurancePayout > 0) {
@@ -2808,38 +2882,15 @@ actor CherryTycoon {
       });
     };
 
-    // 2. Add AI competitors
-    let competitors = CompetitorLogic.getCompetitorSummaries();
-    for (ai in competitors.vals()) {
-      // AI Pseudo-stats based on archetype values
-      let aiInfraTotal : Nat = switch (ai.name) {
-        case ("Marek \"The Traditionalist\"") { 15 };
-        case ("Kasia \"The Eco-Visionary\"") { 10 };
-        case ("Hans \"The Aggressor\"")  { 25 };
-        case (_) { 5 };
-      };
-      
-      let aiSeasons : Nat = 10; 
-
-      let isOrganicAI = ai.isOrganic;
-      
-      // Estimate AI revenue
-      let aiRevenue = (ai.baseCapacity * 70 / 100) * 12;
-
-      let aiPrestige = LeaderboardLogic.calculatePrestige(
-        aiRevenue,
-        aiInfraTotal,
-        aiSeasons,
-        isOrganicAI
-      );
-
+    // 2. Add AI competitors (Persistent State)
+    for (ai in aiCompetitors.vals()) {
       entries.add({
-        id = "ai_" # Text.toLowercase(ai.name);
+        id = ai.id;
         name = ai.name;
         isAI = true;
-        prestige = aiPrestige;
-        seasonsCompleted = aiSeasons;
-        totalRevenue = aiRevenue;
+        prestige = ai.prestige;
+        seasonsCompleted = ai.seasonsActive;
+        totalRevenue = ai.totalRevenue;
       });
     };
 
@@ -2918,13 +2969,18 @@ actor CherryTycoon {
   // Per-season contracts are generated on demand and persisted between calls.
   stable var stableAuctionContracts : [Types.AuctionContract] = [];
   stable var stableSpotPrice : Nat = 10; // PLN/kg — adjusted by Flood Factor
-  stable var stableHansStorage : Nat = 0; // simulated Hans surplus kg
+  stable var stableAICompetitors : [(Text, Types.AICompetitor)] = []; // [PHASE 11] Persistent AI State
   stable var stableBids : [Types.Bid] = []; // [NEW] Buffer for closed-bid auctions
   stable var lastResolutionSeason : Nat = 0; // [NEW] Prevents double-resolution
 
   // [QUERY] Get all Imperial Contracts available in the current Market phase.
   // Generates contracts lazily if none exist for the current season.
   // Accessible by any authenticated player (no mutation — query only).
+  public shared query({ caller }) func getAICompetitors() : async GameResult<[Types.AICompetitor], GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    #Ok(Iter.toArray(aiCompetitors.vals()))
+  };
+
   public shared query({ caller }) func getActiveContracts() : async GameResult<[Types.AuctionContract], GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     #Ok(stableAuctionContracts)
@@ -3109,6 +3165,20 @@ actor CherryTycoon {
           let result = AuctionLogic.resolveContract(c, contractBids);
           switch (result.winnerId) {
             case (?(winId)) {
+                // Persistent AI State Update (Prestige & Revenue)
+                switch (aiCompetitors.get(winId)) {
+                    case (?ai) {
+                        let revenue = result.revenueEarned;
+                        let delivered = if (ai.inventoryKg >= c.requiredVolumeKg) c.requiredVolumeKg else ai.inventoryKg;
+                        let remainder = if (ai.inventoryKg >= delivered) ai.inventoryKg - delivered else 0;
+                        aiCompetitors.put(winId, { ai with
+                            totalRevenue = ai.totalRevenue + revenue;
+                            inventoryKg = remainder;
+                            prestige = ai.prestige + 5; // Win bonus
+                        });
+                    };
+                    case null {}; // Player winner handled in resolveSeasonAuctions
+                };
               totalContractedKg += c.requiredVolumeKg;
               { c with status = #Fulfilled; winnerPlayerId = ?winId; winnerBidPLN = result.winnerPricePLN; awardedSeason = ?season }
             };

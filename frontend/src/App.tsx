@@ -45,6 +45,7 @@ import { VolumeControl } from '@/components/ui/VolumeControl';
 import { SOUNDS } from '@/config/sounds';
 import { isActionAllowed, GameAction, SeasonPhase, PHASE_DESCRIPTIONS } from "@/config/phaseConstants";
 import { cn } from "@/lib/utils"
+import { mapBackendWeather } from "@/utils/weatherUtils";
 
 
 function AppContent() {
@@ -261,7 +262,10 @@ function AppContent() {
     const maxAffordableTrees = Number(stats.cash / 50n);
     const maxPlantable = Math.max(0, Math.min(200, maxAffordableTrees));
 
-    // Mock Weather Event State (To be connected to backend)
+    // Track the last seen weather event ID or timestamp to trigger modal only once
+    const lastEventRef = useRef<string | null>(null);
+
+    // Weather Event State (Connected to backend)
     const [weatherEvent, setWeatherEvent] = useState<{
         type: WeatherEventType;
         name: string;
@@ -269,6 +273,29 @@ function AppContent() {
         yieldImpact: number;
         infrastructureMitigation?: string;
     } | null>(null);
+
+    // Watch for backend weather changes
+    useEffect(() => {
+        const backendWeatherArr = farm?.weather;
+        if (backendWeatherArr && backendWeatherArr.length > 0) {
+            const event = backendWeatherArr[0];
+            if (!event) return;
+
+            const eventKey = `${Object.keys(event.weather)[0]}_${event.season}`;
+
+            // If it's a new event, map and show modal
+            if (lastEventRef.current !== eventKey) {
+                const mapping = mapBackendWeather(event.weather);
+                setWeatherEvent({
+                    ...mapping,
+                    yieldImpact: Number(event.severity) * -0.25,
+                });
+                lastEventRef.current = eventKey;
+            }
+        } else {
+            lastEventRef.current = null;
+        }
+    }, [farm?.weather]);
 
     // 4. Initialization loading screen (Neo-Steampunk Splash)
     if (isInitializing) {
@@ -386,6 +413,7 @@ function AppContent() {
             {/* Ambient Effects */}
             <WeatherOverlay
                 type={weatherEvent?.type === 'Storm' ? 'rain' : stats.currentSeason && 'Winter' in stats.currentSeason ? 'snow' : 'none'}
+                intensity={farm?.weather && farm.weather.length > 0 ? Number(farm.weather[0]!.severity) : 0.5}
             />
             <SeasonalEffects
                 season={stats.currentSeason ? Object.keys(stats.currentSeason)[0] as any : null}

@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useAuction } from '@/hooks/useAuction';
-import { useFarm } from '@/hooks/useFarm';
+import { useFarm, useCompetitors } from '@/hooks/useFarm';
 import { AuctionContractCard } from './AuctionContractCard';
 import { AIBidderCard } from './AIBidderCard';
 import { BidModal } from './BidModal';
 import { PreSeasonFutureModal } from './PreSeasonFutureModal';
 import { ShortfallAlert } from './ShortfallAlert';
 import { FloodFactorIndicator } from './FloodFactorIndicator';
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import './AuctionDashboard.css';
 
@@ -24,20 +23,18 @@ export const AuctionDashboard: React.FC = () => {
         refresh
     } = useAuction();
     const { farm } = useFarm();
+    const { data: aiCompetitors } = useCompetitors();
 
     const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
     const [showBidModal, setShowBidModal] = useState(false);
     const [showFutureModal, setShowFutureModal] = useState(false);
 
-    // Fetch dynamic AI competitor data
-    const { data: aiCompetitors } = useQuery({
-        queryKey: ['aiCompetitors'],
-        queryFn: async () => {
-            if (!backendActor) return [];
-            return await backendActor.getCompetitorSummaries();
-        },
-        enabled: !!backendActor
-    });
+    // AI Capacity Constants (matching backend defaults)
+    const AI_CAPACITIES: Record<string, number> = {
+        'ai_marek_GL02': 45000,
+        'ai_kasia_NM01': 18000,
+        'ai_hans_OPCITY': 70000
+    };
 
     const handleBidClick = (contractId: string) => {
         setSelectedContractId(contractId);
@@ -61,9 +58,9 @@ export const AuctionDashboard: React.FC = () => {
     // Calculate shortfall
     const shortfall = useMemo(() => {
         if (!contracts || !farm) return 0;
-        const awardedVolume = contracts
-            .filter(c => 'Awarded' in c.status && c.committedByPlayer[0] === farm.playerId)
-            .reduce((acc, c) => acc + Number(c.requiredVolumeKg), 0);
+        const awardedVolume = (contracts as any[])
+            .filter((c: any) => 'Awarded' in c.status && c.committedByPlayer[0] === farm.playerId)
+            .reduce((acc: number, c: any) => acc + Number(c.requiredVolumeKg), 0);
 
         const totalInventory = Number(farm.inventory.cherries) + Number(farm.inventory.organicCherries);
         return Math.max(0, awardedVolume - totalInventory);
@@ -114,17 +111,23 @@ export const AuctionDashboard: React.FC = () => {
                     <h3 className="text-[#d4af37] text-xs uppercase tracking-widest font-bold mb-4 opacity-70">Market Rivals</h3>
 
                     {aiCompetitors && aiCompetitors.length > 0 ? (
-                        aiCompetitors.map(ai => {
+                        aiCompetitors.map((ai: any) => {
                             const personality = Object.keys(ai.personality)[0];
-                            const strategy = Object.keys(ai.preferredSaleType)[0];
-                            const status = ai.id === 'Hans' ? 'outbidding' : (ai.id === 'Kasia' ? 'active' : 'idle');
+                            const strategyState = Object.keys(ai.currentStrategy)[0];
+                            const strategyLabel = strategyState; // Simplified for display
+                            const status = ai.id === 'ai_hans_OPCITY' ? 'outbidding' : (ai.id === 'ai_kasia_NM01' ? 'active' : 'idle');
+
                             return (
                                 <AIBidderCard
                                     key={ai.id}
                                     name={ai.name}
                                     archetype={personality}
-                                    strategy={strategy}
+                                    strategy={strategyLabel}
+                                    strategyState={strategyState as any}
                                     reputation={Number(ai.reputation)}
+                                    prestige={Number(ai.prestige)}
+                                    inventory={Number(ai.inventoryKg)}
+                                    capacity={AI_CAPACITIES[ai.id] || 50000}
                                     status={status as any}
                                 />
                             );
@@ -171,7 +174,7 @@ export const AuctionDashboard: React.FC = () => {
                 <div className="lg:col-span-3">
                     <div className="contracts-grid">
                         {contracts && contracts.length > 0 ? (
-                            contracts.map(contract => (
+                            (contracts as any[]).map((contract: any) => (
                                 <AuctionContractCard
                                     key={contract.id}
                                     contract={contract}

@@ -552,10 +552,12 @@ export function useCompetitors() {
         queryKey: ['competitors'],
         queryFn: async () => {
             if (!backendActor) throw new Error('Not authenticated');
-            return await backendActor.getCompetitorSummaries();
+            const result = await backendActor.getAICompetitors();
+            if ('Err' in result) throw new Error(getErrorMessage(result.Err));
+            return result.Ok;
         },
         enabled: !!backendActor && isAuthenticated,
-        refetchInterval: 1000 * 60 * 5, // 5 minutes
+        refetchInterval: 1000 * 60 * 2, // 2 minutes (faster for AI strategy shifts)
     });
 }
 
