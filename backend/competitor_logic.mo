@@ -23,8 +23,10 @@ module {
     personality: Types.AIPersonality;
     county: Text;
     totalArea: Float;         // hectares
-    baseCapacity: Nat;        // kg per season potential
+    productionCapacity: Nat;        // kg per season potential
     reputation: Nat;          // 0-100
+    prestige: Nat;            // 0-1000
+    seasonsActive: Nat;       // 0+
     preferredSaleType: Text;  // "retail" | "wholesale"
     isOrganic: Bool;
   };
@@ -71,7 +73,7 @@ module {
     personality       = #Traditionalist;
     currentStrategy   = #Aggressive;
     totalArea         = 15.0;
-    baseCapacity      = 45_000;
+    productionCapacity = 45_000;
     inventoryKg       = 0;
     prestige          = 600;
     reputation        = 60;
@@ -89,7 +91,7 @@ module {
     personality       = #Innovator;
     currentStrategy   = #Passive;
     totalArea         = 8.0;
-    baseCapacity      = 18_000;
+    productionCapacity = 18_000;
     inventoryKg       = 0;
     prestige          = 850;
     reputation        = 85;
@@ -107,7 +109,7 @@ module {
     personality       = #Businessman;
     currentStrategy   = #Neutral;
     totalArea         = 22.0;
-    baseCapacity      = 70_000;
+    productionCapacity = 70_000;
     inventoryKg       = 0;
     prestige          = 720;
     reputation        = 72;
@@ -125,7 +127,7 @@ module {
   // ============================================================================
   public func resolveStrategy(ai: Types.AICompetitor, season: Types.Season) : Types.AIStrategyState {
     // 1. Desperate: Low prestige or extreme inventory surplus during market phase
-    if (ai.prestige < 200 or (ai.inventoryKg > ai.baseCapacity and season == #Autumn)) {
+    if (ai.prestige < 200 or (ai.inventoryKg > ai.productionCapacity and season == #Autumn)) {
         return #Desperate;
     };
 
@@ -162,7 +164,7 @@ module {
   // Deterministic: same (idSeed, season, entropy) always returns same result.
   //
   // Yield formula:
-  //   base = competitor.baseCapacity
+  //   base = competitor.productionCapacity
   //   roll = lcg(entropy XOR-mix idSeed) → [0.0, 1.0)
   //   yieldFactor = 0.65 + roll * 0.70   → [0.65, 1.35)
   //   production  = base * yieldFactor    (clamped to [0.60*base, 1.30*base])
@@ -224,9 +226,9 @@ module {
   // ============================================================================
 
   public func getAITotalSupply(season: Types.Season, entropy: Nat) : Nat {
-    let marekKg = simulateAITurn(MAREK_SEED, AI_MAREK.baseCapacity, season, entropy);
-    let kasiaKg = simulateAITurn(KASIA_SEED, AI_KASIA.baseCapacity, season, entropy);
-    let hansKg  = simulateAITurn(HANS_SEED,  AI_HANS.baseCapacity,  season, entropy);
+    let marekKg = simulateAITurn(MAREK_SEED, AI_MAREK.productionCapacity, season, entropy);
+    let kasiaKg = simulateAITurn(KASIA_SEED, AI_KASIA.productionCapacity, season, entropy);
+    let hansKg  = simulateAITurn(HANS_SEED,  AI_HANS.productionCapacity,  season, entropy);
     marekKg + kasiaKg + hansKg
   };
 

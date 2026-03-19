@@ -372,16 +372,19 @@ module {
     youthDevelopment: Nat;   // 0-100 investment level
   };
 
-  public type League = {
-    #TopLiga;    // Ekstraklasa equivalent
-    #Liga1;
-    #Liga2;
     #Liga3;
+    #Liga4;
   };
 
   // ============================================================================
   // AI COMPETITORS (GDD Section 2)
   // ============================================================================
+
+  public type AIPersonality = {
+    #Traditionalist;
+    #Innovator;
+    #Businessman;
+  };
 
   public type AIStrategyState = {
     #Neutral;      // standard bidding

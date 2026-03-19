@@ -13,7 +13,7 @@ interface SidebarProps {
     xp: number;
     nextLevelXp: number;
     activeTab: string;
-    onTabChange: (tab: 'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'pool') => void;
+    onTabChange: (tab: 'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'pool' | 'harvester') => void;
     ownedInfrastructure: any[];
     parcels: any[];
     onOpenFinancialReport: () => void;
@@ -28,6 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
 
     const navItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
+        { id: 'harvester', icon: Zap, label: 'Golden Harvester' },
         { id: 'marketplace', icon: ShoppingBag, label: t('nav.marketplace') },
         { id: 'shop', icon: Sparkles, label: 'Premium Shop' },
         { id: 'rankings', icon: Trophy, label: t('nav.rankings') },
@@ -70,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                         onOpenShop();
                                         return;
                                     }
-                                    if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool') {
+                                    if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool' || item.id === 'harvester') {
                                         onTabChange(item.id as any);
                                     }
                                 }}
@@ -213,7 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                 onOpenShop();
                                 return;
                             }
-                            if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool') {
+                            if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool' || item.id === 'harvester') {
                                 onTabChange(item.id as any);
                             }
                         }}
@@ -261,7 +262,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                             onClose();
                                             return;
                                         }
-                                        if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool') {
+                                        if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool' || item.id === 'harvester') {
                                             onTabChange(item.id as any);
                                             onClose();
                                         }

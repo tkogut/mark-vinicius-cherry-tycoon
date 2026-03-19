@@ -128,26 +128,12 @@ actor CherryTycoon {
     stableUserRoles := [];
     
     let aiIter = HashMap.fromIter<Text, Types.AICompetitor>(Iter.fromArray(stableAICompetitors), 10, Text.equal, Text.hash);
+    
+    // Only re-seed if we have no persistent state from previous version
     if (aiIter.size() == 0) {
-        let defaults = CompetitorLogic.getCompetitorSummaries();
+        let defaults = [CompetitorLogic.AI_MAREK, CompetitorLogic.AI_KASIA, CompetitorLogic.AI_HANS];
         for (d in defaults.vals()) {
-            aiIter.put(d.id, {
-                id = d.id;
-                name = d.name;
-                personality = d.personality;
-                currentStrategy = #Neutral;
-                totalArea = d.totalArea;
-                productionCapacity = d.baseCapacity;
-                inventoryKg = 0;
-                prestige = d.prestige;
-                reputation = d.reputation;
-                county = d.county;
-                isOrganic = d.isOrganic;
-                preferredSaleType = d.preferredSaleType;
-                lastSeasonProduction = 0;
-                totalRevenue = 0;
-                seasonsActive = d.seasonsActive;
-            });
+            aiIter.put(d.id, d);
         };
     };
     aiCompetitors := aiIter;
@@ -161,9 +147,12 @@ actor CherryTycoon {
   );
 
   // AI Competitor Map (Persistent State)
-  var aiCompetitors = HashMap.HashMap<Text, Types.AICompetitor>(
-    10, Text.equal, Text.hash
-  );
+  var aiCompetitors = HashMap.HashMap<Text, Types.AICompetitor>(10, Text.equal, Text.hash);
+
+  // Initialize AI competitors on clean install
+  for (d in [CompetitorLogic.AI_MAREK, CompetitorLogic.AI_KASIA, CompetitorLogic.AI_HANS].vals()) {
+    aiCompetitors.put(d.id, d);
+  };
 
   // Core game data (Players and Farms)
   private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(

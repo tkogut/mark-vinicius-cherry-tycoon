@@ -111,7 +111,7 @@ python3 execution/start_tunnel.py
 ---
 
 ## 7. Master Plan & Roadmap
-> **Current Status**: **Phase 11.0: Advanced AI Market Competitors — PLANNING 🤖**
+> **Current Status**: **Phase 12.0: Cinematic Upgrade — COMPLETE ✅**
 > **Environment**: **WSL (Ubuntu)** ✅ ACTIVE — `dfx 0.24.3` + `Motoko 0.30.2` (EOP) working.
 > **Dual-Entrypoint**: `main.mo` (Playground) / `main_mainnet.mo` (Mainnet) strictly maintained.
 
@@ -131,7 +131,7 @@ python3 execution/start_tunnel.py
 - [ ] **Phase 7.0**: Weather & Event UI integration.
 - [ ] **Phase 6.1**: Enhanced Leaderboard & Rankings UI.
 
-#### Phase 11.0: Advanced AI Market Competitors (PLANNING 🤖)
+#### Phase 11.0: Advanced AI Market Competitors (COMPLETE ✅)
 *Objective: Enhance the competitive pool by introducing specialized AI archetypes.*
 - **The Aggressive (Marek)**: High-volatility Imperial Contracts, aggressive step-ups.
 - **The Eco (Kasia)**: Low-risk, high-quality organic bundles, methodical increments.
@@ -139,12 +139,12 @@ python3 execution/start_tunnel.py
 - **Backend**: Dynamic strategy updates in `auction_logic.mo` and `game_logic.mo`.
 - **Frontend**: Visual variants for `AIBidderCard.tsx` based on strategy.
 
-#### Phase 10.0: Sports Patron (District League) (DEFERRED — Endgame)
-- GDD Integration (`gdd_sports_patron.md`).
-- Team Power Index (TPI) math.
-- Local Reputation linking football results to Orchard prestige.
+#### Phase 10.0: Sports Patron (IV Liga Opolska) [DEFERRED]
+- **Scope**: 16 regional teams (Odra II, Namysłów, Nysa, etc.) from Opole province.
+- **Backend**: `FootballClub` HashMap seeding, TPI (Team Power Index) calculation.
+- **Frontend**: `SportsCenter.tsx` with gauge-dials and regional reputation link.
 
-#### Cinematic Upgrade: "The Golden Harvester" (BLUEPRINT)
+#### Cinematic Upgrade: "The Golden Harvester" (COMPLETE ✅)
 *Implement the ultimate infrastructure upgrade combining robust economic scaling with a premium "Neo-Steampunk Cherry" frontend.*
 - **Backend**: `golden_harvester_level` tracking, safe cost deductions, `(1.05^Level)` multiplier.
 - **Frontend**: `GoldenHarvesterView.tsx` with God Rays, Golden Hour lighting, `GoldenPollen` particles, and haptic feedback.

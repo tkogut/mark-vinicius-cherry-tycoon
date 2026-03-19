@@ -2,8 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Medal, Sprout, Loader2 } from "lucide-react";
+import { Trophy, Medal, Sprout, Loader2, Gauge, Award, TrendingUp } from "lucide-react";
 import { useLeaderboard } from "@/hooks/useFarm";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 
 interface RankingEntry {
@@ -29,7 +31,7 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
 
     const leaderboard: RankingEntry[] = (rawLeaderboard || [])
         .map((entry: any, index: number) => ({
-            rank: index + 1, // Backend returns sorted, assume consecutive rank
+            rank: index + 1,
             id: entry.id,
             name: entry.name,
             prestige: Number(entry.prestige),
@@ -39,108 +41,195 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
         }));
 
     return (
-        <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                        <Trophy className="h-6 w-6 text-yellow-500" />
-                        Global Leaderboard
-                    </h2>
-                    <p className="text-slate-400 mt-1">Top cherry producers by farm value and efficiency.</p>
-                </div>
+        <div className="relative space-y-8 max-w-5xl mx-auto p-4 min-h-[600px] overflow-hidden">
+            {/* 1. CINEMATIC BACKGROUND: GOD RAYS */}
+            <div className="absolute inset-0 pointer-events-none opacity-10">
+                <div className="absolute top-0 left-1/4 w-[2px] h-full bg-amber-500 blur-[80px] rotate-12" />
+                <div className="absolute top-0 right-1/3 w-[1px] h-full bg-amber-400 blur-[60px] -rotate-12" />
+                <div className="absolute bottom-0 left-1/2 w-[3px] h-full bg-amber-200 blur-[100px] rotate-45" />
             </div>
 
-            <Card className="mechanical-hull border-[#d4af37]/30 bg-black/40 shadow-2xl overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-[#d4af37]/10 to-transparent border-b border-[#d4af37]/10">
-                    <div className="grid grid-cols-12 text-[10px] font-bold text-[#d4af37] uppercase tracking-[0.2em] px-2 opacity-80">
-                        <div className="col-span-1 text-center">Pos</div>
-                        <div className="col-span-4 pl-4">Orchard Name</div>
+            {/* HEADER SECTION */}
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-6"
+            >
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                            <Trophy className="h-7 w-7 text-amber-500" />
+                        </div>
+                        <h2 className="text-4xl font-serif font-bold tracking-tighter text-white uppercase italic">
+                            Imperial Rankings
+                        </h2>
+                    </div>
+                    <p className="text-amber-200/40 text-[10px] uppercase font-mono tracking-[0.4em] pl-1.5 flex items-center gap-2">
+                        <span className="w-8 h-[1px] bg-amber-500/30" />
+                        Provincial Production & Global Prestige
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-4 bg-black/40 backdrop-blur-md border border-amber-500/20 rounded-xl p-4 shadow-inner">
+                    <div className="flex flex-col items-end">
+                        <span className="text-[9px] text-amber-500/60 uppercase font-bold tracking-widest">Active Season</span>
+                        <span className="text-xl font-serif font-bold text-white leading-none">SPRING IV</span>
+                    </div>
+                    <div className="w-[1px] h-8 bg-amber-500/20" />
+                    <div className="flex flex-col items-end">
+                        <span className="text-[9px] text-amber-500/60 uppercase font-bold tracking-widest">Total Participants</span>
+                        <span className="text-xl font-serif font-bold text-white leading-none">{leaderboard.length}</span>
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* LEADERBOARD TABLE */}
+            <Card className="mechanical-hull border-amber-500/30 bg-black/60 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative z-10">
+                <CardHeader className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-amber-500/20 py-4">
+                    <div className="grid grid-cols-12 text-[10px] font-bold text-amber-500/70 uppercase tracking-[0.3em] px-4 font-mono">
+                        <div className="col-span-1 text-center flex justify-center">
+                            <Gauge className="w-3 h-3" />
+                        </div>
+                        <div className="col-span-4 pl-4">Industrialist Identity</div>
                         <div className="col-span-3 text-right">Global Prestige</div>
-                        <div className="col-span-2 text-right">Seasons</div>
-                        <div className="col-span-2 text-right pr-4">Production</div>
+                        <div className="col-span-2 text-right">Lifespan</div>
+                        <div className="col-span-2 text-right pr-4">Yield (RUBY)</div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    {isLoading ? (
-                        <div className="flex justify-center items-center p-12 text-slate-400">
-                            <Loader2 className="h-8 w-8 animate-spin" />
-                        </div>
-                    ) : isError ? (
-                        <div className="p-8 text-center text-rose-400">
-                            Failed to load leaderboard data.
-                        </div>
-                    ) : leaderboard.length === 0 ? (
-                        <div className="p-8 text-center text-slate-400">
-                            No leaderboard data available yet.
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-slate-800/50">
-                            {leaderboard.map((entry) => (
-                                <div
-                                    key={entry.id}
-                                    className={`grid grid-cols-12 items-center py-5 hover:bg-[#d4af37]/5 transition-all duration-300 relative group
-                                        ${entry.isPlayer ? 'bg-[#d4af37]/10 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-[#d4af37]' : ''}`}
-                                >
-                                    <div className="col-span-1 flex justify-center">
-                                        {entry.rank === 1 ? (
-                                            <Trophy className="h-6 w-6 text-[#d4af37] drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]" />
-                                        ) : entry.rank === 2 ? (
-                                            <Medal className="h-5 w-5 text-slate-300 opacity-80" />
-                                        ) : entry.rank === 3 ? (
-                                            <Medal className="h-5 w-5 text-amber-700 opacity-80" />
-                                        ) : (
-                                            <span className="font-mono text-slate-500 font-bold text-xs">#{entry.rank}</span>
+                    <AnimatePresence mode="wait">
+                        {isLoading ? (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="flex flex-col justify-center items-center p-24 text-amber-500/40 gap-4"
+                            >
+                                <Loader2 className="h-10 w-10 animate-spin" />
+                                <span className="text-[10px] uppercase tracking-[0.5em] font-bold">Synchronizing Dials...</span>
+                            </motion.div>
+                        ) : isError ? (
+                            <div className="p-20 text-center text-rose-500 uppercase font-mono text-xs tracking-widest">
+                                ⚠️ Signal Interference: Failed to reach IC Backbone.
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-amber-900/20">
+                                {leaderboard.map((entry, idx) => (
+                                    <motion.div
+                                        key={entry.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        className={cn(
+                                            "grid grid-cols-12 items-center py-6 hover:bg-amber-500/5 transition-all duration-500 relative group cursor-default",
+                                            entry.isPlayer && "bg-amber-500/10 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-amber-500 before:shadow-[0_0_15px_rgba(212,175,55,0.8)]"
                                         )}
-                                    </div>
-                                    <div className="col-span-4 flex items-center gap-4 pl-4">
-                                        <div className={`p-[1px] rounded-full ${entry.isPlayer ? 'bg-gradient-to-tr from-[#d4af37] to-[#b87333]' : 'bg-slate-700'}`}>
-                                            <Avatar className="h-9 w-9 border-2 border-black">
-                                                <AvatarFallback className={`text-xs font-bold ${entry.isPlayer ? 'bg-black text-[#d4af37]' : 'bg-slate-900 text-slate-600'}`}>
-                                                    {entry.name.substring(0, 2).toUpperCase()}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className={`font-bold tracking-wide uppercase text-sm ${entry.isPlayer ? 'hull-header' : 'text-slate-300'}`}>
-                                                {entry.name}
-                                            </span>
-                                            {entry.isPlayer && (
-                                                <span className="text-[9px] text-[#d4af37]/60 font-mono tracking-widest">CURRENT DOMINANCE</span>
+                                    >
+                                        {/* RANK COLUMN */}
+                                        <div className="col-span-1 flex justify-center relative">
+                                            {entry.rank <= 3 && (
+                                                <div className="absolute inset-0 bg-amber-500/10 blur-xl rounded-full scale-150" />
+                                            )}
+                                            {entry.rank === 1 ? (
+                                                <Trophy className="h-7 w-7 text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] animate-pulse" />
+                                            ) : entry.rank === 2 ? (
+                                                <Award className="h-6 w-6 text-slate-300 drop-shadow-[0_0_10px_rgba(203,213,225,0.4)]" />
+                                            ) : entry.rank === 3 ? (
+                                                <Award className="h-6 w-6 text-amber-700 drop-shadow-[0_0_10px_rgba(180,83,9,0.4)]" />
+                                            ) : (
+                                                <span className="font-mono text-amber-500/30 font-black text-sm">
+                                                    {entry.rank.toString().padStart(2, '0')}
+                                                </span>
                                             )}
                                         </div>
-                                    </div>
-                                    <div className="col-span-3 text-right flex flex-col pr-2">
-                                        <div className="flex items-center justify-end gap-1.5">
-                                            <span className="font-mono text-lg font-bold text-amber-500/90 leading-none">
-                                                {entry.prestige.toLocaleString()}
-                                            </span>
-                                            <div className="h-3 w-3 rounded-full bg-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,0.6)]" />
-                                        </div>
-                                        <span className="text-[10px] text-slate-500 uppercase tracking-tighter">Imperial Prestige</span>
-                                    </div>
 
-                                    <div className="col-span-2 text-right pr-2">
-                                        <span className="font-mono text-sm text-slate-400">
-                                            {entry.seasons} Seasons
-                                        </span>
-                                    </div>
-
-                                    <div className="col-span-2 text-right pr-4">
-                                        <div className="font-mono text-sm text-emerald-500/80">
-                                            {(entry.revenue / 1000).toFixed(1)}k
+                                        {/* IDENTITY COLUMN */}
+                                        <div className="col-span-4 flex items-center gap-5 pl-4">
+                                            <div className={cn(
+                                                "relative p-[2px] rounded-full shadow-lg transition-transform group-hover:scale-110 duration-500",
+                                                entry.isPlayer ? "bg-gradient-to-tr from-amber-500 to-amber-200" : "bg-zinc-800"
+                                            )}>
+                                                <Avatar className="h-11 w-11 border-2 border-black">
+                                                    <AvatarFallback className={cn(
+                                                        "text-[10px] font-black tracking-widest",
+                                                        entry.isPlayer ? "bg-black text-amber-400" : "bg-zinc-900 text-zinc-500"
+                                                    )}>
+                                                        {entry.name.substring(0, 2).toUpperCase()}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                {!entry.isPlayer && (
+                                                    <div className="absolute -bottom-1 -right-1 p-0.5 bg-black rounded-full border border-zinc-700 shadow-xl">
+                                                        <div className="w-2.5 h-2.5 bg-zinc-600 rounded-full animate-pulse" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className={cn(
+                                                    "font-serif font-bold text-base tracking-wide uppercase transition-colors duration-500",
+                                                    entry.isPlayer ? "text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "text-zinc-400 group-hover:text-zinc-200"
+                                                )}>
+                                                    {entry.name}
+                                                </span>
+                                                {entry.isPlayer ? (
+                                                    <span className="text-[8px] text-amber-500/80 font-mono font-bold tracking-[0.3em] mt-0.5 flex items-center gap-1.5 animate-pulse">
+                                                        <span className="w-1 h-1 bg-amber-500 rounded-full" />
+                                                        LOCAL HEGEMON
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[8px] text-zinc-600 font-mono tracking-widest mt-0.5">ESTABLISHED COLONY</span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-[9px] text-slate-600 uppercase font-bold tracking-tighter">Gross Yield</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+
+                                        {/* PRESTIGE COLUMN */}
+                                        <div className="col-span-3 text-right flex flex-col pr-6">
+                                            <div className="flex items-center justify-end gap-3 translate-x-1 group-hover:translate-x-0 transition-transform duration-500">
+                                                <span className="font-mono text-2xl font-black text-amber-400 tracking-tighter tabular-nums drop-shadow-lg">
+                                                    {entry.prestige.toLocaleString()}
+                                                </span>
+                                                <div className="h-4 w-4 rounded-sm bg-gradient-to-br from-amber-300 to-amber-600 shadow-[0_0_10px_rgba(212,175,55,0.5)] rotate-45 transform" />
+                                            </div>
+                                            <span className="text-[9px] text-amber-500/40 uppercase font-bold tracking-widest mt-1">Status Quo</span>
+                                        </div>
+
+                                        {/* SEASONS COLUMN */}
+                                        <div className="col-span-2 text-right pr-6">
+                                            <div className="flex flex-col">
+                                                <span className="font-mono text-sm text-zinc-400 font-bold">
+                                                    {entry.seasons} Seasons
+                                                </span>
+                                                <div className="h-1 w-full bg-zinc-900 rounded-full mt-2 overflow-hidden border border-zinc-800/50">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${Math.min(100, entry.seasons * 10)}%` }}
+                                                        className="h-full bg-amber-900/40"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* REVENUE COLUMN */}
+                                        <div className="col-span-2 text-right pr-6 group-hover:translate-x-[-4px] transition-transform duration-500">
+                                            <div className="flex items-center justify-end gap-2 text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.3)]">
+                                                <TrendingUp className="w-3 h-3" />
+                                                <span className="font-mono text-lg font-black tracking-tighter tabular-nums">
+                                                    {(entry.revenue / 1000).toFixed(1)}k
+                                                </span>
+                                            </div>
+                                            <div className="text-[8px] text-rose-900 font-black uppercase tracking-widest">Gross Yield</div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </AnimatePresence>
                 </CardContent>
             </Card>
 
-            <div className="flex justify-center mt-8 pb-12">
-                <span className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">
-                    Produced by JaPiTo Group
+            {/* DECORATIVE FOOTER */}
+            <div className="relative flex flex-col items-center gap-4 py-12 opacity-40">
+                <div className="w-px h-16 bg-gradient-to-b from-amber-500/0 to-amber-500" />
+                <span className="text-[9px] text-amber-500 font-black uppercase tracking-[0.8em] font-mono">
+                    Imperial Ledger • JaPiTo Group
                 </span>
             </div>
         </div>
