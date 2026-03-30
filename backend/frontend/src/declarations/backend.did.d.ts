@@ -187,11 +187,11 @@ export type GameResult_10 = { 'Ok' : Inventory__1 } |
   { 'Err' : GameError };
 export type GameResult_11 = { 'Ok' : FarmOverview } |
   { 'Err' : GameError };
-export type GameResult_12 = { 'Ok' : Array<AICompetitor> } |
+export type GameResult_12 = { 'Ok' : Array<FootballClub> } |
   { 'Err' : GameError };
-export type GameResult_13 = { 'Ok' : Array<FootballClub> } |
+export type GameResult_13 = { 'Ok' : Array<AuctionContract> } |
   { 'Err' : GameError };
-export type GameResult_14 = { 'Ok' : Array<AuctionContract> } |
+export type GameResult_14 = { 'Ok' : Array<AICompetitor> } |
   { 'Err' : GameError };
 export type GameResult_15 = { 'Ok' : Array<Bid> } |
   { 'Err' : GameError };
@@ -483,12 +483,12 @@ export interface _SERVICE {
   'debugSetInventory' : ActorMethod<[bigint, bigint], GameResult>,
   'debugSetWeather' : ActorMethod<[Weather, number, boolean], GameResult>,
   'fertilizeParcel' : ActorMethod<[string, string], GameResult>,
-  'getActiveContracts' : ActorMethod<[], GameResult_14>,
-  'getAvailableFootballClubs' : ActorMethod<[], GameResult_13>,
+  'getAICompetitors' : ActorMethod<[], GameResult_14>,
+  'getActiveContracts' : ActorMethod<[], GameResult_13>,
+  'getAvailableFootballClubs' : ActorMethod<[], GameResult_12>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCashBalance' : ActorMethod<[], GameResult_1>,
   'getCompetitorSummaries' : ActorMethod<[], Array<AICompetitorSummary>>,
-  'getCompetitorsDetail' : ActorMethod<[], GameResult_12>,
   'getFarmOverview' : ActorMethod<[], GameResult_11>,
   'getGlobalLeaderboard' : ActorMethod<[], Array<LeaderboardEntry>>,
   'getGlobalSeason' : ActorMethod<[], bigint>,

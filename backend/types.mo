@@ -371,7 +371,7 @@ module {
     squadValue: Nat;
     youthDevelopment: Nat;   // 0-100 investment level
   };
-
+  public type League = {
     #Liga3;
     #Liga4;
   };

@@ -552,7 +552,7 @@ export function useCompetitors() {
         queryKey: ['competitors'],
         queryFn: async () => {
             if (!backendActor) throw new Error('Not authenticated');
-            const result = await backendActor.getAICompetitors();
+            const result = await (backendActor as any).getCompetitorsDetail();
             if ('Err' in result) throw new Error(getErrorMessage(result.Err));
             return result.Ok;
         },

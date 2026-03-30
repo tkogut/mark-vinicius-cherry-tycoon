@@ -63,4 +63,10 @@ def start(local_port, remote_port):
             c.close()
 
 if __name__ == "__main__":
-    start(9222, 9223)
+    import argparse
+    parser = argparse.ArgumentParser(description='WSL Bridge Diagnostic Tool')
+    parser.add_argument('--port', type=int, default=9222, help='Local WSL port to listen on')
+    parser.add_argument('--remote-port', type=int, default=9223, help='Remote Windows port to connect to')
+    args = parser.parse_args()
+    
+    start(args.port, args.remote_port)

@@ -20,10 +20,12 @@
 ## 2. Network / Port Topology
 
 ```
-WSL Agent          →  http://127.0.0.1:9222   (CDP endpoint, local)
+WSL Agent (Cypress/Sub) →  http://127.0.0.1:9222   (CDP endpoint, local)
 start_tunnel.py    →  WINDOWS_IP:9223         (bridge)
 Windows netsh      →  0.0.0.0:9223 → 127.0.0.1:9222
+Windows netsh      →  0.0.0.0:5173 → WSL_IP:5173 (Vite Access)
 Chrome (Windows)   →  127.0.0.1:9222          (CDP server)
+Vite Server (WSL)  →  0.0.0.0:5173            (Host: true)
 ```
 
 ### Port Lockdown (Rule 05.1)
@@ -31,7 +33,7 @@ Chrome (Windows)   →  127.0.0.1:9222          (CDP server)
 |---|---|---|
 | `9222` | Agent CDP Control | NEVER browse manually |
 | `9223` | WSL Bridge Target | Managed by `start_tunnel.py` |
-| `5173` | Vite Dev Server | ALWAYS use for manual verification |
+| `5173` | Vite Dev Server | MUST use `--host 0.0.0.0` and Windows portproxy |
 
 ### Chrome Launch Command (Windows)
 ```powershell
@@ -40,7 +42,10 @@ chrome.exe --remote-debugging-port=9222 --remote-debugging-address=0.0.0.0 --rem
 
 ### netsh Portproxy (run once, PowerShell Admin)
 ```powershell
+# CDP Bridge
 netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=9223 connectaddress=127.0.0.1 connectport=9222
+# Vite Bridge (Replace <WSL_IP> with current IP from 'hostname -I')
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=5173 connectaddress=<WSL_IP> connectport=5173
 ```
 
 ### Bridge Activation (WSL)
@@ -106,7 +111,7 @@ python3 execution/start_tunnel.py
 ---
 
 ## 6. Agent Protocols Reference
-→ See `.ai/AGENTS.md` for collaboration rules, Yarn standards, and Virtual CLI specification.
+→ See `.ai/AGENTS.md` for collaboration rules, NPM standards, and Virtual CLI specification.
 
 ---
 
@@ -156,3 +161,4 @@ python3 execution/start_tunnel.py
 | **Frontend** | Frontend Agent | **ACTIVE** — Phase 8.1 / 9.0 complete. Refining UI. |
 | **QA** | QA Agent | **ACTIVE** — Verify Phase 6.1 Leaderboard logic via Candid |
 | **Security** | Security Agent | **ACTIVE** — Monitoring for new Phase 7 commits |
+| **Logic** | Core Architect | **ENFORCED** — **Atomic Auth**: `isAuthenticated` SET ONLY after `backendActor` is ready. |

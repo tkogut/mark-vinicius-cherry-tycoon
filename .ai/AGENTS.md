@@ -1,5 +1,5 @@
 # AGENTS.md — AntiGravity Collaboration Standard
-> Defines agent roles, Virtual CLI, Yarn standards, and handshake protocols.
+> Defines agent roles, Virtual CLI, NPM standards, and handshake protocols.
 > For infrastructure/port specs see `.ai/ANTIGRAVITY.md`.
 
 ---
@@ -63,16 +63,16 @@ Update `00_master_plan.md` or alert Coordinator if blocked.
 
 ---
 
-## 4. Yarn Standards
+## 4. NPM Standards
 
 > [!IMPORTANT]
-> This project uses **Yarn** as the primary package manager for all frontend operations.
+> This project uses **NPM** as the primary package manager for all frontend operations.
 
-- **Install**: `yarn install` (not `npm install`)
-- **Dev server**: `yarn dev` (not `npm run dev`)
-- **Build**: `yarn build`
-- **Add dependency**: `yarn add <package>`
-- Lock file: `yarn.lock` — commit always, never delete.
+- **Install**: `npm install`
+- **Dev server**: `npm run dev`
+- **Build**: `npm run build`
+- **Add dependency**: `npm install <package>`
+- Lock file: `package-lock.json` — commit always, never delete.
 
 ---
 
@@ -129,7 +129,7 @@ Failure to do this causes "prompt drift" in multi-window sessions.
 
 ## 9. WSL Constraint
 
-Agents CANNOT run `dfx` or `npm`/`yarn` commands directly. Workflow:
+Agents CANNOT run `dfx` or `npm` commands directly. Workflow:
 1. **Agent** formulates the exact command string.
 2. **Agent** asks User to run it in WSL with log redirect:
    ```bash

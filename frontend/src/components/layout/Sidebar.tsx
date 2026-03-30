@@ -18,11 +18,12 @@ interface SidebarProps {
     parcels: any[];
     onOpenFinancialReport: () => void;
     onOpenShop: () => void;
+    onOpenStats: () => void;
 }
 
 import { useTranslation } from 'react-i18next';
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, nextLevelXp, activeTab, onTabChange, ownedInfrastructure, parcels, onOpenFinancialReport, onOpenShop }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, nextLevelXp, activeTab, onTabChange, ownedInfrastructure, parcels, onOpenFinancialReport, onOpenShop, onOpenStats }) => {
     const { logout } = useAuth();
     const { t } = useTranslation();
 
@@ -32,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
         { id: 'marketplace', icon: ShoppingBag, label: t('nav.marketplace') },
         { id: 'shop', icon: Sparkles, label: 'Premium Shop' },
         { id: 'rankings', icon: Trophy, label: t('nav.rankings') },
+        { id: 'stats', icon: LayoutDashboard, label: 'Farm Stats' },
         { id: 'neighbors', icon: User, label: t('nav.neighbors') },
         { id: 'pool', icon: PieChart, label: 'Imperial Pool' },
         { id: 'sports', icon: Zap, label: t('nav.sports') },
@@ -69,6 +71,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                 onClick={() => {
                                     if (item.id === 'shop') {
                                         onOpenShop();
+                                        return;
+                                    }
+                                    if (item.id === 'stats') {
+                                        onOpenStats();
                                         return;
                                     }
                                     if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool' || item.id === 'harvester') {
@@ -214,6 +220,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                 onOpenShop();
                                 return;
                             }
+                            if (item.id === 'stats') {
+                                onOpenStats();
+                                return;
+                            }
                             if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool' || item.id === 'harvester') {
                                 onTabChange(item.id as any);
                             }
@@ -259,6 +269,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                     onClick={() => {
                                         if (item.id === 'shop') {
                                             onOpenShop();
+                                            onClose();
+                                            return;
+                                        }
+                                        if (item.id === 'stats') {
+                                            onOpenStats();
                                             onClose();
                                             return;
                                         }

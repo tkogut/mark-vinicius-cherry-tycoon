@@ -26,7 +26,7 @@ interface CompetitorsPanelProps {
 export const CompetitorsPanel: React.FC<CompetitorsPanelProps> = ({ playerCash, playerReputation = 0n, playerName = "You" }) => {
     const { data: rawCompetitors, isLoading } = useCompetitors();
 
-    const competitors: Competitor[] = (rawCompetitors || []).map(comp => ({
+    const competitors: Competitor[] = (rawCompetitors || []).map((comp: any) => ({
         id: comp.id,
         name: comp.name,
         region: comp.county,

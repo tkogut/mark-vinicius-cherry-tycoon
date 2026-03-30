@@ -48,30 +48,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const network = import.meta.env.VITE_DFX_NETWORK;
                 if (network !== 'ic') {
                     console.log(`[AuthContext] Detected ${network} network. Triggering Auto-Login...`);
-                    // We can't call initTestMode directly here because it depends on 'client' being in state
-                    // and we just set it. We'll use the client from this scope.
                     try {
-                        setIsAuthenticated(true);
                         const { Ed25519KeyIdentity } = await import('@dfinity/identity');
                         const sessionIdentity = Ed25519KeyIdentity.generate();
                         setIdentity(sessionIdentity);
                         const actor = await createBackendActor(sessionIdentity);
-                        if (actor) setBackendActor(actor);
+                        if (actor) {
+                            setBackendActor(actor);
+                            setIsAuthenticated(true);
+                        }
                         console.log('[AuthContext] Auto-Login successful');
                     } catch (e) {
                         console.error('[AuthContext] Auto-Login failed:', e);
                         // Fallback to anonymous
                         const anonymousActor = await createBackendActor();
                         setBackendActor(anonymousActor);
+                        setIsAuthenticated(false); // Anonymous is not "Authenticated" in our game logic
                     }
                 } else {
                     console.log('[AuthContext] Not authenticated. Creating anonymous backend actor...');
                     const anonymousActor = await createBackendActor();
                     setBackendActor(anonymousActor);
+                    setIsAuthenticated(false);
                 }
             }
 
-            console.log('[AuthContext] Initialization complete. Authenticated:', isAuth);
+            console.log('[AuthContext] Initialization complete. Authenticated:', isAuth || (import.meta.env.VITE_DFX_NETWORK !== 'ic' && !!backendActor));
             setIsInitializing(false);
         }).catch((error) => {
             console.error('[AuthContext] Failed to initialize:', error);

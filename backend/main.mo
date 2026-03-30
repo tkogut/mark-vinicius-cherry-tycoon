@@ -2965,7 +2965,7 @@ actor CherryTycoon {
   // [QUERY] Get all Imperial Contracts available in the current Market phase.
   // Generates contracts lazily if none exist for the current season.
   // Accessible by any authenticated player (no mutation — query only).
-  public shared query({ caller }) func getAICompetitors() : async GameResult<[Types.AICompetitor], GameError> {
+  public shared query({ caller }) func getCompetitorsDetail() : async GameResult<[Types.AICompetitor], GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     #Ok(Iter.toArray(aiCompetitors.vals()))
   };

@@ -352,17 +352,17 @@ type GameResult_15 =
 type GameResult_14 = 
  variant {
    Err: GameError;
-   Ok: vec AuctionContract;
+   Ok: vec AICompetitor;
  };
 type GameResult_13 = 
  variant {
    Err: GameError;
-   Ok: vec FootballClub;
+   Ok: vec AuctionContract;
  };
 type GameResult_12 = 
  variant {
    Err: GameError;
-   Ok: vec AICompetitor;
+   Ok: vec FootballClub;
  };
 type GameResult_11 = 
  variant {
@@ -609,12 +609,12 @@ service : {
   debugSetInventory: (nat, nat) -> (GameResult);
   debugSetWeather: (Weather, float64, bool) -> (GameResult);
   fertilizeParcel: (text, text) -> (GameResult);
-  getActiveContracts: () -> (GameResult_14) query;
-  getAvailableFootballClubs: () -> (GameResult_13) query;
+  getAICompetitors: () -> (GameResult_14) query;
+  getActiveContracts: () -> (GameResult_13) query;
+  getAvailableFootballClubs: () -> (GameResult_12) query;
   getCallerUserRole: () -> (UserRole) query;
   getCashBalance: () -> (GameResult_1) query;
   getCompetitorSummaries: () -> (vec AICompetitorSummary) query;
-  getCompetitorsDetail: () -> (GameResult_12) query;
   getFarmOverview: () -> (GameResult_11) query;
   getGlobalLeaderboard: () -> (vec LeaderboardEntry) query;
   getGlobalSeason: () -> (nat) query;

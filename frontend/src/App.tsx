@@ -12,6 +12,8 @@ import { SellModal } from '@/components/farm/modals/SellModal';
 import { CompetitorsPanel } from "@/components/social/CompetitorsPanel";
 import { RankingsPanel } from "@/components/social/RankingsPanel";
 import { SportsCenter } from "@/components/sports/SportsCenter";
+import { MainDashboard } from "@/components/farm/MainDashboard";
+import { ImperialOrchard } from "@/components/farm/ImperialOrchard";
 const Marketplace = React.lazy(() => import('@/components/farm/Marketplace').then(module => ({ default: module.Marketplace })));
 import { InvestmentsDashboard } from "@/components/farm/InvestmentsDashboard";
 import { ParticleLayer } from "@/components/effects/ParticleLayer";
@@ -67,6 +69,7 @@ function AppContent() {
     const [hiringModalOpen, setHiringModalOpen] = useState(false);
     const [procurementModalOpen, setProcurementModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'harvester' | 'pool'>('dashboard');
+    const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
     // Harvest Velocity — drives the Sunset-Glow particle intensity
     const [harvestVelocity, setHarvestVelocity] = useState(0);
@@ -92,6 +95,8 @@ function AppContent() {
     const {
         farm,
         isLoading,
+        isError,
+        error: farmError,
         refetch,
         plant,
         water,
@@ -106,7 +111,9 @@ function AppContent() {
         hireLabor
     } = useGuestFarm();
 
-    const showOnboarding = isAuthenticated && !!identity && !isLoading && !farm;
+    // Only show onboarding if we specifically failed with "Not Found" OR if we are authenticated but have no data
+    const isNotFound = farmError?.message?.includes('Not Found') || (!farm && !isLoading && isAuthenticated && !isError);
+    const showOnboarding = isAuthenticated && !!identity && isNotFound;
 
     // AUTO-ONBOARDING BYPASS
     useEffect(() => {
@@ -490,6 +497,7 @@ function AppContent() {
                 parcels={farm?.parcels || []}
                 onOpenFinancialReport={() => setFinancialReportOpen(true)}
                 onOpenShop={() => setIsShopModalOpen(true)}
+                onOpenStats={() => setStatsModalOpen(true)}
             />
 
             <FinancialReportModal
@@ -615,16 +623,6 @@ function AppContent() {
                                 </Button>
 
 
-                                <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => setActiveTab('harvester')}
-                                    disabled={!isAuthenticated}
-                                    className="gap-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-white border-0 shadow-[0_0_15px_rgba(251,191,36,0.3)] hover:shadow-[0_0_20px_rgba(251,191,36,0.5)] transition-all flex font-bold tracking-wider"
-                                >
-                                    <TrendingUp className="h-4 w-4" />
-                                    <span className="hidden sm:inline">HARVESTER</span>
-                                </Button>
 
                                 {/* Sell Cherries Button */}
                                 <Button
@@ -649,16 +647,6 @@ function AppContent() {
                                     <span className="hidden sm:inline">Refresh</span>
                                 </Button>
 
-                                <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => setStatsModalOpen(true)}
-                                    disabled={!isAuthenticated}
-                                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                                >
-                                    <LayoutDashboard className="h-4 w-4" />
-                                    <span>Farm stats</span>
-                                </Button>
 
                                 <div className="hidden md:flex items-center gap-2">
                                     <VolumeControl />
@@ -671,39 +659,74 @@ function AppContent() {
 
 
 
-                    {isAuthenticated ? (
+                    {/* Main UI Entry Point */}
+                    {isError && !isNotFound ? (
+                        <div className="min-h-[60vh] flex items-center justify-center p-4">
+                            <div className="mechanical-hull p-8 max-w-md w-full text-center border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.2)]">
+                                <RefreshCcw className="mx-auto h-12 w-12 text-rose-500 mb-4 opacity-50" />
+                                <h2 className="text-2xl text-rose-500 font-bold mb-2 uppercase tracking-tighter">System Malfunction</h2>
+                                <p className="text-slate-400 mb-6 font-mono text-xs leading-relaxed">
+                                    {farmError?.message || "Atmospheric interference detected in the cloud engines. Re-synchronizing may be required."}
+                                </p>
+                                <Button
+                                    onClick={() => refetch()}
+                                    className="bg-rose-600 hover:bg-rose-500 text-white font-bold h-11 w-full gap-2 transition-all active:scale-95"
+                                >
+                                    <RefreshCcw className="h-4 w-4" />
+                                    Re-align Dampers
+                                </Button>
+                                <p className="mt-4 text-[10px] text-slate-600 uppercase tracking-[0.2em]">Error Code: {isError ? 'SIG_FAIL_0X9' : 'OK'}</p>
+                            </div>
+                        </div>
+                    ) : isAuthenticated ? (
                         <React.Suspense fallback={<div className="flex justify-center p-12"><RefreshCcw className="animate-spin h-8 w-8 text-rose-500" /></div>}>
                             {activeTab === 'dashboard' ? (
-                                <div className="space-y-6">
-                                    {isAuthenticated && currentPhase === 'Maintenance' && (
-                                        <div className="bg-blue-900/10 border border-blue-500/20 rounded-lg p-4 text-center animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <p className="text-sm text-blue-400 font-medium">
-                                                🛠️ Maintenance Phase: Your machines are being serviced. Good time to visit the Marketplace or end the phase.
-                                            </p>
+                                <div className="flex flex-col w-full h-[calc(100vh-64px)] overflow-hidden">
+                                    {/* 70% Top - Imperial Orchard */}
+                                    <div className="flex-grow relative z-10 w-full overflow-hidden">
+                                        {isAuthenticated && currentPhase === 'Maintenance' && (
+                                            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-blue-900/80 backdrop-blur-md border border-blue-500/50 rounded-lg p-3 text-center shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+                                                <p className="text-xs text-blue-200 font-medium font-mono uppercase tracking-wider">
+                                                    🛠️ Maintenance Phase: Machines are being serviced.
+                                                </p>
+                                            </div>
+                                        )}
+                                        {isAuthenticated && currentPhase === 'Planning' && (
+                                            <div className="absolute top-4 left-4 z-50">
+                                                <PlanningBoard />
+                                            </div>
+                                        )}
+                                        <ImperialOrchard
+                                            parcels={parcels}
+                                            season={farm?.currentSeason}
+                                            onAction={handleParcelAction as any}
+                                            automationConfig={{ hasHarvesters: false }}
+                                        />
+                                    </div>
+
+                                    {/* 30% Bottom - Central Engine (HUD) / The Steam Drawer (Mobile) */}
+                                    <div
+                                        className={cn(
+                                            "w-full relative z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] border-t-2 bg-slate-950 transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col",
+                                            isDrawerExpanded
+                                                ? "h-[75vh] md:h-[30vh] min-h-[30vh]"
+                                                : "h-[25vh] md:h-[30vh] min-h-[20vh]"
+                                        )}
+                                        style={{ borderColor: 'var(--brass-primary)' }}
+                                    >
+                                        {/* Mobile Drawer Handle */}
+                                        <div
+                                            className="md:hidden flex items-center justify-center h-8 cursor-pointer w-full bg-slate-900 absolute top-0 left-0 z-30"
+                                            style={{ borderBottom: '1px solid var(--brass-rim, var(--brass-primary))' }}
+                                            onClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
+                                        >
+                                            <div className="w-12 h-1 rounded-full bg-slate-500 opacity-50" />
                                         </div>
-                                    )}
-                                    {isAuthenticated && currentPhase === 'Planning' && (
-                                        <PlanningBoard />
-                                    )}
-                                    <FarmGrid
-                                        parcels={parcels}
-                                        onAction={handleParcelAction}
-                                        onBuyParcel={handleBuyParcel}
-                                        loading={
-                                            isLoading ||
-                                            advancePhase.isPending ||
-                                            plant.isPending ||
-                                            water.isPending ||
-                                            fertilize.isPending ||
-                                            harvest.isPending ||
-                                            startOrganicConversion.isPending
-                                        }
-                                        currentSeason={stats.currentSeason}
-                                        infrastructure={farm?.infrastructure || []}
-                                        currentPhase={currentPhase}
-                                        weather={farm?.weather}
-                                        labor={farm?.hiredLabor?.[0]}
-                                    />
+
+                                        <div className={cn("flex-grow overflow-auto", "md:pt-0 pt-8")}>
+                                            <MainDashboard />
+                                        </div>
+                                    </div>
                                 </div>
                             ) : activeTab === 'harvester' ? (
                                 <div className="animate-in slide-in-from-right-[100%] duration-500 ease-out fill-mode-forwards sm:slide-in-from-right-[150%]">
