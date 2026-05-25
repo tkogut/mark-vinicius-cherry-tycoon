@@ -60,3 +60,5 @@ backend/.dfx/
 *.tmp
 *.temp
 *.log
+tmp/
+.agents/swarm/
