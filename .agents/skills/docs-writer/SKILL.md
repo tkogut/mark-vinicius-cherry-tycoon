@@ -1,6 +1,6 @@
 ---
 name: docs-writer
-description: Utility for technical and API documentation updates. Standard v4.2.
+description: Utility for technical and API documentation updates. Standard v5.0.
 trigger_words: ["update docs", "write documentation", "document api"]
 ---
 

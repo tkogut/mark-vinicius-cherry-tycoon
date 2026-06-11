@@ -1,6 +1,6 @@
 # AGENTS-OS Swarm Role Registry
 project: mark-vinicius-cherry-tycoon
-version: 4.2
+version: 4.0
 
 roles:
   gem:
@@ -13,15 +13,15 @@ roles:
 
   coordinator:
     name: Coordinator
-    model: Gemini 3.5 Flash
+    model: Gemini 3.5 Flash (High)
     description: High-level orchestration, git push, plan management.
 
   builder:
     name: Builder
-    model: Claude 4.6 Thinking
+    model: Claude Sonnet 4.6 (Thinking)
     description: Structural implementation and codebase execution.
 
   auditor:
     name: Auditor
-    model: Gemini 3 Flash
+    model: Gemini 3.5 Flash (Low)
     description: Verifies file formats, syntax validity, path integrity, and snap sandbox issues.

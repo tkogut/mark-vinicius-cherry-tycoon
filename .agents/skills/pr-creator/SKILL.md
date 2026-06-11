@@ -1,6 +1,6 @@
 ---
 name: pr-creator
-description: Coordinator logic for PR creation and validation. Standard v4.2.
+description: Coordinator logic for PR creation and validation. Standard v5.0.
 trigger_words: ["create pr", "submit pull request", "make pr"]
 ---
 

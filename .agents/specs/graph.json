@@ -1,57 +1,17 @@
 {
-  "project": "mark-vinicius-cherry-tycoon",
-  "version": "4.2",
+  "project": "AGENTS-OS Project",
+  "version": "5.0",
   "nodes": [
     {
       "id": ".agents/specs/AGENTS-OS.md",
       "label": "AGENTS-OS.md",
       "type": "Ultimate Source of Truth",
-      "description": "Constitution of AGENTS-OS v4.2 governing all Swarm rules and system operations."
-    },
-    {
-      "id": "src/",
-      "label": "src",
-      "type": "Source Root",
-      "description": "Main Motoko/ICP canister source code."
-    },
-    {
-      "id": "frontend/",
-      "label": "frontend",
-      "type": "Frontend Module",
-      "description": "Web frontend assets and UI layer."
-    },
-    {
-      "id": "backend/",
-      "label": "backend",
-      "type": "Backend Module",
-      "description": "Backend canister logic and services."
-    },
-    {
-      "id": "scripts/",
-      "label": "scripts",
-      "type": "Tooling",
-      "description": "Build, deploy, and utility scripts."
-    },
-    {
-      "id": "dfx.json",
-      "label": "dfx.json",
-      "type": "ICP Config",
-      "description": "DFINITY DFX project configuration."
-    },
-    {
-      "id": "agents.yaml",
-      "label": "agents.yaml",
-      "type": "Swarm Registry",
-      "description": "AGENTS-OS v4.2 role and model registry."
+      "description": "Constitution of AGENTS-OS v5.0 governing all Swarm rules and system operations."
     }
   ],
-  "edges": [
-    {"from": "backend/", "to": "src/", "label": "implements"},
-    {"from": "frontend/", "to": "backend/", "label": "calls"},
-    {"from": "scripts/", "to": "dfx.json", "label": "uses"}
-  ],
+  "edges": [],
   "metadata": {
-    "last_distillation": "2026-05-25",
+    "last_distillation": "2026-05-22",
     "source": "Inception Engine"
   }
 }
