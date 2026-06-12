@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                 className={cn(
                                     "w-full justify-start gap-3 h-10 font-medium transition-all duration-200",
                                     activeTab === item.id
-                                        ? "bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
+                                        ? "bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30 shadow-[0_0_8px_rgba(201,168,76,0.2)] hover:bg-[#C9A84C]/20"
                                         : item.id === 'shop'
                                             ? "text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 border border-amber-500/20"
                                             : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
@@ -212,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
 
             {/* Mobile Bottom Navigation */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 flex items-center justify-around px-2 z-50 safe-area-bottom pb-safe">
-                {navItems.map((item) => (
+                {navItems.filter(item => ['dashboard', 'harvester', 'marketplace', 'rankings', 'sports'].includes(item.id)).map((item) => (
                     <button
                         key={item.id}
                         onClick={() => {
@@ -230,7 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                         }}
                         className={cn(
                             "flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px]",
-                            activeTab === item.id ? "text-rose-400" : (item.id === 'shop' ? "text-amber-400" : "text-slate-500 hover:text-slate-300")
+                            activeTab === item.id ? "text-[#C9A84C] drop-shadow-[0_0_6px_rgba(201,168,76,0.4)]" : (item.id === 'shop' ? "text-amber-400" : "text-slate-500 hover:text-slate-300")
                         )}
                         style={{ touchAction: 'manipulation' }}
                     >

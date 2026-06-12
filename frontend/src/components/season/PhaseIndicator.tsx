@@ -39,7 +39,7 @@ export const PhaseIndicator: React.FC<PhaseIndicatorProps> = ({ currentPhase, cl
                     Phase {currentIndex + 1}/10
                 </div>
             </div>
-            <div className="flex items-center justify-between relative px-2">
+            <div className="flex items-center justify-between relative px-2 pb-6">
                 {/* Connecting Line */}
                 <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -z-0" />
 
@@ -65,10 +65,8 @@ export const PhaseIndicator: React.FC<PhaseIndicatorProps> = ({ currentPhase, cl
                             >
                             </div>
                             <span className={cn(
-                                "absolute -bottom-5 text-[8px] font-medium transition-colors duration-300 hidden md:block whitespace-nowrap",
-                                isActive ? "text-rose-400 font-bold" :
-                                    isCompleted ? "text-slate-500" :
-                                        "text-slate-600"
+                                "absolute -bottom-5 text-[8px] font-medium transition-all duration-300 hidden md:block whitespace-nowrap",
+                                isActive ? "text-rose-400 font-bold opacity-100 scale-105" : "opacity-0 group-hover:opacity-100 text-slate-500"
                             )}>
                                 {phase.label}
                             </span>

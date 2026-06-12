@@ -580,7 +580,7 @@ function AppContent() {
                                         disabled={!isAuthenticated}
                                         variant="default"
                                         size="sm"
-                                        className="gap-2 bg-amber-600 hover:bg-amber-700 text-white flex shadow-[0_0_10px_rgba(217,119,6,0.5)] animate-pulse"
+                                        className="gap-2 bg-gradient-to-b from-[#b36a2a] via-[#8c4b16] to-[#592b08] hover:from-[#d68b4d] hover:via-[#b36a2a] hover:to-[#8c4b16] text-amber-100 font-bold border border-[#ffaa66] shadow-[0_0_10px_rgba(179,106,42,0.5)] transition-all hover:shadow-[0_0_20px_rgba(179,106,42,0.8)] flex uppercase tracking-wider text-[10px] rounded-lg h-9"
                                     >
                                         <Users className="h-4 w-4" />
                                         Hire Labor
@@ -594,7 +594,7 @@ function AppContent() {
                                         disabled={!isAuthenticated}
                                         variant="default"
                                         size="sm"
-                                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white flex shadow-[0_0_10px_rgba(4,120,87,0.5)] animate-pulse"
+                                        className="gap-2 bg-gradient-to-b from-[#00b359] via-[#00803c] to-[#004d20] hover:from-[#33e68a] hover:via-[#00b359] hover:to-[#00803c] text-emerald-100 font-bold border border-[#66ffb3] shadow-[0_0_10px_rgba(0,179,89,0.5)] transition-all hover:shadow-[0_0_20px_rgba(0,179,89,0.8)] flex uppercase tracking-wider text-[10px] rounded-lg h-9"
                                     >
                                         <Coins className="h-4 w-4" />
                                         Procure Supplies
@@ -608,10 +608,10 @@ function AppContent() {
                                     variant="default"
                                     size="sm"
                                     className={cn(
-                                        "gap-2 flex shadow-md font-semibold transition-all duration-300",
+                                        "gap-2 flex shadow-md font-bold transition-all duration-300 uppercase tracking-wider text-[10px] rounded-lg h-9 border",
                                         currentPhase === 'Planning'
-                                            ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 animate-pulse ring-2 ring-emerald-500/20"
-                                            : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                            ? "bg-gradient-to-b from-[#00b359] via-[#00803c] to-[#004d20] hover:from-[#33e68a] hover:via-[#00b359] hover:to-[#00803c] text-emerald-100 border-[#66ffb3] shadow-[0_0_10px_rgba(0,179,89,0.5)]"
+                                            : "bg-gradient-to-b from-[#4f46e5] via-[#3730a3] to-[#1e1b4b] hover:from-[#818cf8] hover:via-[#4f46e5] hover:to-[#3730a3] text-indigo-100 border-[#c7d2fe] shadow-[0_0_10px_rgba(79,70,229,0.5)]"
                                     )}
                                 >
                                     {advancePhase.isPending ? (
@@ -630,7 +630,7 @@ function AppContent() {
                                     disabled={!isAuthenticated || stats.totalCherries === 0 || sellCherries.isPending}
                                     variant="default"
                                     size="sm"
-                                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white flex"
+                                    className="gap-2 bg-gradient-to-b from-[#b82626] via-[#851616] to-[#540909] hover:from-[#e04c4c] hover:via-[#b82626] hover:to-[#851616] text-rose-100 font-bold border border-[#ffa3a3] shadow-[0_0_10px_rgba(184,38,38,0.5)] transition-all hover:shadow-[0_0_20px_rgba(184,38,38,0.8)] flex uppercase tracking-wider text-[10px] rounded-lg h-9"
                                 >
                                     <Cherry className="h-4 w-4" />
                                     Sell ({stats.totalCherries})
