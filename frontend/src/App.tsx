@@ -707,6 +707,7 @@ function AppContent() {
                                         <ImperialOrchard
                                             parcels={parcels}
                                             season={farm?.currentSeason}
+                                            hiredLabor={farm?.hiredLabor}
                                             onAction={handleParcelAction as any}
                                             automationConfig={{ hasHarvesters: false }}
                                         />
