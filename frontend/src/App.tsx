@@ -514,7 +514,10 @@ function AppContent() {
                 } : undefined}
             />
 
-            <div className="main-layout-wrapper flex-1 w-full flex flex-col md:ml-64 lg:ml-72 min-h-screen transition-all duration-300 bg-slate-950 pb-20 md:pb-0">
+            <div className={cn(
+                "main-layout-wrapper flex-1 w-full flex flex-col md:ml-64 lg:ml-72 transition-all duration-300 bg-slate-950",
+                activeTab === 'dashboard' ? "h-screen overflow-hidden" : "min-h-screen pb-20 md:pb-0"
+            )}>
 
                 {/* Mobile/Tablet Header */}
                 <header className="sticky top-0 z-30 w-full border-b border-slate-800 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 md:hidden h-16 flex items-center justify-between px-4">
@@ -542,9 +545,14 @@ function AppContent() {
                     organicCherries={stats.organicCherries}
                     className="md:hidden sticky top-16 z-20"
                 />
-
-                <main className="flex-1 p-4 md:p-8 lg:p-10 pb-20 md:pb-8 text-slate-100">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <main className={cn(
+                    "flex-1 text-slate-100 flex flex-col min-h-0",
+                    activeTab === 'dashboard' ? "p-4 md:p-6 overflow-hidden" : "p-4 md:p-8 lg:p-10 pb-20 md:pb-8"
+                )}>
+                    <div className={cn(
+                        "flex flex-col md:flex-row justify-between items-start md:items-center gap-4",
+                        activeTab === 'dashboard' ? "mb-4 md:mb-6 flex-shrink-0" : "mb-8"
+                    )}>
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Farm Overview</h1>
                             <div className="flex flex-col gap-3">
@@ -681,9 +689,9 @@ function AppContent() {
                     ) : isAuthenticated ? (
                         <React.Suspense fallback={<div className="flex justify-center p-12"><RefreshCcw className="animate-spin h-8 w-8 text-rose-500" /></div>}>
                             {activeTab === 'dashboard' ? (
-                                <div className="flex flex-col w-full h-[calc(100vh-64px)] overflow-hidden">
-                                    {/* 70% Top - Imperial Orchard */}
-                                    <div className="flex-grow relative z-10 w-full overflow-hidden">
+                                <div className="flex-grow flex flex-col w-full min-h-0 gap-4 overflow-hidden">
+                                    {/* Top - Imperial Orchard */}
+                                    <div className="flex-[63%] relative z-10 w-full overflow-hidden min-h-0 rounded-2xl border shadow-inner" style={{ borderColor: 'rgba(201, 168, 76, 0.25)' }}>
                                         {isAuthenticated && currentPhase === 'Maintenance' && (
                                             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-blue-900/80 backdrop-blur-md border border-blue-500/50 rounded-lg p-3 text-center shadow-[0_0_15px_rgba(59,130,246,0.5)]">
                                                 <p className="text-xs text-blue-200 font-medium font-mono uppercase tracking-wider">
@@ -704,13 +712,13 @@ function AppContent() {
                                         />
                                     </div>
 
-                                    {/* 30% Bottom - Central Engine (HUD) / The Steam Drawer (Mobile) */}
+                                    {/* Bottom - Central Engine (HUD) / The Steam Drawer (Mobile) */}
                                     <div
                                         className={cn(
-                                            "w-full relative z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] border-t-2 bg-slate-950 transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col",
+                                            "w-full relative z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] border bg-slate-950 transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col flex-shrink-0 rounded-2xl overflow-hidden",
                                             isDrawerExpanded
-                                                ? "h-[75vh] md:h-[30vh] min-h-[30vh]"
-                                                : "h-[25vh] md:h-[30vh] min-h-[20vh]"
+                                                ? "h-[75vh] md:flex-[37%] min-h-[175px]"
+                                                : "h-[25vh] md:flex-[37%] min-h-[165px] md:h-auto"
                                         )}
                                         style={{ borderColor: 'var(--brass-primary)' }}
                                     >
@@ -723,7 +731,7 @@ function AppContent() {
                                             <div className="w-12 h-1 rounded-full bg-slate-500 opacity-50" />
                                         </div>
 
-                                        <div className={cn("flex-grow overflow-auto", "md:pt-0 pt-8")}>
+                                        <div className={cn("flex-grow min-h-0", "md:pt-0 pt-8")}>
                                             <MainDashboard />
                                         </div>
                                     </div>
