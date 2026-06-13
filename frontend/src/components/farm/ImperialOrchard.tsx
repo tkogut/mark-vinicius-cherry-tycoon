@@ -8,6 +8,8 @@ interface ImperialOrchardProps {
     county?: 'Nyski' | 'Brzeski' | 'Opolski' | string;
     onAction: (action: 'water' | 'prune' | 'fertilize' | 'harvest' | 'plant' | 'select' | 'organic', parcelId: string | null) => void;
     automationConfig?: { hasHarvesters: boolean };
+    totalCherries?: number;
+    maxCapacity?: number;
 }
 
 // --- Isometric Projection Calibrator (2D Algebraic) constants ---
@@ -592,7 +594,7 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
         : (isWinter ? '#1e293b' : (isSummer ? '#4f46e5' : '#3f3f46'));
 
     const legAngle = Math.sin(phaseStep) * 25;
-    const bobY = Math.abs(Math.sin(phaseStep)) * -2.2; // Bouncy walk bobbing
+    const bobY = Math.abs(Math.sin(phaseStep)) * -1.0; // Bouncy walk bobbing scaled down
 
     return (
         <div
@@ -601,56 +603,56 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
             style={{
                 left: `${x}px`,
                 top: `${y}px`,
-                width: '32px',
-                height: '38px', // Shorter legs/height
+                width: '18px',
+                height: '22px', // Scaled down for better micro-tycoon proportions
                 transform: `translate(-50%, -100%) translateY(${bobY}px)`,
                 zIndex: isSelected ? 9999 : undefined
             }}
         >
             {/* Shadow */}
-            <div className="absolute w-8 h-4 bg-[rgba(30,30,30,0.5)] rounded-full blur-[3px] opacity-60" style={{ left: '50%', bottom: '-2px', transform: 'translateX(-50%)' }} />
+            <div className="absolute w-5 h-2 bg-[rgba(30,30,30,0.5)] rounded-full blur-[2px] opacity-60" style={{ left: '50%', bottom: '-1px', transform: 'translateX(-50%)' }} />
 
             {/* Humanoid Body */}
             <div className="flex flex-col items-center h-full relative">
                 {/* Steam boiler backpack */}
-                <div className="absolute -left-1.5 top-1.5 w-2.5 h-4 bg-[#b87333] border border-black/40 rounded-full shadow-md z-0">
-                    <div className="w-1 h-1 bg-[#c9a84c] rounded-full mx-auto mt-0.5" />
+                <div className="absolute -left-1 top-1 w-1.5 h-2.5 bg-[#b87333] border border-black/40 rounded-full shadow-md z-0">
+                    <div className="w-0.5 h-0.5 bg-[#c9a84c] rounded-full mx-auto mt-0.2" />
                     {/* Steam spark chimney */}
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0.5 h-1 bg-[#8c7853]" />
+                    <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-[0.5px] h-0.5 bg-[#8c7853]" />
                 </div>
 
                 {/* Straw Hat for Owner in Summer */}
                 {role === 'owner' && isSummer && (
-                    <div className="w-5 h-1.5 bg-[#d97706] rounded-full border border-black/30 -mb-[2px] relative z-20 shadow-sm animate-pulse" />
+                    <div className="w-3.5 h-1 bg-[#d97706] rounded-full border border-black/30 -mb-[1px] relative z-20 shadow-sm animate-pulse" />
                 )}
                 {/* Bandana for Helper in Summer */}
                 {role === 'helper' && isSummer && (
-                    <div className="w-4.5 h-1 bg-[#dc2626] rounded-t-full border border-black/30 -mb-[2px] relative z-20 shadow-sm" />
+                    <div className="w-3 h-0.7 bg-[#dc2626] rounded-t-full border border-black/30 -mb-[1px] relative z-20 shadow-sm" />
                 )}
                 {/* Winter cap */}
                 {isWinter && (
-                    <div className="w-4 h-1.5 bg-[#1e293b] rounded-t-full border border-black/30 -mb-[1px] relative z-20 shadow-sm" />
+                    <div className="w-2.5 h-1 bg-[#1e293b] rounded-t-full border border-black/30 -mb-[0.5px] relative z-20 shadow-sm" />
                 )}
                 
                 {/* Head (Smoother) */}
-                <div className="w-3.5 h-3.5 bg-[#D4A76A] rounded-full border border-black/30 shadow-sm z-10" />
+                <div className="w-2 h-2 bg-[#D4A76A] rounded-full border border-black/30 shadow-sm z-10" />
 
                 {/* Torso (Rounded) */}
                 <div 
-                    className="w-6 h-6 rounded-full border border-black/40 -mt-1 relative shadow-inner transition-colors duration-500 z-10"
+                    className="w-3.5 h-3.5 rounded-full border border-black/40 -mt-0.5 relative shadow-inner transition-colors duration-500 z-10"
                     style={{ backgroundColor: shirtColor }}
                 >
-                    <div className="absolute inset-x-1 bottom-1 h-2 bg-black/20 opacity-40 rounded-full" />
+                    <div className="absolute inset-x-0.5 bottom-0.5 h-1 bg-black/20 opacity-40 rounded-full" />
                 </div>
 
                 {/* Legs (Shorter) */}
-                <div className="flex gap-1.5 -mt-1.5 z-10">
+                <div className="flex gap-0.5 -mt-1 z-10">
                     <div 
-                        className="w-2 h-4 rounded-full border border-black/40 transition-colors duration-500" 
+                        className="w-1 h-2.5 rounded-full border border-black/40 transition-colors duration-500" 
                         style={{ transformOrigin: 'top center', transform: `rotate(${legAngle}deg)`, backgroundColor: pantsColor }} 
                     />
                     <div 
-                        className="w-2 h-4 rounded-full border border-black/40 transition-colors duration-500" 
+                        className="w-1 h-2.5 rounded-full border border-black/40 transition-colors duration-500" 
                         style={{ transformOrigin: 'top center', transform: `rotate(${-legAngle}deg)`, backgroundColor: pantsColor }} 
                     />
                 </div>
@@ -659,7 +661,7 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
     );
 });
 
-export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, season, hiredLabor, county = 'Opolski', onAction, automationConfig }) => {
+export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, season, hiredLabor, county = 'Opolski', onAction, automationConfig, totalCherries = 0, maxCapacity = 10000 }) => {
 
     // Safety fallback for empty parcels during initialization
     const displayParcels = parcels && parcels.length > 0 ? parcels : [{ id: 'empty-1', plantedTrees: 0, quality: 0 }];
@@ -1033,7 +1035,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     style={{ width: '100%', height: 'calc(100% - 10px)' }}
                 >
                     {/* Mechanical Zoom Controls */}
-                    <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 bg-slate-950/80 backdrop-blur-md border border-[var(--brass-primary)]/40 p-1 rounded-lg shadow-lg pointer-events-auto">
+                    <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-1 bg-slate-950/80 backdrop-blur-md border border-[var(--brass-primary)]/40 p-1 rounded-lg shadow-lg pointer-events-auto">
                         <button
                             onClick={() => setZoom(z => Math.min(2.0, z + 0.1))}
                             className="w-6 h-6 flex items-center justify-center rounded bg-gradient-to-b from-[#d4af37] to-[#8a5a00] hover:from-[#f5d08a] hover:to-[#d4af37] text-slate-950 font-bold border border-[#ffdf99] shadow active:scale-90 transition-all text-xs"
@@ -1187,12 +1189,13 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 <div className="absolute top-8 left-8 z-20 flex items-end gap-3 pointer-events-none">
                     <div className="flex flex-col items-center">
                         <div className="w-12 h-32 brass-rim bg-[var(--charcoal)] rounded-t-full relative overflow-hidden flex items-end shadow-[0_0_30px_rgba(0,0,0,0.8)] border-2 border-[var(--brass-primary)]">
-                            <div className="w-full bg-[var(--emerald-glow)] shadow-[0_0_20px_var(--emerald-glow)] transition-all duration-1000 origin-bottom" style={{ height: '60%' }}>
+                            <div className="w-full bg-[var(--emerald-glow)] shadow-[0_0_20px_var(--emerald-glow)] transition-all duration-1000 origin-bottom" style={{ height: `${maxCapacity > 0 ? Math.min(100, (totalCherries / maxCapacity) * 100) : 0}%` }}>
                                 <div className="w-full h-full bg-gradient-to-t from-transparent to-white/30 animate-pulse"></div>
                             </div>
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2)_0%,transparent_50%)]"></div>
                         </div>
                         <span className="text-[10px] font-mono text-[var(--brass-primary)] mt-3 uppercase tracking-widest font-bold drop-shadow-[0_0_5px_rgba(0,0,0,1)]">Storage</span>
+                        <span className="text-[8px] font-mono text-slate-400 mt-1 drop-shadow-[0_0_3px_rgba(0,0,0,1)]">{totalCherries.toLocaleString()} / {maxCapacity.toLocaleString()} kg</span>
                     </div>
                 </div>
 
@@ -1208,7 +1211,9 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                     { id: 'water', icon: '💧', label: 'Irrigate', angle: -135, color: 'bg-blue-900', shadow: 'rgba(30,58,138,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
                                     { id: 'prune', icon: '✂️', label: 'Prune', angle: -45, color: 'bg-slate-800', shadow: 'rgba(30,41,59,0.8)', phases: ['Dormancy', 'Decay'] },
                                     { id: 'fertilize', icon: '🌿', label: 'Fertilize', angle: 135, color: 'bg-emerald-900', shadow: 'rgba(6,78,59,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
-                                    { id: 'harvest', icon: '🍒', label: 'Harvest', angle: 45, color: 'bg-rose-900', shadow: 'rgba(136,19,55,0.8)', phases: ['Harvest'] }
+                                    { id: 'harvest', icon: '🍒', label: 'Harvest', angle: 45, color: 'bg-rose-900', shadow: 'rgba(136,19,55,0.8)', phases: ['Harvest'] },
+                                    { id: 'plant', icon: '🌱', label: 'Plant', angle: 180, color: 'bg-emerald-700', shadow: 'rgba(4,120,87,0.8)', phases: ['Investment'] },
+                                    { id: 'organic', icon: '📜', label: 'Organic', angle: 0, color: 'bg-green-800', shadow: 'rgba(22,101,52,0.8)', phases: ['Investment'] }
                                 ].map((action, i) => {
                                     const rad = (action.angle * Math.PI) / 180;
                                     const radius = 70;
@@ -1240,7 +1245,9 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                                 ty < 0 ? "-top-8" : "-bottom-8",
                                                 action.id === 'harvest' ? "text-rose-300" :
                                                     action.id === 'water' ? "text-blue-300" :
-                                                        action.id === 'fertilize' ? "text-emerald-300" : "text-slate-300"
+                                                        action.id === 'fertilize' ? "text-emerald-300" :
+                                                            action.id === 'plant' ? "text-emerald-300" :
+                                                                action.id === 'organic' ? "text-green-300" : "text-slate-300"
                                             )}>
                                                 {action.label}
                                             </span>

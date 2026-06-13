@@ -154,6 +154,13 @@ function AppContent() {
 
     const parcels = farm ? farm.parcels : [];
 
+    const getInfraLevel = (type: string) => {
+        const infra = farm?.infrastructure.find(i => type in i.infraType);
+        return infra ? Number(infra.level) : 0;
+    };
+    const warehouseLevel = getInfraLevel('Warehouse');
+    const maxCapacity = (warehouseLevel + 1) * 10000;
+
     // Helper to determine current phase
     const getCurrentPhaseName = (phase: any): any => {
         if (!phase) return 'Hiring';
@@ -710,6 +717,8 @@ function AppContent() {
                                             hiredLabor={farm?.hiredLabor}
                                             onAction={handleParcelAction as any}
                                             automationConfig={{ hasHarvesters: false }}
+                                            totalCherries={stats.totalCherries}
+                                            maxCapacity={maxCapacity}
                                         />
                                     </div>
 
