@@ -9,7 +9,7 @@ const OFFICIAL_BACKEND_CANISTER_ID = "6mce5-laaaa-aaaab-qacsq-cai";
 
 
 export const createBackendActor = async (identity?: Identity) => {
-    const isLocal = import.meta.env.VITE_DFX_NETWORK !== 'ic';
+    const isLocal = import.meta.env.VITE_DFX_NETWORK === 'local';
 
     // Dual Entrypoint Resolution:
     // Priority: explicit env var -> OFFICIAL hardcoded fallback
