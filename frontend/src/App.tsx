@@ -719,6 +719,7 @@ function AppContent() {
                                             automationConfig={{ hasHarvesters: false }}
                                             totalCherries={stats.totalCherries}
                                             maxCapacity={maxCapacity}
+                                            seasonNumber={stats.seasonNumber}
                                         />
                                     </div>
 

@@ -10,6 +10,7 @@ interface ImperialOrchardProps {
     automationConfig?: { hasHarvesters: boolean };
     totalCherries?: number;
     maxCapacity?: number;
+    seasonNumber?: number;
 }
 
 // --- Isometric Projection Calibrator (2D Algebraic) constants ---
@@ -664,7 +665,7 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
     );
 });
 
-export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, season, hiredLabor, county = 'Opolski', onAction, automationConfig, totalCherries = 0, maxCapacity = 10000 }) => {
+export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, season, hiredLabor, county = 'Opolski', onAction, automationConfig, totalCherries = 0, maxCapacity = 10000, seasonNumber = 1 }) => {
 
     // Safety fallback for empty parcels during initialization
     const displayParcels = parcels && parcels.length > 0 ? parcels : [{ id: 'empty-1', plantedTrees: 0, quality: 0 }];
@@ -674,15 +675,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
 
     const [selectedParcel, setSelectedParcel] = useState<{ id: string, screenX: number, screenY: number, parcel: any } | null>(null);
     const [selectedEntity, setSelectedEntity] = useState<any>(null);
-    const [harvestedParcels, setHarvestedParcels] = useState<Set<string>>(new Set());
     const [zoom, setZoom] = useState(1); // For future zoom functionality
-
-    // Reset harvest state when season changes ( replenishing trees)
-    useEffect(() => {
-        if (seasonStyles.phase !== 'Harvest') {
-            setHarvestedParcels(new Set());
-        }
-    }, [seasonStyles.phase]);
 
     const handleBackgroundClick = () => {
         if (selectedParcel) setSelectedParcel(null);
@@ -692,10 +685,6 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
     const handleAction = (action: any) => {
         if (!selectedParcel) return;
         if (navigator.vibrate) navigator.vibrate(20);
-
-        if (action === 'harvest') {
-            setHarvestedParcels(prev => new Set(prev).add(selectedParcel.parcel.id));
-        }
 
         onAction(action, selectedParcel.parcel.id);
         setSelectedParcel(null);
@@ -1174,7 +1163,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                                 delay={entity.delay}
                                                 seed={entity.seed}
                                                 isSelected={selectedParcel?.id === entity.parcel.id}
-                                                isHarvested={harvestedParcels.has(entity.parcel.id)}
+                                                isHarvested={entity.parcel.lastHarvest === BigInt(seasonNumber)}
                                                 onClick={() => {
                                                     if (navigator.vibrate) navigator.vibrate(20);
                                                     const element = document.querySelector(`[data-parcel-id="${entity.parcel.id}"]`);
@@ -1288,8 +1277,9 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                     const tx = Math.cos(rad) * radius;
                                     const ty = Math.sin(rad) * radius;
 
-                                    const isDisabled = !action.phases.includes(seasonStyles.phase) ||
-                                        (action.id === 'harvest' && harvestedParcels.has(selectedParcel.id));
+                                    const isAlreadyHarvested = action.id === 'harvest' &&
+                                        (selectedParcel.parcel.lastHarvest === BigInt(seasonNumber));
+                                    const isDisabled = !action.phases.includes(seasonStyles.phase) || isAlreadyHarvested;
 
                                     return (
                                         <button
