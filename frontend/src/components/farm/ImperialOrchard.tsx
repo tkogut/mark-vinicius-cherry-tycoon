@@ -1095,13 +1095,12 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
 
             {/* Camera Viewport (Isometric Perspective setup) */}
             <div
-                className="md:w-full h-full flex items-center justify-center p-12 transition-all duration-700 overflow-visible"
+                className="w-full h-full flex items-center justify-center p-4 transition-all duration-700 overflow-visible"
                 style={{ perspective: '1200px' }}
             >
                 {/* Viewport: No main rotation, pure 2D space with mathematical projection */}
                 <div
-                    className="relative overflow-hidden cursor-default bg-[#111] shadow-2xl rounded-xl border border-white/10"
-                    style={{ width: '100%', height: 'calc(100% - 10px)' }}
+                    className="relative overflow-hidden cursor-default bg-transparent w-full h-full"
                 >
                     {/* Mechanical Zoom Controls */}
                     <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-1 bg-slate-950/80 backdrop-blur-md border border-[var(--brass-primary)]/40 p-1 rounded-lg shadow-lg pointer-events-auto">
