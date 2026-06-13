@@ -426,7 +426,7 @@ const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0
                                     width: `${dynamicSize}px`,
                                     height: `${dynamicSize}px`,
                                     left: `calc(50% + ${leaf.lx}px)`,
-                                    bottom: `calc(32px + ${leaf.ly}px)`,
+                                    bottom: `calc(52px + ${leaf.ly}px)`, // Adjusted from 32px to center with trunk height
                                     background: color,
                                     transform: 'translate(-50%, 0)',
                                     boxShadow: 'inset -2px -2px 4px rgba(0,0,0,0.1)'
@@ -447,11 +447,12 @@ const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0
                             className="absolute fill-[#c9a84c] opacity-60 animate-[spin_infinite_linear]"
                             style={{
                                 left: `calc(50% + ${gear.lx}px)`,
-                                bottom: `calc(36px + ${gear.ly}px)`,
+                                bottom: `calc(52px + ${gear.ly}px)`,
                                 width: `${gear.size}px`,
                                 height: `${gear.size}px`,
                                 animationDuration: gear.speed,
-                                transformOrigin: 'center'
+                                transformOrigin: 'center',
+                                transform: 'translate(-50%, 50%)'
                             }}
                             viewBox="0 0 24 24"
                         >
@@ -469,7 +470,8 @@ const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0
                                 className="absolute w-2 h-2 rounded-full bg-white border border-pink-300 shadow-[0_1px_2px_rgba(255,192,203,0.6)]"
                                 style={{
                                     left: `calc(50% + ${flower.lx}px)`,
-                                    bottom: `calc(38px + ${flower.ly}px)`,
+                                    bottom: `calc(52px + ${flower.ly}px)`, // Lifted
+                                    transform: 'translate(-50%, 0)'
                                 }}
                             >
                                 {/* Yellow center */}
@@ -488,7 +490,8 @@ const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0
                                 className="absolute w-4 h-6 z-[100]"
                                 style={{
                                     left: `calc(50% + ${fruit.lx}px)`,
-                                    bottom: `calc(42px + ${fruit.ly}px)`,
+                                    bottom: `calc(52px + ${fruit.ly}px)`, // Centered inside leaves
+                                    transform: 'translate(-50%, 0)' // Perfect horizontal center alignment
                                 }}
                             >
                                 {/* Left cherry */}
@@ -519,24 +522,24 @@ const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0
             style={{
                 left: `${x}px`,
                 top: `${y}px`,
-                width: '60px',
-                height: '60px',
+                width: '80px',
+                height: '90px', // Larger space for taller trunks and crowns
                 transform: 'translate(-50%, -100%)',
                 zIndex: isSelected ? 9999 : undefined // Only override if explicitly selected
             }}
         >
             {/* Shadow (Black-Gray Expanded for 120%) */}
-            <div className="absolute w-14 h-7 bg-[rgba(30,30,30,0.45)] rounded-full blur-[4px] pointer-events-none" style={{ left: '50%', bottom: '-4px', transform: 'translate(-50%, 0) scale(1, 0.4)' }} />
+            <div className="absolute w-16 h-8 bg-[rgba(30,30,30,0.45)] rounded-full blur-[4px] pointer-events-none" style={{ left: '50%', bottom: '-4px', transform: 'translate(-50%, 0) scale(1, 0.4)' }} />
 
             {/* Base Ring (Brass Tank) */}
-            <div className="absolute w-7 h-3 rounded-full border border-black/40 pointer-events-none" style={{ left: '50%', bottom: '-1px', transform: 'translate(-50%, 0)', background: 'radial-gradient(circle at center, #B87333 10%, #C9A84C 100%)', boxShadow: '0 2px 4px rgba(0,0,0,0.6)' }} />
+            <div className="absolute w-8 h-3.5 rounded-full border border-black/40 pointer-events-none" style={{ left: '50%', bottom: '-1px', transform: 'translate(-50%, 0)', background: 'radial-gradient(circle at center, #B87333 10%, #C9A84C 100%)', boxShadow: '0 2px 4px rgba(0,0,0,0.6)' }} />
 
             {/* Tree Structure */}
             <div className="h-full w-full flex flex-col items-center justify-end relative" style={{ animation: `wind-sway 6s ease-in-out infinite alternate`, animationDelay: `${windPhase}s` }}>
                 {renderCrown()}
 
                 {/* Fixed Tree Structure: Separate Visual Trunk from Recursive Branches to prevent clipping */}
-                <div className="relative w-[20px] h-8 z-0">
+                <div className="relative w-[20px] h-10 z-0">
                     {/* The Visual Trunk Shape (Clipped) */}
                     <div
                         className="absolute inset-0"
@@ -599,7 +602,7 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
     return (
         <div
             onClick={(e) => { e.stopPropagation(); onClick(); }}
-            className={cn("absolute origin-bottom transition-all duration-300 cursor-pointer")}
+            className={cn("absolute origin-bottom transition-[transform] duration-300 cursor-pointer")}
             style={{
                 left: `${x}px`,
                 top: `${y}px`,
@@ -722,7 +725,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
             const maxTrees = Math.floor(parcelSize * 400);
             const planted = parcel.plantedTrees ? Number(parcel.plantedTrees) : 0;
             const scaleFactor = Math.max(1, Math.ceil(maxTrees / 25));
-            const visualTreesCount = planted > 0 ? Math.min(25, Math.max(1, Math.ceil(planted / scaleFactor))) : 0;
+            const visualTreesCount = planted > 0 ? Math.min(25, Math.max(1, Math.ceil(Math.sqrt(planted / maxTrees) * 25))) : 0;
             const treeSlots = getDeterministicSlots(visualTreesCount, parcel.id);
 
             for (let idx = 0; idx < 25; idx++) {
@@ -737,8 +740,8 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
     }, [displayParcels, sectorsCount]);
 
     // Fixed Workers (NPCs) with Manhattan Movement and Seasonal Behavior
-    const [workerPos, setWorkerPos] = useState({ r: 0, c: 0, s: 0, targetR: 2, targetC: 2, targetS: 0, pauseTicks: 0 });
-    const [helperPos, setHelperPos] = useState({ r: 4, c: 4, s: 0, targetR: 1, targetC: 1, targetS: 0, pauseTicks: 0 });
+    const [workerPos, setWorkerPos] = useState({ r: 0, c: 0, s: 0, targetR: 2, targetC: 2, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0 });
+    const [helperPos, setHelperPos] = useState({ r: 4, c: 4, s: 0, targetR: 1, targetC: 1, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0 });
 
     const hasHelper = !!(hiredLabor && hiredLabor.length > 0);
 
@@ -746,6 +749,21 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
         const interval = setInterval(() => {
             // 1. Update Owner Worker
             setWorkerPos(prev => {
+                if (prev.onBridge) {
+                    const nextProgress = prev.bridgeProgress + 0.05;
+                    if (nextProgress >= 1.0) {
+                        return {
+                            ...prev,
+                            onBridge: false,
+                            bridgeProgress: 0,
+                            s: prev.targetS > prev.s ? prev.s + 1 : prev.s - 1,
+                            r: prev.targetS > prev.s ? 2 : 2,
+                            c: prev.targetS > prev.s ? 0 : 4
+                        };
+                    }
+                    return { ...prev, bridgeProgress: nextProgress };
+                }
+
                 if (prev.pauseTicks > 0) {
                     return { ...prev, pauseTicks: prev.pauseTicks - 1 };
                 }
@@ -783,13 +801,17 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 } else {
                     // Reached immediate target
                     if (prev.s < prev.targetS) {
-                        nextS = prev.s + 1;
-                        nextR = 2;
-                        nextC = 0;
+                        return {
+                            ...prev,
+                            onBridge: true,
+                            bridgeProgress: 0.05
+                        };
                     } else if (prev.s > prev.targetS) {
-                        nextS = prev.s - 1;
-                        nextR = 2;
-                        nextC = 4;
+                        return {
+                            ...prev,
+                            onBridge: true,
+                            bridgeProgress: 0.05
+                        };
                     } else {
                         // Reached final target! Set pause based on season
                         let pause = 0;
@@ -829,6 +851,21 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
             // 2. Update Helper Worker (if present)
             if (hasHelper) {
                 setHelperPos(prev => {
+                    if (prev.onBridge) {
+                        const nextProgress = prev.bridgeProgress + 0.05;
+                        if (nextProgress >= 1.0) {
+                            return {
+                                ...prev,
+                                onBridge: false,
+                                bridgeProgress: 0,
+                                s: prev.targetS > prev.s ? prev.s + 1 : prev.s - 1,
+                                r: prev.targetS > prev.s ? 2 : 2,
+                                c: prev.targetS > prev.s ? 0 : 4
+                            };
+                        }
+                        return { ...prev, bridgeProgress: nextProgress };
+                    }
+
                     if (prev.pauseTicks > 0) {
                         return { ...prev, pauseTicks: prev.pauseTicks - 1 };
                     }
@@ -863,13 +900,17 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                         nextC += immC > prev.c ? Math.min(step, immC - prev.c) : Math.max(-step, immC - prev.c);
                     } else {
                         if (prev.s < prev.targetS) {
-                            nextS = prev.s + 1;
-                            nextR = 2;
-                            nextC = 0;
+                            return {
+                                ...prev,
+                                onBridge: true,
+                                bridgeProgress: 0.05
+                            };
                         } else if (prev.s > prev.targetS) {
-                            nextS = prev.s - 1;
-                            nextR = 2;
-                            nextC = 4;
+                            return {
+                                ...prev,
+                                onBridge: true,
+                                bridgeProgress: 0.05
+                            };
                         } else {
                             let pause = 0;
                             if (phase === 'Harvest') pause = 40;
@@ -920,7 +961,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
             const maxTrees = Math.floor(parcelSize * 400);
             const planted = parcel.plantedTrees ? Number(parcel.plantedTrees) : 0;
             const scaleFactor = Math.max(1, Math.ceil(maxTrees / 25));
-            const visualTreesCount = planted > 0 ? Math.min(25, Math.max(1, Math.ceil(planted / scaleFactor))) : 0;
+            const visualTreesCount = planted > 0 ? Math.min(25, Math.max(1, Math.ceil(Math.sqrt(planted / maxTrees) * 25))) : 0;
             const treeSlots = getDeterministicSlots(visualTreesCount, parcel.id);
 
             for (let idx = 0; idx < 25; idx++) {
@@ -978,24 +1019,52 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
         }
 
         // 3. Owner Worker NPC
-        const npos = projectToIso(workerPos.r, workerPos.c, workerPos.s);
+        let wX = 0;
+        let wY = 0;
+        if (workerPos.onBridge) {
+            const startS = workerPos.s;
+            const endS = workerPos.targetS > startS ? startS + 1 : startS - 1;
+            const posA = projectToIso(2, workerPos.targetS > startS ? 4 : 0, startS);
+            const posB = projectToIso(2, workerPos.targetS > startS ? 0 : 4, endS);
+            wX = posA.x + (posB.x - posA.x) * workerPos.bridgeProgress;
+            wY = posA.y + (posB.y - posA.y) * workerPos.bridgeProgress;
+        } else {
+            const npos = projectToIso(workerPos.r, workerPos.c, workerPos.s);
+            wX = npos.x;
+            wY = npos.y;
+        }
+
         entities.push({
             type: 'npc',
             key: 'npc-worker-1',
-            x: npos.x,
-            y: npos.y,
+            x: wX,
+            y: wY,
             role: 'owner',
             zIndex: workerPos.s * 100 + (workerPos.r + workerPos.c) * 10 + 5
         });
 
         // 3b. Helper Worker NPC (if active)
         if (hasHelper) {
-            const hpos = projectToIso(helperPos.r, helperPos.c, helperPos.s);
+            let hX = 0;
+            let hY = 0;
+            if (helperPos.onBridge) {
+                const startS = helperPos.s;
+                const endS = helperPos.targetS > startS ? startS + 1 : startS - 1;
+                const posA = projectToIso(2, helperPos.targetS > startS ? 4 : 0, startS);
+                const posB = projectToIso(2, helperPos.targetS > startS ? 0 : 4, endS);
+                hX = posA.x + (posB.x - posA.x) * helperPos.bridgeProgress;
+                hY = posA.y + (posB.y - posA.y) * helperPos.bridgeProgress;
+            } else {
+                const hpos = projectToIso(helperPos.r, helperPos.c, helperPos.s);
+                hX = hpos.x;
+                hY = hpos.y;
+            }
+
             entities.push({
                 type: 'npc',
                 key: 'npc-helper-1',
-                x: hpos.x,
-                y: hpos.y,
+                x: hX,
+                y: hY,
                 role: 'helper',
                 zIndex: helperPos.s * 100 + (helperPos.r + helperPos.c) * 10 + 5
             });
