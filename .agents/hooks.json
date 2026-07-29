@@ -1,3 +1,0 @@
-{
-  "before_model_call": "git worktree prune"
-}
