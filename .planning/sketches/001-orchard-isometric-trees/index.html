@@ -206,17 +206,30 @@ function drawParcelTile(ctx, sx, sy, fillColor, borderColor) {
   ctx.lineTo(sx, sy + TILE_H / 2);
   ctx.lineTo(sx - TILE_W / 2, sy);
   ctx.closePath();
-  ctx.fillStyle = fillColor;
+  // Soil gradient — warm highlight near the top-left edge, deep shadow bottom-right
+  // (inspired by the mahogany.png / aged_brass_filigree.png texture warmth already
+  // used elsewhere in the game — kept as a canvas gradient, not an image, per the
+  // "zero image assets" procedural-rendering principle this sketch is built on).
+  const grad = ctx.createLinearGradient(sx - TILE_W / 2, sy - TILE_H / 2, sx + TILE_W / 2, sy + TILE_H / 2);
+  grad.addColorStop(0, fillColor.light);
+  grad.addColorStop(1, fillColor.dark);
+  ctx.fillStyle = grad;
   ctx.fill();
   ctx.strokeStyle = borderColor;
   ctx.lineWidth = 1.5;
   ctx.stroke();
 }
 
-function drawGearIcon(ctx, x, y, r, color) {
+function drawGearIcon(ctx, x, y, r, colorBright, colorDeep) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.fillStyle = color;
+  // Radial gradient bronze highlight -> deep shadow, evoking brass_gear_dial.png's
+  // ornate warm-metal glint rather than a flat fill.
+  const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r * 1.3);
+  grad.addColorStop(0, colorBright || '#ffe9a8');
+  grad.addColorStop(0.55, colorDeep || '#d4af37');
+  grad.addColorStop(1, '#7a5a12');
+  ctx.fillStyle = grad;
   const teeth = 8;
   ctx.beginPath();
   for (let i = 0; i < teeth * 2; i++) {
@@ -226,15 +239,21 @@ function drawGearIcon(ctx, x, y, r, color) {
   }
   ctx.closePath();
   ctx.fill();
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.beginPath();
   ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
 
-function drawTrunk(ctx, x, groundY, height, width, color) {
-  ctx.fillStyle = color;
+function drawTrunk(ctx, x, groundY, height, width, colorLight, colorDark) {
+  // Linear gradient light-mahogany highlight -> deep shadow, evoking mahogany.png's
+  // glossy wood-grain richness instead of a flat brown fill.
+  const grad = ctx.createLinearGradient(x - width / 2, groundY, x + width / 2, groundY - height);
+  grad.addColorStop(0, colorDark || '#3a2210');
+  grad.addColorStop(0.5, colorLight || '#7a4a28');
+  grad.addColorStop(1, colorDark || '#3a2210');
+  ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.moveTo(x - width / 2, groundY);
   ctx.lineTo(x - width / 3, groundY - height);
@@ -247,12 +266,45 @@ function drawTrunk(ctx, x, groundY, height, width, color) {
 // ---------- Season config ----------
 // facetScale/countScale shrink the canopy for spring (budding) and autumn (thinning);
 // winter has zero canopy facets (bare branches only).
+// `glow` is the warm highlight color used at the center of each leaf-cluster's
+// radial gradient — inspired by the emerald_gauge_liquid.png / brass_gear_dial.png
+// textures already in frontend/public/assets/textures/ (glowing gold-green liquid,
+// warm bronze glints), so foliage reads as lit-from-within rather than flat-filled.
 const SEASON_CONFIG = {
-  spring: { facetScale: 0.55, countDelta: -1, greens: ['#7fae5a', '#8fc26a', '#6f9e4e'], fruit: 'blossom', frost: false },
-  summer: { facetScale: 1.0, countDelta: 0, greens: ['#3d5c2f', '#4a6b38', '#33502a'], fruit: 'cherry', frost: false },
-  autumn: { facetScale: 0.8, countDelta: -1, greens: ['#b5651d', '#c9820f', '#8a4a12'], fruit: 'none', frost: false },
-  winter: { facetScale: 0, countDelta: -99, greens: [], fruit: 'none', frost: true }
+  spring: { facetScale: 0.55, countDelta: -1, greens: ['#7fae5a', '#8fc26a', '#6f9e4e'], glow: '#eaffd6', fruit: 'blossom', frost: false },
+  summer: { facetScale: 1.0, countDelta: 0, greens: ['#3d5c2f', '#4a6b38', '#33502a'], glow: '#c8f28a', fruit: 'cherry', frost: false },
+  autumn: { facetScale: 0.8, countDelta: -1, greens: ['#b5651d', '#c9820f', '#8a4a12'], glow: '#ffdf8a', fruit: 'none', frost: false },
+  winter: { facetScale: 0, countDelta: -99, greens: [], glow: null, fruit: 'none', frost: true }
 };
+
+function drawCherry(ctx, cx, cy, r) {
+  // Glossy ruby gradient + glint, evoking the emerald_gauge_liquid.png bubble
+  // highlights rather than a flat red dot.
+  const grad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r * 1.1);
+  grad.addColorStop(0, '#ff6b81');
+  grad.addColorStop(0.5, '#c41e3a');
+  grad.addColorStop(1, '#6e0f1f');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.beginPath(); ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.25, 0, Math.PI * 2); ctx.fill();
+}
+
+function darkenHex(hex, factor) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.floor(((n >> 16) & 255) * factor);
+  const g = Math.floor(((n >> 8) & 255) * factor);
+  const b = Math.floor((n & 255) * factor);
+  return `rgb(${r},${g},${b})`;
+}
+
+function leafRadialFill(ctx, cx, cy, r, baseColor, glowColor) {
+  const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r * 1.15);
+  grad.addColorStop(0, glowColor);
+  grad.addColorStop(0.55, baseColor);
+  grad.addColorStop(1, darkenHex(baseColor, 0.45));
+  return grad;
+}
 
 function drawBareBranches(ctx, x, canopyY, baseR, rng, frost) {
   const branchCount = 4 + Math.floor(rng() * 3);
@@ -285,8 +337,8 @@ function drawBlossom(ctx, x, y) {
 function drawTreeA(ctx, x, groundY, rng, season) {
   const cfg = SEASON_CONFIG[season];
   const trunkH = 34 + rng() * 6;
-  drawTrunk(ctx, x, groundY, trunkH, 10, '#5a3a1e');
-  drawGearIcon(ctx, x, groundY - trunkH * 0.4, 4, '#d4af37');
+  drawTrunk(ctx, x, groundY, trunkH, 10, '#8a5a30', '#2e1a0a');
+  drawGearIcon(ctx, x, groundY - trunkH * 0.4, 4, '#ffe9a8', '#c9922e');
 
   const canopyY = groundY - trunkH - 6;
   const baseR = 34 + rng() * 10;
@@ -315,7 +367,7 @@ function drawTreeA(ctx, x, groundY, rng, season) {
       if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
     ctx.closePath();
-    ctx.fillStyle = cfg.greens[i % cfg.greens.length];
+    ctx.fillStyle = leafRadialFill(ctx, 0, 0, size, cfg.greens[i % cfg.greens.length], cfg.glow);
     ctx.fill();
     ctx.strokeStyle = 'rgba(212,175,55,0.5)';
     ctx.lineWidth = 1;
@@ -330,10 +382,7 @@ function drawTreeA(ctx, x, groundY, rng, season) {
       const dist = baseR * (0.3 + rng() * 0.5);
       const cx = x + Math.cos(ang) * dist;
       const cy = canopyY - 18 + Math.sin(ang) * dist * 0.55;
-      ctx.fillStyle = '#c41e3a';
-      ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.beginPath(); ctx.arc(cx - 0.8, cy - 0.8, 0.8, 0, Math.PI * 2); ctx.fill();
+      drawCherry(ctx, cx, cy, 3);
     }
   } else if (cfg.fruit === 'blossom') {
     const blossomCount = 6 + Math.floor(rng() * 5);
@@ -349,7 +398,7 @@ function drawTreeA(ctx, x, groundY, rng, season) {
 function drawTreeB(ctx, x, groundY, rng, season) {
   const cfg = SEASON_CONFIG[season];
   const trunkH = 32 + rng() * 8;
-  drawTrunk(ctx, x, groundY, trunkH, 9, '#6b4423');
+  drawTrunk(ctx, x, groundY, trunkH, 9, '#8a5a30', '#2e1a0a');
 
   const canopyY = groundY - trunkH - 4;
   const baseR = 15;
@@ -377,16 +426,18 @@ function drawTreeB(ctx, x, groundY, rng, season) {
     ctx.arc(p.x + 2, p.y + 3, p.r, 0, Math.PI * 2);
     ctx.fill();
   });
-  // main leaf color pass
+  // main leaf color pass — radial gradient per cluster (glow center -> darker edge)
+  // instead of a flat fill, so the canopy reads as lit rather than pasted-on.
   positions.forEach((p, i) => {
-    ctx.fillStyle = cfg.greens[i % cfg.greens.length];
+    ctx.fillStyle = leafRadialFill(ctx, p.x, p.y, p.r, cfg.greens[i % cfg.greens.length], cfg.glow);
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
     ctx.fill();
   });
-  // highlight pass (top-left light)
+  // highlight pass (top-left light) — slightly warmer/stronger than before to
+  // reinforce the "Golden Hour" glow instead of a flat white speck.
   positions.forEach(p => {
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillStyle = 'rgba(255,244,214,0.22)';
     ctx.beginPath();
     ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.35, p.r * 0.4, 0, Math.PI * 2);
     ctx.fill();
@@ -398,10 +449,7 @@ function drawTreeB(ctx, x, groundY, rng, season) {
       const p = positions[Math.floor(rng() * positions.length)];
       const cx = p.x + (rng() - 0.5) * p.r;
       const cy = p.y + (rng() - 0.5) * p.r * 0.7;
-      ctx.fillStyle = '#b91c3c';
-      ctx.beginPath();
-      ctx.arc(cx, cy, 2.6, 0, Math.PI * 2);
-      ctx.fill();
+      drawCherry(ctx, cx, cy, 2.6);
     }
   } else if (cfg.fruit === 'blossom') {
     const blossomCount = 7 + Math.floor(rng() * 5);
@@ -432,8 +480,8 @@ function render(variant, forcedSeed) {
   const originY = 90;
   const season = currentSeason[variant];
   const soilColors = season === 'winter'
-    ? ['#4a5560', '#525f6a', '#465158']
-    : ['#3a2a1a', '#42301e', '#362818'];
+    ? [{ light: '#6a7a88', dark: '#3a4550' }, { light: '#72828f', dark: '#404b56' }, { light: '#647380', dark: '#36414a' }]
+    : [{ light: '#5a4020', dark: '#241608' }, { light: '#644728', dark: '#2a1a0a' }, { light: '#523c1c', dark: '#201406' }];
   const borderColor = 'rgba(184,134,11,0.55)';
 
   // draw tiles back-to-front for correct overlap
