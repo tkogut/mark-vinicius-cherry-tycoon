@@ -46,6 +46,11 @@ Trunk, gear/rivet, and cherry fills all use canvas gradients now (bright highlig
 
 **Known rough edge, not yet fixed**: the "Warehouse" placeholder label can clip against the canvas edge depending on random tree layout/canvas scaling — cosmetic only, and expected to be revisited once real building art replaces the placeholder rectangles.
 
+### Fourth revision (path geometry fix, autumn canopy -10%)
+
+- **Fixed path geometry** — the previous path lanes traced `isoToScreen(k, 0..gridSize)`, which is a straight line through tile **centers**, not tile edges (an isometric-projection mistake: adjacent tiles' true shared edge is each tile's bottom-to-right or left-to-bottom edge, not a line at a fixed grid coordinate). Paths now trace the real seams between every adjacent tile pair (`tileVertex` + `drawPathSeams`), so they run exactly along parcel boundaries as intended, not through the middle of fields.
+- **Autumn canopy reduced 10%** from the prior +20% bump — net `facetScale` is now `0.8 * 1.2 * 0.9 = 0.864` (documented inline in `SEASON_CONFIG`).
+
 ## What to Look For
 
 1. **Crispness vs. the current game**: both should look meaningfully cleaner than the existing blurred-div canopy.

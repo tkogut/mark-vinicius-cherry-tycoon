@@ -274,7 +274,8 @@ const SEASON_CONFIG = {
   // Spring/autumn facetScale bumped +20% per revision (0.55->0.66, 0.8->0.96).
   spring: { facetScale: 0.66, countDelta: -1, greens: ['#5fc23a', '#7fd64f', '#4aa82c'], glow: '#eaffd6', fruit: 'blossom', frost: false },
   summer: { facetScale: 1.0, countDelta: 0, greens: ['#3d5c2f', '#4a6b38', '#33502a'], glow: '#c8f28a', fruit: 'cherry', frost: false },
-  autumn: { facetScale: 0.96, countDelta: -1, greens: ['#d9720f', '#e89020', '#a8420f'], glow: '#ffcf6a', fruit: 'none', frost: false },
+  // Autumn facetScale: 0.8 base -> +20% (0.96) -> -10% per latest revision (0.864).
+  autumn: { facetScale: 0.864, countDelta: -1, greens: ['#d9720f', '#e89020', '#a8420f'], glow: '#ffcf6a', fruit: 'none', frost: false },
   winter: { facetScale: 0, countDelta: -99, greens: [], glow: null, fruit: 'none', frost: true }
 };
 
@@ -653,25 +654,44 @@ function drawBuildableZone(ctx, gridSize, originX, originY) {
 }
 
 // ---------- Farmer/tractor path lanes along parcel boundaries ----------
+// Each tile's "bottom" vertex is the shared corner between up to 4 tiles.
+// The actual shared edge with the tile to its +gx neighbor is bottom->right;
+// the shared edge with the +gy neighbor is left->bottom. Previously this
+// function traced a line through isoToScreen(k, 0..gridSize), which passes
+// through tile CENTERS, not tile edges — fixed to trace the real seams.
+function tileVertex(gx, gy, which, originX, originY) {
+  const { x, y } = isoToScreen(gx, gy, originX, originY);
+  if (which === 'top') return { x, y: y - TILE_H / 2 };
+  if (which === 'right') return { x: x + TILE_W / 2, y };
+  if (which === 'bottom') return { x, y: y + TILE_H / 2 };
+  return { x: x - TILE_W / 2, y }; // 'left'
+}
+
+function drawPathSeams(ctx, gridSize, originX, originY, width, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  for (let gx = 0; gx < gridSize; gx++) {
+    for (let gy = 0; gy < gridSize; gy++) {
+      const bottom = tileVertex(gx, gy, 'bottom', originX, originY);
+      if (gx + 1 < gridSize) {
+        // seam shared with the +gx neighbor
+        const right = tileVertex(gx, gy, 'right', originX, originY);
+        ctx.beginPath(); ctx.moveTo(bottom.x, bottom.y); ctx.lineTo(right.x, right.y); ctx.stroke();
+      }
+      if (gy + 1 < gridSize) {
+        // seam shared with the +gy neighbor
+        const left = tileVertex(gx, gy, 'left', originX, originY);
+        ctx.beginPath(); ctx.moveTo(left.x, left.y); ctx.lineTo(bottom.x, bottom.y); ctx.stroke();
+      }
+    }
+  }
+}
+
 function drawPathLanes(ctx, gridSize, originX, originY) {
   ctx.save();
-  ctx.strokeStyle = 'rgba(196,178,140,0.55)';
-  ctx.lineWidth = 7;
-  ctx.lineCap = 'round';
-  for (let k = 1; k < gridSize; k++) {
-    const a1 = isoToScreen(k, 0, originX, originY), a2 = isoToScreen(k, gridSize, originX, originY);
-    ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke();
-    const b1 = isoToScreen(0, k, originX, originY), b2 = isoToScreen(gridSize, k, originX, originY);
-    ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
-  }
-  ctx.strokeStyle = 'rgba(120,104,74,0.6)';
-  ctx.lineWidth = 1;
-  for (let k = 1; k < gridSize; k++) {
-    const a1 = isoToScreen(k, 0, originX, originY), a2 = isoToScreen(k, gridSize, originX, originY);
-    ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke();
-    const b1 = isoToScreen(0, k, originX, originY), b2 = isoToScreen(gridSize, k, originX, originY);
-    ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
-  }
+  drawPathSeams(ctx, gridSize, originX, originY, 7, 'rgba(196,178,140,0.55)');
+  drawPathSeams(ctx, gridSize, originX, originY, 1, 'rgba(120,104,74,0.6)');
   ctx.restore();
 }
 
