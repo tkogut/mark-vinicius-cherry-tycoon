@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketch 001: Orchard Isometric Trees</title>
+<link rel="stylesheet" href="../themes/neo-steampunk.css" id="theme-link">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding-top: 52px; }
+
+  #variant-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: var(--color-surface); border-bottom: 1px solid var(--color-border);
+    padding: 8px 16px; display: flex; gap: 8px; align-items: center; font-family: var(--font-sans);
+  }
+  .variant-tab {
+    background: var(--color-surface-2); color: var(--color-text-muted); border: 1px solid var(--color-border);
+    padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm);
+    transition: all 0.15s ease;
+  }
+  .variant-tab:hover { color: var(--color-text); border-color: var(--color-brass); }
+  .variant-tab.active { background: var(--color-brass); color: #1a1305; border-color: var(--color-brass-bright); font-weight: 600; }
+
+  .variant { display: none; padding: var(--space-6); }
+  .variant.active { display: block; }
+
+  .stage-header { text-align: center; margin-bottom: var(--space-4); }
+  .stage-header h1 { font-family: var(--font-serif); color: var(--color-brass-bright); font-size: var(--text-2xl); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stage-header p { color: var(--color-text-muted); font-size: var(--text-sm); margin: 0; max-width: 640px; margin: 0 auto; }
+
+  .viewport-wrap { max-width: var(--vp-width, 100%); margin: 0 auto; transition: max-width 0.2s ease; }
+
+  .grid-frame {
+    position: relative;
+    background: radial-gradient(ellipse at 50% 20%, #2a2318 0%, var(--color-shadow-deep) 75%);
+    border: 3px solid var(--color-brass);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg), inset 0 0 60px rgba(0,0,0,0.6), var(--shadow-glow-brass);
+    padding: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  .grid-frame::before,
+  .grid-frame::after {
+    content: '';
+    position: absolute; width: 20px; height: 20px;
+    border: 2px solid var(--color-copper);
+    border-radius: 50%;
+    background: var(--color-brass);
+    top: 8px;
+  }
+  .grid-frame::before { left: 8px; }
+  .grid-frame::after { right: 8px; }
+
+  canvas { display: block; width: 100%; height: auto; image-rendering: -webkit-optimize-contrast; }
+
+  .info-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: var(--space-3); padding: var(--space-2) var(--space-4);
+    background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    font-size: var(--text-sm); color: var(--color-text-muted);
+  }
+  .info-bar .highlight { color: var(--color-brass-bright); font-weight: 600; }
+  .reroll-btn {
+    background: var(--color-copper); color: #fff; border: 1px solid var(--color-copper-dark);
+    padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm);
+    transition: all 0.15s ease;
+  }
+  .reroll-btn:hover { background: var(--color-brass); box-shadow: var(--shadow-glow-brass); }
+
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 9999;
+    background: rgba(10,8,5,0.95); border: 1px solid var(--color-brass); border-radius: var(--radius-sm);
+    padding: 6px 10px; font-size: var(--text-xs); color: var(--color-text); display: none;
+    box-shadow: var(--shadow-md);
+  }
+
+  #sketch-tools {
+    position: fixed; bottom: 12px; right: 12px; z-index: 9999; font-family: system-ui; font-size: 12px;
+    background: rgba(0,0,0,0.7); color: white; padding: 8px 12px; border-radius: 8px; opacity: 0.4;
+    transition: opacity 0.2s; display: flex; gap: 8px; align-items: center;
+  }
+  #sketch-tools:hover { opacity: 1; }
+  #sketch-tools button { background: #333; color: white; border: 1px solid #555; border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 11px; }
+  #sketch-tools button:hover { background: #555; }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <button class="variant-tab active" onclick="showVariant('a', event)">A: Geometric Brass</button>
+  <button class="variant-tab" onclick="showVariant('b', event)">B: Organic Noise</button>
+  <button class="variant-tab" onclick="showVariant('c', event)">C: Clockwork Hybrid</button>
+</div>
+
+<div id="variant-a" class="variant active">
+  <div class="stage-header">
+    <h1>Variant A — Geometric Brass</h1>
+    <p>Angular, faceted canopy shapes with visible brass-riveted trunks. Reads as sharp and mechanical — leans harder into the "industrial" half of Neo-Steampunk.</p>
+  </div>
+  <div class="viewport-wrap"><div class="grid-frame"><canvas id="canvas-a" width="900" height="620"></canvas></div></div>
+  <div class="info-bar">
+    <span>9 parcels · seed <span class="highlight" id="seed-a">—</span> · no two trees identical</span>
+    <button class="reroll-btn" onclick="render('a')">Reroll Seed</button>
+  </div>
+</div>
+
+<div id="variant-b" class="variant">
+  <div class="stage-header">
+    <h1>Variant B — Organic Noise</h1>
+    <p>Rounded, layered canopy clusters (no blur — flat shapes with simple light/shadow layering to fake volume). Softer and more "orchard-like," closer to the current game's intent, but crisp instead of blurry.</p>
+  </div>
+  <div class="viewport-wrap"><div class="grid-frame"><canvas id="canvas-b" width="900" height="620"></canvas></div></div>
+  <div class="info-bar">
+    <span>9 parcels · seed <span class="highlight" id="seed-b">—</span> · no two trees identical</span>
+    <button class="reroll-btn" onclick="render('b')">Reroll Seed</button>
+  </div>
+</div>
+
+<div id="variant-c" class="variant">
+  <div class="stage-header">
+    <h1>Variant C — Clockwork Hybrid</h1>
+    <p>Organic canopy (like B) with small brass rivets at branch forks and a tiny gear motif at the crown apex — the compromise pitch: friendly silhouette, unmistakably Neo-Steampunk on close inspection.</p>
+  </div>
+  <div class="viewport-wrap"><div class="grid-frame"><canvas id="canvas-c" width="900" height="620"></canvas></div></div>
+  <div class="info-bar">
+    <span>9 parcels · seed <span class="highlight" id="seed-c">—</span> · no two trees identical</span>
+    <button class="reroll-btn" onclick="render('c')">Reroll Seed</button>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<div id="sketch-tools">
+  <select onchange="document.getElementById('theme-link').href='../themes/'+this.value+'.css'">
+    <option value="neo-steampunk">Neo-Steampunk</option>
+  </select>
+  <button onclick="setViewport('375px')">📱 Phone</button>
+  <button onclick="setViewport('768px')">📱 Tablet</button>
+  <button onclick="setViewport('100%')">🖥 Desktop</button>
+</div>
+
+<script>
+// ---------- Sketch chrome ----------
+function showVariant(id, evt) {
+  document.querySelectorAll('.variant').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('variant-' + id).classList.add('active');
+  if (evt) evt.target.classList.add('active');
+}
+function setViewport(w) {
+  document.querySelectorAll('.viewport-wrap').forEach(el => el.style.setProperty('--vp-width', w));
+  document.documentElement.style.setProperty('--vp-width', w);
+  document.querySelectorAll('.viewport-wrap').forEach(el => el.style.maxWidth = w);
+}
+
+// ---------- Seeded RNG (mulberry32) ----------
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---------- Isometric grid ----------
+const TILE_W = 140, TILE_H = 78;
+function isoToScreen(gx, gy, originX, originY) {
+  return {
+    x: originX + (gx - gy) * (TILE_W / 2),
+    y: originY + (gx + gy) * (TILE_H / 2)
+  };
+}
+
+function drawParcelTile(ctx, sx, sy, fillColor, borderColor) {
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - TILE_H / 2);
+  ctx.lineTo(sx + TILE_W / 2, sy);
+  ctx.lineTo(sx, sy + TILE_H / 2);
+  ctx.lineTo(sx - TILE_W / 2, sy);
+  ctx.closePath();
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawGearIcon(ctx, x, y, r, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = color;
+  const teeth = 8;
+  ctx.beginPath();
+  for (let i = 0; i < teeth * 2; i++) {
+    const ang = (Math.PI * i) / teeth;
+    const rad = i % 2 === 0 ? r : r * 0.68;
+    ctx.lineTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawTrunk(ctx, x, groundY, height, width, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x - width / 2, groundY);
+  ctx.lineTo(x - width / 3, groundY - height);
+  ctx.lineTo(x + width / 3, groundY - height);
+  ctx.lineTo(x + width / 2, groundY);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ---------- Variant A: Geometric Brass ----------
+function drawTreeA(ctx, x, groundY, rng) {
+  const trunkH = 34 + rng() * 6;
+  drawTrunk(ctx, x, groundY, trunkH, 10, '#5a3a1e');
+  // brass rivets on trunk
+  drawGearIcon(ctx, x, groundY - trunkH * 0.4, 4, '#d4af37');
+
+  const canopyY = groundY - trunkH - 6;
+  const facets = 5;
+  const baseR = 34 + rng() * 10;
+  const greens = ['#3d5c2f', '#4a6b38', '#33502a'];
+  for (let i = 0; i < facets; i++) {
+    const ang = (Math.PI * 2 * i) / facets + rng() * 0.3;
+    const dist = baseR * (0.35 + rng() * 0.25);
+    const fx = x + Math.cos(ang) * dist;
+    const fy = canopyY - 18 + Math.sin(ang) * dist * 0.55;
+    const size = baseR * (0.55 + rng() * 0.3);
+    ctx.save();
+    ctx.translate(fx, fy);
+    ctx.rotate(rng() * 0.6 - 0.3);
+    ctx.beginPath();
+    const sides = 5;
+    for (let s = 0; s < sides; s++) {
+      const a = (Math.PI * 2 * s) / sides - Math.PI / 2;
+      const r = size * (0.8 + (s % 2 === 0 ? 0.2 : 0));
+      const px = Math.cos(a) * r, py = Math.sin(a) * r * 0.85;
+      if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = greens[i % greens.length];
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(212,175,55,0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+  // cherries — small ruby diamonds
+  const cherryCount = 5 + Math.floor(rng() * 4);
+  for (let i = 0; i < cherryCount; i++) {
+    const ang = rng() * Math.PI * 2;
+    const dist = baseR * (0.3 + rng() * 0.5);
+    const cx = x + Math.cos(ang) * dist;
+    const cy = canopyY - 18 + Math.sin(ang) * dist * 0.55;
+    ctx.fillStyle = '#c41e3a';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath();
+    ctx.arc(cx - 0.8, cy - 0.8, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ---------- Variant B: Organic Noise ----------
+function drawTreeB(ctx, x, groundY, rng) {
+  const trunkH = 32 + rng() * 8;
+  drawTrunk(ctx, x, groundY, trunkH, 9, '#6b4423');
+
+  const canopyY = groundY - trunkH - 4;
+  const clusterCount = 7 + Math.floor(rng() * 4);
+  const baseR = 15;
+  const positions = [];
+  for (let i = 0; i < clusterCount; i++) {
+    const ang = rng() * Math.PI * 2;
+    const dist = rng() * 26;
+    positions.push({
+      x: x + Math.cos(ang) * dist,
+      y: canopyY - 16 + Math.sin(ang) * dist * 0.6,
+      r: baseR * (0.6 + rng() * 0.6)
+    });
+  }
+  // shadow pass (darker, offset)
+  positions.forEach(p => {
+    ctx.fillStyle = 'rgba(30,50,20,0.55)';
+    ctx.beginPath();
+    ctx.arc(p.x + 2, p.y + 3, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  // main leaf color pass
+  const greens = ['#4a7c3a', '#5a8c46', '#3f6b31'];
+  positions.forEach((p, i) => {
+    ctx.fillStyle = greens[i % greens.length];
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  // highlight pass (top-left light)
+  positions.forEach(p => {
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath();
+    ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.35, p.r * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  // cherries
+  const cherryCount = 6 + Math.floor(rng() * 5);
+  for (let i = 0; i < cherryCount; i++) {
+    const p = positions[Math.floor(rng() * positions.length)];
+    const cx = p.x + (rng() - 0.5) * p.r;
+    const cy = p.y + (rng() - 0.5) * p.r * 0.7;
+    ctx.fillStyle = '#b91c3c';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ---------- Variant C: Clockwork Hybrid ----------
+function drawTreeC(ctx, x, groundY, rng) {
+  const trunkH = 33 + rng() * 7;
+  drawTrunk(ctx, x, groundY, trunkH, 9, '#6b4423');
+  // copper rivets at branch fork
+  drawGearIcon(ctx, x - 6, groundY - trunkH * 0.55, 3.5, '#b87333');
+  drawGearIcon(ctx, x + 6, groundY - trunkH * 0.7, 3, '#d4af37');
+
+  const canopyY = groundY - trunkH - 4;
+  const clusterCount = 7 + Math.floor(rng() * 4);
+  const positions = [];
+  for (let i = 0; i < clusterCount; i++) {
+    const ang = rng() * Math.PI * 2;
+    const dist = rng() * 26;
+    positions.push({
+      x: x + Math.cos(ang) * dist,
+      y: canopyY - 16 + Math.sin(ang) * dist * 0.6,
+      r: 15 * (0.6 + rng() * 0.6)
+    });
+  }
+  positions.forEach(p => {
+    ctx.fillStyle = 'rgba(30,50,20,0.55)';
+    ctx.beginPath(); ctx.arc(p.x + 2, p.y + 3, p.r, 0, Math.PI * 2); ctx.fill();
+  });
+  const greens = ['#4a7c3a', '#5a8c46', '#3f6b31'];
+  positions.forEach((p, i) => {
+    ctx.fillStyle = greens[i % greens.length];
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+  });
+  positions.forEach(p => {
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath(); ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.35, p.r * 0.4, 0, Math.PI * 2); ctx.fill();
+  });
+  // gear at crown apex
+  const apex = positions.reduce((a, b) => (a.y < b.y ? a : b));
+  drawGearIcon(ctx, apex.x, apex.y - apex.r - 4, 6, '#d4af37');
+  // cherries with glint
+  const cherryCount = 6 + Math.floor(rng() * 5);
+  for (let i = 0; i < cherryCount; i++) {
+    const p = positions[Math.floor(rng() * positions.length)];
+    const cx = p.x + (rng() - 0.5) * p.r;
+    const cy = p.y + (rng() - 0.5) * p.r * 0.7;
+    ctx.fillStyle = '#c41e3a';
+    ctx.beginPath(); ctx.arc(cx, cy, 2.8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath(); ctx.arc(cx - 0.9, cy - 0.9, 0.9, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ---------- Grid render ----------
+const treeFns = { a: drawTreeA, b: drawTreeB, c: drawTreeC };
+const seeds = { a: 0, b: 0, c: 0 };
+
+function render(variant) {
+  const canvas = document.getElementById('canvas-' + variant);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const seed = Math.floor(Math.random() * 1000000);
+  seeds[variant] = seed;
+  document.getElementById('seed-' + variant).textContent = seed;
+
+  const gridSize = 3;
+  const originX = canvas.width / 2;
+  const originY = 90;
+  const soilColors = ['#3a2a1a', '#42301e', '#362818'];
+  const borderColor = 'rgba(184,134,11,0.55)';
+
+  // draw tiles back-to-front for correct overlap
+  const order = [];
+  for (let gx = 0; gx < gridSize; gx++)
+    for (let gy = 0; gy < gridSize; gy++) order.push({ gx, gy });
+  order.sort((p1, p2) => (p1.gx + p1.gy) - (p2.gx + p2.gy));
+
+  order.forEach((p, idx) => {
+    const { x, y } = isoToScreen(p.gx, p.gy, originX, originY);
+    const rng = mulberry32(seed + idx * 977);
+    drawParcelTile(ctx, x, y, soilColors[idx % soilColors.length], borderColor);
+    treeFns[variant](ctx, x, y - 6, rng);
+  });
+}
+
+render('a'); render('b'); render('c');
+window.addEventListener('resize', () => {}); // canvas is fixed-res, CSS scales it
+</script>
+</body>
+</html>
