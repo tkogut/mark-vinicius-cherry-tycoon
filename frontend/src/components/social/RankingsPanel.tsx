@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Sprout, Loader2, Gauge, Award, TrendingUp } from "lucide-react";
-import { useLeaderboard } from "@/hooks/useFarm";
+import { useLeaderboard, useMyRank } from "@/hooks/useFarm";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,7 @@ interface RankingsPanelProps {
 
 export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => {
     const { data: rawLeaderboard, isLoading, isError } = useLeaderboard();
+    const { data: rawMyRank } = useMyRank();
 
     const leaderboard: RankingEntry[] = (rawLeaderboard || [])
         .map((entry: any, index: number) => ({
@@ -39,6 +40,12 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
             revenue: Number(entry.totalRevenue),
             isPlayer: !entry.isAI
         }));
+
+    // getPlayerRank returns `opt nat` (candid) -> `[] | [bigint]` in JS.
+    // Falls back to null ("Unranked") when the player isn't in the
+    // capped topPlayersCache that getGlobalLeaderboard returns.
+    const myRank: number | null = rawMyRank && rawMyRank.length > 0 ? Number(rawMyRank[0]) : null;
+    const myEntry = leaderboard.find((entry) => entry.isPlayer);
 
     return (
         <div className="relative space-y-8 max-w-5xl mx-auto p-4 min-h-[600px] overflow-hidden">
@@ -83,10 +90,32 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
                 </div>
             </motion.div>
 
+            {/* YOUR STANDING — visible even if the player falls outside the visible top-N cache */}
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative z-10 flex items-center gap-4 bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 min-h-[48px]"
+            >
+                <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg shrink-0">
+                    <Gauge className="h-5 w-5 text-amber-500" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-[9px] text-amber-500/60 uppercase font-bold tracking-widest">Your Standing</span>
+                    {myRank !== null ? (
+                        <span className="font-serif font-bold text-white">
+                            Rank #{myRank}{myEntry ? ` · ${myEntry.prestige.toLocaleString()} Prestige` : ''}
+                        </span>
+                    ) : (
+                        <span className="font-serif text-zinc-400 text-sm">Unranked — keep growing to enter the ledger</span>
+                    )}
+                </div>
+            </motion.div>
+
             {/* LEADERBOARD TABLE */}
             <Card className="mechanical-hull border-amber-500/30 bg-black/60 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative z-10">
                 <CardHeader className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-amber-500/20 py-4">
-                    <div className="grid grid-cols-12 text-[10px] font-bold text-amber-500/70 uppercase tracking-[0.3em] px-4 font-mono">
+                    {/* LEAD-03: column header only makes sense at the sm+ grid layout — rows stack on mobile */}
+                    <div className="hidden sm:grid grid-cols-12 text-[10px] font-bold text-amber-500/70 uppercase tracking-[0.3em] px-4 font-mono">
                         <div className="col-span-1 text-center flex justify-center">
                             <Gauge className="w-3 h-3" />
                         </div>
@@ -120,12 +149,16 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: idx * 0.05 }}
                                         className={cn(
-                                            "grid grid-cols-12 items-center py-6 hover:bg-amber-500/5 transition-all duration-500 relative group cursor-default",
+                                            // LEAD-03: stacked flex layout below `sm` (48px+ touch-friendly rows,
+                                            // no clipped columns); the original 12-col grid only kicks in at sm+.
+                                            "flex flex-col gap-3 p-4 sm:grid sm:grid-cols-12 sm:items-center sm:py-6 sm:p-0 min-h-[48px] hover:bg-amber-500/5 transition-all duration-500 relative group cursor-default",
                                             entry.isPlayer && "bg-amber-500/10 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-amber-500 before:shadow-[0_0_15px_rgba(212,175,55,0.8)]"
                                         )}
                                     >
+                                        {/* RANK + IDENTITY — one row on mobile, two grid columns at sm+ */}
+                                        <div className="flex items-center gap-4 sm:contents">
                                         {/* RANK COLUMN */}
-                                        <div className="col-span-1 flex justify-center relative">
+                                        <div className="flex justify-center relative sm:col-span-1">
                                             {entry.rank <= 3 && (
                                                 <div className="absolute inset-0 bg-amber-500/10 blur-xl rounded-full scale-150" />
                                             )}
@@ -143,7 +176,7 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
                                         </div>
 
                                         {/* IDENTITY COLUMN */}
-                                        <div className="col-span-4 flex items-center gap-5 pl-4">
+                                        <div className="flex-1 flex items-center gap-5 sm:col-span-4 sm:pl-4">
                                             <div className={cn(
                                                 "relative p-[2px] rounded-full shadow-lg transition-transform group-hover:scale-110 duration-500",
                                                 entry.isPlayer ? "bg-gradient-to-tr from-amber-500 to-amber-200" : "bg-zinc-800"
@@ -179,11 +212,14 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
                                                 )}
                                             </div>
                                         </div>
+                                        </div>
 
+                                        {/* PRESTIGE + SEASONS + REVENUE — 3-col mini-grid on mobile, three grid columns at sm+ */}
+                                        <div className="grid grid-cols-3 gap-2 pl-11 sm:contents sm:pl-0">
                                         {/* PRESTIGE COLUMN */}
-                                        <div className="col-span-3 text-right flex flex-col pr-6">
-                                            <div className="flex items-center justify-end gap-3 translate-x-1 group-hover:translate-x-0 transition-transform duration-500">
-                                                <span className="font-mono text-2xl font-black text-amber-400 tracking-tighter tabular-nums drop-shadow-lg">
+                                        <div className="text-left sm:text-right flex flex-col sm:col-span-3 sm:pr-6">
+                                            <div className="flex items-center gap-2 sm:justify-end sm:gap-3 sm:translate-x-1 sm:group-hover:translate-x-0 transition-transform duration-500">
+                                                <span className="font-mono text-lg sm:text-2xl font-black text-amber-400 tracking-tighter tabular-nums drop-shadow-lg">
                                                     {entry.prestige.toLocaleString()}
                                                 </span>
                                                 <div className="h-4 w-4 rounded-sm bg-gradient-to-br from-amber-300 to-amber-600 shadow-[0_0_10px_rgba(212,175,55,0.5)] rotate-45 transform" />
@@ -192,7 +228,7 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
                                         </div>
 
                                         {/* SEASONS COLUMN */}
-                                        <div className="col-span-2 text-right pr-6">
+                                        <div className="text-left sm:text-right sm:col-span-2 sm:pr-6">
                                             <div className="flex flex-col">
                                                 <span className="font-mono text-sm text-zinc-400 font-bold">
                                                     {entry.seasons} Seasons
@@ -208,14 +244,15 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
                                         </div>
 
                                         {/* REVENUE COLUMN */}
-                                        <div className="col-span-2 text-right pr-6 group-hover:translate-x-[-4px] transition-transform duration-500">
-                                            <div className="flex items-center justify-end gap-2 text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.3)]">
+                                        <div className="text-left sm:text-right sm:col-span-2 sm:pr-6 sm:group-hover:translate-x-[-4px] transition-transform duration-500">
+                                            <div className="flex items-center gap-2 sm:justify-end text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.3)]">
                                                 <TrendingUp className="w-3 h-3" />
                                                 <span className="font-mono text-lg font-black tracking-tighter tabular-nums">
                                                     {(entry.revenue / 1000).toFixed(1)}k
                                                 </span>
                                             </div>
                                             <div className="text-[8px] text-rose-900 font-black uppercase tracking-widest">Gross Yield</div>
+                                        </div>
                                         </div>
                                     </motion.div>
                                 ))}

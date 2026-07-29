@@ -545,6 +545,24 @@ export function useLeaderboard() {
     });
 }
 
+// LEAD-02: surfaces the player's rank even when they fall outside the
+// capped topPlayersCache (see backend/main.mo SEC-021 guard) returned by
+// getGlobalLeaderboard — RankingsPanel's own-row highlight only works
+// when the player is inside that cache.
+export function useMyRank() {
+    const { backendActor, isAuthenticated, identity } = useAuth();
+
+    return useQuery({
+        queryKey: ['myRank', identity?.getPrincipal().toText()],
+        queryFn: async () => {
+            if (!backendActor || !identity) throw new Error('Not authenticated');
+            return await backendActor.getPlayerRank(identity.getPrincipal());
+        },
+        enabled: !!backendActor && !!identity && isAuthenticated,
+        refetchInterval: 1000 * 60 * 5, // 5 minutes
+    });
+}
+
 export function useCompetitors() {
     const { backendActor, isAuthenticated } = useAuth();
 

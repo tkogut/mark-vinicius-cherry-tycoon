@@ -9,9 +9,9 @@ Requirements for reaching a genuinely playable release. Each maps to a roadmap p
 
 ### Leaderboard (LEAD)
 
-- [ ] **LEAD-01**: Player can view a ranked list of top players (pulls from existing `topPlayersCache`)
-- [ ] **LEAD-02**: Player can see their own current rank and prestige score
-- [ ] **LEAD-03**: Leaderboard UI is usable on mobile per `docs/game-design/ui/mobile-standard.md` (48x48px touch targets, portrait "Steam Drawer" layout)
+- [x] **LEAD-01**: Player can view a ranked list of top players (pulls from existing `topPlayersCache`) — was already implemented (`RankingsPanel.tsx`) before Phase 1 started
+- [x] **LEAD-02**: Player can see their own current rank and prestige score — "Your Standing" card added (Phase 1), covers players outside the visible cached top-N via `getPlayerRank`
+- [x] **LEAD-03**: Leaderboard UI is usable on mobile (48x48px touch targets, no clipped columns) — responsive stacking added (Phase 1)
 
 ### Weather & Events (WEATHER)
 
@@ -54,9 +54,9 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LEAD-01 | Phase 1 | Pending |
-| LEAD-02 | Phase 1 | Pending |
-| LEAD-03 | Phase 1 | Pending |
+| LEAD-01 | Phase 1 | Complete |
+| LEAD-02 | Phase 1 | Complete |
+| LEAD-03 | Phase 1 | Complete |
 | AUTH-01 | Phase 1.1 | Pending |
 | WEATHER-01 | Phase 2 | Pending |
 | WEATHER-02 | Phase 2 | Pending |

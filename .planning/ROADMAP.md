@@ -37,10 +37,10 @@ Built under the previous (Antigravity/AGENTS-OS) tooling, before this repo adopt
   1. Player can open a leaderboard view showing ranked players by prestige score
   2. Player can see their own current rank highlighted in that list
   3. Leaderboard is usable on a mobile viewport (48x48px touch targets, no horizontal scroll)
-**Plans**: TBD — pilot phase for GSD Core's Discuss→Plan→Execute→Verify→Ship cycle in this repo
+**Plans**: 1 plan (scope narrowed after Discuss — see plan file; `frontend/src/components/social/RankingsPanel.tsx` already existed and covered most of LEAD-01/02)
 
 Plans:
-- [ ] 01-01: TBD (created by `/gsd-plan-phase 1`)
+- [x] 01-01: Add `useMyRank()` + "Your Standing" card (LEAD-02 for players outside the cached top-N) and responsive stacking for the ranking rows (LEAD-03) — `.planning/phases/01-enhanced-leaderboard-rankings-ui/01-01-PLAN.md`
 
 #### Phase 1.1: Atomic Auth Fix (INSERTED)
 **Goal**: Close a real correctness bug found during codebase mapping — `initTestMode()` violates the documented Atomic Auth invariant.
@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 (2 and 3 can run independ
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
-| 1. Enhanced Leaderboard & Rankings UI | Playable Release | 0/TBD | Not started | - |
+| 1. Enhanced Leaderboard & Rankings UI | Playable Release | 1/1 | Complete | 2026-07-29 |
 | 1.1. Atomic Auth Fix | Playable Release | 0/1 | Not started | - |
 | 2. Weather & Event UI Integration | Playable Release | 0/TBD | Not started | - |
 | 3. Quality Infrastructure | Playable Release | 0/TBD | Not started | - |
