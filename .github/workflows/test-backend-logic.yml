@@ -1,0 +1,60 @@
+name: Backend Logic Tests (local replica)
+
+# Runs a smoke test against an ephemeral local dfx replica inside the
+# runner — no Playground/mainnet canister slots used, no time limit,
+# no DFX_IDENTITY_PEM secret needed.
+#
+# IMPORTANT: this does NOT run the existing execution/tests/*.sh suite.
+# Verified locally (2026-07-29) that at least two of those scripts call
+# backend methods that no longer exist:
+#   - test_rankings.sh calls `getLeaderboard` (removed; current method is
+#     `getGlobalLeaderboard`)
+#   - e2e_backend.sh calls `advanceSeason` (removed; season progression
+#     is no longer a manually-invoked method on backend/main.mo)
+# Several of those scripts also have CRLF line endings and fail under
+# `bash` on a Linux runner before even reaching the API call.
+# Until each script is individually re-verified against the current API
+# (tracked as backend test debt, see .planning/codebase/CONCERNS.md),
+# this workflow runs a small, hand-verified smoke path instead of
+# claiming the legacy suite passes.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend-logic-tests:
+    runs-on: ubuntu-latest
+    name: Run backend smoke test (local replica)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install DFX
+        uses: aviate-labs/setup-dfx@v0.3.2
+        with:
+          dfx-version: '0.24.3'
+
+      - name: Start local replica
+        run: dfx start --clean --background
+
+      - name: Deploy backend (local)
+        run: dfx deploy backend --network local --yes
+
+      - name: Smoke test — core query/update path
+        run: |
+          set -e
+          echo "-- reset --"
+          dfx canister call backend debugResetPlayer '()'
+          echo "-- init player --"
+          dfx canister call backend initializePlayer '("ci_smoke_test", "CI Smoke Tester")'
+          echo "-- get farm --"
+          dfx canister call backend getPlayerFarm '()'
+          echo "-- global leaderboard --"
+          dfx canister call backend getGlobalLeaderboard '()'
+          echo "-- global season --"
+          dfx canister call backend getGlobalSeason '()'
+
+      - name: Stop local replica
+        if: always()
+        run: dfx stop
