@@ -68,13 +68,17 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 - [ ] **QUAL-02**: ESLint/Prettier config exists and matches the already-present `lint` script and devDependencies
 - [ ] **QUAL-03**: Playwright is either wired into a real e2e test or removed from dependencies (currently installed but unused)
 
+### UX/UI Deep Overhaul (UX) — scoped 2026-07-29 via live Playground screenshot audit, see `docs/game-design/UX-AUDIT-2026-07-29.md`
+
+- [ ] **UX-01**: Fix the shared sidebar header layout bug (title wrap + version badge overlap) — cross-cutting, confirmed on every screen in the audit; fix before redesigning individual screens
+- [ ] **UX-02**: Redesign the orchard/farm dashboard view to match the "tactile diorama" lore promise (visual density, God Rays/Golden Hour lighting cues) — currently the sparsest, least-finished screen
+- [ ] **UX-03**: Establish one consistent visual idiom for stat/diagnostic displays (currently mixes circular gauges, bar meters, and plain text blocks with no shared grammar)
+- [ ] **UX-04**: Resolve the two never-resolving placeholder boxes in the dashboard sidebar
+- [ ] **UX-05**: Reconcile the "Processing Plant" marketplace card against the `SIM-04` deferral decision (functional partial-implementation vs. decorative dead lever) — new finding from the audit, not yet resolved
+
 ## v2 Requirements
 
 Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but not in current roadmap.
-
-### UX/UI Deep Overhaul (UX) — placeholder, needs its own Discuss/scoping phase before real requirements can be written
-
-- **UX-01**: TBD — current layout doesn't match the Neo-Steampunk Cherry lore aesthetic (`docs/game-design/lore/game-lore.md`) nor `Mark_Vinicius_V1.md` §13's UI priorities (3-click onboarding, mobile-first 60fps, visible feedback, progress visibility, social proof)
 
 ### Map Expansion (MAP)
 
@@ -136,14 +140,18 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | INSURANCE-02 | Phase 7 | Pending |
 | ONBOARD-01 | Phase 8 | Pending |
 | ONBOARD-02 | Phase 8 | Pending |
-| UX-01 | Phase 9 | Needs scoping |
+| UX-01 | Phase 9 | Pending |
+| UX-02 | Phase 9 | Pending |
+| UX-03 | Phase 9 | Pending |
+| UX-04 | Phase 9 | Pending |
+| UX-05 | Phase 9 | Pending |
 | QUAL-01 | Phase 10 | Pending |
 | QUAL-02 | Phase 10 | Pending |
 | QUAL-03 | Phase 10 | Pending |
 
 **Coverage:**
-- v1 requirements: 30 total (4 complete, 26 pending)
-- Mapped to phases: 30
+- v1 requirements: 34 total (4 complete, 30 pending)
+- Mapped to phases: 34
 - Unmapped: 0 ✓
 
 ---

@@ -148,14 +148,19 @@ Plans:
 - [ ] 08-01: TBD (created by `/gsd-plan-phase 8`)
 
 #### Phase 9: UX/UI Deep Overhaul
-**Goal**: Per GDD v3 Pillar 6 and V1's own UI/UX priorities (§13) — current layout matches neither. This phase is intentionally not yet detailed; it needs its own Discuss/scoping pass before a real plan can be written.
-**Depends on**: Ideally after Phases 2–8 land (so the redesign covers real, stable functionality, not features still mid-change)
-**Requirements**: TBD — not yet defined, see `.planning/REQUIREMENTS.md` for the open placeholder
-**Success Criteria**: TBD
-**Plans**: TBD — flagged as needing a dedicated scoping session, not a normal `/gsd-plan-phase` yet
+**Goal**: Per GDD v3 Pillar 6 and V1's own UI/UX priorities (§13) — current layout matches neither. Scoped 2026-07-29 via a live Playground deploy + screenshot audit (`docs/game-design/UX-AUDIT-2026-07-29.md`), turning the earlier vague "current layout is weak" concern into concrete, visually-confirmed findings.
+**Depends on**: `ECON-06` and `ONBOARD-01` (Phase 3/8) should land before or during work on the Neighbors/onboarding screens specifically — otherwise the redesign faithfully re-skins live bugs (confirmed in the audit: `NaN%` market share, wrong player name shown). `SPORTS-01/02/03` (Phase 2) should land before redesigning Sports Center, which is currently a styled empty shell.
+**Requirements**: UX-01, UX-02, UX-03, UX-04, UX-05
+**Success Criteria** (what must be TRUE):
+  1. The shared sidebar header no longer overlaps/wraps on any screen
+  2. The orchard/farm dashboard view visually matches the "tactile diorama" lore promise, using Rankings/Imperial Pool (already reference-quality per the audit) as the style bar to hit
+  3. Stat/diagnostic displays share one consistent visual idiom across screens
+  4. No placeholder UI elements are left permanently unresolved
+  5. The "Processing Plant" marketplace card's status (real partial feature vs. dead lever) is resolved, not left ambiguous
+**Plans**: TBD — ready for a normal `/gsd-plan-phase 9` now that scoping is done
 
 Plans:
-- [ ] 09-01: TBD (needs Discuss phase first, not a standard plan)
+- [ ] 09-01: TBD (created by `/gsd-plan-phase 9`)
 
 #### Phase 10: Quality Infrastructure
 **Goal**: Close the tooling gaps found during codebase mapping so future phases have working lint/test signal instead of silent gaps.
@@ -186,5 +191,5 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 6 → 7 �
 | 6. Cherry Festival | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 7. Crop Insurance UI | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 8. Onboarding & Phase-System Teaching | Playable Release — V1 Parity | 0/TBD | Not started | - |
-| 9. UX/UI Deep Overhaul | Playable Release — V1 Parity | 0/TBD | Needs scoping | - |
+| 9. UX/UI Deep Overhaul | Playable Release — V1 Parity | 0/TBD | Scoped, not started | - |
 | 10. Quality Infrastructure | Playable Release — V1 Parity | 0/TBD | Not started | - |

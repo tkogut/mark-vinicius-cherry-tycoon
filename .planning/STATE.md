@@ -68,7 +68,7 @@ None yet.
 - `frontend/src/__tests__/useAuth.test.tsx` fails 5/6 tests right now (missing `QueryClientProvider` wrapper) — confirmed pre-existing (not a regression), rolls into Phase 3 quality-infra work.
 - `execution/tests/*.sh` (21 scripts) confirmed drifted from the current backend API: `test_rankings.sh` calls removed `getLeaderboard`, `e2e_backend.sh` called removed `advanceSeason`; 11/21 have CRLF line endings breaking them under bash on Linux. Fixed CRLF only on `e2e_backend.sh` so far. New CI workflow (`test-backend-logic.yml`) deliberately does NOT depend on this suite — uses a small hand-verified smoke path instead. Re-auditing all 21 scripts is separate backlog work, not yet a phase.
 - dfx version mismatch noted between local/playground (0.24.3) and what CI's mainnet deploy assumes — see `.planning/codebase/STACK.md`, not yet turned into a phase.
-- UX/UI overhaul (Phase 9) is intentionally unscoped — current layout doesn't match the lore aesthetic nor `Mark_Vinicius_V1.md` §13's UI priorities. Needs a dedicated Discuss/scoping session before a real plan exists; do not start it as a normal `/gsd-plan-phase` without that first.
+- UX/UI overhaul (Phase 9) is now scoped (2026-07-29, `docs/game-design/UX-AUDIT-2026-07-29.md`, live Playground screenshots) — UX-01..05 defined. Ready for a normal `/gsd-plan-phase 9`. Sequencing note: land `ECON-06`/`ONBOARD-01` (Phase 3/8) before touching Neighbors/onboarding visuals, and `SPORTS-01..03` (Phase 2) before Sports Center, or the redesign re-skins live bugs/empty stubs.
 
 ## Deferred Items
 
