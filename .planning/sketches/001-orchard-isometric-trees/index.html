@@ -271,11 +271,83 @@ function drawTrunk(ctx, x, groundY, height, width, colorLight, colorDark) {
 // textures already in frontend/public/assets/textures/ (glowing gold-green liquid,
 // warm bronze glints), so foliage reads as lit-from-within rather than flat-filled.
 const SEASON_CONFIG = {
-  spring: { facetScale: 0.55, countDelta: -1, greens: ['#7fae5a', '#8fc26a', '#6f9e4e'], glow: '#eaffd6', fruit: 'blossom', frost: false },
+  // Spring greens pushed more vivid/saturated per revision (was a paler sage).
+  spring: { facetScale: 0.55, countDelta: -1, greens: ['#5fc23a', '#7fd64f', '#4aa82c'], glow: '#eaffd6', fruit: 'blossom', frost: false },
   summer: { facetScale: 1.0, countDelta: 0, greens: ['#3d5c2f', '#4a6b38', '#33502a'], glow: '#c8f28a', fruit: 'cherry', frost: false },
-  autumn: { facetScale: 0.8, countDelta: -1, greens: ['#b5651d', '#c9820f', '#8a4a12'], glow: '#ffdf8a', fruit: 'none', frost: false },
+  // Autumn canopy pushed warmer/richer (more red, less muddy brown) per revision.
+  autumn: { facetScale: 0.8, countDelta: -1, greens: ['#d9720f', '#e89020', '#a8420f'], glow: '#ffcf6a', fruit: 'none', frost: false },
   winter: { facetScale: 0, countDelta: -99, greens: [], glow: null, fruit: 'none', frost: true }
 };
+
+// ---------- Seasonal ground decoration (grass tufts, flowers, fallen leaves, snow) ----------
+function drawGrassTuft(ctx, x, y, colorDark, colorLight, rng) {
+  for (let i = 0; i < 3; i++) {
+    const ang = -Math.PI / 2 + (i - 1) * 0.4 + (rng() - 0.5) * 0.15;
+    const len = 4 + rng() * 2;
+    ctx.strokeStyle = i === 1 ? colorLight : colorDark;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + Math.cos(ang) * 2, y + Math.sin(ang) * len * 0.5, x + Math.cos(ang) * 3, y + Math.sin(ang) * len);
+    ctx.stroke();
+  }
+}
+
+function drawGroundDecor(ctx, sx, sy, season, rng) {
+  const w = TILE_W * 0.42, h = TILE_H * 0.42;
+
+  if (season === 'spring') {
+    // Intense fresh-spring green wash across the whole parcel.
+    ctx.fillStyle = 'rgba(70,180,40,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - TILE_H / 2); ctx.lineTo(sx + TILE_W / 2, sy);
+    ctx.lineTo(sx, sy + TILE_H / 2); ctx.lineTo(sx - TILE_W / 2, sy);
+    ctx.closePath(); ctx.fill();
+
+    const tufts = 10 + Math.floor(rng() * 5);
+    for (let i = 0; i < tufts; i++) {
+      drawGrassTuft(ctx, sx + (rng() - 0.5) * w * 2, sy + (rng() - 0.5) * h * 1.6, '#3f9e2a', '#7fe654', rng);
+    }
+    const flowers = 5 + Math.floor(rng() * 5);
+    const flowerColors = ['#ffffff', '#ffe066', '#ff9fc4'];
+    for (let i = 0; i < flowers; i++) {
+      ctx.fillStyle = flowerColors[Math.floor(rng() * flowerColors.length)];
+      ctx.beginPath();
+      ctx.arc(sx + (rng() - 0.5) * w * 1.8, sy + (rng() - 0.5) * h * 1.4, 1.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (season === 'summer') {
+    // Fewer, drier/yellower tufts than spring.
+    const tufts = 4 + Math.floor(rng() * 3);
+    for (let i = 0; i < tufts; i++) {
+      drawGrassTuft(ctx, sx + (rng() - 0.5) * w * 2, sy + (rng() - 0.5) * h * 1.6, '#8a7a2a', '#c9b94a', rng);
+    }
+  } else if (season === 'autumn') {
+    const leafColors = ['#d9720f', '#e89020', '#a8420f', '#f0b040'];
+    const leaves = 8 + Math.floor(rng() * 6);
+    for (let i = 0; i < leaves; i++) {
+      const lx = sx + (rng() - 0.5) * w * 2, ly = sy + (rng() - 0.5) * h * 1.6;
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(rng() * Math.PI * 2);
+      ctx.fillStyle = leafColors[Math.floor(rng() * leafColors.length)];
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 2.8, 1.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  } else if (season === 'winter') {
+    const patches = 6 + Math.floor(rng() * 5);
+    for (let i = 0; i < patches; i++) {
+      const nx = sx + (rng() - 0.5) * w * 2, ny = sy + (rng() - 0.5) * h * 1.6;
+      const r = 4 + rng() * 6;
+      ctx.fillStyle = 'rgba(238,248,252,0.88)';
+      ctx.beginPath();
+      ctx.ellipse(nx, ny, r, r * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
 
 function drawCherry(ctx, cx, cy, r) {
   // Glossy ruby gradient + glint, evoking the emerald_gauge_liquid.png bubble
@@ -307,21 +379,40 @@ function leafRadialFill(ctx, cx, cy, r, baseColor, glowColor) {
 }
 
 function drawBareBranches(ctx, x, canopyY, baseR, rng, frost) {
-  const branchCount = 4 + Math.floor(rng() * 3);
-  ctx.strokeStyle = frost ? '#8a9aa8' : '#4a3218';
+  // More, and more heavily snow-laden branches per the winter revision — snow
+  // sits in clumps ALONG each branch, not just a single dot at the tip.
+  const branchCount = 7 + Math.floor(rng() * 4);
+  ctx.strokeStyle = frost ? '#5a4a3a' : '#4a3218';
   ctx.lineWidth = 2;
   for (let i = 0; i < branchCount; i++) {
     const ang = (Math.PI * 2 * i) / branchCount + rng() * 0.4 - Math.PI / 2;
-    const len = baseR * (0.5 + rng() * 0.4);
+    const len = baseR * (0.5 + rng() * 0.5);
+    const tipX = x + Math.cos(ang) * len;
+    const tipY = canopyY - 18 + Math.sin(ang) * len * 0.5;
     ctx.beginPath();
     ctx.moveTo(x, canopyY);
-    ctx.lineTo(x + Math.cos(ang) * len, canopyY - 18 + Math.sin(ang) * len * 0.5);
+    ctx.lineTo(tipX, tipY);
     ctx.stroke();
-    if (frost) {
-      ctx.fillStyle = 'rgba(220,235,245,0.8)';
+    // secondary twig
+    if (rng() > 0.4) {
+      const ang2 = ang + (rng() - 0.5) * 0.8;
+      const len2 = len * 0.4;
       ctx.beginPath();
-      ctx.arc(x + Math.cos(ang) * len, canopyY - 18 + Math.sin(ang) * len * 0.5, 2, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(x + Math.cos(ang) * len * 0.6, canopyY - 18 + Math.sin(ang) * len * 0.6 * 0.5);
+      ctx.lineTo(x + Math.cos(ang) * len * 0.6 + Math.cos(ang2) * len2, canopyY - 18 + Math.sin(ang) * len * 0.6 * 0.5 + Math.sin(ang2) * len2 * 0.5);
+      ctx.stroke();
+    }
+    if (frost) {
+      const snowClumps = 2 + Math.floor(rng() * 2);
+      for (let c = 1; c <= snowClumps; c++) {
+        const t = c / (snowClumps + 1);
+        const sxp = x + Math.cos(ang) * len * t;
+        const syp = canopyY - 18 + Math.sin(ang) * len * t * 0.5;
+        ctx.fillStyle = 'rgba(240,248,252,0.92)';
+        ctx.beginPath();
+        ctx.ellipse(sxp, syp - 1.5, 2.6 + rng() * 1.5, 1.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 }
@@ -490,11 +581,17 @@ function render(variant, forcedSeed) {
     for (let gy = 0; gy < gridSize; gy++) order.push({ gx, gy });
   order.sort((p1, p2) => (p1.gx + p1.gy) - (p2.gx + p2.gy));
 
+  // Trees sit 15% of a tile's height further down within their parcel than
+  // before, per revision — feels more "planted in the field" than floating
+  // at the tile's center.
+  const TREE_Y_OFFSET = TILE_H * 0.15;
+
   order.forEach((p, idx) => {
     const { x, y } = isoToScreen(p.gx, p.gy, originX, originY);
     const rng = mulberry32(seed + idx * 977);
     drawParcelTile(ctx, x, y, soilColors[idx % soilColors.length], borderColor);
-    treeFns[variant](ctx, x, y - 6, rng, season);
+    drawGroundDecor(ctx, x, y, season, rng);
+    treeFns[variant](ctx, x, y + TREE_Y_OFFSET, rng, season);
   });
 }
 

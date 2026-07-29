@@ -26,11 +26,14 @@ Each variant re-randomizes on load and has a "Reroll Seed" button — click it t
 - **B: Organic Noise** — rounded, layered canopy clusters (flat shapes with a shadow pass + highlight pass to fake volume, no blur filter at all). Softer, closer to what an orchard should feel like, but has the least visible Neo-Steampunk identity on its own.
 - ~~**C: Clockwork Hybrid**~~ — **Rejected 2026-07-29.** Tab kept (struck through, disabled) per sketch convention of preserving rejected variants rather than deleting them. User chose to iterate A and B across seasons instead of continuing C.
 
-Both A and B now have a **season selector** (Spring / Summer / Autumn / Winter) per `SEASON_CONFIG` in the script:
-- **Spring**: smaller/sparser canopy, fresh light-green palette, blossom dots (white/pink) instead of fruit
-- **Summer**: full canopy (as originally sketched), ruby cherries
-- **Autumn**: reduced canopy count, orange/brown/gold palette, no fruit (harvested)
-- **Winter**: canopy fully removed — bare frost-tinted branches only, frosted ground tiles, gear/rivet accents remain visible on the bare trunk (Variant A)
+Both A and B now have a **season selector** (Spring / Summer / Autumn / Winter) per `SEASON_CONFIG` in the script. Trees are anchored 15% of a tile's height further down within their parcel (`TREE_Y_OFFSET`) than the first pass, and every parcel now gets seasonal ground decoration (`drawGroundDecor`) in addition to the tree itself:
+
+- **Spring**: smaller/sparser canopy, more saturated fresh-green palette (pushed more vivid per revision), blossom dots instead of fruit; ground gets a vivid green wash, dense grass tufts, and scattered white/yellow/pink flowers.
+- **Summer**: full canopy (as originally sketched), ruby cherries with a glossy gradient + glint; ground gets fewer, drier/more yellow-toned grass tufts than spring.
+- **Autumn**: reduced canopy count, canopy palette pushed warmer/richer (more red-orange, less muddy brown) per revision, no fruit (harvested); ground gets scattered fallen-leaf shapes in matching autumn tones.
+- **Winter**: canopy fully removed — bare branches with an added secondary-twig pass and multiple snow clumps distributed along each branch (not just the tip), gear/rivet accents remain visible on the bare trunk (Variant A); ground gets scattered snow patches over frost-tinted soil tiles.
+
+Trunk, gear/rivet, and cherry fills all use canvas gradients now (bright highlight → deep shadow) rather than flat colors, inspired by the existing `frontend/public/assets/textures/` set (`emerald_gauge_liquid.png`'s glowing bubbles, `brass_gear_dial.png`'s ornate warm-metal glint, `mahogany.png`'s glossy wood grain) — still 100% procedural canvas drawing, no image assets.
 
 ## What to Look For
 
