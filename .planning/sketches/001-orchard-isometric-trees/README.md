@@ -51,6 +51,12 @@ Trunk, gear/rivet, and cherry fills all use canvas gradients now (bright highlig
 - **Fixed path geometry** — the previous path lanes traced `isoToScreen(k, 0..gridSize)`, which is a straight line through tile **centers**, not tile edges (an isometric-projection mistake: adjacent tiles' true shared edge is each tile's bottom-to-right or left-to-bottom edge, not a line at a fixed grid coordinate). Paths now trace the real seams between every adjacent tile pair (`tileVertex` + `drawPathSeams`), so they run exactly along parcel boundaries as intended, not through the middle of fields.
 - **Autumn canopy reduced 10%** from the prior +20% bump — net `facetScale` is now `0.8 * 1.2 * 0.9 = 0.864` (documented inline in `SEASON_CONFIG`).
 
+### Fifth revision (path z-order, irregularity, darker brown)
+
+- **Paths now render BEHIND trees** — `render()` restructured into 3 explicit passes: (1) all tile fills, (2) path lanes, (3) ground decor + trees. Previously paths were drawn last (on top of everything); now tree canopies/bare branches correctly occlude the path where they overlap it.
+- **Paths are irregular now, not ruler-straight** — `drawWobblyPath` bends each seam through a randomly-jittered midpoint (a quadratic curve with a perpendicular offset up to 35% of the segment length) instead of a straight line, so it reads as a worn dirt track rather than a geometric grid overlay. Wobble uses its own seeded `rng` so it's deterministic per orchard seed, not re-randomized every frame.
+- **Color darkened**, then re-tuned for contrast — first pass (`rgba(58,42,26,0.8)`) was barely visible against both the dark standard soil and the blue-grey winter soil; bumped to a two-tone dark-edge (`rgba(58,40,22,0.92)`, width 10) + lighter trodden-center (`rgba(94,64,34,0.85)`, width 4) pair, still unambiguously "dark brown," now with enough internal contrast to read clearly under both seasons.
+
 ## What to Look For
 
 1. **Crispness vs. the current game**: both should look meaningfully cleaner than the existing blurred-div canopy.

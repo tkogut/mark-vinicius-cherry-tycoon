@@ -667,31 +667,57 @@ function tileVertex(gx, gy, which, originX, originY) {
   return { x: x - TILE_W / 2, y }; // 'left'
 }
 
-function drawPathSeams(ctx, gridSize, originX, originY, width, color) {
+// Draws one seam as a wobbly dirt-track curve rather than a ruler-straight
+// line — a quadratic curve through a randomly-jittered midpoint (offset
+// perpendicular to the seam) reads as a worn field path instead of a
+// geometric grid line, per revision.
+function drawWobblyPath(ctx, x1, y1, x2, y2, width, color, rng) {
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  // perpendicular unit vector
+  const px = -dy / len, py = dx / len;
+  const wobble = (rng() - 0.5) * len * 0.35;
+  const cx = mx + px * wobble, cy = my + py * wobble;
   ctx.strokeStyle = color;
   ctx.lineWidth = width;
   ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.quadraticCurveTo(cx, cy, x2, y2);
+  ctx.stroke();
+}
+
+function drawPathSeams(ctx, gridSize, originX, originY, width, color, rng) {
   for (let gx = 0; gx < gridSize; gx++) {
     for (let gy = 0; gy < gridSize; gy++) {
       const bottom = tileVertex(gx, gy, 'bottom', originX, originY);
       if (gx + 1 < gridSize) {
         // seam shared with the +gx neighbor
         const right = tileVertex(gx, gy, 'right', originX, originY);
-        ctx.beginPath(); ctx.moveTo(bottom.x, bottom.y); ctx.lineTo(right.x, right.y); ctx.stroke();
+        drawWobblyPath(ctx, bottom.x, bottom.y, right.x, right.y, width, color, rng);
       }
       if (gy + 1 < gridSize) {
         // seam shared with the +gy neighbor
         const left = tileVertex(gx, gy, 'left', originX, originY);
-        ctx.beginPath(); ctx.moveTo(left.x, left.y); ctx.lineTo(bottom.x, bottom.y); ctx.stroke();
+        drawWobblyPath(ctx, left.x, left.y, bottom.x, bottom.y, width, color, rng);
       }
     }
   }
 }
 
-function drawPathLanes(ctx, gridSize, originX, originY) {
+// Darker worn-dirt brown per revision (was a light tan that read as too
+// clean/geometric) — but bumped in width/opacity after the first pass at
+// this proved nearly invisible against both the dark soil tiles and the
+// winter frost tiles. Two-tone (dark edge + slightly lighter trodden
+// center) so it still reads as a worn track, not a flat brown bar. Drawn
+// with its own seeded rng so the wobble is deterministic per orchard seed.
+function drawPathLanes(ctx, gridSize, originX, originY, seed) {
   ctx.save();
-  drawPathSeams(ctx, gridSize, originX, originY, 7, 'rgba(196,178,140,0.55)');
-  drawPathSeams(ctx, gridSize, originX, originY, 1, 'rgba(120,104,74,0.6)');
+  const rngWide = mulberry32(seed + 5151);
+  drawPathSeams(ctx, gridSize, originX, originY, 10, 'rgba(58,40,22,0.92)', rngWide);
+  const rngNarrow = mulberry32(seed + 5151);
+  drawPathSeams(ctx, gridSize, originX, originY, 4, 'rgba(94,64,34,0.85)', rngNarrow);
   ctx.restore();
 }
 
@@ -727,22 +753,29 @@ function render(variant, forcedSeed) {
     for (let gy = 0; gy < gridSize; gy++) order.push({ gx, gy });
   order.sort((p1, p2) => (p1.gx + p1.gy) - (p2.gx + p2.gy));
 
+  // Pass 1: tile fills only.
+  order.forEach((p, idx) => {
+    const { x, y } = isoToScreen(p.gx, p.gy, originX, originY);
+    drawParcelTile(ctx, x, y, soilColors[idx % soilColors.length], borderColor);
+  });
+
+  // Pass 2: path lanes drawn on top of tile fills but BEFORE ground decor
+  // and trees, so tree canopies/branches occlude the paths where they
+  // overlap — per revision, paths must read as running "under" the trees.
+  drawPathLanes(ctx, gridSize, originX, originY, seed);
+
   // Trees sit 15% of a tile's height further down within their parcel than
   // before, per revision — feels more "planted in the field" than floating
   // at the tile's center.
   const TREE_Y_OFFSET = TILE_H * 0.15;
 
+  // Pass 3: ground decor + trees on top of everything.
   order.forEach((p, idx) => {
     const { x, y } = isoToScreen(p.gx, p.gy, originX, originY);
     const rng = mulberry32(seed + idx * 977);
-    drawParcelTile(ctx, x, y, soilColors[idx % soilColors.length], borderColor);
     drawGroundDecor(ctx, x, y, season, rng);
     treeFns[variant](ctx, x, y + TREE_Y_OFFSET, rng, season);
   });
-
-  // Farmer/tractor path lanes along parcel boundaries, drawn last so they
-  // read as a distinct trodden track crossing the whole orchard.
-  drawPathLanes(ctx, gridSize, originX, originY);
 }
 
 render('a'); render('b');
