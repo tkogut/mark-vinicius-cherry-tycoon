@@ -667,57 +667,70 @@ function tileVertex(gx, gy, which, originX, originY) {
   return { x: x - TILE_W / 2, y }; // 'left'
 }
 
-// Draws one seam as a wobbly dirt-track curve rather than a ruler-straight
-// line — a quadratic curve through a randomly-jittered midpoint (offset
-// perpendicular to the seam) reads as a worn field path instead of a
-// geometric grid line, per revision.
-function drawWobblyPath(ctx, x1, y1, x2, y2, width, color, rng) {
-  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+// Draws one seam as a STRAIGHT dirt path (centerline is not bent/curved) whose
+// EDGES are ragged/frayed — per revision, irregularity must come from a torn
+// boundary between path and grass (like a real trodden track), not from
+// bending the line itself. Built as a filled ribbon polygon: sample points
+// along the straight centerline, jitter each edge independently and
+// per-point so the boundary looks torn rather than a smooth parallel offset.
+function drawRaggedPath(ctx, x1, y1, x2, y2, halfWidth, color, rng) {
+  const steps = 16;
   const dx = x2 - x1, dy = y2 - y1;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
-  // perpendicular unit vector
-  const px = -dy / len, py = dx / len;
-  const wobble = (rng() - 0.5) * len * 0.35;
-  const cx = mx + px * wobble, cy = my + py * wobble;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = width;
-  ctx.lineCap = 'round';
+  const ux = dx / len, uy = dy / len;
+  const px = -uy, py = ux; // perpendicular unit vector
+
+  const left = [], right = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const cx = x1 + dx * t, cy = y1 + dy * t;
+    // Independent per-point, per-side jitter (0.45x-1.15x of halfWidth) —
+    // this is what makes the edge look torn/frayed rather than a clean
+    // parallel offset of the centerline.
+    const jL = (0.45 + rng() * 0.7) * halfWidth;
+    const jR = (0.45 + rng() * 0.7) * halfWidth;
+    left.push({ x: cx + px * jL, y: cy + py * jL });
+    right.push({ x: cx - px * jR, y: cy - py * jR });
+  }
+
+  ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.quadraticCurveTo(cx, cy, x2, y2);
-  ctx.stroke();
+  ctx.moveTo(left[0].x, left[0].y);
+  for (let i = 1; i <= steps; i++) ctx.lineTo(left[i].x, left[i].y);
+  for (let i = steps; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+  ctx.closePath();
+  ctx.fill();
 }
 
-function drawPathSeams(ctx, gridSize, originX, originY, width, color, rng) {
+function drawPathSeams(ctx, gridSize, originX, originY, halfWidth, color, rng) {
   for (let gx = 0; gx < gridSize; gx++) {
     for (let gy = 0; gy < gridSize; gy++) {
       const bottom = tileVertex(gx, gy, 'bottom', originX, originY);
       if (gx + 1 < gridSize) {
         // seam shared with the +gx neighbor
         const right = tileVertex(gx, gy, 'right', originX, originY);
-        drawWobblyPath(ctx, bottom.x, bottom.y, right.x, right.y, width, color, rng);
+        drawRaggedPath(ctx, bottom.x, bottom.y, right.x, right.y, halfWidth, color, rng);
       }
       if (gy + 1 < gridSize) {
         // seam shared with the +gy neighbor
         const left = tileVertex(gx, gy, 'left', originX, originY);
-        drawWobblyPath(ctx, left.x, left.y, bottom.x, bottom.y, width, color, rng);
+        drawRaggedPath(ctx, left.x, left.y, bottom.x, bottom.y, halfWidth, color, rng);
       }
     }
   }
 }
 
-// Darker worn-dirt brown per revision (was a light tan that read as too
-// clean/geometric) — but bumped in width/opacity after the first pass at
-// this proved nearly invisible against both the dark soil tiles and the
-// winter frost tiles. Two-tone (dark edge + slightly lighter trodden
-// center) so it still reads as a worn track, not a flat brown bar. Drawn
-// with its own seeded rng so the wobble is deterministic per orchard seed.
+// Darker worn-dirt brown, widened +5% per revision (10 -> 10.5 outer,
+// 4 -> 4.2 inner, expressed here as half-widths for drawRaggedPath). Two-tone
+// (dark edge ribbon + narrower lighter trodden-center ribbon) so it still
+// reads as a worn track. Drawn with its own seeded rng so the ragged edges
+// are deterministic per orchard seed, not re-randomized every frame.
 function drawPathLanes(ctx, gridSize, originX, originY, seed) {
   ctx.save();
   const rngWide = mulberry32(seed + 5151);
-  drawPathSeams(ctx, gridSize, originX, originY, 10, 'rgba(58,40,22,0.92)', rngWide);
+  drawPathSeams(ctx, gridSize, originX, originY, 5.25, 'rgba(58,40,22,0.92)', rngWide);
   const rngNarrow = mulberry32(seed + 5151);
-  drawPathSeams(ctx, gridSize, originX, originY, 4, 'rgba(94,64,34,0.85)', rngNarrow);
+  drawPathSeams(ctx, gridSize, originX, originY, 2.1, 'rgba(94,64,34,0.85)', rngNarrow);
   ctx.restore();
 }
 

@@ -54,8 +54,17 @@ Trunk, gear/rivet, and cherry fills all use canvas gradients now (bright highlig
 ### Fifth revision (path z-order, irregularity, darker brown)
 
 - **Paths now render BEHIND trees** — `render()` restructured into 3 explicit passes: (1) all tile fills, (2) path lanes, (3) ground decor + trees. Previously paths were drawn last (on top of everything); now tree canopies/bare branches correctly occlude the path where they overlap it.
-- **Paths are irregular now, not ruler-straight** — `drawWobblyPath` bends each seam through a randomly-jittered midpoint (a quadratic curve with a perpendicular offset up to 35% of the segment length) instead of a straight line, so it reads as a worn dirt track rather than a geometric grid overlay. Wobble uses its own seeded `rng` so it's deterministic per orchard seed, not re-randomized every frame.
+- **Paths are irregular now, not ruler-straight** — `drawWobblyPath` bends each seam through a randomly-jittered midpoint (a quadratic curve with a perpendicular offset up to 35% of the segment length) instead of a straight line, so it reads as a worn dirt track rather than a geometric grid overlay. Wobble uses its own seeded `rng` so it's deterministic per orchard seed, not re-randomized every frame. *(Superseded by the sixth revision below — this approach put the irregularity in the wrong place.)*
 - **Color darkened**, then re-tuned for contrast — first pass (`rgba(58,42,26,0.8)`) was barely visible against both the dark standard soil and the blue-grey winter soil; bumped to a two-tone dark-edge (`rgba(58,40,22,0.92)`, width 10) + lighter trodden-center (`rgba(94,64,34,0.85)`, width 4) pair, still unambiguously "dark brown," now with enough internal contrast to read clearly under both seasons.
+
+### Sixth revision (ragged edges instead of a bent centerline, +5% width)
+
+Corrected per reference images the user provided (real dirt paths cutting through grass): **irregularity should come from a torn/frayed edge boundary, not from bending the path's centerline.** `drawWobblyPath` (quadratic-curve bend) replaced entirely with `drawRaggedPath`, which:
+- Keeps the centerline perfectly straight along the true tile seam.
+- Builds the path as a **filled ribbon polygon**, sampling 16 points along the straight line and jittering each edge (left/right) independently and per-point (0.45x-1.15x of half-width) — this per-point, per-side independence is what produces a torn-looking boundary rather than a smooth parallel offset of the line.
+- Both the dark outer ribbon and the lighter inner "trodden" ribbon use this same technique at different half-widths, so the torn edge shows at both layers.
+
+**Width increased +5%** per this revision — half-widths bumped from 5/2 to 5.25/2.1 (equivalent to the prior 10/4 full-widths -> 10.5/4.2).
 
 ## What to Look For
 
