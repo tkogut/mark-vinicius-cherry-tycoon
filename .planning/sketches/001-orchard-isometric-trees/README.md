@@ -24,14 +24,21 @@ Each variant re-randomizes on load and has a "Reroll Seed" button — click it t
 
 - **A: Geometric Brass** — angular, faceted polygon canopy shapes, brass gear rivets at the trunk base. Leans hardest into the "industrial" half of Neo-Steampunk; reads as sharp/mechanical rather than a soft orchard.
 - **B: Organic Noise** — rounded, layered canopy clusters (flat shapes with a shadow pass + highlight pass to fake volume, no blur filter at all). Softer, closer to what an orchard should feel like, but has the least visible Neo-Steampunk identity on its own.
-- **C: Clockwork Hybrid** — same organic canopy as B, plus small brass rivets at branch forks and a gold gear motif at the crown apex, cherries get a gold glint highlight. The compromise pitch: friendly silhouette up close, unmistakably Neo-Steampunk on inspection.
+- ~~**C: Clockwork Hybrid**~~ — **Rejected 2026-07-29.** Tab kept (struck through, disabled) per sketch convention of preserving rejected variants rather than deleting them. User chose to iterate A and B across seasons instead of continuing C.
+
+Both A and B now have a **season selector** (Spring / Summer / Autumn / Winter) per `SEASON_CONFIG` in the script:
+- **Spring**: smaller/sparser canopy, fresh light-green palette, blossom dots (white/pink) instead of fruit
+- **Summer**: full canopy (as originally sketched), ruby cherries
+- **Autumn**: reduced canopy count, orange/brown/gold palette, no fruit (harvested)
+- **Winter**: canopy fully removed — bare frost-tinted branches only, frosted ground tiles, gear/rivet accents remain visible on the bare trunk (Variant A)
 
 ## What to Look For
 
-1. **Crispness vs. the current game**: all three should look meaningfully cleaner than the existing blurred-div canopy — confirm that's true for each.
-2. **Which canopy style says "cherry orchard" fastest** — B and C use the same canopy shape; A is a genuinely different approach.
-3. **Mobile legibility of the 3×3 grid**: at a 375px-wide viewport (use the toolbar's Phone button), the 9-parcel grid shrinks a lot. Trees are still distinguishable but this raises an open question — see below.
-4. **Whether the gear/rivet accents in A and C read as "Neo-Steampunk" or just as noise at this scale.**
+1. **Crispness vs. the current game**: both should look meaningfully cleaner than the existing blurred-div canopy.
+2. **Which canopy style says "cherry orchard" fastest** across all four seasons, not just summer.
+3. **Season readability**: can you tell which season you're looking at at a glance, without reading the label?
+4. **Mobile legibility of the 3×3 grid**: at a 375px-wide viewport (use the toolbar's Phone button), the 9-parcel grid shrinks a lot. Trees are still distinguishable but this raises an open question — see below.
+5. **Whether the gear/rivet accents in A read as "Neo-Steampunk" or just as noise at this scale, especially against the bare winter branches.**
 
 ## Open Question Not Resolved by This Sketch
 
