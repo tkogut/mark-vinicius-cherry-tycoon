@@ -52,7 +52,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 01.1-01: Fix ordering in `frontend/src/context/AuthContext.tsx:150` (`initTestMode()`)
+- [x] 01.1-01: Fix ordering in `frontend/src/context/AuthContext.tsx:150` (`initTestMode()`) — `.planning/phases/01.1-atomic-auth-fix/01.1-01-PLAN.md`
 
 #### Phase 2: Weather & Event UI Integration
 **Goal**: Surface the existing weather/event backend systems (Living World, Crop Insurance) in the frontend.
@@ -88,6 +88,6 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 (2 and 3 can run independ
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
 | 1. Enhanced Leaderboard & Rankings UI | Playable Release | 1/1 | Complete | 2026-07-29 |
-| 1.1. Atomic Auth Fix | Playable Release | 0/1 | Not started | - |
+| 1.1. Atomic Auth Fix | Playable Release | 1/1 | Complete | 2026-07-29 |
 | 2. Weather & Event UI Integration | Playable Release | 0/TBD | Not started | - |
 | 3. Quality Infrastructure | Playable Release | 0/TBD | Not started | - |

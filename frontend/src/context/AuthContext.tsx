@@ -146,9 +146,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         try {
-            // Set authenticated immediately to provide UI feedback
-            setIsAuthenticated(true);
-
             // Generate a random Ed25519 key pair for the session identity
             // This bypasses the "Anonymous callers not allowed" check on the backend
             // for local development purposes.
@@ -162,9 +159,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const actor = await createBackendActor(sessionIdentity);
             console.log('[AuthContext] Test mode actor created:', actor ? 'SUCCESS' : 'FAILED');
 
-            // Set backend actor
+            // Atomic Auth: only set isAuthenticated once backendActor is ready
+            // (mirrors login()) — never set it ahead of the actor existing.
             if (actor) {
                 setBackendActor(actor);
+                setIsAuthenticated(true);
                 console.log('[AuthContext] Test mode actor set successfully');
             }
         } catch (error) {

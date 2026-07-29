@@ -3,10 +3,10 @@ gsd_state_version: '1.0'
 status: planning
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 25
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 50
 ---
 
 # Project State
@@ -16,16 +16,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** A player can log in, run a season end-to-end (plant, tend, harvest, sell, compete in auctions), and see their standing — with no missing UI surface or auth bug blocking that loop.
-**Current focus:** Phase 1.1 — Atomic Auth Fix (next up after Phase 1 pilot shipped)
+**Current focus:** Phase 2 — Weather & Event UI Integration
 
 ## Current Position
 
-Phase: 1.1 of 4 (Atomic Auth Fix)
-Plan: 0 of 1 in current phase
+Phase: 2 of 4 (Weather & Event UI Integration)
+Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-07-29 — Phase 1 (Enhanced Leaderboard & Rankings UI) shipped: pilot cycle proved out end-to-end
+Last activity: 2026-07-29 — Phase 1.1 (Atomic Auth Fix) shipped: `initTestMode()` now sets `isAuthenticated` only after `backendActor` is ready
 
-Progress: [██░░░░░░░░] 25%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -62,10 +62,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- `frontend/src/context/AuthContext.tsx:150` (`initTestMode()`) violates the Atomic Auth invariant — tracked as Phase 1.1.
 - `backend/main_mainnet.mo` has not actually been migrated to Enhanced Orthogonal Persistence syntax despite docs claiming it should be — tracked as v2 requirement EOP-01, deliberately not bundled into the current milestone.
 - No `npm test` script, no ESLint/Prettier config, unused Playwright install — tracked as Phase 3.
-- `frontend/src/__tests__/useAuth.test.tsx` fails 5/6 tests right now (missing `QueryClientProvider` wrapper) — confirmed pre-existing during Phase 1 verification (not a regression), rolls into Phase 3 quality-infra work.
+- `frontend/src/__tests__/useAuth.test.tsx` fails 5/6 tests right now (missing `QueryClientProvider` wrapper) — confirmed pre-existing (not a regression), rolls into Phase 3 quality-infra work.
+- `execution/tests/*.sh` (21 scripts) confirmed drifted from the current backend API: `test_rankings.sh` calls removed `getLeaderboard`, `e2e_backend.sh` called removed `advanceSeason`; 11/21 have CRLF line endings breaking them under bash on Linux. Fixed CRLF only on `e2e_backend.sh` so far. New CI workflow (`test-backend-logic.yml`) deliberately does NOT depend on this suite — uses a small hand-verified smoke path instead. Re-auditing all 21 scripts is separate backlog work, not yet a phase.
 - dfx version mismatch noted between local/playground (0.24.3) and what CI's mainnet deploy assumes — see `.planning/codebase/STACK.md`, not yet turned into a phase.
 
 ## Deferred Items

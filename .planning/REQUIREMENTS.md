@@ -21,7 +21,7 @@ Requirements for reaching a genuinely playable release. Each maps to a roadmap p
 
 ### Auth Correctness (AUTH)
 
-- [ ] **AUTH-01**: `isAuthenticated` is set only after `backendActor` is ready in ALL code paths, including `initTestMode()` (currently violated at `frontend/src/context/AuthContext.tsx:150`)
+- [x] **AUTH-01**: `isAuthenticated` is set only after `backendActor` is ready in ALL code paths, including `initTestMode()` — fixed 2026-07-29, `frontend/src/context/AuthContext.tsx:150`
 
 ### Quality Infrastructure (QUAL)
 
@@ -57,7 +57,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | LEAD-01 | Phase 1 | Complete |
 | LEAD-02 | Phase 1 | Complete |
 | LEAD-03 | Phase 1 | Complete |
-| AUTH-01 | Phase 1.1 | Pending |
+| AUTH-01 | Phase 1.1 | Complete |
 | WEATHER-01 | Phase 2 | Pending |
 | WEATHER-02 | Phase 2 | Pending |
 | WEATHER-03 | Phase 2 | Pending |

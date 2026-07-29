@@ -22,15 +22,16 @@ A player can log in, run a season end-to-end (plant, tend, harvest, sell, compet
 - ✓ Auction Dashboard + Imperial Contract Bid Modal (Phase 8.1/9.0) — `frontend/src/components/`
 - ✓ Cinematic "Golden Harvester" upgrade — `frontend/src/components/farm/GoldenHarvesterView.tsx`
 - ✓ Internet Identity authentication — `frontend/src/context/AuthContext.tsx`
+- ✓ Enhanced Leaderboard & Rankings UI (Phase 1, 2026-07-29) — own-rank surfacing via `getPlayerRank`, mobile-responsive rows
+- ✓ Atomic Auth invariant enforced in all code paths incl. `initTestMode()` (Phase 1.1, 2026-07-29)
 
 ### Active
 
 <!-- Current scope: reach a genuinely playable release. -->
 
-- [ ] Enhanced Leaderboard & Rankings UI (legacy Phase 6.1 — backend ready, frontend missing)
 - [ ] Weather & Event UI integration (legacy Phase 7.0 — backend ready, frontend missing)
-- [ ] Fix Atomic Auth violation in `initTestMode()` (`frontend/src/context/AuthContext.tsx:150` sets `isAuthenticated(true)` before `backendActor` is ready — confirmed by codebase mapping, contradicts the documented invariant)
-- [ ] Wire up missing quality infrastructure: no `npm test` script, no ESLint/Prettier config despite scripts/deps existing, Playwright installed but unused (see `.planning/codebase/TESTING.md`, `CONVENTIONS.md`)
+- [ ] Wire up missing quality infrastructure: no `npm test` script, no ESLint/Prettier config despite scripts/deps existing, Playwright installed but unused (see `.planning/codebase/TESTING.md`, `CONVENTIONS.md`); `useAuth.test.tsx` also confirmed broken (missing `QueryClientProvider`, 5/6 tests fail)
+- [ ] Re-verify `execution/tests/*.sh` against the current backend API one script at a time — `test_rankings.sh` and `e2e_backend.sh` confirmed calling removed methods (`getLeaderboard`, `advanceSeason`); 11/21 scripts have CRLF line endings
 
 ### Out of Scope
 
