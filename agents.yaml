@@ -1,6 +1,6 @@
 # AGENTS-OS Swarm Role Registry
-project: mark-vinicius-cherry-tycoon
-version: 4.0
+project: agents-os-core
+version: 6.0
 
 roles:
   gem:

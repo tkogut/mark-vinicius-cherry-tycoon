@@ -1,5 +1,5 @@
-🛸 KONSTYTUCJA AGENTS-OS v5.0 Swarm Edition — Instrukcja obsługi
-Wersja: 5.0-AG | Status: STABLE | Architekt: Antigravity Orchestrator & GEM (Gemini Evolution Manager)
+🛸 KONSTYTUCJA AGENTS-OS v6.0 Swarm Edition — Instrukcja obsługi
+Wersja: 6.0-AG | Status: STABLE | Architekt: Antigravity Orchestrator & GEM (Gemini Evolution Manager)
 
 🛠️ 1. ARCHITEKTURA ORKIESTRACJI (THE SWARM TRIAD)
 System operuje w trybie asynchronicznego roju (Swarm) z wykorzystaniem natywnych, równoległych Subagentów Antigravity 2.0. Każda rola posiada twarde ramy odpowiedzialności i dedykowany model:
@@ -43,7 +43,7 @@ Struktura katalogu głównego projektu pod rygorem błędu krytycznego musi zach
 └── src/                    # Czysty, zweryfikowany kod źródłowy
 
 🧠 3. GITOPS & BAZA WIEDZY (MCP PROTOCOL)
-Wersja 5.0 wprowadza samowystarczalny system zapobiegania halucynacjom modeli LLM (Anti-Hallucination Matrix):
+Wersja 6.0 wprowadza samowystarczalny system zapobiegania halucynacjom modeli LLM (Anti-Hallucination Matrix):
 - Węzeł Dokumentacji (MCP Node): Baza wiedzy o środowisku Antigravity jest mapowana bezpośrednio do IDE przez węzeł Node.js zlokalizowany w .agents/mcp-servers/antigravity-docs/. Model otrzymuje dostęp do narzędzi natywnych: search_docs, read_doc, list_document_names.
 - Izolacja Pamięci: ZAKAZ uruchamiania serwera MCP globalnie. Serwer musi być definiowany wewnątrz pliku .gemini/mcp_config.json z użyciem ścieżek bezwzględnych.
 - Autonomiczna Aktualizacja (CI/CD): System wykorzystuje potok .github/workflows/mcp-docs-updater.yml (Cron Job). Bot GitHub Actions autonomicznie indeksuje oficjalną dokumentację (Python + Playwright), i wypycha zmiany do repozytorium tylko w przypadku wykrycia rzeczywistych modyfikacji (Dirty-Check).
@@ -76,5 +76,8 @@ Komunikacja z ekosystemem opiera się na natywnych, ustrukturyzowanych komendach
 - Natywny Instalator: Pobieranie i aktualizacja umiejętności odbywa się za pomocą skryptu ./os-add-skill (zabezpieczonego przed Path Traversal) lub oficjalnego narzędzia CLI platformy Antigravity 2.0.
 - Rygor Bezpieczeństwa: Instalacja musi być wykonywana z restrykcyjnym filtrem ryzyka za pomocą komendy:
   - `./os-add-skill <nazwa-skilla>` lub `npx antigravity-awesome-skills --path .agents/skills --risk safe,none`
+
+🔒 8. ŚRODKI BEZPIECZEŃSTWA & GIT WORKTREE AUTOMATION
+- **Cleanup Orchestration:** System wspiera automatyczne sprzątanie i lintowanie za pomocą asystentów @brooks-lint oraz @finishing-a-development-branch, które dbają o jakość kodu i higienę gałęzi git.
 
 Podpisano: Antigravity Orchestrator & GEM

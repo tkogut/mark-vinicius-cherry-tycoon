@@ -12,11 +12,36 @@ Zapewnienie standardu pracy, wdrażania i rozwiązywania problemów na serwerach
 🛠️ **Operational Workflow**
 
 ### 1. Dostęp i Konfiguracja VPS
-*   **SSH**: Logowanie przy użyciu kluczy SSH. Używaj dedykowanego użytkownika z grupy `docker` (unikaj ciągłej pracy jako `root`).
-    ```bash
-    ssh -i ~/.ssh/id_rsa user@vps_ip
-    ```
-*   **Zabezpieczenia**: Aktywny UFW (zablokowane niepotrzebne porty, otwarte tylko 22, 80, 443 i ewentualnie porty aplikacji z ograniczeniem IP).
+
+> [!IMPORTANT]
+> **WSL Agent CLI Isolation**: Agent CLI w WSL działa w osobnym procesie i nie dzieli domyślnie `ssh-agent`. Bez przekazania `SSH_AUTH_SOCK` komendy SSH wiszą.
+
+#### Konfiguracja WSL + Hostinger VPS (tkogut)
+* **Host VPS:** `srv1490214.hstgr.cloud`
+* **Użytkownik VPS:** `root`
+* **Klucz SSH w WSL:** `~/.ssh/tkogut_ssh_key`
+* **Źródło klucza Windows:** `/mnt/c/Users/tkogut/.ssh/id_ed25519/tkogut_ssh_key`
+
+#### Krok po kroku:
+1. **Import klucza (jednorazowo):**
+   ```bash
+   cp /mnt/c/Users/tkogut/.ssh/id_ed25519/tkogut_ssh_key ~/.ssh/tkogut_ssh_key
+   chmod 600 ~/.ssh/tkogut_ssh_key
+   ```
+2. **Start agenta i załadowanie klucza:**
+   ```bash
+   eval $(ssh-agent -s)
+   ssh-add ~/.ssh/tkogut_ssh_key
+   ```
+3. **Pobranie i przekazanie agentowi gniazda:**
+   ```bash
+   echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+   ```
+   *Skopiuj i wklej wartość do czatu agenta.*
+4. **Wzór połączenia:**
+   ```bash
+   SSH_AUTH_SOCK=<gniazdo> ssh -o ConnectTimeout=15 -o StrictHostKeyChecking=no root@srv1490214.hstgr.cloud
+   ```
 
 ### 2. Środowisko Docker & Docker Compose
 *   Aplikacje uruchamiane za pomocą `docker-compose.yml`.

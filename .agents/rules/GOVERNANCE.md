@@ -1,9 +1,9 @@
 ---
 trigger: always_on
-version: 5.0-AG Swarm
+version: 6.0-AG Swarm
 ---
 
-# 🤖 AGENTS-OS v5.0: Swarm Edition (Native)
+# 🤖 AGENTS-OS v6.0: Swarm Edition (Native)
 
 **Status:** Universal Project Governance Template
 **Principle:** Separation of Planning (Coordinator), Execution (Builder), and Audit (Auditor).
@@ -78,4 +78,4 @@ No task is marked `[x] COMPLETE` without the following confirmation:
 - **Python/Backend**: FastAPI/Pydantic. Strict type hinting. SQLite for local state.
 - **Odoo**: Modular structure. XML views + Python logic separation. Quality RGG audits.
 
-Standard v5.0 Swarm | Precision, Economy, and Swarm Speed.
+Standard v6.0 Swarm | Precision, Economy, and Swarm Speed.
