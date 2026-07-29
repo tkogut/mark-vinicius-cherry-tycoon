@@ -118,7 +118,7 @@
     <button class="season-btn" onclick="setSeason('autumn', event)">🍂 Autumn</button>
     <button class="season-btn" onclick="setSeason('winter', event)">❄️ Winter</button>
   </div>
-  <div class="viewport-wrap"><div class="grid-frame"><canvas id="canvas-a" width="900" height="620"></canvas></div></div>
+  <div class="viewport-wrap"><div class="grid-frame"><canvas id="canvas-a" width="900" height="700"></canvas></div></div>
   <div class="info-bar">
     <span>9 parcels · seed <span class="highlight" id="seed-a">—</span> · season <span class="highlight" id="season-label-a">Spring</span></span>
     <button class="reroll-btn" onclick="render('a')">Reroll Seed</button>
@@ -136,7 +136,7 @@
     <button class="season-btn" onclick="setSeason('autumn', event)">🍂 Autumn</button>
     <button class="season-btn" onclick="setSeason('winter', event)">❄️ Winter</button>
   </div>
-  <div class="viewport-wrap"><div class="grid-frame"><canvas id="canvas-b" width="900" height="620"></canvas></div></div>
+  <div class="viewport-wrap"><div class="grid-frame"><canvas id="canvas-b" width="900" height="700"></canvas></div></div>
   <div class="info-bar">
     <span>9 parcels · seed <span class="highlight" id="seed-b">—</span> · season <span class="highlight" id="season-label-b">Spring</span></span>
     <button class="reroll-btn" onclick="render('b')">Reroll Seed</button>
@@ -271,20 +271,33 @@ function drawTrunk(ctx, x, groundY, height, width, colorLight, colorDark) {
 // textures already in frontend/public/assets/textures/ (glowing gold-green liquid,
 // warm bronze glints), so foliage reads as lit-from-within rather than flat-filled.
 const SEASON_CONFIG = {
-  // Spring greens pushed more vivid/saturated per revision (was a paler sage).
-  spring: { facetScale: 0.55, countDelta: -1, greens: ['#5fc23a', '#7fd64f', '#4aa82c'], glow: '#eaffd6', fruit: 'blossom', frost: false },
+  // Spring/autumn facetScale bumped +20% per revision (0.55->0.66, 0.8->0.96).
+  spring: { facetScale: 0.66, countDelta: -1, greens: ['#5fc23a', '#7fd64f', '#4aa82c'], glow: '#eaffd6', fruit: 'blossom', frost: false },
   summer: { facetScale: 1.0, countDelta: 0, greens: ['#3d5c2f', '#4a6b38', '#33502a'], glow: '#c8f28a', fruit: 'cherry', frost: false },
-  // Autumn canopy pushed warmer/richer (more red, less muddy brown) per revision.
-  autumn: { facetScale: 0.8, countDelta: -1, greens: ['#d9720f', '#e89020', '#a8420f'], glow: '#ffcf6a', fruit: 'none', frost: false },
+  autumn: { facetScale: 0.96, countDelta: -1, greens: ['#d9720f', '#e89020', '#a8420f'], glow: '#ffcf6a', fruit: 'none', frost: false },
   winter: { facetScale: 0, countDelta: -99, greens: [], glow: null, fruit: 'none', frost: true }
 };
 
+// Shared vertical lift for canopy/fruit placement relative to canopyY — lowered
+// from 16-18px to 8px per revision so the canopy sits closer to the trunk
+// instead of "hanging" high above it.
+const CANOPY_LIFT = 8;
+
 // ---------- Seasonal ground decoration (grass tufts, flowers, fallen leaves, snow) ----------
-function drawGrassTuft(ctx, x, y, colorDark, colorLight, rng) {
+// Three-shade palettes per season, per revision (was a 2-tone dark/light pair).
+const GRASS_SHADES = {
+  spring: ['#3f9e2a', '#5cb83f', '#7fe654'],
+  summer: ['#8a7a2a', '#a89a3a', '#c9b94a']
+};
+const LEAF_SHADES = ['#d9720f', '#a8420f', '#f0b040'];
+
+// One "clump" = one small 3-blade tuft. A tuft SPOT now randomly renders 1-3
+// clumps clustered together, per revision, instead of always exactly one.
+function drawGrassClump(ctx, x, y, shades, rng) {
   for (let i = 0; i < 3; i++) {
     const ang = -Math.PI / 2 + (i - 1) * 0.4 + (rng() - 0.5) * 0.15;
     const len = 4 + rng() * 2;
-    ctx.strokeStyle = i === 1 ? colorLight : colorDark;
+    ctx.strokeStyle = shades[Math.floor(rng() * shades.length)];
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -293,8 +306,29 @@ function drawGrassTuft(ctx, x, y, colorDark, colorLight, rng) {
   }
 }
 
+function drawGrassTuft(ctx, x, y, shades, rng) {
+  const clumpCount = 1 + Math.floor(rng() * 3); // 1, 2, or 3
+  for (let c = 0; c < clumpCount; c++) {
+    const jx = x + (rng() - 0.5) * 6;
+    const jy = y + (rng() - 0.5) * 4;
+    drawGrassClump(ctx, jx, jy, shades, rng);
+  }
+}
+
 function drawGroundDecor(ctx, sx, sy, season, rng) {
   const w = TILE_W * 0.42, h = TILE_H * 0.42;
+
+  // Clip everything below to this parcel's own diamond so grass/leaves/snow
+  // never spill past the outer silhouette of the orchard (or into a
+  // neighboring parcel), per revision.
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - TILE_H / 2);
+  ctx.lineTo(sx + TILE_W / 2, sy);
+  ctx.lineTo(sx, sy + TILE_H / 2);
+  ctx.lineTo(sx - TILE_W / 2, sy);
+  ctx.closePath();
+  ctx.clip();
 
   if (season === 'spring') {
     // Intense fresh-spring green wash across the whole parcel.
@@ -306,7 +340,7 @@ function drawGroundDecor(ctx, sx, sy, season, rng) {
 
     const tufts = 10 + Math.floor(rng() * 5);
     for (let i = 0; i < tufts; i++) {
-      drawGrassTuft(ctx, sx + (rng() - 0.5) * w * 2, sy + (rng() - 0.5) * h * 1.6, '#3f9e2a', '#7fe654', rng);
+      drawGrassTuft(ctx, sx + (rng() - 0.5) * w * 2, sy + (rng() - 0.5) * h * 1.6, GRASS_SHADES.spring, rng);
     }
     const flowers = 5 + Math.floor(rng() * 5);
     const flowerColors = ['#ffffff', '#ffe066', '#ff9fc4'];
@@ -320,17 +354,16 @@ function drawGroundDecor(ctx, sx, sy, season, rng) {
     // Fewer, drier/yellower tufts than spring.
     const tufts = 4 + Math.floor(rng() * 3);
     for (let i = 0; i < tufts; i++) {
-      drawGrassTuft(ctx, sx + (rng() - 0.5) * w * 2, sy + (rng() - 0.5) * h * 1.6, '#8a7a2a', '#c9b94a', rng);
+      drawGrassTuft(ctx, sx + (rng() - 0.5) * w * 2, sy + (rng() - 0.5) * h * 1.6, GRASS_SHADES.summer, rng);
     }
   } else if (season === 'autumn') {
-    const leafColors = ['#d9720f', '#e89020', '#a8420f', '#f0b040'];
     const leaves = 8 + Math.floor(rng() * 6);
     for (let i = 0; i < leaves; i++) {
       const lx = sx + (rng() - 0.5) * w * 2, ly = sy + (rng() - 0.5) * h * 1.6;
       ctx.save();
       ctx.translate(lx, ly);
       ctx.rotate(rng() * Math.PI * 2);
-      ctx.fillStyle = leafColors[Math.floor(rng() * leafColors.length)];
+      ctx.fillStyle = LEAF_SHADES[Math.floor(rng() * LEAF_SHADES.length)];
       ctx.beginPath();
       ctx.ellipse(0, 0, 2.8, 1.5, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -347,6 +380,8 @@ function drawGroundDecor(ctx, sx, sy, season, rng) {
       ctx.fill();
     }
   }
+
+  ctx.restore(); // end clip
 }
 
 function drawCherry(ctx, cx, cy, r) {
@@ -388,7 +423,7 @@ function drawBareBranches(ctx, x, canopyY, baseR, rng, frost) {
     const ang = (Math.PI * 2 * i) / branchCount + rng() * 0.4 - Math.PI / 2;
     const len = baseR * (0.5 + rng() * 0.5);
     const tipX = x + Math.cos(ang) * len;
-    const tipY = canopyY - 18 + Math.sin(ang) * len * 0.5;
+    const tipY = canopyY - CANOPY_LIFT + Math.sin(ang) * len * 0.5;
     ctx.beginPath();
     ctx.moveTo(x, canopyY);
     ctx.lineTo(tipX, tipY);
@@ -398,8 +433,8 @@ function drawBareBranches(ctx, x, canopyY, baseR, rng, frost) {
       const ang2 = ang + (rng() - 0.5) * 0.8;
       const len2 = len * 0.4;
       ctx.beginPath();
-      ctx.moveTo(x + Math.cos(ang) * len * 0.6, canopyY - 18 + Math.sin(ang) * len * 0.6 * 0.5);
-      ctx.lineTo(x + Math.cos(ang) * len * 0.6 + Math.cos(ang2) * len2, canopyY - 18 + Math.sin(ang) * len * 0.6 * 0.5 + Math.sin(ang2) * len2 * 0.5);
+      ctx.moveTo(x + Math.cos(ang) * len * 0.6, canopyY - CANOPY_LIFT + Math.sin(ang) * len * 0.6 * 0.5);
+      ctx.lineTo(x + Math.cos(ang) * len * 0.6 + Math.cos(ang2) * len2, canopyY - CANOPY_LIFT + Math.sin(ang) * len * 0.6 * 0.5 + Math.sin(ang2) * len2 * 0.5);
       ctx.stroke();
     }
     if (frost) {
@@ -407,7 +442,7 @@ function drawBareBranches(ctx, x, canopyY, baseR, rng, frost) {
       for (let c = 1; c <= snowClumps; c++) {
         const t = c / (snowClumps + 1);
         const sxp = x + Math.cos(ang) * len * t;
-        const syp = canopyY - 18 + Math.sin(ang) * len * t * 0.5;
+        const syp = canopyY - CANOPY_LIFT + Math.sin(ang) * len * t * 0.5;
         ctx.fillStyle = 'rgba(240,248,252,0.92)';
         ctx.beginPath();
         ctx.ellipse(sxp, syp - 1.5, 2.6 + rng() * 1.5, 1.6, 0, 0, Math.PI * 2);
@@ -444,7 +479,7 @@ function drawTreeA(ctx, x, groundY, rng, season) {
     const ang = (Math.PI * 2 * i) / facets + rng() * 0.3;
     const dist = baseR * (0.35 + rng() * 0.25);
     const fx = x + Math.cos(ang) * dist;
-    const fy = canopyY - 18 + Math.sin(ang) * dist * 0.55;
+    const fy = canopyY - CANOPY_LIFT + Math.sin(ang) * dist * 0.55;
     const size = baseR * cfg.facetScale * (0.55 + rng() * 0.3);
     ctx.save();
     ctx.translate(fx, fy);
@@ -472,7 +507,7 @@ function drawTreeA(ctx, x, groundY, rng, season) {
       const ang = rng() * Math.PI * 2;
       const dist = baseR * (0.3 + rng() * 0.5);
       const cx = x + Math.cos(ang) * dist;
-      const cy = canopyY - 18 + Math.sin(ang) * dist * 0.55;
+      const cy = canopyY - CANOPY_LIFT + Math.sin(ang) * dist * 0.55;
       drawCherry(ctx, cx, cy, 3);
     }
   } else if (cfg.fruit === 'blossom') {
@@ -480,7 +515,7 @@ function drawTreeA(ctx, x, groundY, rng, season) {
     for (let i = 0; i < blossomCount; i++) {
       const ang = rng() * Math.PI * 2;
       const dist = baseR * (0.25 + rng() * 0.45);
-      drawBlossom(ctx, x + Math.cos(ang) * dist, canopyY - 18 + Math.sin(ang) * dist * 0.55);
+      drawBlossom(ctx, x + Math.cos(ang) * dist, canopyY - CANOPY_LIFT + Math.sin(ang) * dist * 0.55);
     }
   }
 }
@@ -506,7 +541,7 @@ function drawTreeB(ctx, x, groundY, rng, season) {
     const dist = rng() * 26;
     positions.push({
       x: x + Math.cos(ang) * dist,
-      y: canopyY - 16 + Math.sin(ang) * dist * 0.6,
+      y: canopyY - CANOPY_LIFT + Math.sin(ang) * dist * 0.6,
       r: baseR * cfg.facetScale * (0.6 + rng() * 0.6)
     });
   }
@@ -553,6 +588,93 @@ function drawTreeB(ctx, x, groundY, rng, season) {
   }
 }
 
+// ---------- Outer buildable border zone (future Warehouse/Workshop/Farmhouse plots) ----------
+function drawBuildableZone(ctx, gridSize, originX, originY) {
+  const corners = [
+    isoToScreen(0, 0, originX, originY),
+    isoToScreen(gridSize, 0, originX, originY),
+    isoToScreen(gridSize, gridSize, originX, originY),
+    isoToScreen(0, gridSize, originX, originY)
+  ].map((c, i) => {
+    // nudge each true grid corner outward to the tile's own outer vertex
+    if (i === 0) return { x: c.x, y: c.y - TILE_H / 2 };
+    if (i === 1) return { x: c.x + TILE_W / 2, y: c.y };
+    if (i === 2) return { x: c.x, y: c.y + TILE_H / 2 };
+    return { x: c.x - TILE_W / 2, y: c.y };
+  });
+  const cx = corners.reduce((s, c) => s + c.x, 0) / 4;
+  const cy = corners.reduce((s, c) => s + c.y, 0) / 4;
+  const margin = 58;
+  const outer = corners.map(c => {
+    const dx = c.x - cx, dy = c.y - cy;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    return { x: c.x + (dx / len) * margin, y: c.y + (dy / len) * margin };
+  });
+
+  // Cleared-land band between the orchard's true outer edge and the expanded
+  // outer boundary — reserved for future buildings (Warehouse/Workshop/Farmhouse).
+  ctx.beginPath();
+  ctx.moveTo(outer[0].x, outer[0].y);
+  outer.slice(1).forEach(c => ctx.lineTo(c.x, c.y));
+  ctx.closePath();
+  const grad = ctx.createRadialGradient(cx, cy, 40, cx, cy, margin + 140);
+  grad.addColorStop(0, 'rgba(90,74,50,0)');
+  grad.addColorStop(1, 'rgba(58,46,28,0.9)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(184,134,11,0.8)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Three placeholder building-plot outlines along the band — Warehouse,
+  // Workshop, Farmhouse — communicating "reserved for future construction"
+  // without committing to real building art yet.
+  const plotSpecs = [
+    { edgeA: outer[0], edgeB: outer[1], t: 0.5, label: 'Warehouse' },
+    { edgeA: outer[1], edgeB: outer[2], t: 0.5, label: 'Workshop' },
+    { edgeA: outer[3], edgeB: outer[0], t: 0.5, label: 'Farmhouse' }
+  ];
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  plotSpecs.forEach(spec => {
+    const px = spec.edgeA.x + (spec.edgeB.x - spec.edgeA.x) * spec.t;
+    const py = spec.edgeA.y + (spec.edgeB.y - spec.edgeA.y) * spec.t;
+    const pw = 34, ph = 20;
+    ctx.strokeStyle = 'rgba(212,175,55,0.65)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.strokeRect(px - pw / 2, py - ph / 2, pw, ph);
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(212,175,55,0.85)';
+    ctx.fillText(spec.label, px, py + ph / 2 + 12);
+  });
+}
+
+// ---------- Farmer/tractor path lanes along parcel boundaries ----------
+function drawPathLanes(ctx, gridSize, originX, originY) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(196,178,140,0.55)';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  for (let k = 1; k < gridSize; k++) {
+    const a1 = isoToScreen(k, 0, originX, originY), a2 = isoToScreen(k, gridSize, originX, originY);
+    ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke();
+    const b1 = isoToScreen(0, k, originX, originY), b2 = isoToScreen(gridSize, k, originX, originY);
+    ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(120,104,74,0.6)';
+  ctx.lineWidth = 1;
+  for (let k = 1; k < gridSize; k++) {
+    const a1 = isoToScreen(k, 0, originX, originY), a2 = isoToScreen(k, gridSize, originX, originY);
+    ctx.beginPath(); ctx.moveTo(a1.x, a1.y); ctx.lineTo(a2.x, a2.y); ctx.stroke();
+    const b1 = isoToScreen(0, k, originX, originY), b2 = isoToScreen(gridSize, k, originX, originY);
+    ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 // ---------- Grid render ----------
 const treeFns = { a: drawTreeA, b: drawTreeB };
 const seeds = { a: 0, b: 0 };
@@ -568,12 +690,16 @@ function render(variant, forcedSeed) {
 
   const gridSize = 3;
   const originX = canvas.width / 2;
-  const originY = 90;
+  const originY = 150;
   const season = currentSeason[variant];
   const soilColors = season === 'winter'
     ? [{ light: '#6a7a88', dark: '#3a4550' }, { light: '#72828f', dark: '#404b56' }, { light: '#647380', dark: '#36414a' }]
     : [{ light: '#5a4020', dark: '#241608' }, { light: '#644728', dark: '#2a1a0a' }, { light: '#523c1c', dark: '#201406' }];
   const borderColor = 'rgba(184,134,11,0.55)';
+
+  // Outer buildable border zone (future Warehouse/Workshop/Farmhouse plots),
+  // drawn first so the actual parcel grid renders on top of it.
+  drawBuildableZone(ctx, gridSize, originX, originY);
 
   // draw tiles back-to-front for correct overlap
   const order = [];
@@ -593,6 +719,10 @@ function render(variant, forcedSeed) {
     drawGroundDecor(ctx, x, y, season, rng);
     treeFns[variant](ctx, x, y + TREE_Y_OFFSET, rng, season);
   });
+
+  // Farmer/tractor path lanes along parcel boundaries, drawn last so they
+  // read as a distinct trodden track crossing the whole orchard.
+  drawPathLanes(ctx, gridSize, originX, originY);
 }
 
 render('a'); render('b');

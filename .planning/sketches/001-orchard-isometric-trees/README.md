@@ -35,6 +35,17 @@ Both A and B now have a **season selector** (Spring / Summer / Autumn / Winter) 
 
 Trunk, gear/rivet, and cherry fills all use canvas gradients now (bright highlight → deep shadow) rather than flat colors, inspired by the existing `frontend/public/assets/textures/` set (`emerald_gauge_liquid.png`'s glowing bubbles, `brass_gear_dial.png`'s ornate warm-metal glint, `mahogany.png`'s glossy wood grain) — still 100% procedural canvas drawing, no image assets.
 
+### Third revision (canopy position/size, ground decor variety, paths, buildable border)
+
+- **Canopy lowered** — shared `CANOPY_LIFT` constant dropped from 16-18px to 8px in both variants, so the canopy sits closer to the trunk instead of "hanging" above it. Horizontal centering was already correct (cluster angles are uniformly distributed around the trunk x); only the vertical lift needed correcting.
+- **Spring/autumn canopy size +20%** — `facetScale` bumped 0.55→0.66 (spring) and 0.8→0.96 (autumn) in `SEASON_CONFIG`.
+- **Grass/leaves now use 3-shade palettes** (`GRASS_SHADES`, `LEAF_SHADES`) instead of a 2-tone dark/light pair, and each grass "tuft" spot now randomly renders as 1, 2, or 3 clustered clumps (`drawGrassTuft` → `drawGrassClump`) instead of always exactly one.
+- **Ground decoration is now clipped to each parcel's own diamond** (`ctx.clip()` in `drawGroundDecor`) so grass/flowers/leaves/snow can never spill past a parcel's edge or the orchard's outer silhouette.
+- **Path lanes** (`drawPathLanes`) — light dirt-colored strips traced along every internal parcel boundary, representing farmer/tractor/machinery routes between fields.
+- **Outer buildable border zone** (`drawBuildableZone`) — a dashed-outline band surrounding the whole 3×3 grid, with three placeholder plot outlines (Warehouse / Workshop / Farmhouse) marking where future buildings will go. Canvas grown to 900×700 and the grid's vertical origin shifted down to fit this new outer band without clipping off-canvas.
+
+**Known rough edge, not yet fixed**: the "Warehouse" placeholder label can clip against the canvas edge depending on random tree layout/canvas scaling — cosmetic only, and expected to be revisited once real building art replaces the placeholder rectangles.
+
 ## What to Look For
 
 1. **Crispness vs. the current game**: both should look meaningfully cleaner than the existing blurred-div canopy.
