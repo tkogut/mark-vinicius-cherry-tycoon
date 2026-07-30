@@ -98,14 +98,17 @@ Plans:
 - [ ] 04-01: TBD (created by `/gsd-plan-phase 4`)
 
 #### Phase 5: Regional Geography Rebuild
-**Goal**: Per GDD v3 Pillar 2 — design the data model for full Poland scalability (province→county→commune) even though only Opole unlocks in UI now; fix the always-optimal/identical parcel stub along the way.
+**Goal**: Corrected 2026-07-30 — the province→county→commune data model (`Province`/`CommuneType`/`Region` in `backend/types.mo`) already exists and already feeds real pricing/labor formulas; this phase is about populating it with real variety, consolidating a redundant duplicate mechanism, wiring tree count into yield, and building the (currently nonexistent) gmina→powiat→województwo map-zoom UI — not designing the data model from scratch.
 **Depends on**: Nothing, but benefits from being planned after Phase 3 (shares `game_logic.mo` yield-formula surface)
-**Requirements**: GEO-01, GEO-02, GEO-03
+**Requirements**: GEO-01, GEO-02, GEO-03, GEO-04, GEO-05
 **Success Criteria** (what must be TRUE):
-  1. A scalable province→county→commune data model exists (even if only Opole is populated/unlocked)
-  2. New parcels get real, varied soil type/pH/fertility instead of the current constant-optimal stub
-  3. The existing regional county-bonus system (`game_logic.mo`) is actually reachable (no more literal `"TBD"` county)
-**Plans**: TBD — likely needs a Discuss sub-phase given the data-model design work involved
+  1. Parcels/regions show real variety (province/communeType/marketSize/laborCostMultiplier), not every parcel hardcoded to the same values
+  2. Only one county-bonus mechanism exists (the redundant string-based switch in `game_logic.mo` and the enum-based `Region.county` are consolidated)
+  3. New parcels get real, varied soil type/pH/fertility instead of the current constant-optimal stub
+  4. The county-bonus system is actually reachable (no more literal `"TBD"` county)
+  5. A player can navigate gmina → powiat → województwo map views (new UI, reusing the isometric Canvas 2D technique from sketch 001)
+  6. `plantedTrees` measurably affects yield, not just cost
+**Plans**: TBD — needs a Discuss sub-phase given the design decisions in `.planning/sketches/geography-design-notes.md` (tree-per-parcel density, commune-size-by-type, map-zoom navigation) still need explicit sign-off
 
 Plans:
 - [ ] 05-01: TBD (created by `/gsd-plan-phase 5`)
