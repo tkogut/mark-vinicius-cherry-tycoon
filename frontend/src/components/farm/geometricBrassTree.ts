@@ -306,3 +306,77 @@ export function drawGroundDecor({ ctx, cx, cy, tileW, tileH, seed, phase }: Draw
 
     ctx.restore();
 }
+
+// ---------- Path lane (ragged-edge dirt track along a tile's spine) ----------
+//
+// Ported from the sketch's drawRaggedPath/drawPathSeams: a STRAIGHT centerline
+// whose edges are independently jittered per sample point, so the boundary
+// reads as a torn/trodden track rather than a bent line. Drawn per-tile
+// (left-vertex to right-vertex of this tile's diamond) rather than the
+// sketch's whole-grid seam network, so it inherits this tile's own z-index —
+// required for correct occlusion against trees on other rows/tiles.
+
+function drawRaggedRibbon(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, halfWidth: number, color: string, rng: () => number) {
+    const steps = 10;
+    const dx = x2 - x1, dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    const px = -uy, py = ux;
+
+    const left: { x: number; y: number }[] = [];
+    const right: { x: number; y: number }[] = [];
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const cx = x1 + dx * t, cy = y1 + dy * t;
+        const jL = (0.45 + rng() * 0.7) * halfWidth;
+        const jR = (0.45 + rng() * 0.7) * halfWidth;
+        left.push({ x: cx + px * jL, y: cy + py * jL });
+        right.push({ x: cx - px * jR, y: cy - py * jR });
+    }
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(left[0].x, left[0].y);
+    for (let i = 1; i <= steps; i++) ctx.lineTo(left[i].x, left[i].y);
+    for (let i = steps; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+    ctx.closePath();
+    ctx.fill();
+}
+
+export interface DrawPathTileOptions {
+    ctx: CanvasRenderingContext2D;
+    /** Center of the diamond tile within the canvas. */
+    cx: number;
+    cy: number;
+    tileW: number;
+    tileH: number;
+    seed: number;
+    /** Draw the segment toward this tile's left vertex (connects to the previous tile in the row). */
+    connectLeft: boolean;
+    /** Draw the segment toward this tile's right vertex (connects to the next tile in the row). */
+    connectRight: boolean;
+}
+
+/** Draws a ragged-edge dirt path lane crossing this tile's diamond, clipped to the diamond shape. */
+export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, connectLeft, connectRight }: DrawPathTileOptions) {
+    if (!connectLeft && !connectRight) return;
+    const rng = mulberry32(seed);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - tileH / 2);
+    ctx.lineTo(cx + tileW / 2, cy);
+    ctx.lineTo(cx, cy + tileH / 2);
+    ctx.lineTo(cx - tileW / 2, cy);
+    ctx.closePath();
+    ctx.clip();
+
+    const x1 = connectLeft ? cx - tileW / 2 : cx;
+    const x2 = connectRight ? cx + tileW / 2 : cx;
+
+    drawRaggedRibbon(ctx, x1, cy, x2, cy, tileW * 0.055, 'rgba(58,40,22,0.92)', rng);
+    const rngNarrow = mulberry32(seed);
+    drawRaggedRibbon(ctx, x1, cy, x2, cy, tileW * 0.022, 'rgba(94,64,34,0.85)', rngNarrow);
+
+    ctx.restore();
+}

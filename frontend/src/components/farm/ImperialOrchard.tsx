@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
-import { drawGeometricBrassTree, drawGroundDecor } from './geometricBrassTree';
+import { drawGeometricBrassTree, drawGroundDecor, drawPathTile } from './geometricBrassTree';
 
 interface ImperialOrchardProps {
     parcels: any[];
@@ -237,7 +237,7 @@ const SeasonalVFX = React.memo(({ season }: { season: string }) => {
 // Brass integration) — trunk and branches are now drawn directly on the
 // per-tree canvas in MechanicalTree, including the winter case.
 
-const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, parcel }: any) => {
+const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, parcel, isPathTile, pathConnectLeft, pathConnectRight }: any) => {
     const humidity = parcel?.humidity || 0.5;
     const fertility = parcel?.fertility || 0.5;
 
@@ -263,8 +263,13 @@ const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Path lane drawn BEFORE ground decor (matches sketch 001 pass order)
+        // so grass/leaf/snow decor still scatters lightly over the track.
+        if (isPathTile) {
+            drawPathTile({ ctx, cx: canvas.width / 2, cy: canvas.height / 2, tileW: TILE_W, tileH: TILE_H, seed: decorSeed, connectLeft: pathConnectLeft, connectRight: pathConnectRight });
+        }
         drawGroundDecor({ ctx, cx: canvas.width / 2, cy: canvas.height / 2, tileW: TILE_W, tileH: TILE_H, seed: decorSeed, phase: styles.phase });
-    }, [decorSeed, styles.phase]);
+    }, [decorSeed, styles.phase, isPathTile, pathConnectLeft, pathConnectRight]);
 
     return (
         <div
@@ -352,6 +357,13 @@ const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, 
 // to match, per 09-01-PLAN.md.
 const TREE_CANVAS_W = 110;
 const TREE_CANVAS_H = 120;
+// Sketch 001 (revision: "przesuń drzewa w dół o 15%") plants the trunk base
+// 15% of a tile's height below the tile's true center, not centered on it —
+// reads as "planted in the field" rather than floating on the tile. Ported
+// here as a world-space offset added to the tree wrapper's `top` (the
+// wrapper is anchored bottom-center via translate(-50%,-100%), so shifting
+// `top` down shifts the trunk-base position down by the same amount).
+const TREE_Y_OFFSET = Math.round(TILE_H * 0.15) + 14; // +14 cancels the canvas-internal groundY inset
 
 const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0, parcel, isHarvested }: any) => {
     const isAutumn = styles.phase === 'Decay';
@@ -383,7 +395,7 @@ const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0
             className={cn("absolute origin-bottom transition-all duration-300 cursor-pointer")}
             style={{
                 left: `${x}px`,
-                top: `${y}px`,
+                top: `${y + TREE_Y_OFFSET}px`,
                 width: `${TREE_CANVAS_W}px`,
                 height: `${TREE_CANVAS_H}px`,
                 transform: 'translate(-50%, -100%)',
@@ -393,8 +405,11 @@ const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0
             {/* Shadow (Black-Gray Expanded for 120%) */}
             <div className="absolute w-16 h-8 bg-[rgba(30,30,30,0.45)] rounded-full blur-[4px] pointer-events-none" style={{ left: '50%', bottom: '10px', transform: 'translate(-50%, 0) scale(1, 0.4)' }} />
 
-            {/* Base Ring (Brass Tank) */}
-            <div className="absolute w-8 h-3.5 rounded-full border border-black/40 pointer-events-none" style={{ left: '50%', bottom: '13px', transform: 'translate(-50%, 0)', background: 'radial-gradient(circle at center, #B87333 10%, #C9A84C 100%)', boxShadow: '0 2px 4px rgba(0,0,0,0.6)' }} />
+            {/* Base Ring (Brass Tank) removed 2026-07-30 — its opaque footprint
+                (wider than a worker's sprite) sat right at trunk-base height and
+                hid NPCs walking behind it; the trunk's own base is already drawn
+                by the canvas below, matching the sketch (which has no separate
+                under-trunk ring). */}
 
             {/* Geometric Brass Tree (Canvas 2D procedural, ported from sketch 001 — trunk, gear rivet, canopy, and fruit/blossom/snow are all drawn here; winter draws a full snow-colored canopy, not bare branches) */}
             <div className="absolute inset-0" style={{ animation: `wind-sway 6s ease-in-out infinite alternate`, animationDelay: `${windPhase}s` }}>
@@ -508,6 +523,27 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
 
     const seasonStyles = useMemo(() => getSeasonStyles(season), [season]);
     const countyStyles = useMemo(() => getCountyStyles(county), [county]);
+
+    // Orchard-wide readout (total trees / location / soil) — these were
+    // computed server-side or per-parcel already but never surfaced anywhere
+    // in the visualization itself; players had no way to see them without
+    // opening each parcel card and summing manually.
+    const orchardSummary = useMemo(() => {
+        const totalTrees = displayParcels.reduce((sum: number, p: any) => sum + (p?.plantedTrees ? Number(p.plantedTrees) : 0), 0);
+        const withSoil = displayParcels.filter((p: any) => typeof p?.fertility === 'number' || typeof p?.humidity === 'number');
+        const avgFertility = withSoil.length > 0
+            ? withSoil.reduce((sum: number, p: any) => sum + (p.fertility ?? 0.5), 0) / withSoil.length
+            : null;
+        const avgHumidity = withSoil.length > 0
+            ? withSoil.reduce((sum: number, p: any) => sum + (p.humidity ?? 0.5), 0) / withSoil.length
+            : null;
+        const region = displayParcels[0]?.region;
+        const provinceLabel = region?.province ? Object.keys(region.province)[0] : null;
+        const locationLabel = region
+            ? [region.commune, region.county, provinceLabel].filter(Boolean).join(', ')
+            : (county || null);
+        return { totalTrees, avgFertility, avgHumidity, locationLabel };
+    }, [displayParcels, county]);
 
     const [selectedParcel, setSelectedParcel] = useState<{ id: string, screenX: number, screenY: number, parcel: any } | null>(null);
     const [selectedEntity, setSelectedEntity] = useState<any>(null);
@@ -795,12 +831,20 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 const { x, y } = projectToIso(r, c, s);
 
                 // 1. Soil Plane
+                // Path spine runs along the middle row (r === 2), matching the existing
+                // bridge crossing point between sectors — gives every sector one
+                // continuous ragged dirt lane connecting its edges. Drawn per-tile so it
+                // inherits this tile's own depth key (see zIndex note below).
+                const isPathTile = r === 2;
                 entities.push({
                     type: 'soil',
                     key: `soil-${idx}-${s}`,
                     parcelId: parcel.id,
                     parcel,
                     x, y, r, c, s,
+                    isPathTile,
+                    pathConnectLeft: isPathTile && c > 0,
+                    pathConnectRight: isPathTile && c < SECTOR_SIZE - 1,
                     // Depth is keyed off the continuous projected y (not the coarse (r+c)
                     // tile bucket) so painter's-algorithm order matches actual screen
                     // position — trees and NPCs share this same depth key below, which is
@@ -981,6 +1025,9 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                             styles={seasonStyles}
                                             parcelId={entity.parcelId}
                                             parcel={entity.parcel}
+                                            isPathTile={entity.isPathTile}
+                                            pathConnectLeft={entity.pathConnectLeft}
+                                            pathConnectRight={entity.pathConnectRight}
                                             isSelected={selectedParcel?.id === entity.parcelId}
                                             onClick={(e: any) => {
                                                 e.stopPropagation();
@@ -1095,6 +1142,30 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                         </div>
                         <span className="text-[10px] font-mono text-[var(--brass-primary)] mt-3 uppercase tracking-widest font-bold drop-shadow-[0_0_5px_rgba(0,0,0,1)]">Storage</span>
                         <span className="text-[8px] font-mono text-slate-400 mt-1 drop-shadow-[0_0_3px_rgba(0,0,0,1)]">{totalCherries.toLocaleString()} / {maxCapacity.toLocaleString()} kg</span>
+                    </div>
+
+                    {/* Orchard Info (total trees / location / soil) — previously nowhere in the UI */}
+                    <div className="flex flex-col gap-1 bg-black/50 border border-[var(--brass-primary)]/40 rounded-lg px-3 py-2 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 text-[10px] font-mono">
+                            <span className="text-[var(--brass-primary)]">🌳</span>
+                            <span className="text-slate-300">{orchardSummary.totalTrees.toLocaleString()} trees</span>
+                        </div>
+                        {orchardSummary.locationLabel && (
+                            <div className="flex items-center gap-2 text-[10px] font-mono">
+                                <span className="text-[var(--brass-primary)]">📍</span>
+                                <span className="text-slate-300">{orchardSummary.locationLabel}</span>
+                            </div>
+                        )}
+                        {(orchardSummary.avgFertility !== null || orchardSummary.avgHumidity !== null) && (
+                            <div className="flex items-center gap-2 text-[10px] font-mono">
+                                <span className="text-[var(--brass-primary)]">🌱</span>
+                                <span className="text-slate-300">
+                                    {orchardSummary.avgFertility !== null && `Fertility ${Math.round(orchardSummary.avgFertility * 100)}%`}
+                                    {orchardSummary.avgFertility !== null && orchardSummary.avgHumidity !== null && ' · '}
+                                    {orchardSummary.avgHumidity !== null && `Humidity ${Math.round(orchardSummary.avgHumidity * 100)}%`}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
