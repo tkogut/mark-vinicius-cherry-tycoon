@@ -801,7 +801,13 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     parcelId: parcel.id,
                     parcel,
                     x, y, r, c, s,
-                    zIndex: s * 100 + (r + c) * 10
+                    // Depth is keyed off the continuous projected y (not the coarse (r+c)
+                    // tile bucket) so painter's-algorithm order matches actual screen
+                    // position — trees and NPCs share this same depth key below, which is
+                    // required since MechanicalTree's canopy/shadow footprint spans several
+                    // tile-rows of vertical overhang and would otherwise out- or under-rank
+                    // NPCs at a nearby but not identical row.
+                    zIndex: s * 100000 + Math.round(y * 10)
                 });
 
                 // 2. Tree (only if this slot is selected)
@@ -813,7 +819,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                         x, y,
                         seed: (s * 100) + idx,
                         delay: (idx % 7) * -0.8,
-                        zIndex: s * 100 + (r + c) * 10 + 2
+                        zIndex: s * 100000 + Math.round(y * 10) + 2
                     });
                 }
             }
@@ -826,7 +832,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 x: center.x,
                 y: center.y,
                 s,
-                zIndex: s * 100 - 5
+                zIndex: s * 100000 - 50000
             });
 
             // 5. Visual Bridge
@@ -838,7 +844,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     x: startPoint.x + (SECTOR_GAP / 2) + 20,
                     y: startPoint.y,
                     s,
-                    zIndex: s * 100 - 2
+                    zIndex: s * 100000 - 30000
                 });
             }
         }
@@ -865,7 +871,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
             x: wX,
             y: wY,
             role: 'owner',
-            zIndex: workerPos.s * 100 + (workerPos.r + workerPos.c) * 10 + 5
+            zIndex: workerPos.s * 100000 + Math.round(wY * 10) + 5
         });
 
         // 3b. Helper Worker NPC (if active)
@@ -891,7 +897,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 x: hX,
                 y: hY,
                 role: 'helper',
-                zIndex: helperPos.s * 100 + (helperPos.r + helperPos.c) * 10 + 5
+                zIndex: helperPos.s * 100000 + Math.round(hY * 10) + 5
             });
         }
 
