@@ -72,7 +72,11 @@ Corrected per reference images the user provided (real dirt paths cutting throug
 2. **Which canopy style says "cherry orchard" fastest** across all four seasons, not just summer.
 3. **Season readability**: can you tell which season you're looking at at a glance, without reading the label?
 4. **Mobile legibility of the 3×3 grid**: at a 375px-wide viewport (use the toolbar's Phone button), the 9-parcel grid shrinks a lot. Trees are still distinguishable but this raises an open question — see below.
-5. **Whether the gear/rivet accents in A read as "Neo-Steampunk" or just as noise at this scale, especially against the bare winter branches.**
+5. **Whether the gear/rivet accents in A read as "Neo-Steampunk" or just as noise at this scale.**
+
+### Seventh revision (winter canopy structurally matches autumn, snow palette)
+
+Winter no longer uses a separate "bare branches" code path (`drawBareBranches`, now removed). Both `drawTreeA`/`drawTreeB`'s early `if (season === 'winter') { ...; return; }` blocks were deleted, so winter now flows through the exact same cluster/facet canopy generation as every other season — only `SEASON_CONFIG.winter` changed: `facetScale`/`countDelta` copied from autumn (0.864 / -1), foliage colors replaced with a 3-shade snow palette (`#ffffff` white, `#bcd8ec` ice-blue, `#9aa8b4` grey) and `glow` set to a cold near-white (`#f4faff`) instead of a warm highlight. Reads as snow sitting on a full canopy rather than a leafless skeleton. Ground-level winter behavior (snow patches, frost-tinted soil tiles) is unchanged.
 
 ## Open Question Not Resolved by This Sketch
 

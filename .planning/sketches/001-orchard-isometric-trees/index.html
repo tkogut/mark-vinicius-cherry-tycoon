@@ -264,19 +264,24 @@ function drawTrunk(ctx, x, groundY, height, width, colorLight, colorDark) {
 }
 
 // ---------- Season config ----------
-// facetScale/countScale shrink the canopy for spring (budding) and autumn (thinning);
-// winter has zero canopy facets (bare branches only).
-// `glow` is the warm highlight color used at the center of each leaf-cluster's
+// facetScale/countScale shrink the canopy for spring (budding) and autumn (thinning).
+// Winter used to be bare-branches-only; per revision it now uses the SAME
+// cluster/facet structure as autumn, just recolored to a snow palette
+// (white/ice-blue/grey) — snow sitting on the canopy instead of leaves.
+// `glow` is the highlight color used at the center of each leaf-cluster's
 // radial gradient — inspired by the emerald_gauge_liquid.png / brass_gear_dial.png
 // textures already in frontend/public/assets/textures/ (glowing gold-green liquid,
-// warm bronze glints), so foliage reads as lit-from-within rather than flat-filled.
+// warm bronze glints; winter's glow uses the same technique with a cold-white tint),
+// so foliage reads as lit-from-within rather than flat-filled.
 const SEASON_CONFIG = {
   // Spring/autumn facetScale bumped +20% per revision (0.55->0.66, 0.8->0.96).
   spring: { facetScale: 0.66, countDelta: -1, greens: ['#5fc23a', '#7fd64f', '#4aa82c'], glow: '#eaffd6', fruit: 'blossom', frost: false },
   summer: { facetScale: 1.0, countDelta: 0, greens: ['#3d5c2f', '#4a6b38', '#33502a'], glow: '#c8f28a', fruit: 'cherry', frost: false },
   // Autumn facetScale: 0.8 base -> +20% (0.96) -> -10% per latest revision (0.864).
   autumn: { facetScale: 0.864, countDelta: -1, greens: ['#d9720f', '#e89020', '#a8420f'], glow: '#ffcf6a', fruit: 'none', frost: false },
-  winter: { facetScale: 0, countDelta: -99, greens: [], glow: null, fruit: 'none', frost: true }
+  // Winter: same structure/size as autumn (facetScale/countDelta copied), snow
+  // palette instead of foliage colors — white, ice-blue, grey.
+  winter: { facetScale: 0.864, countDelta: -1, greens: ['#ffffff', '#bcd8ec', '#9aa8b4'], glow: '#f4faff', fruit: 'none', frost: true }
 };
 
 // Shared vertical lift for canopy/fruit placement relative to canopyY — lowered
@@ -414,44 +419,9 @@ function leafRadialFill(ctx, cx, cy, r, baseColor, glowColor) {
   return grad;
 }
 
-function drawBareBranches(ctx, x, canopyY, baseR, rng, frost) {
-  // More, and more heavily snow-laden branches per the winter revision — snow
-  // sits in clumps ALONG each branch, not just a single dot at the tip.
-  const branchCount = 7 + Math.floor(rng() * 4);
-  ctx.strokeStyle = frost ? '#5a4a3a' : '#4a3218';
-  ctx.lineWidth = 2;
-  for (let i = 0; i < branchCount; i++) {
-    const ang = (Math.PI * 2 * i) / branchCount + rng() * 0.4 - Math.PI / 2;
-    const len = baseR * (0.5 + rng() * 0.5);
-    const tipX = x + Math.cos(ang) * len;
-    const tipY = canopyY - CANOPY_LIFT + Math.sin(ang) * len * 0.5;
-    ctx.beginPath();
-    ctx.moveTo(x, canopyY);
-    ctx.lineTo(tipX, tipY);
-    ctx.stroke();
-    // secondary twig
-    if (rng() > 0.4) {
-      const ang2 = ang + (rng() - 0.5) * 0.8;
-      const len2 = len * 0.4;
-      ctx.beginPath();
-      ctx.moveTo(x + Math.cos(ang) * len * 0.6, canopyY - CANOPY_LIFT + Math.sin(ang) * len * 0.6 * 0.5);
-      ctx.lineTo(x + Math.cos(ang) * len * 0.6 + Math.cos(ang2) * len2, canopyY - CANOPY_LIFT + Math.sin(ang) * len * 0.6 * 0.5 + Math.sin(ang2) * len2 * 0.5);
-      ctx.stroke();
-    }
-    if (frost) {
-      const snowClumps = 2 + Math.floor(rng() * 2);
-      for (let c = 1; c <= snowClumps; c++) {
-        const t = c / (snowClumps + 1);
-        const sxp = x + Math.cos(ang) * len * t;
-        const syp = canopyY - CANOPY_LIFT + Math.sin(ang) * len * t * 0.5;
-        ctx.fillStyle = 'rgba(240,248,252,0.92)';
-        ctx.beginPath();
-        ctx.ellipse(sxp, syp - 1.5, 2.6 + rng() * 1.5, 1.6, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }
-}
+// drawBareBranches (leafless winter branches) removed per revision — winter
+// now flows through the same cluster/facet canopy code as autumn, recolored
+// via SEASON_CONFIG.winter instead of a separate bare-branch code path.
 
 function drawBlossom(ctx, x, y) {
   ctx.fillStyle = '#ffe4ec';
@@ -469,11 +439,6 @@ function drawTreeA(ctx, x, groundY, rng, season) {
 
   const canopyY = groundY - trunkH - 6;
   const baseR = 34 + rng() * 10;
-
-  if (season === 'winter') {
-    drawBareBranches(ctx, x, canopyY, baseR, rng, true);
-    return;
-  }
 
   const facets = Math.max(2, 5 + cfg.countDelta);
   for (let i = 0; i < facets; i++) {
@@ -530,10 +495,6 @@ function drawTreeB(ctx, x, groundY, rng, season) {
   const canopyY = groundY - trunkH - 4;
   const baseR = 15;
 
-  if (season === 'winter') {
-    drawBareBranches(ctx, x, canopyY, baseR * 1.8, rng, true);
-    return;
-  }
 
   const clusterCount = Math.max(3, 7 + cfg.countDelta);
   const positions = [];
