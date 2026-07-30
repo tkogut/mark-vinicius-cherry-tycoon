@@ -98,20 +98,33 @@ Plans:
 - [ ] 04-01: TBD (created by `/gsd-plan-phase 4`)
 
 #### Phase 5: Regional Geography Rebuild
-**Goal**: Corrected 2026-07-30 — the province→county→commune data model (`Province`/`CommuneType`/`Region` in `backend/types.mo`) already exists and already feeds real pricing/labor formulas; this phase is about populating it with real variety, consolidating a redundant duplicate mechanism, wiring tree count into yield, and building the (currently nonexistent) gmina→powiat→województwo map-zoom UI — not designing the data model from scratch.
+**Goal**: Corrected 2026-07-30 — the province→county→commune data model (`Province`/`CommuneType`/`Region` in `backend/types.mo`) already exists and already feeds real pricing/labor formulas; this phase is about populating it with real variety, consolidating a redundant duplicate mechanism, wiring tree count into yield, and fixing the base-yield placeholder — not designing the data model from scratch, and not the map-zoom UI (split into Phase 5.1).
 **Depends on**: Nothing, but benefits from being planned after Phase 3 (shares `game_logic.mo` yield-formula surface)
-**Requirements**: GEO-01, GEO-02, GEO-03, GEO-04, GEO-05
+**Requirements**: GEO-01, GEO-02, GEO-03, GEO-05, GEO-06
 **Success Criteria** (what must be TRUE):
-  1. Parcels/regions show real variety (province/communeType/marketSize/laborCostMultiplier), not every parcel hardcoded to the same values
+  1. Parcels/regions show real variety (province/communeType/marketSize/laborCostMultiplier), not every parcel hardcoded to the same values — commune grid size tied to `CommuneType` (Rural = larger buildable grid, Urban/Mixed = smaller grid + higher `marketSize`)
   2. Only one county-bonus mechanism exists (the redundant string-based switch in `game_logic.mo` and the enum-based `Region.county` are consolidated)
   3. New parcels get real, varied soil type/pH/fertility instead of the current constant-optimal stub
   4. The county-bonus system is actually reachable (no more literal `"TBD"` county)
-  5. A player can navigate gmina → powiat → województwo map views (new UI, reusing the isometric Canvas 2D technique from sketch 001)
-  6. `plantedTrees` measurably affects yield, not just cost
-**Plans**: TBD — needs a Discuss sub-phase given the design decisions in `.planning/sketches/geography-design-notes.md` (tree-per-parcel density, commune-size-by-type, map-zoom navigation) still need explicit sign-off
+  5. `plantedTrees` measurably affects yield via a density ceiling, not just cost
+  6. Base yield reverted from the `25 tons/ha` testing placeholder to `Mark_Vinicius_V1.md`'s `8-12 tons/ha` range
+**Plans**: TBD
 
 Plans:
 - [ ] 05-01: TBD (created by `/gsd-plan-phase 5`)
+
+#### Phase 5.1: Geography Map-Zoom UI (INSERTED)
+**Goal**: Build the gmina→powiat→województwo map-zoom navigation — confirmed greenfield (no existing frontend component), split out from Phase 5 on 2026-07-30 because it's a large, genuinely new UI surface, not a backend/data fix.
+**Depends on**: Phase 5 (needs real region variety to be meaningful — zooming out to identical hardcoded communes would be pointless) and Phase 9 (reuses sketch 001's isometric Canvas 2D technique, so ideally lands after that's implemented as real UI)
+**Requirements**: GEO-04, GEO-MAP-01, GEO-MAP-02
+**Success Criteria** (what must be TRUE):
+  1. Player can zoom from their own parcel grid (gmina) out to a powiat view (grid of gmina tiles) and further out to a województwo view (grid of powiat tiles)
+  2. Gmina tiles in the powiat view visually differ by `CommuneType` (Rural vs. Urban iconography)
+  3. Navigation between the three levels uses a simple, standard zoom-out/breadcrumb pattern
+**Plans**: TBD
+
+Plans:
+- [ ] 05.1-01: TBD (created by `/gsd-plan-phase 5.1`)
 
 #### Phase 6: Cherry Festival
 **Goal**: Design and build the Cherry Festival competitive event — part of the original rivalry design (`Mark_Vinicius_V1.md` §2), not previously built at all.
@@ -153,14 +166,16 @@ Plans:
 #### Phase 9: UX/UI Deep Overhaul
 **Goal**: Per GDD v3 Pillar 6 and V1's own UI/UX priorities (§13) — current layout matches neither. Scoped 2026-07-29 via a live Playground deploy + screenshot audit (`docs/game-design/UX-AUDIT-2026-07-29.md`), turning the earlier vague "current layout is weak" concern into concrete, visually-confirmed findings.
 **Depends on**: `ECON-06` and `ONBOARD-01` (Phase 3/8) should land before or during work on the Neighbors/onboarding screens specifically — otherwise the redesign faithfully re-skins live bugs (confirmed in the audit: `NaN%` market share, wrong player name shown). `SPORTS-01/02/03` (Phase 2) should land before redesigning Sports Center, which is currently a styled empty shell.
-**Requirements**: UX-01, UX-02, UX-03, UX-04, UX-05
+**Requirements**: UX-01, UX-02, UX-03, UX-04, UX-05, UX-06, UX-07, UX-08
 **Success Criteria** (what must be TRUE):
   1. The shared sidebar header no longer overlaps/wraps on any screen
-  2. The orchard/farm dashboard view visually matches the "tactile diorama" lore promise, using Rankings/Imperial Pool (already reference-quality per the audit) as the style bar to hit
+  2. The orchard/farm dashboard view visually matches the "tactile diorama" lore promise — implemented as sketch 001's winning direction (Variant A, "Geometric Brass": isometric Canvas 2D procedural trees, seasonal cycle, path lanes, buildable border zone), replacing the CSS-blur canopy
   3. Stat/diagnostic displays share one consistent visual idiom across screens
   4. No placeholder UI elements are left permanently unresolved
   5. The "Processing Plant" marketplace card's status (real partial feature vs. dead lever) is resolved, not left ambiguous
-**Plans**: TBD — ready for a normal `/gsd-plan-phase 9` now that scoping is done
+  6. The existing `WorkerNPC` hire-gated system is ported to the isometric grid, walking the new path network
+  7. Procedural machine visuals (tractor/shaker) appear when the player owns the corresponding infrastructure
+**Plans**: TBD — ready for a normal `/gsd-plan-phase 9` now that scoping (and sketch 001) is done
 
 Plans:
 - [ ] 09-01: TBD (created by `/gsd-plan-phase 9`)
@@ -181,7 +196,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10. Phases 2–8 are largely independent of each other and can be reordered/parallelized if useful; Phase 9 (UX overhaul) is intentionally sequenced late so it redesigns stable functionality; Phase 10 (quality infra) has no gameplay dependency and can move anywhere.
+Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6 → 7 → 8 → 9 → 10. Phases 2–8 are largely independent of each other and can be reordered/parallelized if useful, except 5.1 which depends on 5 (and ideally 9); Phase 9 (UX overhaul) is intentionally sequenced late so it redesigns stable functionality; Phase 10 (quality infra) has no gameplay dependency and can move anywhere.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
@@ -191,8 +206,9 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 6 → 7 �
 | 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 4. Weather UI Consolidation | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5. Regional Geography Rebuild | Playable Release — V1 Parity | 0/TBD | Not started | - |
+| 5.1. Geography Map-Zoom UI | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 6. Cherry Festival | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 7. Crop Insurance UI | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 8. Onboarding & Phase-System Teaching | Playable Release — V1 Parity | 0/TBD | Not started | - |
-| 9. UX/UI Deep Overhaul | Playable Release — V1 Parity | 0/TBD | Scoped, not started | - |
+| 9. UX/UI Deep Overhaul | Playable Release — V1 Parity | 0/TBD | Scoped (incl. sketch 001 winner), not started | - |
 | 10. Quality Infrastructure | Playable Release — V1 Parity | 0/TBD | Not started | - |
