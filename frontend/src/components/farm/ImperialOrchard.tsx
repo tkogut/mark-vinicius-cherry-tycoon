@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
+import { drawGeometricBrassTree, drawGroundDecor } from './geometricBrassTree';
 
 interface ImperialOrchardProps {
     parcels: any[];
@@ -232,58 +233,38 @@ const SeasonalVFX = React.memo(({ season }: { season: string }) => {
     return null;
 });
 
-// Recursive Branching (L-System Logic)
-const Branch = ({ length, angle, depth, maxDepth, trunkColor, isWinter, seed = 0 }: any) => {
-    if (depth >= maxDepth) return null;
-
-    // Deterministic chaotic offset for snow
-    const snowX = Math.sin(seed + depth * 0.7) * 4;
-    const snowY = Math.cos(seed + depth * 1.3) * 2;
-
-    return (
-        <div
-            className="absolute origin-bottom transition-all duration-1000 pointer-events-none"
-            style={{
-                bottom: '100%',
-                left: '50%',
-                width: `${Math.max(4, 12 - depth * 2.5)}px`, // Massive (12px base)
-                height: `${length}px`,
-                background: trunkColor,
-                transform: `translateX(-50%) rotate(${angle}deg)`,
-                opacity: 1 - depth * 0.05
-            }}
-        >
-            <Branch length={length * 0.7} angle={-25 + (Math.sin(seed + depth) * 10)} depth={depth + 1} maxDepth={maxDepth} trunkColor={trunkColor} isWinter={isWinter} seed={seed + 1} />
-            <Branch length={length * 0.7} angle={25 - (Math.cos(seed + depth) * 10)} depth={depth + 1} maxDepth={maxDepth} trunkColor={trunkColor} isWinter={isWinter} seed={seed + 2} />
-
-            {/* Clinging Snow (Inner-branch integration) */}
-            {isWinter && (
-                <div
-                    className="absolute top-0 left-1/2 w-4 h-2 bg-white/90 rounded-full blur-[0.8px] shadow-sm z-50"
-                    style={{
-                        transform: `translate(calc(-50% + ${snowX}px), ${snowY}px) scale(${1 - depth * 0.1})`,
-                        opacity: 0.8 + Math.random() * 0.2
-                    }}
-                />
-            )}
-            {isWinter && depth > 0 && (
-                <div
-                    className="absolute top-1/2 left-1/2 w-2 h-2 bg-white/60 rounded-full blur-[1px] z-50"
-                    style={{ transform: `translate(calc(-50% + ${-snowX / 2}px), 0px)` }}
-                />
-            )}
-        </div>
-    );
-};
+// Recursive DOM Branch component removed (2026-07-30, sketch 001 Geometric
+// Brass integration) — trunk and branches are now drawn directly on the
+// per-tree canvas in MechanicalTree, including the winter case.
 
 const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, parcel }: any) => {
     const humidity = parcel?.humidity || 0.5;
     const fertility = parcel?.fertility || 0.5;
-    
+
     // Mineral Veins (miedziane linie) if fertility > 0.6
     const showVeins = fertility > 0.6;
     // Wet highlight if humidity > 0.7
     const isWet = humidity > 0.7;
+
+    // Seasonal ground decor (grass/flowers/leaves/snow), ported from sketch
+    // 001 — deterministic per-parcel seed so decor doesn't re-randomize on
+    // every re-render.
+    const decorCanvasRef = useRef<HTMLCanvasElement>(null);
+    const decorSeed = useMemo(() => {
+        let seed = 0;
+        const idStr = String(parcelId || 'default');
+        for (let i = 0; i < idStr.length; i++) seed += idStr.charCodeAt(i);
+        return seed;
+    }, [parcelId]);
+
+    useEffect(() => {
+        const canvas = decorCanvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGroundDecor({ ctx, cx: canvas.width / 2, cy: canvas.height / 2, tileW: TILE_W, tileH: TILE_H, seed: decorSeed, phase: styles.phase });
+    }, [decorSeed, styles.phase]);
 
     return (
         <div
@@ -353,167 +334,47 @@ const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, 
                     backgroundPosition: 'center center'
                 }}
             />
+
+            {/* Seasonal ground decor (grass/flowers/leaves/snow) — sketch 001 */}
+            <canvas
+                ref={decorCanvasRef}
+                width={TILE_W}
+                height={TILE_H}
+                className="absolute inset-0 pointer-events-none"
+            />
         </div>
     );
 });
 
+// Bounding box for the per-tree canvas — wider/taller than the old 80x90 DOM
+// box because the Geometric Brass canopy (baseR up to 44px) needs more room
+// than the old blurred-leaf-cluster crown did. The outer click-hit box grows
+// to match, per 09-01-PLAN.md.
+const TREE_CANVAS_W = 110;
+const TREE_CANVAS_H = 120;
+
 const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0, parcel, isHarvested }: any) => {
-    const isWinter = styles.phase === 'Dormancy';
-    const isSummer = styles.phase === 'Harvest';
     const isAutumn = styles.phase === 'Decay';
-    const isBloom = styles.phase === 'Bloom';
-    const isSpring = styles.phase === 'Awakening';
 
     // Perlin-style Wind Synchronization (Spatial Wave Motion)
     const windPhase = useMemo(() => (x / 200 + y / 200) * -2, [x, y]);
 
-    // Randomized leaf cluster (Fixed per-tree based on seed)
-    const leafClusters = useMemo(() => {
-        return Array.from({ length: 18 }).map((_, i) => { // Increased count for density
-            const angle = (i / 18) * Math.PI * 2 + (Math.sin(seed + i) * 0.4);
-            const dist = 4 + (Math.abs(Math.sin(seed * (i + 1))) * 15); // Spread further
-            const lx = Math.cos(angle) * dist;
-            const ly = Math.sin(angle) * (dist * 0.7);
-            const size = 14 + (Math.abs(Math.cos(seed + i)) * 11); // Upscaled by ~10%
-            return { lx, ly, size, colorIdx: i % 5 };
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGeometricBrassTree({
+            ctx,
+            x: TREE_CANVAS_W / 2,
+            groundY: TREE_CANVAS_H - 14,
+            seed,
+            phase: styles.phase,
+            isHarvested,
         });
-    }, [seed]);
-
-    const fruitPositions = useMemo(() => {
-        // More uniform radial distribution (Golden Angle Spiral derivative)
-        return Array.from({ length: 8 }).map((_, i) => {
-            const angle = (i * 137.5 * Math.PI) / 180; // Golden angle for even spread
-            const dist = 6 + (Math.sqrt(i) * 5.5); // Square root spread for uniform density
-            return {
-                lx: Math.cos(angle) * dist,
-                ly: Math.sin(angle) * (dist * 0.7) // Squashed for isometric perspective
-            };
-        });
-    }, [seed]);
-
-    const flowerPositions = useMemo(() => {
-        return Array.from({ length: 8 }).map((_, i) => {
-            const angle = (i * 45 * Math.PI) / 180 + Math.sin(seed + i) * 0.3;
-            const dist = 5 + (Math.abs(Math.sin(seed + i)) * 12);
-            return {
-                lx: Math.cos(angle) * dist,
-                ly: Math.sin(angle) * (dist * 0.7)
-            };
-        });
-    }, [seed]);
-
-    const renderCrown = () => {
-        if (isWinter) return null;
-
-        return (
-            <div className="absolute inset-0 pointer-events-none transition-all duration-1000 z-20">
-                {/* 1. Blurred Leaf Crown (Metaballs Effect) */}
-                <div style={{ filter: 'blur(3.5px) contrast(160%) brightness(1.05)', position: 'absolute', inset: 0 }}>
-                    {leafClusters.map((leaf, i) => {
-                        // In autumn, some leaves fall (made invisible) to look sparse
-                        const isLeafVisible = !isAutumn || (leaf.colorIdx % 3 !== 0);
-                        if (!isLeafVisible) return null;
-
-                        // Spring leaves are small fresh buds. Summer leaves are large.
-                        const scale = isSpring ? 0.6 : (isSummer ? 1.4 : (isAutumn ? 0.75 : 1.0));
-                        const dynamicSize = leaf.size * scale;
-                        let color = Array.isArray(styles.leaves) ? styles.leaves[leaf.colorIdx] : styles.leaves;
-
-                        return (
-                            <div
-                                key={`leaf-${i}`}
-                                className="absolute rounded-full"
-                                style={{
-                                    width: `${dynamicSize}px`,
-                                    height: `${dynamicSize}px`,
-                                    left: `calc(50% + ${leaf.lx}px)`,
-                                    bottom: `calc(52px + ${leaf.ly}px)`, // Adjusted from 32px to center with trunk height
-                                    background: color,
-                                    transform: 'translate(-50%, 0)',
-                                    boxShadow: 'inset -2px -2px 4px rgba(0,0,0,0.1)'
-                                }}
-                            />
-                        );
-                    })}
-                </div>
-
-                {/* Tiny Mechanical Gears in the crown */}
-                <div className="absolute inset-0 pointer-events-none z-30">
-                    {[
-                        { lx: -8, ly: 12, size: 8, speed: '8s' },
-                        { lx: 10, ly: 6, size: 6, speed: '12s' }
-                    ].map((gear, i) => (
-                        <svg
-                            key={`gear-${i}`}
-                            className="absolute fill-[#c9a84c] opacity-60 animate-[spin_infinite_linear]"
-                            style={{
-                                left: `calc(50% + ${gear.lx}px)`,
-                                bottom: `calc(52px + ${gear.ly}px)`,
-                                width: `${gear.size}px`,
-                                height: `${gear.size}px`,
-                                animationDuration: gear.speed,
-                                transformOrigin: 'center',
-                                transform: 'translate(-50%, 50%)'
-                            }}
-                            viewBox="0 0 24 24"
-                        >
-                            <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.08L14.47,2.42C14.43,2.18 14.22,2 13.97,2H9.97C9.72,2 9.51,2.18 9.47,2.42L9.08,5.08C8.47,5.34 7.9,5.66 7.38,6.05L4.89,5.05C4.67,4.96 4.4,5.05 4.28,5.27L2.28,8.73C2.16,8.95 2.21,9.22 2.4,9.37L4.51,11C4.47,11.32 4.5,11.67 4.5,12C4.5,12.32 4.47,12.65 4.51,13L2.4,14.63C2.21,14.78 2.16,15.05 2.28,15.27L4.28,18.73C4.4,18.95 4.67,19.04 4.89,18.95L7.38,17.95C7.9,18.34 8.47,18.66 9.08,18.92L9.47,21.58C9.51,21.82 9.72,22 9.97,22H13.97C14.22,22 14.43,21.82 14.47,21.58L14.86,18.92C15.47,18.66 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.04 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
-                        </svg>
-                    ))}
-                </div>
-
-                {/* 3. Bloom Flowers (Late Spring) */}
-                {isBloom && (
-                    <div className="absolute inset-0 pointer-events-none z-30">
-                        {flowerPositions.map((flower, i) => (
-                            <div
-                                key={`flower-${i}`}
-                                className="absolute w-2 h-2 rounded-full bg-white border border-pink-300 shadow-[0_1px_2px_rgba(255,192,203,0.6)]"
-                                style={{
-                                    left: `calc(50% + ${flower.lx}px)`,
-                                    bottom: `calc(52px + ${flower.ly}px)`, // Lifted
-                                    transform: 'translate(-50%, 0)'
-                                }}
-                            >
-                                {/* Yellow center */}
-                                <div className="absolute top-[30%] left-[30%] w-[1.5px] h-[1.5px] bg-yellow-400 rounded-full" />
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* 2. Sharp Fruits (Summer Cherries) - Double cherries with stems */}
-                {isSummer && !isHarvested && (
-                    <div className="absolute inset-0 pointer-events-none">
-                        {fruitPositions.map((fruit, i) => (
-                            <div
-                                key={`cherry-${i}`}
-                                className="absolute w-4 h-6 z-[100]"
-                                style={{
-                                    left: `calc(50% + ${fruit.lx}px)`,
-                                    bottom: `calc(52px + ${fruit.ly}px)`, // Centered inside leaves
-                                    transform: 'translate(-50%, 0)' // Perfect horizontal center alignment
-                                }}
-                            >
-                                {/* Left cherry */}
-                                <div className="absolute w-2 h-2 rounded-full bg-[#991b1b] shadow-[0_1px_2px_rgba(0,0,0,0.4)]" style={{ left: '-2px', top: '4px' }}>
-                                    <div className="absolute top-[20%] left-[20%] w-[0.8px] h-[0.8px] bg-white rounded-full opacity-80" />
-                                </div>
-                                {/* Right cherry */}
-                                <div className="absolute w-2 h-2 rounded-full bg-[#7f1d1d] shadow-[0_1px_2px_rgba(0,0,0,0.4)]" style={{ left: '3px', top: '5px' }}>
-                                    <div className="absolute top-[20%] left-[20%] w-[0.8px] h-[0.8px] bg-white rounded-full opacity-80" />
-                                </div>
-                                {/* Stems */}
-                                <svg className="absolute w-4 h-6 -left-1 -top-2 overflow-visible pointer-events-none" viewBox="0 0 16 24">
-                                    <path d="M8,2 C8,6 1,10 1,12 M8,2 C8,7 9,11 11,13" fill="none" stroke="#4d7c0f" strokeWidth="0.85" />
-                                </svg>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        );
-    };
+    }, [seed, styles.phase, isHarvested]);
 
     return (
         <div
@@ -523,48 +384,23 @@ const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0
             style={{
                 left: `${x}px`,
                 top: `${y}px`,
-                width: '80px',
-                height: '90px', // Larger space for taller trunks and crowns
+                width: `${TREE_CANVAS_W}px`,
+                height: `${TREE_CANVAS_H}px`,
                 transform: 'translate(-50%, -100%)',
                 zIndex: isSelected ? 9999 : undefined // Only override if explicitly selected
             }}
         >
             {/* Shadow (Black-Gray Expanded for 120%) */}
-            <div className="absolute w-16 h-8 bg-[rgba(30,30,30,0.45)] rounded-full blur-[4px] pointer-events-none" style={{ left: '50%', bottom: '-4px', transform: 'translate(-50%, 0) scale(1, 0.4)' }} />
+            <div className="absolute w-16 h-8 bg-[rgba(30,30,30,0.45)] rounded-full blur-[4px] pointer-events-none" style={{ left: '50%', bottom: '10px', transform: 'translate(-50%, 0) scale(1, 0.4)' }} />
 
             {/* Base Ring (Brass Tank) */}
-            <div className="absolute w-8 h-3.5 rounded-full border border-black/40 pointer-events-none" style={{ left: '50%', bottom: '-1px', transform: 'translate(-50%, 0)', background: 'radial-gradient(circle at center, #B87333 10%, #C9A84C 100%)', boxShadow: '0 2px 4px rgba(0,0,0,0.6)' }} />
+            <div className="absolute w-8 h-3.5 rounded-full border border-black/40 pointer-events-none" style={{ left: '50%', bottom: '13px', transform: 'translate(-50%, 0)', background: 'radial-gradient(circle at center, #B87333 10%, #C9A84C 100%)', boxShadow: '0 2px 4px rgba(0,0,0,0.6)' }} />
 
-            {/* Tree Structure */}
-            <div className="h-full w-full flex flex-col items-center justify-end relative" style={{ animation: `wind-sway 6s ease-in-out infinite alternate`, animationDelay: `${windPhase}s` }}>
-                {renderCrown()}
+            {/* Geometric Brass Tree (Canvas 2D procedural, ported from sketch 001 — trunk, gear rivet, canopy, and fruit/blossom/snow are all drawn here; winter draws a full snow-colored canopy, not bare branches) */}
+            <div className="absolute inset-0" style={{ animation: `wind-sway 6s ease-in-out infinite alternate`, animationDelay: `${windPhase}s` }}>
+                <canvas ref={canvasRef} width={TREE_CANVAS_W} height={TREE_CANVAS_H} className="absolute inset-0 pointer-events-none" />
 
-                {/* Fixed Tree Structure: Separate Visual Trunk from Recursive Branches to prevent clipping */}
-                <div className="relative w-[20px] h-10 z-0">
-                    {/* The Visual Trunk Shape (Clipped) */}
-                    <div
-                        className="absolute inset-0"
-                        style={{
-                            background: `linear-gradient(to right, rgba(0,0,0,0.8) 0%, #774716ff 30%, #fff 30%, #CD853F 70%, rgba(0,0,0,0.9) 100%)`,
-                            clipPath: 'polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)',
-                            border: '1.5px solid rgba(0,0,0,0.4)',
-                            boxShadow: 'inset -3px 0 6px rgba(0,0,0,0.5), inset 3px 0 6px rgba(255,255,255,0.15)',
-                            borderRadius: '0 0 4px 4px'
-                        }}
-                    />
-
-                    {/* The Branches (Unclipped Sibling) */}
-                    <div className="absolute inset-x-0 top-0">
-                        <Branch length={isWinter ? 18 : 14} angle={-60} depth={0} maxDepth={isWinter ? 5 : 3} trunkColor={styles.trunk} isWinter={isWinter} seed={seed + 10} />
-                        <Branch length={isWinter ? 18 : 14} angle={-30} depth={0} maxDepth={isWinter ? 5 : 3} trunkColor={styles.trunk} isWinter={isWinter} seed={seed + 20} />
-                        <Branch length={isWinter ? 20 : 16} angle={0} depth={0} maxDepth={isWinter ? 5 : 3} trunkColor={styles.trunk} isWinter={isWinter} seed={seed + 30} />
-                        <Branch length={isWinter ? 18 : 14} angle={30} depth={0} maxDepth={isWinter ? 5 : 3} trunkColor={styles.trunk} isWinter={isWinter} seed={seed + 40} />
-                        <Branch length={isWinter ? 18 : 14} angle={60} depth={0} maxDepth={isWinter ? 5 : 3} trunkColor={styles.trunk} isWinter={isWinter} seed={seed + 50} />
-                        {isWinter && <div className="absolute inset-x-0 top-0 h-1.5 bg-white/50 blur-[0.8px] z-50" />}
-                    </div>
-                </div>
-
-                {/* Autumn Leaf Fall VFX */}
+                {/* Autumn Leaf Fall VFX (kept — small decorative CSS animation, unrelated to the canopy swap) */}
                 {isAutumn && (
                     <div className="absolute inset-0 pointer-events-none overflow-visible">
                         <div className="absolute w-1 h-1 bg-amber-600 rounded-sm animate-[leaf-fall_3s_linear_infinite]" style={{ left: '30%', animationDelay: '0.2s' }} />
