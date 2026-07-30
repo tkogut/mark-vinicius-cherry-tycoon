@@ -2,7 +2,7 @@
 sketch: 001
 name: orchard-isometric-trees
 question: "Does procedural Canvas 2D tree rendering in an isometric multi-parcel grid, styled in Neo-Steampunk palette, read clearly at both desktop and mobile sizes — and which of 3 tree-rendering styles fits best?"
-winner: null
+winner: "A"
 tags: [orchard, canvas, isometric, trees]
 ---
 

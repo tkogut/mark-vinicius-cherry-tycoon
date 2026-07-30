@@ -17,4 +17,4 @@ Hybrid visual direction for the cherry orchard/farm-plot view, replacing the cur
 
 | # | Name | Design Question | Winner | Tags |
 |---|------|----------------|--------|------|
-| 001 | orchard-isometric-trees | Does procedural Canvas 2D tree rendering in an isometric multi-parcel grid, styled in Neo-Steampunk palette, read clearly at both desktop and mobile sizes — and which of 3 tree-rendering styles fits best? | TBD | orchard, canvas, isometric, trees |
+| 001 | orchard-isometric-trees | Does procedural Canvas 2D tree rendering in an isometric multi-parcel grid, styled in Neo-Steampunk palette, read clearly at both desktop and mobile sizes — and which of 3 tree-rendering styles fits best? | **A — Geometric Brass** (final, 2026-07-30) | orchard, canvas, isometric, trees |
