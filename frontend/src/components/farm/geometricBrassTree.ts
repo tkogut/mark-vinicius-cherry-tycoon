@@ -312,9 +312,10 @@ export function drawGroundDecor({ ctx, cx, cy, tileW, tileH, seed, phase }: Draw
 // Ported from the sketch's drawRaggedPath/drawPathSeams: a STRAIGHT centerline
 // whose edges are independently jittered per sample point, so the boundary
 // reads as a torn/trodden track rather than a bent line. Drawn per-tile
-// (left-vertex to right-vertex of this tile's diamond) rather than the
-// sketch's whole-grid seam network, so it inherits this tile's own z-index —
-// required for correct occlusion against trees on other rows/tiles.
+// (through the correct same-row diagonal of this tile's diamond, see
+// drawPathTile below) rather than the sketch's whole-grid seam network, so
+// it inherits this tile's own z-index — required for correct occlusion
+// against trees on other rows/tiles.
 
 function drawRaggedRibbon(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, halfWidth: number, color: string, rng: () => number) {
     const steps = 10;
@@ -351,13 +352,26 @@ export interface DrawPathTileOptions {
     tileW: number;
     tileH: number;
     seed: number;
-    /** Draw the segment toward this tile's left vertex (connects to the previous tile in the row). */
+    /** Draw the segment toward the previous tile in the row (same r, col - 1). */
     connectLeft: boolean;
-    /** Draw the segment toward this tile's right vertex (connects to the next tile in the row). */
+    /** Draw the segment toward the next tile in the row (same r, col + 1). */
     connectRight: boolean;
 }
 
-/** Draws a ragged-edge dirt path lane crossing this tile's diamond, clipped to the diamond shape. */
+/**
+ * Draws a ragged-edge dirt path lane crossing this tile's diamond, clipped
+ * to the diamond shape.
+ *
+ * Two same-row tiles (r, c) and (r, c+1) share the edge running from (r,c)'s
+ * BOTTOM vertex to its RIGHT vertex (isometric projection: moving +1 in col
+ * shifts both x and y by +TILE_W/2, +TILE_H/2 — a down-right diagonal, not a
+ * horizontal one). A first version of this function ran the ribbon from the
+ * tile's LEFT vertex to its RIGHT vertex instead, which is the *other*
+ * diagonal — the one connecting (r+1,c-1) through this tile to (r-1,c+1) —
+ * so a same-row corridor rendered as a zigzag instead of a straight line.
+ * Fixed to run through the top-left/bottom-right edge midpoints, which is
+ * the correct diagonal for a same-row (c-varying) corridor.
+ */
 export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, connectLeft, connectRight }: DrawPathTileOptions) {
     if (!connectLeft && !connectRight) return;
     const rng = mulberry32(seed);
@@ -371,12 +385,16 @@ export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, connectLeft, con
     ctx.closePath();
     ctx.clip();
 
-    const x1 = connectLeft ? cx - tileW / 2 : cx;
-    const x2 = connectRight ? cx + tileW / 2 : cx;
+    const topLeftMid = { x: cx - tileW / 4, y: cy - tileH / 4 };
+    const bottomRightMid = { x: cx + tileW / 4, y: cy + tileH / 4 };
+    const x1 = connectLeft ? topLeftMid.x : cx;
+    const y1 = connectLeft ? topLeftMid.y : cy;
+    const x2 = connectRight ? bottomRightMid.x : cx;
+    const y2 = connectRight ? bottomRightMid.y : cy;
 
-    drawRaggedRibbon(ctx, x1, cy, x2, cy, tileW * 0.09, 'rgba(48,32,16,0.97)', rng);
+    drawRaggedRibbon(ctx, x1, y1, x2, y2, tileW * 0.09, 'rgba(48,32,16,0.97)', rng);
     const rngNarrow = mulberry32(seed);
-    drawRaggedRibbon(ctx, x1, cy, x2, cy, tileW * 0.045, 'rgba(120,86,48,0.95)', rngNarrow);
+    drawRaggedRibbon(ctx, x1, y1, x2, y2, tileW * 0.045, 'rgba(120,86,48,0.95)', rngNarrow);
 
     ctx.restore();
 }
