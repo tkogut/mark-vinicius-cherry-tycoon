@@ -263,12 +263,15 @@ const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Path lane drawn BEFORE ground decor (matches sketch 001 pass order)
-        // so grass/leaf/snow decor still scatters lightly over the track.
+        drawGroundDecor({ ctx, cx: canvas.width / 2, cy: canvas.height / 2, tileW: TILE_W, tileH: TILE_H, seed: decorSeed, phase: styles.phase });
+        // Path lane drawn AFTER ground decor — spring's full-tile green wash
+        // (drawGroundDecor's spring branch) otherwise painted over the path
+        // and muted it to near-invisibility. Drawing on top keeps the path
+        // readable while trees (drawn in their own later canvas) still occlude
+        // it correctly via the shared y-based zIndex.
         if (isPathTile) {
             drawPathTile({ ctx, cx: canvas.width / 2, cy: canvas.height / 2, tileW: TILE_W, tileH: TILE_H, seed: decorSeed, connectLeft: pathConnectLeft, connectRight: pathConnectRight });
         }
-        drawGroundDecor({ ctx, cx: canvas.width / 2, cy: canvas.height / 2, tileW: TILE_W, tileH: TILE_H, seed: decorSeed, phase: styles.phase });
     }, [decorSeed, styles.phase, isPathTile, pathConnectLeft, pathConnectRight]);
 
     return (
@@ -642,7 +645,12 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 else if (phase === 'Harvest') step = 0.06;
                 else if (phase === 'Decay') step = 0.025;
 
-                // Immediate target for pathfinding across bridges
+                // Immediate target for pathfinding. Cross-sector trips head for the
+                // bridge crossing (row 2). Same-sector trips route via the row-2 path
+                // spine too — go to the spine at the current column, travel along the
+                // spine to the target column, then leave the spine for the target row —
+                // so any horizontal leg of the walk actually happens on the path instead
+                // of cutting across tree rows.
                 let immR = prev.targetR;
                 let immC = prev.targetC;
 
@@ -652,6 +660,12 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 } else if (prev.s > prev.targetS) {
                     immR = 2;
                     immC = 0;
+                } else if (Math.abs(prev.r - 2) > 0.01 && Math.abs(prev.c - prev.targetC) > 0.01) {
+                    immR = 2;
+                    immC = prev.c;
+                } else if (Math.abs(prev.c - prev.targetC) > 0.01) {
+                    immR = 2;
+                    immC = prev.targetC;
                 }
 
                 // Move closer to immediate target
@@ -753,6 +767,12 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     } else if (prev.s > prev.targetS) {
                         immR = 2;
                         immC = 0;
+                    } else if (Math.abs(prev.r - 2) > 0.01 && Math.abs(prev.c - prev.targetC) > 0.01) {
+                        immR = 2;
+                        immC = prev.c;
+                    } else if (Math.abs(prev.c - prev.targetC) > 0.01) {
+                        immR = 2;
+                        immC = prev.targetC;
                     }
 
                     if (Math.abs(prev.r - immR) > 0.01) {

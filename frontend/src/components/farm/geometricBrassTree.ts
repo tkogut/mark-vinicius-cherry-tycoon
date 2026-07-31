@@ -374,9 +374,9 @@ export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, connectLeft, con
     const x1 = connectLeft ? cx - tileW / 2 : cx;
     const x2 = connectRight ? cx + tileW / 2 : cx;
 
-    drawRaggedRibbon(ctx, x1, cy, x2, cy, tileW * 0.055, 'rgba(58,40,22,0.92)', rng);
+    drawRaggedRibbon(ctx, x1, cy, x2, cy, tileW * 0.09, 'rgba(48,32,16,0.97)', rng);
     const rngNarrow = mulberry32(seed);
-    drawRaggedRibbon(ctx, x1, cy, x2, cy, tileW * 0.022, 'rgba(94,64,34,0.85)', rngNarrow);
+    drawRaggedRibbon(ctx, x1, cy, x2, cy, tileW * 0.045, 'rgba(120,86,48,0.95)', rngNarrow);
 
     ctx.restore();
 }
