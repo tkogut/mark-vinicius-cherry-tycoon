@@ -237,7 +237,7 @@ const SeasonalVFX = React.memo(({ season }: { season: string }) => {
 // Brass integration) — trunk and branches are now drawn directly on the
 // per-tree canvas in MechanicalTree, including the winter case.
 
-const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, parcel, isPathTile, pathConnectLeft, pathConnectRight }: any) => {
+const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, parcel, isPathTile, pathCol }: any) => {
     const humidity = parcel?.humidity || 0.5;
     const fertility = parcel?.fertility || 0.5;
 
@@ -270,9 +270,9 @@ const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, 
         // readable while trees (drawn in their own later canvas) still occlude
         // it correctly via the shared y-based zIndex.
         if (isPathTile) {
-            drawPathTile({ ctx, cx: canvas.width / 2, cy: canvas.height / 2, tileW: TILE_W, tileH: TILE_H, seed: decorSeed, connectLeft: pathConnectLeft, connectRight: pathConnectRight });
+            drawPathTile({ ctx, cx: canvas.width / 2, cy: canvas.height / 2, tileW: TILE_W, tileH: TILE_H, seed: decorSeed, col: pathCol });
         }
-    }, [decorSeed, styles.phase, isPathTile, pathConnectLeft, pathConnectRight]);
+    }, [decorSeed, styles.phase, isPathTile, pathCol]);
 
     return (
         <div
@@ -863,8 +863,10 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     parcel,
                     x, y, r, c, s,
                     isPathTile,
-                    pathConnectLeft: isPathTile && c > 0,
-                    pathConnectRight: isPathTile && c < SECTOR_SIZE - 1,
+                    // The lane is one global curve in corridor coordinates; each tile
+                    // draws its own over-length slice of it and lets its diamond clip
+                    // trim the overlap, so the row reads as one continuous ribbon.
+                    pathCol: c,
                     // Depth is keyed off the continuous projected y (not the coarse (r+c)
                     // tile bucket) so painter's-algorithm order matches actual screen
                     // position — trees and NPCs share this same depth key below, which is
@@ -1046,8 +1048,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                             parcelId={entity.parcelId}
                                             parcel={entity.parcel}
                                             isPathTile={entity.isPathTile}
-                                            pathConnectLeft={entity.pathConnectLeft}
-                                            pathConnectRight={entity.pathConnectRight}
+                                            pathCol={entity.pathCol}
                                             isSelected={selectedParcel?.id === entity.parcelId}
                                             onClick={(e: any) => {
                                                 e.stopPropagation();

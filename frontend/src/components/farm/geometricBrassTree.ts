@@ -307,39 +307,77 @@ export function drawGroundDecor({ ctx, cx, cy, tileW, tileH, seed, phase }: Draw
     ctx.restore();
 }
 
-// ---------- Path lane (ragged-edge dirt track along a tile's spine) ----------
+// ---------- Path lane (ragged-edge dirt track along a row corridor) ----------
 //
 // Ported from the sketch's drawRaggedPath/drawPathSeams: a STRAIGHT centerline
 // whose edges are independently jittered per sample point, so the boundary
-// reads as a torn/trodden track rather than a bent line. Drawn per-tile
-// (through the correct same-row diagonal of this tile's diamond, see
-// drawPathTile below) rather than the sketch's whole-grid seam network, so
-// it inherits this tile's own z-index — required for correct occlusion
-// against trees on other rows/tiles.
+// reads as a torn/trodden track rather than a bent line. Drawn per-tile (so it
+// inherits that tile's own z-index — required for correct occlusion against
+// trees on other rows) rather than as the sketch's whole-grid seam network.
+//
+// Because it is drawn per-tile but must READ as one continuous lane, the
+// ribbon is defined as a single global curve parameterised by the corridor
+// coordinate `u` (u = column index, so u is continuous across the whole row),
+// sampled at fixed rational positions k/PATH_SAMPLES_PER_TILE and jittered by
+// a position hash rather than a per-tile RNG stream. Every tile therefore
+// evaluates the *same* curve at the *same* world points, and each tile draws
+// it over-length (PATH_TILE_OVERSHOOT past its own boundaries) letting the
+// diamond clip do the trimming. Two earlier versions instead ended each tile's
+// polygon exactly at the shared edge midpoint with a flat cap and a per-tile
+// RNG: (a) the caps' jitter widths didn't match across the seam, and (b) the
+// band crosses the shared edge obliquely, so up to ~7px back from every
+// boundary a wedge of the band lies outside the drawing tile's own diamond
+// (clipped away) while the neighbour's polygon hadn't started yet — a hole
+// drawn by neither tile. That produced the visible periodic pinch.
 
-function drawRaggedRibbon(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, halfWidth: number, color: string, rng: () => number) {
-    const steps = 10;
-    const dx = x2 - x1, dy = y2 - y1;
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    const ux = dx / len, uy = dy / len;
-    const px = -uy, py = ux;
+const PATH_SAMPLES_PER_TILE = 6;
+/** How far past its own centre (in tile units) each tile draws; > 0.5 so the diamond clip trims a real overlap. */
+const PATH_TILE_OVERSHOOT = 0.85;
+
+/** Deterministic hash -> [0,1) from two integers. Position-keyed, so neighbouring tiles agree. */
+function hash01(a: number, b: number): number {
+    let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177) | 0;
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/**
+ * Draws one band of the global corridor ribbon, in this tile's local coords.
+ * `col` is this tile's column index; the centreline runs through the tile
+ * centre in the +col direction (+tileW/2, +tileH/2 per column step).
+ */
+function drawCorridorBand(
+    ctx: CanvasRenderingContext2D,
+    cx: number, cy: number, tileW: number, tileH: number,
+    col: number, halfWidth: number, color: string, seed: number, band: number
+) {
+    const stepX = (tileW / 2) / PATH_SAMPLES_PER_TILE;
+    const stepY = (tileH / 2) / PATH_SAMPLES_PER_TILE;
+    const len = Math.sqrt(stepX * stepX + stepY * stepY) || 1;
+    const px = -(stepY / len), py = stepX / len;
+
+    const kCenter = col * PATH_SAMPLES_PER_TILE;
+    const span = Math.round(PATH_SAMPLES_PER_TILE * PATH_TILE_OVERSHOOT);
 
     const left: { x: number; y: number }[] = [];
     const right: { x: number; y: number }[] = [];
-    for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const cx = x1 + dx * t, cy = y1 + dy * t;
-        const jL = (0.45 + rng() * 0.7) * halfWidth;
-        const jR = (0.45 + rng() * 0.7) * halfWidth;
-        left.push({ x: cx + px * jL, y: cy + py * jL });
-        right.push({ x: cx - px * jR, y: cy - py * jR });
+    for (let k = kCenter - span; k <= kCenter + span; k++) {
+        const d = k - kCenter;
+        const sx = cx + stepX * d, sy = cy + stepY * d;
+        const jL = (0.45 + hash01(seed + band * 104729, k) * 0.7) * halfWidth;
+        const jR = (0.45 + hash01(seed + band * 104729 + 7919, k) * 0.7) * halfWidth;
+        left.push({ x: sx + px * jL, y: sy + py * jL });
+        right.push({ x: sx - px * jR, y: sy - py * jR });
     }
 
+    // Opaque fills: adjacent tiles intentionally redraw the same overlap
+    // region, and semi-transparent fills would double-blend into darker
+    // stripes at every tile boundary.
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(left[0].x, left[0].y);
-    for (let i = 1; i <= steps; i++) ctx.lineTo(left[i].x, left[i].y);
-    for (let i = steps; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+    for (let i = 1; i < left.length; i++) ctx.lineTo(left[i].x, left[i].y);
+    for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
     ctx.closePath();
     ctx.fill();
 }
@@ -351,31 +389,25 @@ export interface DrawPathTileOptions {
     cy: number;
     tileW: number;
     tileH: number;
+    /** Corridor seed — must be identical for every tile of the same corridor. */
     seed: number;
-    /** Draw the segment toward the previous tile in the row (same r, col - 1). */
-    connectLeft: boolean;
-    /** Draw the segment toward the next tile in the row (same r, col + 1). */
-    connectRight: boolean;
+    /** This tile's column index within the sector (the corridor coordinate). */
+    col: number;
 }
 
 /**
- * Draws a ragged-edge dirt path lane crossing this tile's diamond, clipped
- * to the diamond shape.
+ * Draws this tile's slice of the sector's ragged-edge dirt path lane, clipped
+ * to the tile's diamond.
  *
  * Two same-row tiles (r, c) and (r, c+1) share the edge running from (r,c)'s
  * BOTTOM vertex to its RIGHT vertex (isometric projection: moving +1 in col
  * shifts both x and y by +TILE_W/2, +TILE_H/2 — a down-right diagonal, not a
- * horizontal one). A first version of this function ran the ribbon from the
- * tile's LEFT vertex to its RIGHT vertex instead, which is the *other*
- * diagonal — the one connecting (r+1,c-1) through this tile to (r-1,c+1) —
- * so a same-row corridor rendered as a zigzag instead of a straight line.
- * Fixed to run through the top-left/bottom-right edge midpoints, which is
- * the correct diagonal for a same-row (c-varying) corridor.
+ * horizontal one), whose midpoint is local (0.75*tileW, 0.75*tileH). So the
+ * corridor runs through the top-left and bottom-right edge midpoints, and the
+ * lane for the whole row starts/ends at the sector's border (the outer halves
+ * of tiles c=0 / c=SECTOR_SIZE-1 fall outside their diamonds and are clipped).
  */
-export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, connectLeft, connectRight }: DrawPathTileOptions) {
-    if (!connectLeft && !connectRight) return;
-    const rng = mulberry32(seed);
-
+export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, col }: DrawPathTileOptions) {
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(cx, cy - tileH / 2);
@@ -385,16 +417,8 @@ export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, connectLeft, con
     ctx.closePath();
     ctx.clip();
 
-    const topLeftMid = { x: cx - tileW / 4, y: cy - tileH / 4 };
-    const bottomRightMid = { x: cx + tileW / 4, y: cy + tileH / 4 };
-    const x1 = connectLeft ? topLeftMid.x : cx;
-    const y1 = connectLeft ? topLeftMid.y : cy;
-    const x2 = connectRight ? bottomRightMid.x : cx;
-    const y2 = connectRight ? bottomRightMid.y : cy;
-
-    drawRaggedRibbon(ctx, x1, y1, x2, y2, tileW * 0.09, 'rgba(48,32,16,0.97)', rng);
-    const rngNarrow = mulberry32(seed);
-    drawRaggedRibbon(ctx, x1, y1, x2, y2, tileW * 0.045, 'rgba(120,86,48,0.95)', rngNarrow);
+    drawCorridorBand(ctx, cx, cy, tileW, tileH, col, tileW * 0.09, '#2f2010', seed, 0);
+    drawCorridorBand(ctx, cx, cy, tileW, tileH, col, tileW * 0.045, '#785630', seed, 1);
 
     ctx.restore();
 }
