@@ -39,6 +39,41 @@ const projectToIso = (row: number, col: number, sectorIdx: number = 0) => {
     };
 };
 
+/** Row whose edge tiles carry the inter-sector crossing. */
+export const BRIDGE_ROW = 2;
+
+export interface BridgeGeometry {
+    from: { x: number; y: number };
+    to: { x: number; y: number };
+    midX: number;
+    midY: number;
+    length: number;
+    angleDeg: number;
+}
+
+/**
+ * The one source of truth for the inter-sector crossing: both the bridge VISUAL
+ * and the NPC's onBridge interpolation derive from this, so they cannot drift
+ * apart. They previously did — the visual was a 92px horizontal bar at the exit
+ * tile's y, while NPCs interpolated over the real (+360, -96) diagonal between
+ * the two row-2 edge tile centres, so the walker crossed nowhere near the plank.
+ */
+export const getBridgeGeometry = (fromSector: number, toSector: number): BridgeGeometry => {
+    const forward = toSector > fromSector;
+    const from = projectToIso(BRIDGE_ROW, forward ? SECTOR_SIZE - 1 : 0, fromSector);
+    const to = projectToIso(BRIDGE_ROW, forward ? 0 : SECTOR_SIZE - 1, toSector);
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    return {
+        from,
+        to,
+        midX: (from.x + to.x) / 2,
+        midY: (from.y + to.y) / 2,
+        length: Math.sqrt(dx * dx + dy * dy),
+        angleDeg: (Math.atan2(dy, dx) * 180) / Math.PI,
+    };
+};
+
 // --- Lattice routing for NPCs ---------------------------------------------
 //
 // The path lattice (see drawPathTile in geometricBrassTree.ts) runs along tile
@@ -705,7 +740,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                             onBridge: false,
                             bridgeProgress: 0,
                             s: prev.targetS > prev.s ? prev.s + 1 : prev.s - 1,
-                            r: 2,
+                            r: BRIDGE_ROW,
                             c: prev.targetS > prev.s ? 0 : SECTOR_SIZE - 1,
                             route: []
                         };
@@ -726,8 +761,8 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 // buildLatticeRoute, so long legs stay on the lanes.
                 let destR = prev.targetR;
                 let destC = prev.targetC;
-                if (prev.s < prev.targetS) { destR = 2; destC = SECTOR_SIZE - 1; }
-                else if (prev.s > prev.targetS) { destR = 2; destC = 0; }
+                if (prev.s < prev.targetS) { destR = BRIDGE_ROW; destC = SECTOR_SIZE - 1; }
+                else if (prev.s > prev.targetS) { destR = BRIDGE_ROW; destC = 0; }
 
                 // Arrival is signalled by the route running out, NOT by matching the
                 // destination tile's centre — the route deliberately stops short of it.
@@ -823,8 +858,8 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
 
                     let destR = prev.targetR;
                     let destC = prev.targetC;
-                    if (prev.s < prev.targetS) { destR = 2; destC = SECTOR_SIZE - 1; }
-                    else if (prev.s > prev.targetS) { destR = 2; destC = 0; }
+                    if (prev.s < prev.targetS) { destR = BRIDGE_ROW; destC = SECTOR_SIZE - 1; }
+                    else if (prev.s > prev.targetS) { destR = BRIDGE_ROW; destC = 0; }
 
                     const arrive = (state: typeof prev): typeof prev => {
                         if (state.s !== state.targetS) {
@@ -957,14 +992,28 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
             });
 
             // 5. Visual Bridge
+            //
+            // Anchored on the SAME segment the NPC crossing interpolates over (see the
+            // onBridge branch below): from this sector's row-2 exit tile centre to the
+            // next sector's row-2 entry tile centre. Those two points differ by
+            // (+360, -96) at the default tile size, i.e. the crossing is a long
+            // up-right diagonal — the bridge used to be a 92px HORIZONTAL bar at the
+            // exit tile's y, so it covered about a quarter of the span and sat off the
+            // line the NPC actually walked. Derived from projectToIso rather than
+            // hard-coded, so it stays correct if tile size or SECTOR_GAP changes.
             if (s < sectorsCount - 1) {
-                const startPoint = projectToIso(2, 4, s); // Edge of this sector
+                const span = getBridgeGeometry(s, s + 1);
                 entities.push({
                     type: 'bridge',
                     key: `bridge-${s}`,
-                    x: startPoint.x + (SECTOR_GAP / 2) + 20,
-                    y: startPoint.y,
+                    x: span.midX,
+                    y: span.midY,
+                    length: span.length,
+                    angleDeg: span.angleDeg,
                     s,
+                    // Below both sectors' tiles, so the plank emerges from under the
+                    // platform edges instead of lying on top of them; NPCs crossing it
+                    // key off their own y and stay above.
                     zIndex: s * 100000 - 30000
                 });
             }
@@ -976,8 +1025,8 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
         if (workerPos.onBridge) {
             const startS = workerPos.s;
             const endS = workerPos.targetS > startS ? startS + 1 : startS - 1;
-            const posA = projectToIso(2, workerPos.targetS > startS ? 4 : 0, startS);
-            const posB = projectToIso(2, workerPos.targetS > startS ? 0 : 4, endS);
+            // Same geometry the bridge visual uses, so the walk is ON the plank.
+            const { from: posA, to: posB } = getBridgeGeometry(startS, endS);
             wX = posA.x + (posB.x - posA.x) * workerPos.bridgeProgress;
             wY = posA.y + (posB.y - posA.y) * workerPos.bridgeProgress;
         } else {
@@ -1002,8 +1051,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
             if (helperPos.onBridge) {
                 const startS = helperPos.s;
                 const endS = helperPos.targetS > startS ? startS + 1 : startS - 1;
-                const posA = projectToIso(2, helperPos.targetS > startS ? 4 : 0, startS);
-                const posB = projectToIso(2, helperPos.targetS > startS ? 0 : 4, endS);
+                const { from: posA, to: posB } = getBridgeGeometry(startS, endS);
                 hX = posA.x + (posB.x - posA.x) * helperPos.bridgeProgress;
                 hY = posA.y + (posB.y - posA.y) * helperPos.bridgeProgress;
             } else {
@@ -1187,10 +1235,10 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                             style={{
                                                 left: `${entity.x}px`,
                                                 top: `${entity.y}px`,
-                                                width: `${SECTOR_GAP + 20}px`,
+                                                width: `${entity.length}px`,
                                                 height: '10px',
                                                 background: 'linear-gradient(to bottom, #8C7853, #C9A84C, #8C7853)',
-                                                transform: 'translate(-50%, -50%)',
+                                                transform: `translate(-50%, -50%) rotate(${entity.angleDeg}deg)`,
                                                 zIndex: entity.zIndex,
                                                 boxShadow: '0 5px 10px rgba(0,0,0,0.6)',
                                                 borderRadius: '2px'
