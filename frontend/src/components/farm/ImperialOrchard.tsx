@@ -39,6 +39,66 @@ const projectToIso = (row: number, col: number, sectorIdx: number = 0) => {
     };
 };
 
+// --- Lattice routing for NPCs ---------------------------------------------
+//
+// The path lattice (see drawPathTile in geometricBrassTree.ts) runs along tile
+// BOUNDARIES, which in tile-index space are the half-integer coordinates: a
+// row lane between rows k and k+1 is the line r = k + 0.5, a column lane
+// between cols k and k+1 is c = k + 0.5. projectToIso is linear in (row, col),
+// so walking a constant half-integer r while varying c traces that lane exactly
+// in world space — no separate lane geometry is needed for movement.
+//
+// Trees stand at integer (r, c) tile centres, so a trip is: a half-tile spur
+// out of the current tile onto a row lane, the two lane legs (along the row
+// lane, then along a column lane), and a half-tile spur into the target tile.
+// Before this, NPCs walked r=2 tile CENTRES, i.e. straight through the trees
+// of that row.
+const LANE_HALF = 0.5;
+const nearVal = (a: number, b: number) => Math.abs(a - b) < 0.01;
+
+interface RouteWaypoint { r: number; c: number; }
+
+/**
+ * Builds the waypoint list from a tile centre to a target tile centre, with
+ * every long leg constrained to a lattice lane. Consecutive waypoints always
+ * differ in exactly one coordinate, so the mover can advance one axis at a
+ * time. All lanes chosen are interior (0.5 … SECTOR_SIZE-1.5), never the
+ * sector's outer border.
+ */
+const buildLatticeRoute = (fromR: number, fromC: number, toR: number, toC: number, size: number): RouteWaypoint[] => {
+    if (nearVal(fromR, toR) && nearVal(fromC, toC)) return [];
+
+    const baseR = Math.round(fromR);
+    // Row lane bounding the current tile, on the side facing the target row.
+    let laneR: number;
+    if (toR > baseR) laneR = baseR + LANE_HALF;
+    else if (toR < baseR) laneR = baseR - LANE_HALF;
+    else laneR = baseR < size - 1 ? baseR + LANE_HALF : baseR - LANE_HALF;
+
+    // Column lane bounding the target tile, on the side we approach from.
+    let laneC: number;
+    if (toC > fromC) laneC = toC - LANE_HALF;
+    else if (toC < fromC) laneC = toC + LANE_HALF;
+    else laneC = toC < size - 1 ? toC + LANE_HALF : toC - LANE_HALF;
+
+    return [
+        { r: laneR, c: fromC },  // spur onto the row lane
+        { r: laneR, c: laneC },  // along the row lane
+        { r: toR, c: laneC },    // along the column lane
+        { r: toR, c: toC },      // spur into the target tile
+    ];
+};
+
+/** Season -> movement speed in tile units per tick. */
+const stepForPhase = (phase: string): number => {
+    if (phase === 'Dormancy') return 0.015;
+    if (phase === 'Awakening') return 0.03;
+    if (phase === 'Bloom') return 0.035;
+    if (phase === 'Harvest') return 0.06;
+    if (phase === 'Decay') return 0.025;
+    return 0.04;
+};
+
 // Map Backend Season to Visual Specs & Tokens (Colors for the 3D Miniatures)
 const getSeasonStyles = (seasonObj: any) => {
     // High-Contrast 'Caramel Wood' ( Peru/SaddleBrown base for visibility)
@@ -250,12 +310,20 @@ const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, 
     // 001 — deterministic per-parcel seed so decor doesn't re-randomize on
     // every re-render.
     const decorCanvasRef = useRef<HTMLCanvasElement>(null);
-    const decorSeed = useMemo(() => {
+    // Sector-wide seed: the path lattice MUST hash identically on both sides of
+    // every shared edge, so it keys off the parcel alone.
+    const parcelSeed = useMemo(() => {
         let seed = 0;
         const idStr = String(parcelId || 'default');
         for (let i = 0; i < idStr.length; i++) seed += idStr.charCodeAt(i);
         return seed;
     }, [parcelId]);
+    // Per-tile seed for ground decor: keyed off row/col as well, otherwise all
+    // 25 tiles of a parcel drew the identical grass/flower pattern.
+    const decorSeed = useMemo(
+        () => parcelSeed * 31 + (tileRow || 0) * 7919 + (tileCol || 0) * 104729,
+        [parcelSeed, tileRow, tileCol]
+    );
 
     useEffect(() => {
         const canvas = decorCanvasRef.current;
@@ -271,10 +339,10 @@ const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, 
         // it correctly via the shared y-based zIndex.
         drawPathTile({
             ctx, cx: canvas.width / 2, cy: canvas.height / 2,
-            tileW: TILE_W, tileH: TILE_H, seed: decorSeed,
+            tileW: TILE_W, tileH: TILE_H, seed: parcelSeed,
             row: tileRow, col: tileCol, gridSize: SECTOR_SIZE
         });
-    }, [decorSeed, styles.phase, tileRow, tileCol]);
+    }, [decorSeed, parcelSeed, styles.phase, tileRow, tileCol]);
 
     return (
         <div
@@ -606,8 +674,8 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
     }, [displayParcels, sectorsCount]);
 
     // Fixed Workers (NPCs) with Manhattan Movement and Seasonal Behavior
-    const [workerPos, setWorkerPos] = useState({ r: 0, c: 0, s: 0, targetR: 2, targetC: 2, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0 });
-    const [helperPos, setHelperPos] = useState({ r: 4, c: 4, s: 0, targetR: 1, targetC: 1, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0 });
+    const [workerPos, setWorkerPos] = useState({ r: 0, c: 0, s: 0, targetR: 2, targetC: 2, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, route: [] as RouteWaypoint[] });
+    const [helperPos, setHelperPos] = useState({ r: 4, c: 4, s: 0, targetR: 1, targetC: 1, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, route: [] as RouteWaypoint[] });
 
     const hasHelper = !!(hiredLabor && hiredLabor.length > 0);
 
@@ -623,8 +691,9 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                             onBridge: false,
                             bridgeProgress: 0,
                             s: prev.targetS > prev.s ? prev.s + 1 : prev.s - 1,
-                            r: prev.targetS > prev.s ? 2 : 2,
-                            c: prev.targetS > prev.s ? 0 : 4
+                            r: 2,
+                            c: prev.targetS > prev.s ? 0 : SECTOR_SIZE - 1,
+                            route: []
                         };
                     }
                     return { ...prev, bridgeProgress: nextProgress };
@@ -634,62 +703,27 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     return { ...prev, pauseTicks: prev.pauseTicks - 1 };
                 }
 
-                let nextR = prev.r;
-                let nextC = prev.c;
-                let nextS = prev.s;
-
-                // Dynamic speed based on season
-                let step = 0.04;
                 const phase = seasonStyles.phase;
-                if (phase === 'Dormancy') step = 0.015;
-                else if (phase === 'Awakening') step = 0.03;
-                else if (phase === 'Bloom') step = 0.035;
-                else if (phase === 'Harvest') step = 0.06;
-                else if (phase === 'Decay') step = 0.025;
+                const step = stepForPhase(phase);
 
-                // Immediate target for pathfinding. Cross-sector trips head for the
-                // bridge crossing (row 2). Same-sector trips route via the row-2 path
-                // spine too — go to the spine at the current column, travel along the
-                // spine to the target column, then leave the spine for the target row —
-                // so any horizontal leg of the walk actually happens on the path instead
-                // of cutting across tree rows.
-                let immR = prev.targetR;
-                let immC = prev.targetC;
+                // Destination TILE for this leg of the trip. Cross-sector trips head
+                // for the bridge crossing tile on row 2; same-sector trips head for
+                // the target tile. The walk itself is routed over the lattice by
+                // buildLatticeRoute, so long legs stay on the lanes.
+                let destR = prev.targetR;
+                let destC = prev.targetC;
+                if (prev.s < prev.targetS) { destR = 2; destC = SECTOR_SIZE - 1; }
+                else if (prev.s > prev.targetS) { destR = 2; destC = 0; }
 
-                if (prev.s < prev.targetS) {
-                    immR = 2;
-                    immC = 4;
-                } else if (prev.s > prev.targetS) {
-                    immR = 2;
-                    immC = 0;
-                } else if (Math.abs(prev.r - 2) > 0.01 && Math.abs(prev.c - prev.targetC) > 0.01) {
-                    immR = 2;
-                    immC = prev.c;
-                } else if (Math.abs(prev.c - prev.targetC) > 0.01) {
-                    immR = 2;
-                    immC = prev.targetC;
-                }
+                let route = prev.route || [];
+                const last = route[route.length - 1];
+                // Rebuild when the route is spent, or stale after the destination moved.
+                if (route.length === 0 || !last || !nearVal(last.r, destR) || !nearVal(last.c, destC)) {
+                    if (nearVal(prev.r, destR) && nearVal(prev.c, destC)) {
+                        if (prev.s !== prev.targetS) {
+                            return { ...prev, onBridge: true, bridgeProgress: 0.05, route: [] };
+                        }
 
-                // Move closer to immediate target
-                if (Math.abs(prev.r - immR) > 0.01) {
-                    nextR += immR > prev.r ? Math.min(step, immR - prev.r) : Math.max(-step, immR - prev.r);
-                } else if (Math.abs(prev.c - immC) > 0.01) {
-                    nextC += immC > prev.c ? Math.min(step, immC - prev.c) : Math.max(-step, immC - prev.c);
-                } else {
-                    // Reached immediate target
-                    if (prev.s < prev.targetS) {
-                        return {
-                            ...prev,
-                            onBridge: true,
-                            bridgeProgress: 0.05
-                        };
-                    } else if (prev.s > prev.targetS) {
-                        return {
-                            ...prev,
-                            onBridge: true,
-                            bridgeProgress: 0.05
-                        };
-                    } else {
                         // Reached final target! Set pause based on season
                         let pause = 0;
                         if (phase === 'Harvest') pause = 50;
@@ -699,7 +733,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                         // Choose next target
                         let nextTarget = { r: 2, c: 2, s: 0 };
                         if (phase === 'Dormancy') {
-                            const atShelter = prev.r === 0 && prev.c === 0;
+                            const atShelter = nearVal(prev.r, 0) && nearVal(prev.c, 0);
                             nextTarget = atShelter ? { r: 4, c: 4, s: 0 } : { r: 0, c: 0, s: 0 };
                         } else if ((phase === 'Harvest' || phase === 'Awakening' || phase === 'Bloom') && treePositions.length > 0) {
                             const randTree = treePositions[Math.floor(Math.random() * treePositions.length)];
@@ -717,12 +751,28 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                             targetR: nextTarget.r,
                             targetC: nextTarget.c,
                             targetS: nextTarget.s,
-                            pauseTicks: pause
+                            pauseTicks: pause,
+                            route: []
                         };
                     }
+                    route = buildLatticeRoute(prev.r, prev.c, destR, destC, SECTOR_SIZE);
                 }
 
-                return { ...prev, r: nextR, c: nextC, s: nextS };
+                // Advance toward the next waypoint — one axis at a time, since
+                // consecutive waypoints differ in exactly one coordinate.
+                const wp = route[0];
+                if (!wp) return { ...prev, route: [] };
+
+                if (!nearVal(prev.r, wp.r)) {
+                    const dR = wp.r > prev.r ? Math.min(step, wp.r - prev.r) : Math.max(-step, wp.r - prev.r);
+                    return { ...prev, r: prev.r + dR, route };
+                }
+                if (!nearVal(prev.c, wp.c)) {
+                    const dC = wp.c > prev.c ? Math.min(step, wp.c - prev.c) : Math.max(-step, wp.c - prev.c);
+                    return { ...prev, c: prev.c + dC, route };
+                }
+                // Waypoint reached — snap onto it and take the next one.
+                return { ...prev, r: wp.r, c: wp.c, route: route.slice(1) };
             });
 
             // 2. Update Helper Worker (if present)
@@ -747,54 +797,22 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                         return { ...prev, pauseTicks: prev.pauseTicks - 1 };
                     }
 
-                    let nextR = prev.r;
-                    let nextC = prev.c;
-                    let nextS = prev.s;
-
-                    // Helper speeds
-                    let step = 0.04;
                     const phase = seasonStyles.phase;
-                    if (phase === 'Dormancy') step = 0.015;
-                    else if (phase === 'Awakening') step = 0.03;
-                    else if (phase === 'Bloom') step = 0.035;
-                    else if (phase === 'Harvest') step = 0.06;
-                    else if (phase === 'Decay') step = 0.025;
+                    const step = stepForPhase(phase);
 
-                    let immR = prev.targetR;
-                    let immC = prev.targetC;
+                    let destR = prev.targetR;
+                    let destC = prev.targetC;
+                    if (prev.s < prev.targetS) { destR = 2; destC = SECTOR_SIZE - 1; }
+                    else if (prev.s > prev.targetS) { destR = 2; destC = 0; }
 
-                    if (prev.s < prev.targetS) {
-                        immR = 2;
-                        immC = 4;
-                    } else if (prev.s > prev.targetS) {
-                        immR = 2;
-                        immC = 0;
-                    } else if (Math.abs(prev.r - 2) > 0.01 && Math.abs(prev.c - prev.targetC) > 0.01) {
-                        immR = 2;
-                        immC = prev.c;
-                    } else if (Math.abs(prev.c - prev.targetC) > 0.01) {
-                        immR = 2;
-                        immC = prev.targetC;
-                    }
+                    let route = prev.route || [];
+                    const last = route[route.length - 1];
+                    if (route.length === 0 || !last || !nearVal(last.r, destR) || !nearVal(last.c, destC)) {
+                        if (nearVal(prev.r, destR) && nearVal(prev.c, destC)) {
+                            if (prev.s !== prev.targetS) {
+                                return { ...prev, onBridge: true, bridgeProgress: 0.05, route: [] };
+                            }
 
-                    if (Math.abs(prev.r - immR) > 0.01) {
-                        nextR += immR > prev.r ? Math.min(step, immR - prev.r) : Math.max(-step, immR - prev.r);
-                    } else if (Math.abs(prev.c - immC) > 0.01) {
-                        nextC += immC > prev.c ? Math.min(step, immC - prev.c) : Math.max(-step, immC - prev.c);
-                    } else {
-                        if (prev.s < prev.targetS) {
-                            return {
-                                ...prev,
-                                onBridge: true,
-                                bridgeProgress: 0.05
-                            };
-                        } else if (prev.s > prev.targetS) {
-                            return {
-                                ...prev,
-                                onBridge: true,
-                                bridgeProgress: 0.05
-                            };
-                        } else {
                             let pause = 0;
                             if (phase === 'Harvest') pause = 40;
                             else if (phase === 'Awakening' || phase === 'Bloom') pause = 20;
@@ -802,7 +820,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
 
                             let nextTarget = { r: 2, c: 2, s: 0 };
                             if (phase === 'Dormancy') {
-                                const atShelter = prev.r === 0 && prev.c === 4;
+                                const atShelter = nearVal(prev.r, 0) && nearVal(prev.c, SECTOR_SIZE - 1);
                                 nextTarget = atShelter ? { r: 4, c: 0, s: 0 } : { r: 0, c: 4, s: 0 };
                             } else if ((phase === 'Harvest' || phase === 'Awakening' || phase === 'Bloom') && treePositions.length > 0) {
                                 const randTree = treePositions[Math.floor(Math.random() * treePositions.length)];
@@ -820,12 +838,25 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                 targetR: nextTarget.r,
                                 targetC: nextTarget.c,
                                 targetS: nextTarget.s,
-                                pauseTicks: pause
+                                pauseTicks: pause,
+                                route: []
                             };
                         }
+                        route = buildLatticeRoute(prev.r, prev.c, destR, destC, SECTOR_SIZE);
                     }
 
-                    return { ...prev, r: nextR, c: nextC, s: nextS };
+                    const wp = route[0];
+                    if (!wp) return { ...prev, route: [] };
+
+                    if (!nearVal(prev.r, wp.r)) {
+                        const dR = wp.r > prev.r ? Math.min(step, wp.r - prev.r) : Math.max(-step, wp.r - prev.r);
+                        return { ...prev, r: prev.r + dR, route };
+                    }
+                    if (!nearVal(prev.c, wp.c)) {
+                        const dC = wp.c > prev.c ? Math.min(step, wp.c - prev.c) : Math.max(-step, wp.c - prev.c);
+                        return { ...prev, c: prev.c + dC, route };
+                    }
+                    return { ...prev, r: wp.r, c: wp.c, route: route.slice(1) };
                 });
             }
         }, 30);
