@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sketch 002 — Machines &amp; Workers</title>
+<link rel="stylesheet" href="../themes/neo-steampunk.css">
+<style>
+  body { padding-top: 56px; }
+  #variant-nav { position:fixed; top:0; left:0; right:0; z-index:9998; background:var(--color-surface); border-bottom:1px solid var(--color-border); padding:8px 16px; display:flex; gap:8px; font-family:var(--font-sans); }
+  .variant-tab { background:var(--color-surface-2); color:var(--color-text-muted); border:1px solid var(--color-border); padding:8px 14px; border-radius:var(--radius-md); cursor:pointer; font-size:var(--text-sm); transition:all 0.15s ease; }
+  .variant-tab:hover { color:var(--color-text); border-color:var(--color-brass); }
+  .variant-tab.active { background:var(--color-brass); color:#1a1408; border-color:var(--color-brass-bright); font-weight:600; }
+  .variant { display:none; padding: 24px 32px 64px; }
+  .variant.active { display:block; }
+  h1 { font-family:var(--font-serif); color:var(--color-brass-bright); font-size:var(--text-2xl); margin:0 0 4px; }
+  .subtitle { color:var(--color-text-muted); font-size:var(--text-sm); margin-bottom:24px; max-width:760px; }
+  .row { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end; margin-bottom:32px; }
+  .item { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:16px; text-align:center; box-shadow:var(--shadow-md); }
+  .item canvas { display:block; background:radial-gradient(ellipse at 50% 80%, #1c2414 0%, #0a0a0d 75%); border-radius:var(--radius-md); }
+  .item .label { margin-top:10px; font-size:var(--text-sm); color:var(--color-text); font-weight:600; }
+  .item .sub { font-size:var(--text-xs); color:var(--color-text-muted); }
+  .worker-row .item canvas { background:radial-gradient(ellipse at 50% 85%, #1c2414 0%, #0a0a0d 75%); }
+  .section-label { font-family:var(--font-serif); color:var(--color-text-muted); font-size:var(--text-lg); margin: 8px 0 14px; border-bottom:1px solid var(--color-border); padding-bottom:6px; }
+  .compare-note { margin-top:8px; background:var(--color-surface-2); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:14px 18px; font-size:var(--text-sm); color:var(--color-text-muted); max-width:760px; }
+  .compare-note b { color:var(--color-brass-bright); }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <button class="variant-tab active" onclick="showVariant('a')">A: Geometric Brass ★ Selected</button>
+  <button class="variant-tab" onclick="showVariant('b')">B: Grounded Steampunk Machinery</button>
+  <button class="variant-tab" onclick="showVariant('c')">C: Toy Geometric (Beavers-City friendly)</button>
+  <select onchange="document.querySelector('link[href*=themes]').href='../themes/'+this.value+'.css'" style="margin-left:auto;background:var(--color-surface-2);color:var(--color-text);border:1px solid var(--color-border);border-radius:6px;">
+    <option value="neo-steampunk">Neo-Steampunk</option>
+  </select>
+</div>
+
+<!-- ============ VARIANT A ============ -->
+<div id="variant-a" class="variant active">
+  <h1>A: Geometric Brass — mechanical extension of the tree canopy language</h1>
+  <p class="subtitle">Same faceted low-poly language as the winning tree canopy (sketch 001): angular polygon panels, brass/copper gradients, small gold gear rivets as a recurring accent. Machines read as "mechanical siblings" of the trees.</p>
+
+  <div class="section-label">Machines</div>
+  <div class="row" id="machines-a"></div>
+
+  <div class="section-label">Worker redesign — Canvas 2D faceted sprite (replaces the current CSS/DOM divs)</div>
+  <div class="row worker-row" id="workers-a"></div>
+
+  <div class="compare-note"><b>Look for:</b> do the faceted panels feel like the same family as the tree canopy, or too busy next to a whole orchard of faceted trees?</div>
+</div>
+
+<!-- ============ VARIANT B ============ -->
+<div id="variant-b" class="variant">
+  <h1>B: Grounded Steampunk Machinery — boilers, rivets, pistons</h1>
+  <p class="subtitle">A more literal industrial-steampunk read: riveted cylindrical boiler tanks, piston rods, smokestacks with puffing smoke. Heavier, more "real machine" than variant A's stylized facets.</p>
+
+  <div class="section-label">Machines</div>
+  <div class="row" id="machines-b"></div>
+
+  <div class="section-label">Worker redesign — sturdier boiler-backpack operator</div>
+  <div class="row worker-row" id="workers-b"></div>
+
+  <div class="compare-note"><b>Look for:</b> does the added mechanical detail (rivets, smoke, pistons) read clearly at small on-screen size, or turn to visual noise once several machines are working a field at once?</div>
+</div>
+
+<!-- ============ VARIANT C ============ -->
+<div id="variant-c" class="variant">
+  <h1>C: Toy Geometric — friendlier, Beavers-City-inspired</h1>
+  <p class="subtitle">Rounded, simplified shapes with big friendly wheels and soft warm color blocks (still brass/copper-adjacent, not a full palette swap) — leans toward the "Beavers City" friendliness direction raised earlier in this project's design discussion, applied to machines and workers rather than the already-locked tree style.</p>
+
+  <div class="section-label">Machines</div>
+  <div class="row" id="machines-c"></div>
+
+  <div class="section-label">Worker redesign — chibi-proportioned</div>
+  <div class="row worker-row" id="workers-c"></div>
+
+  <div class="compare-note"><b>Look for:</b> does the softer worker/machine silhouette clash with the more serious faceted tree canopy, or read as a nice "characters vs. scenery" contrast?</div>
+</div>
+
+<div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(0,0,0,0.7);color:white;padding:8px 12px;border-radius:8px;opacity:0.4;transition:opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.4'">
+  Sketch 002 · Machines &amp; Workers
+</div>
+
+<script>
+function showVariant(id) {
+  document.querySelectorAll('.variant').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('variant-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ---------- shared helpers ----------
+function mulberry32(seed) {
+  let s = seed;
+  return function () {
+    s |= 0; s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function darken(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.floor(((n >> 16) & 255) * f), g = Math.floor(((n >> 8) & 255) * f), b = Math.floor((n & 255) * f);
+  return `rgb(${r},${g},${b})`;
+}
+function makeCanvas(container, w, h, label, sub) {
+  const item = document.createElement('div');
+  item.className = 'item';
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  item.appendChild(c);
+  const l = document.createElement('div');
+  l.className = 'label'; l.textContent = label;
+  item.appendChild(l);
+  if (sub) { const s = document.createElement('div'); s.className = 'sub'; s.textContent = sub; item.appendChild(s); }
+  container.appendChild(item);
+  return c.getContext('2d');
+}
+function drawGroundShadow(ctx, x, y, w) {
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath(); ctx.ellipse(x, y, w, w * 0.28, 0, 0, Math.PI * 2); ctx.fill();
+}
+function drawWheel(ctx, x, y, r, hub) {
+  const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+  grad.addColorStop(0, '#3a3a3a'); grad.addColorStop(1, '#0a0a0a');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = hub || '#c9922e';
+  ctx.beginPath(); ctx.arc(x, y, r * 0.4, 0, Math.PI * 2); ctx.fill();
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// ================= VARIANT A: Geometric Brass =================
+function facetBlob(ctx, cx, cy, r, sides, seed, c1, c2) {
+  const rng = mulberry32(seed);
+  ctx.save();
+  const grad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  grad.addColorStop(0, c1); grad.addColorStop(1, c2);
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = 'rgba(212,175,55,0.6)'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i < sides; i++) {
+    const ang = (Math.PI * 2 * i) / sides - Math.PI / 2;
+    const rr = r * (0.82 + rng() * 0.3);
+    const px = cx + Math.cos(ang) * rr, py = cy + Math.sin(ang) * rr * 0.75;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+function gearRivetA(ctx, x, y, r) {
+  ctx.save(); ctx.translate(x, y);
+  const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r * 1.3);
+  grad.addColorStop(0, '#ffe9a8'); grad.addColorStop(0.55, '#c9922e'); grad.addColorStop(1, '#7a5a12');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  for (let i = 0; i < 16; i++) {
+    const ang = (Math.PI * i) / 8;
+    const rad = i % 2 === 0 ? r : r * 0.68;
+    ctx.lineTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function connectorA(ctx, x1, y1, x2, y2, w) {
+  ctx.strokeStyle = '#8a5a2a'; ctx.lineWidth = w || 6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+}
+function drawTractorA(ctx, seed) {
+  drawGroundShadow(ctx, 100, 178, 56);
+  drawWheel(ctx, 62, 168, 22); drawWheel(ctx, 138, 168, 26);
+  connectorA(ctx, 62, 148, 138, 142, 26);
+  facetBlob(ctx, 105, 128, 40, 6, seed, '#c9922e', '#7a4f18');
+  facetBlob(ctx, 75, 98, 20, 5, seed + 1, '#e8c168', '#a8792e');
+  gearRivetA(ctx, 105, 128, 8);
+}
+function drawSpreaderA(ctx, seed) {
+  drawGroundShadow(ctx, 100, 178, 58);
+  drawWheel(ctx, 62, 172, 18); drawWheel(ctx, 138, 172, 18);
+  connectorA(ctx, 62, 155, 138, 155, 20);
+  facetBlob(ctx, 100, 118, 46, 7, seed, '#b87333', '#5c3616');
+  for (let i = 0; i < 6; i++) {
+    const ang = (Math.PI * 2 * i) / 6;
+    facetBlob(ctx, 100 + Math.cos(ang) * 12, 120 + Math.sin(ang) * 10, 10, 5, seed + i + 5, '#e8c168', '#a8792e');
+  }
+  gearRivetA(ctx, 100, 120, 7);
+}
+function drawHarvesterA(ctx, seed) {
+  drawGroundShadow(ctx, 100, 178, 56);
+  drawWheel(ctx, 65, 170, 20); drawWheel(ctx, 135, 170, 24);
+  connectorA(ctx, 65, 152, 135, 148, 24);
+  facetBlob(ctx, 102, 128, 38, 6, seed, '#c9922e', '#7a4f18');
+  // support arm from body up to the collection scoop
+  connectorA(ctx, 90, 100, 78, 62, 8);
+  // faceted collection scoop, raised in front, now anchored by the arm
+  for (let i = 0; i < 5; i++) {
+    const ang = -Math.PI * 0.9 + (i / 4) * Math.PI * 0.8;
+    facetBlob(ctx, 78 + Math.cos(ang) * 34, 55 + Math.sin(ang) * 16, 13, 5, seed + i + 20, '#e0115f', '#7a0d3f');
+  }
+  gearRivetA(ctx, 102, 128, 8);
+}
+function drawPrunerA(ctx, seed) {
+  drawGroundShadow(ctx, 100, 178, 40);
+  facetBlob(ctx, 100, 148, 26, 6, seed, '#c9922e', '#7a4f18');
+  // mounting rod up to the scissor head
+  connectorA(ctx, 100, 130, 100, 100, 7);
+  ctx.save();
+  ctx.translate(100, 92);
+  ctx.rotate(-0.35);
+  facetBlob(ctx, -16, -14, 18, 4, seed + 3, '#e8ecef', '#8a9aa5');
+  ctx.rotate(0.7);
+  facetBlob(ctx, 16, -14, 18, 4, seed + 4, '#e8ecef', '#8a9aa5');
+  ctx.restore();
+  gearRivetA(ctx, 100, 148, 7);
+}
+function drawWorkerA(ctx, seed) {
+  drawGroundShadow(ctx, 60, 178, 22);
+  facetBlob(ctx, 60, 150, 12, 5, seed, '#166534', '#0a3d1e'); // legs/base
+  facetBlob(ctx, 60, 118, 18, 6, seed + 1, '#854d0e', '#4a2a08'); // torso
+  facetBlob(ctx, 60, 88, 11, 6, seed + 2, '#D4A76A', '#8a6a3e'); // head
+  gearRivetA(ctx, 44, 118, 6); // backpack gear
+}
+
+// ================= VARIANT B: Grounded Steampunk Machinery =================
+function cylinderB(ctx, x, y, w, h, c1, c2, rivets) {
+  const grad = ctx.createLinearGradient(x, y, x + w, y);
+  grad.addColorStop(0, darken(c1, 0.55)); grad.addColorStop(0.35, c1); grad.addColorStop(0.65, c1); grad.addColorStop(1, darken(c1, 0.5));
+  ctx.fillStyle = grad;
+  roundRect(ctx, x, y, w, h, h * 0.22); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1.5;
+  roundRect(ctx, x, y, w, h, h * 0.22); ctx.stroke();
+  if (rivets) {
+    ctx.fillStyle = '#3a3a3a';
+    for (let i = 0; i < rivets; i++) {
+      const rx = x + (w / (rivets + 1)) * (i + 1);
+      ctx.beginPath(); ctx.arc(rx, y + 4, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(rx, y + h - 4, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+function smokestackB(ctx, x, y) {
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(x - 4, y - 22, 8, 22);
+  ctx.fillStyle = 'rgba(200,200,200,0.35)';
+  ctx.beginPath(); ctx.arc(x, y - 28, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(200,200,200,0.22)';
+  ctx.beginPath(); ctx.arc(x + 6, y - 40, 10, 0, Math.PI * 2); ctx.fill();
+}
+function pistonB(ctx, x1, y1, x2, y2) {
+  ctx.strokeStyle = '#8a8a8a'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.fillStyle = '#c9922e';
+  ctx.beginPath(); ctx.arc(x1, y1, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x2, y2, 4, 0, Math.PI * 2); ctx.fill();
+}
+function drawTractorB(ctx) {
+  drawGroundShadow(ctx, 100, 178, 58);
+  drawWheel(ctx, 58, 168, 24, '#8a5a2a'); drawWheel(ctx, 142, 168, 30, '#8a5a2a');
+  cylinderB(ctx, 60, 108, 90, 44, '#b87333', '#5c3616', 4);
+  pistonB(ctx, 100, 150, 130, 168);
+  smokestackB(ctx, 78, 108);
+  ctx.fillStyle = '#eae0c8'; ctx.beginPath(); ctx.arc(150, 130, 5, 0, Math.PI * 2); ctx.fill();
+}
+function drawSpreaderB(ctx) {
+  drawGroundShadow(ctx, 100, 178, 62);
+  drawWheel(ctx, 55, 170, 18, '#8a5a2a'); drawWheel(ctx, 145, 170, 18, '#8a5a2a');
+  cylinderB(ctx, 45, 90, 110, 68, '#8a5a2a', '#3a2410', 6);
+  ctx.fillStyle = '#3a2410';
+  ctx.beginPath(); ctx.moveTo(140, 130); ctx.lineTo(170, 150); ctx.lineTo(140, 158); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#c9922e'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(60, 105, 8, 0, Math.PI * 2); ctx.stroke();
+}
+function drawHarvesterB(ctx) {
+  drawGroundShadow(ctx, 100, 178, 60);
+  drawWheel(ctx, 60, 170, 22, '#8a5a2a'); drawWheel(ctx, 140, 170, 26, '#8a5a2a');
+  cylinderB(ctx, 55, 100, 100, 52, '#b87333', '#5c3616', 5);
+  // conveyor ladder hint
+  ctx.strokeStyle = '#3a3a3a'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(60, 100); ctx.lineTo(30, 60); ctx.stroke();
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath(); ctx.moveTo(58 - i * 8, 96 - i * 10); ctx.lineTo(48 - i * 8, 96 - i * 10); ctx.stroke();
+  }
+  cylinderB(ctx, 8, 40, 40, 30, '#9b111e', '#4a0810', 3);
+  smokestackB(ctx, 128, 100);
+}
+function drawPrunerB(ctx) {
+  drawGroundShadow(ctx, 100, 178, 40);
+  cylinderB(ctx, 82, 130, 36, 44, '#8a5a2a', '#3a2410', 3);
+  pistonB(ctx, 100, 130, 82, 92);
+  pistonB(ctx, 100, 130, 118, 92);
+  ctx.fillStyle = '#c9c9c9';
+  ctx.beginPath(); ctx.moveTo(82, 92); ctx.lineTo(58, 78); ctx.lineTo(80, 100); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(118, 92); ctx.lineTo(142, 78); ctx.lineTo(120, 100); ctx.closePath(); ctx.fill();
+}
+function drawWorkerB(ctx) {
+  drawGroundShadow(ctx, 60, 178, 24);
+  ctx.fillStyle = '#27272a'; roundRect(ctx, 50, 140, 20, 30, 4); ctx.fill(); // legs
+  cylinderB(ctx, 42, 100, 36, 42, '#7c2d12', '#3a1408', 2); // torso
+  cylinderB(ctx, 30, 105, 12, 26, '#8a5a2a', '#3a2410', 2); // backpack boiler
+  ctx.fillStyle = '#D4A76A'; ctx.beginPath(); ctx.arc(60, 88, 11, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2a2a2a'; roundRect(ctx, 52, 84, 16, 6, 2); ctx.fill(); // goggles
+}
+
+// ================= VARIANT C: Toy Geometric =================
+function toyBody(ctx, x, y, w, h, c1, c2) {
+  const grad = ctx.createLinearGradient(x, y, x, y + h);
+  grad.addColorStop(0, c1); grad.addColorStop(1, c2);
+  ctx.fillStyle = grad;
+  roundRect(ctx, x, y, w, h, h * 0.45); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 2;
+  roundRect(ctx, x, y, w, h, h * 0.45); ctx.stroke();
+}
+function toyWheel(ctx, x, y, r) {
+  ctx.fillStyle = '#4a3420';
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#e8dcc4';
+  ctx.beginPath(); ctx.arc(x, y, r * 0.4, 0, Math.PI * 2); ctx.fill();
+}
+function drawTractorC(ctx) {
+  drawGroundShadow(ctx, 100, 178, 56);
+  toyWheel(ctx, 62, 168, 26); toyWheel(ctx, 138, 168, 30);
+  toyBody(ctx, 45, 120, 110, 46, '#e8b04f', '#c97b3d');
+  toyBody(ctx, 60, 85, 55, 40, '#f2d9a8', '#e0b26b');
+  ctx.fillStyle = '#fff8e8'; ctx.beginPath(); ctx.arc(145, 140, 6, 0, Math.PI * 2); ctx.fill();
+}
+function drawSpreaderC(ctx) {
+  drawGroundShadow(ctx, 100, 178, 60);
+  toyWheel(ctx, 58, 172, 20); toyWheel(ctx, 142, 172, 20);
+  toyBody(ctx, 42, 100, 116, 68, '#c97b3d', '#a8602a');
+  ctx.fillStyle = '#f2d9a8';
+  ctx.beginPath(); ctx.ellipse(100, 105, 40, 12, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(150, 130); ctx.quadraticCurveTo(175, 140, 155, 155); ctx.quadraticCurveTo(160, 138, 150, 130); ctx.fill();
+}
+function drawHarvesterC(ctx) {
+  drawGroundShadow(ctx, 100, 178, 60);
+  toyWheel(ctx, 62, 172, 24); toyWheel(ctx, 140, 172, 28);
+  toyBody(ctx, 55, 110, 100, 50, '#e8b04f', '#c97b3d');
+  ctx.fillStyle = '#e0115f';
+  ctx.beginPath(); ctx.moveTo(40, 100); ctx.quadraticCurveTo(20, 80, 40, 65); ctx.quadraticCurveTo(60, 80, 55, 105); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 2; ctx.stroke();
+  toyBody(ctx, 70, 85, 45, 32, '#f2d9a8', '#e0b26b');
+}
+function drawPrunerC(ctx) {
+  drawGroundShadow(ctx, 100, 178, 36);
+  toyBody(ctx, 78, 120, 44, 48, '#c97b3d', '#a8602a');
+  ctx.fillStyle = '#e8dcc4';
+  ctx.beginPath(); ctx.moveTo(78, 118); ctx.quadraticCurveTo(50, 100, 62, 80); ctx.quadraticCurveTo(85, 95, 88, 118); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(122, 118); ctx.quadraticCurveTo(150, 100, 138, 80); ctx.quadraticCurveTo(115, 95, 112, 118); ctx.closePath(); ctx.fill();
+}
+function drawWorkerC(ctx) {
+  drawGroundShadow(ctx, 60, 178, 24);
+  ctx.fillStyle = '#166534'; roundRect(ctx, 48, 145, 24, 26, 8); ctx.fill();
+  toyBody(ctx, 40, 108, 40, 40, '#854d0e', '#5c3608');
+  ctx.fillStyle = '#f2c896';
+  ctx.beginPath(); ctx.arc(60, 88, 20, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2a2a2a';
+  ctx.beginPath(); ctx.arc(53, 86, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(67, 86, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(60, 92, 6, 0.1 * Math.PI, 0.9 * Math.PI); ctx.stroke();
+}
+
+// ---------- render all ----------
+function render() {
+  [['machines-a', [ [drawTractorA,'Tractor',1], [drawSpreaderA,'Manure Spreader',2], [drawHarvesterA,'Fruit Harvester',3], [drawPrunerA,'Branch Pruner',4] ]],
+  ].forEach(([containerId, items]) => {
+    const el = document.getElementById(containerId);
+    items.forEach(([fn, label, seed]) => { const ctx = makeCanvas(el, 200, 200, label); fn(ctx, seed * 17); });
+  });
+  { const el = document.getElementById('workers-a'); const ctx = makeCanvas(el, 120, 200, 'Worker (Owner)', 'faceted, matches canopy'); drawWorkerA(ctx, 5); }
+
+  [['machines-b', [ [drawTractorB,'Tractor'], [drawSpreaderB,'Manure Spreader'], [drawHarvesterB,'Fruit Harvester'], [drawPrunerB,'Branch Pruner'] ]],
+  ].forEach(([containerId, items]) => {
+    const el = document.getElementById(containerId);
+    items.forEach(([fn, label]) => { const ctx = makeCanvas(el, 200, 200, label); fn(ctx); });
+  });
+  { const el = document.getElementById('workers-b'); const ctx = makeCanvas(el, 120, 200, 'Worker (Owner)', 'boiler-backpack operator'); drawWorkerB(ctx); }
+
+  [['machines-c', [ [drawTractorC,'Tractor'], [drawSpreaderC,'Manure Spreader'], [drawHarvesterC,'Fruit Harvester'], [drawPrunerC,'Branch Pruner'] ]],
+  ].forEach(([containerId, items]) => {
+    const el = document.getElementById(containerId);
+    items.forEach(([fn, label]) => { const ctx = makeCanvas(el, 200, 200, label); fn(ctx); });
+  });
+  { const el = document.getElementById('workers-c'); const ctx = makeCanvas(el, 120, 200, 'Worker (Owner)', 'chibi-proportioned'); drawWorkerC(ctx); }
+}
+render();
+</script>
+</body>
+</html>

@@ -18,3 +18,4 @@ Hybrid visual direction for the cherry orchard/farm-plot view, replacing the cur
 | # | Name | Design Question | Winner | Tags |
 |---|------|----------------|--------|------|
 | 001 | orchard-isometric-trees | Does procedural Canvas 2D tree rendering in an isometric multi-parcel grid, styled in Neo-Steampunk palette, read clearly at both desktop and mobile sizes — and which of 3 tree-rendering styles fits best? | **A — Geometric Brass** (final, 2026-07-30) | orchard, canvas, isometric, trees |
+| 002 | machines-and-workers | What style should farm machines (tractor/spreader/harvester/pruner) and a redesigned Canvas 2D worker sprite use — extend Geometric Brass, go literal steampunk, or pivot friendlier/toy-geometric? | *pending user review* | machines, workers, orchard, canvas |
