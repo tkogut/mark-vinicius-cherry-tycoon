@@ -307,32 +307,45 @@ export function drawGroundDecor({ ctx, cx, cy, tileW, tileH, seed, phase }: Draw
     ctx.restore();
 }
 
-// ---------- Path lane (ragged-edge dirt track along a row corridor) ----------
+// ---------- Path lattice (ragged-edge dirt lanes along tile boundaries) ------
 //
 // Ported from the sketch's drawRaggedPath/drawPathSeams: a STRAIGHT centerline
 // whose edges are independently jittered per sample point, so the boundary
-// reads as a torn/trodden track rather than a bent line. Drawn per-tile (so it
-// inherits that tile's own z-index — required for correct occlusion against
-// trees on other rows) rather than as the sketch's whole-grid seam network.
+// reads as a torn/trodden track rather than a bent line.
 //
-// Because it is drawn per-tile but must READ as one continuous lane, the
-// ribbon is defined as a single global curve parameterised by the corridor
-// coordinate `u` (u = column index, so u is continuous across the whole row),
-// sampled at fixed rational positions k/PATH_SAMPLES_PER_TILE and jittered by
-// a position hash rather than a per-tile RNG stream. Every tile therefore
-// evaluates the *same* curve at the *same* world points, and each tile draws
-// it over-length (PATH_TILE_OVERSHOOT past its own boundaries) letting the
-// diamond clip do the trimming. Two earlier versions instead ended each tile's
-// polygon exactly at the shared edge midpoint with a flat cap and a per-tile
-// RNG: (a) the caps' jitter widths didn't match across the seam, and (b) the
-// band crosses the shared edge obliquely, so up to ~7px back from every
-// boundary a wedge of the band lies outside the drawing tile's own diamond
-// (clipped away) while the neighbour's polygon hadn't started yet — a hole
-// drawn by neither tile. That produced the visible periodic pinch.
+// GEOMETRY (per the reviewed red-line sketch, 2026-07-31): the lanes are the
+// grid's *boundaries*, not its cells — a lattice of tracks running along the
+// shared edges between tiles in both isometric axes, so trees sit in the
+// resulting cells and workers/machines travel between the tree rows. An
+// earlier version ran a single lane through the CENTRES of row r=2, which put
+// the track straight through those tiles' trees.
+//
+// Two lane families, both continuous straight lines across the whole sector:
+//   * Row separators    — between rows r and r+1; direction (+tileW/2, +tileH/2),
+//     made of each tile's bottom-left / top-right edge; indexed by column.
+//   * Column separators — between cols c and c+1; direction (-tileW/2, +tileH/2),
+//     made of each tile's bottom-right / top-left edge; indexed by row.
+//
+// CONTINUITY: each lane is a single global curve, sampled at fixed rational
+// positions k/PATH_SAMPLES_PER_TILE along the lane and jittered by a hash of
+// (lane key, k) rather than a per-tile RNG stream, so every tile evaluates the
+// *same* curve at the *same* world points. Each tile draws its slice
+// over-length (PATH_TILE_OVERSHOOT past its own boundaries) and lets the
+// diamond clip trim it. Two earlier versions instead ended each tile's polygon
+// at the shared edge midpoint with a flat cap and a per-tile RNG: (a) the caps'
+// jitter widths didn't match across the seam, and (b) the band crosses the
+// shared edge obliquely, so up to ~7px back from every boundary a wedge of the
+// band lay outside the drawing tile's own diamond (clipped away) while the
+// neighbour's polygon hadn't started yet — a hole drawn by neither tile, i.e.
+// the visible periodic pinch. Since a lane now sits ON a shared edge, both
+// adjacent tiles draw the same band and each contributes its own half.
 
 const PATH_SAMPLES_PER_TILE = 6;
 /** How far past its own centre (in tile units) each tile draws; > 0.5 so the diamond clip trims a real overlap. */
 const PATH_TILE_OVERSHOOT = 0.85;
+/** Hash namespaces keeping the two lane families' jitter streams distinct. */
+const LANE_KEY_ROW = 1000;
+const LANE_KEY_COL = 2000;
 
 /** Deterministic hash -> [0,1) from two integers. Position-keyed, so neighbouring tiles agree. */
 function hash01(a: number, b: number): number {
@@ -341,31 +354,47 @@ function hash01(a: number, b: number): number {
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
+/** One tile's slice of one lane of the lattice. */
+interface LaneSlice {
+    /** Offset from this tile's centre to the lane's anchor point at index `u`. */
+    ox: number;
+    oy: number;
+    /** Lane direction: world displacement per one step of `u`. */
+    sx: number;
+    sy: number;
+    /** This tile's index along the lane (column for row separators, row for column separators). */
+    u: number;
+    /** Identifies the lane globally, so both adjacent tiles hash the same jitter. */
+    laneKey: number;
+}
+
 /**
- * Draws one band of the global corridor ribbon, in this tile's local coords.
- * `col` is this tile's column index; the centreline runs through the tile
- * centre in the +col direction (+tileW/2, +tileH/2 per column step).
+ * Draws one band of one lane, in this tile's local coords. The band is a slice
+ * of a global straight ribbon: sample positions and jitter depend only on the
+ * lane and the global sample index, never on which tile is drawing.
  */
-function drawCorridorBand(
+function drawLaneBand(
     ctx: CanvasRenderingContext2D,
-    cx: number, cy: number, tileW: number, tileH: number,
-    col: number, halfWidth: number, color: string, seed: number, band: number
+    cx: number, cy: number, lane: LaneSlice,
+    halfWidth: number, color: string, seed: number, band: number
 ) {
-    const stepX = (tileW / 2) / PATH_SAMPLES_PER_TILE;
-    const stepY = (tileH / 2) / PATH_SAMPLES_PER_TILE;
+    const stepX = lane.sx / PATH_SAMPLES_PER_TILE;
+    const stepY = lane.sy / PATH_SAMPLES_PER_TILE;
     const len = Math.sqrt(stepX * stepX + stepY * stepY) || 1;
     const px = -(stepY / len), py = stepX / len;
 
-    const kCenter = col * PATH_SAMPLES_PER_TILE;
+    const ax = cx + lane.ox, ay = cy + lane.oy;
+    const kCenter = lane.u * PATH_SAMPLES_PER_TILE;
     const span = Math.round(PATH_SAMPLES_PER_TILE * PATH_TILE_OVERSHOOT);
+    const jitterSeed = seed + lane.laneKey * 8191 + band * 104729;
 
     const left: { x: number; y: number }[] = [];
     const right: { x: number; y: number }[] = [];
     for (let k = kCenter - span; k <= kCenter + span; k++) {
         const d = k - kCenter;
-        const sx = cx + stepX * d, sy = cy + stepY * d;
-        const jL = (0.45 + hash01(seed + band * 104729, k) * 0.7) * halfWidth;
-        const jR = (0.45 + hash01(seed + band * 104729 + 7919, k) * 0.7) * halfWidth;
+        const sx = ax + stepX * d, sy = ay + stepY * d;
+        const jL = (0.45 + hash01(jitterSeed, k) * 0.7) * halfWidth;
+        const jR = (0.45 + hash01(jitterSeed + 7919, k) * 0.7) * halfWidth;
         left.push({ x: sx + px * jL, y: sy + py * jL });
         right.push({ x: sx - px * jR, y: sy - py * jR });
     }
@@ -389,25 +418,43 @@ export interface DrawPathTileOptions {
     cy: number;
     tileW: number;
     tileH: number;
-    /** Corridor seed — must be identical for every tile of the same corridor. */
+    /** Lattice seed — must be identical for every tile of the same sector. */
     seed: number;
-    /** This tile's column index within the sector (the corridor coordinate). */
+    /** This tile's row index within the sector. */
+    row: number;
+    /** This tile's column index within the sector. */
     col: number;
+    /** Tiles per sector side, used to skip the sector's outer border edges. */
+    gridSize: number;
 }
 
 /**
- * Draws this tile's slice of the sector's ragged-edge dirt path lane, clipped
- * to the tile's diamond.
+ * Draws this tile's slice of the sector's ragged-edge dirt path lattice,
+ * clipped to the tile's diamond.
  *
- * Two same-row tiles (r, c) and (r, c+1) share the edge running from (r,c)'s
- * BOTTOM vertex to its RIGHT vertex (isometric projection: moving +1 in col
- * shifts both x and y by +TILE_W/2, +TILE_H/2 — a down-right diagonal, not a
- * horizontal one), whose midpoint is local (0.75*tileW, 0.75*tileH). So the
- * corridor runs through the top-left and bottom-right edge midpoints, and the
- * lane for the whole row starts/ends at the sector's border (the outer halves
- * of tiles c=0 / c=SECTOR_SIZE-1 fall outside their diamonds and are clipped).
+ * Each interior tile edge carries a lane, so a tile contributes up to four
+ * half-bands (one per non-border edge). Both tiles sharing an edge draw the
+ * *same* band and each keeps the half inside its own diamond, which is what
+ * makes the lane continuous across the boundary.
+ *
+ * Edge midpoints in local coords: bottom-left (-tileW/4, +tileH/4) is shared
+ * with (row+1, col); bottom-right (+tileW/4, +tileH/4) with (row, col+1);
+ * top-right (+tileW/4, -tileH/4) with (row-1, col); top-left (-tileW/4,
+ * -tileH/4) with (row, col-1).
  */
-export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, col }: DrawPathTileOptions) {
+export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, row, col, gridSize }: DrawPathTileOptions) {
+    const hw = tileW / 4, hh = tileH / 4;
+    const lanes: LaneSlice[] = [];
+
+    // Row separators — run in the +col direction, indexed by column.
+    if (row < gridSize - 1) lanes.push({ ox: -hw, oy: hh, sx: tileW / 2, sy: tileH / 2, u: col, laneKey: LANE_KEY_ROW + row });
+    if (row > 0) lanes.push({ ox: hw, oy: -hh, sx: tileW / 2, sy: tileH / 2, u: col, laneKey: LANE_KEY_ROW + row - 1 });
+    // Column separators — run in the +row direction, indexed by row.
+    if (col < gridSize - 1) lanes.push({ ox: hw, oy: hh, sx: -tileW / 2, sy: tileH / 2, u: row, laneKey: LANE_KEY_COL + col });
+    if (col > 0) lanes.push({ ox: -hw, oy: -hh, sx: -tileW / 2, sy: tileH / 2, u: row, laneKey: LANE_KEY_COL + col - 1 });
+
+    if (lanes.length === 0) return;
+
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(cx, cy - tileH / 2);
@@ -417,8 +464,12 @@ export function drawPathTile({ ctx, cx, cy, tileW, tileH, seed, col }: DrawPathT
     ctx.closePath();
     ctx.clip();
 
-    drawCorridorBand(ctx, cx, cy, tileW, tileH, col, tileW * 0.09, '#2f2010', seed, 0);
-    drawCorridorBand(ctx, cx, cy, tileW, tileH, col, tileW * 0.045, '#785630', seed, 1);
+    // All dark bands first, then all light cores, so lanes crossing at a
+    // junction read as one continuous surface rather than stacked ribbons.
+    // Narrow: the lattice puts a lane on every tile edge, so a width that read
+    // well as a single lane would turn the sector into more track than field.
+    for (const lane of lanes) drawLaneBand(ctx, cx, cy, lane, tileW * 0.042, '#2f2010', seed, 0);
+    for (const lane of lanes) drawLaneBand(ctx, cx, cy, lane, tileW * 0.022, '#785630', seed, 1);
 
     ctx.restore();
 }

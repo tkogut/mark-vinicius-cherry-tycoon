@@ -237,7 +237,7 @@ const SeasonalVFX = React.memo(({ season }: { season: string }) => {
 // Brass integration) — trunk and branches are now drawn directly on the
 // per-tree canvas in MechanicalTree, including the winter case.
 
-const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, parcel, isPathTile, pathCol }: any) => {
+const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, parcel, tileRow, tileCol }: any) => {
     const humidity = parcel?.humidity || 0.5;
     const fertility = parcel?.fertility || 0.5;
 
@@ -269,10 +269,12 @@ const GroundParcel = React.memo(({ x, y, isSelected, onClick, styles, parcelId, 
         // and muted it to near-invisibility. Drawing on top keeps the path
         // readable while trees (drawn in their own later canvas) still occlude
         // it correctly via the shared y-based zIndex.
-        if (isPathTile) {
-            drawPathTile({ ctx, cx: canvas.width / 2, cy: canvas.height / 2, tileW: TILE_W, tileH: TILE_H, seed: decorSeed, col: pathCol });
-        }
-    }, [decorSeed, styles.phase, isPathTile, pathCol]);
+        drawPathTile({
+            ctx, cx: canvas.width / 2, cy: canvas.height / 2,
+            tileW: TILE_W, tileH: TILE_H, seed: decorSeed,
+            row: tileRow, col: tileCol, gridSize: SECTOR_SIZE
+        });
+    }, [decorSeed, styles.phase, tileRow, tileCol]);
 
     return (
         <div
@@ -851,22 +853,19 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 const { x, y } = projectToIso(r, c, s);
 
                 // 1. Soil Plane
-                // Path spine runs along the middle row (r === 2), matching the existing
-                // bridge crossing point between sectors — gives every sector one
-                // continuous ragged dirt lane connecting its edges. Drawn per-tile so it
-                // inherits this tile's own depth key (see zIndex note below).
-                const isPathTile = r === 2;
+                // Every tile draws its slice of the sector's path lattice: the lanes run
+                // along the tile BOUNDARIES in both isometric axes (reviewed red-line
+                // sketch, 2026-07-31), so trees sit in the cells and workers/machines
+                // travel between the tree rows. Drawn per-tile so each lane slice
+                // inherits its tile's own depth key (see zIndex note below).
                 entities.push({
                     type: 'soil',
                     key: `soil-${idx}-${s}`,
                     parcelId: parcel.id,
                     parcel,
                     x, y, r, c, s,
-                    isPathTile,
-                    // The lane is one global curve in corridor coordinates; each tile
-                    // draws its own over-length slice of it and lets its diamond clip
-                    // trim the overlap, so the row reads as one continuous ribbon.
-                    pathCol: c,
+                    tileRow: r,
+                    tileCol: c,
                     // Depth is keyed off the continuous projected y (not the coarse (r+c)
                     // tile bucket) so painter's-algorithm order matches actual screen
                     // position — trees and NPCs share this same depth key below, which is
@@ -1047,8 +1046,8 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                             styles={seasonStyles}
                                             parcelId={entity.parcelId}
                                             parcel={entity.parcel}
-                                            isPathTile={entity.isPathTile}
-                                            pathCol={entity.pathCol}
+                                            tileRow={entity.tileRow}
+                                            tileCol={entity.tileCol}
                                             isSelected={selectedParcel?.id === entity.parcelId}
                                             onClick={(e: any) => {
                                                 e.stopPropagation();
