@@ -59,33 +59,47 @@ const nearVal = (a: number, b: number) => Math.abs(a - b) < 0.01;
 interface RouteWaypoint { r: number; c: number; }
 
 /**
- * Builds the waypoint list from a tile centre to a target tile centre, with
- * every long leg constrained to a lattice lane. Consecutive waypoints always
- * differ in exactly one coordinate, so the mover can advance one axis at a
- * time. All lanes chosen are interior (0.5 … SECTOR_SIZE-1.5), never the
- * sector's outer border.
+ * Builds the waypoint list from the NPC's position to a target tile, with every
+ * long leg constrained to a lattice lane. Consecutive waypoints always differ
+ * in exactly one coordinate, so the mover can advance one axis at a time. All
+ * lanes chosen are interior (0.5 … SECTOR_SIZE-1.5), never the sector's outer
+ * border.
+ *
+ * `stopShort` (the default, for tile/tree visits) ends the route HALFWAY between
+ * the lane and the tile centre rather than on the centre itself — an NPC that
+ * walks all the way to the centre stands inside the trunk. Bridge staging
+ * passes false, because the bridge crossing is interpolated from the row-2 edge
+ * tile's exact centre and a short stop there would read as a jump.
  */
-const buildLatticeRoute = (fromR: number, fromC: number, toR: number, toC: number, size: number): RouteWaypoint[] => {
-    if (nearVal(fromR, toR) && nearVal(fromC, toC)) return [];
-
+const buildLatticeRoute = (fromR: number, fromC: number, toR: number, toC: number, size: number, stopShort = true): RouteWaypoint[] => {
     const baseR = Math.round(fromR);
+    const baseC = Math.round(fromC);
+
+    // Column lane bounding the target tile, on the side we approach from.
+    let laneC: number;
+    if (toC > baseC) laneC = toC - LANE_HALF;
+    else if (toC < baseC) laneC = toC + LANE_HALF;
+    else laneC = toC < size - 1 ? toC + LANE_HALF : toC - LANE_HALF;
+
+    // Final standing spot: on the lane side of the trunk, half a spur short of it.
+    const stopC = stopShort ? (laneC + toC) / 2 : toC;
+
+    // Already standing in the target tile — just adjust within it.
+    if (baseR === toR && baseC === toC) {
+        return nearVal(fromR, toR) && nearVal(fromC, stopC) ? [] : [{ r: toR, c: fromC }, { r: toR, c: stopC }];
+    }
+
     // Row lane bounding the current tile, on the side facing the target row.
     let laneR: number;
     if (toR > baseR) laneR = baseR + LANE_HALF;
     else if (toR < baseR) laneR = baseR - LANE_HALF;
     else laneR = baseR < size - 1 ? baseR + LANE_HALF : baseR - LANE_HALF;
 
-    // Column lane bounding the target tile, on the side we approach from.
-    let laneC: number;
-    if (toC > fromC) laneC = toC - LANE_HALF;
-    else if (toC < fromC) laneC = toC + LANE_HALF;
-    else laneC = toC < size - 1 ? toC + LANE_HALF : toC - LANE_HALF;
-
     return [
-        { r: laneR, c: fromC },  // spur onto the row lane
+        { r: laneR, c: fromC },  // spur off the tile onto the row lane
         { r: laneR, c: laneC },  // along the row lane
         { r: toR, c: laneC },    // along the column lane
-        { r: toR, c: toC },      // spur into the target tile
+        { r: toR, c: stopC },    // spur off the lane, stopping short of the trunk
     ];
 };
 
@@ -674,8 +688,8 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
     }, [displayParcels, sectorsCount]);
 
     // Fixed Workers (NPCs) with Manhattan Movement and Seasonal Behavior
-    const [workerPos, setWorkerPos] = useState({ r: 0, c: 0, s: 0, targetR: 2, targetC: 2, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, route: [] as RouteWaypoint[] });
-    const [helperPos, setHelperPos] = useState({ r: 4, c: 4, s: 0, targetR: 1, targetC: 1, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, route: [] as RouteWaypoint[] });
+    const [workerPos, setWorkerPos] = useState({ r: 0, c: 0, s: 0, targetR: 2, targetC: 2, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
+    const [helperPos, setHelperPos] = useState({ r: 4, c: 4, s: 0, targetR: 1, targetC: 1, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
 
     const hasHelper = !!(hiredLabor && hiredLabor.length > 0);
 
@@ -715,64 +729,71 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 if (prev.s < prev.targetS) { destR = 2; destC = SECTOR_SIZE - 1; }
                 else if (prev.s > prev.targetS) { destR = 2; destC = 0; }
 
-                let route = prev.route || [];
-                const last = route[route.length - 1];
-                // Rebuild when the route is spent, or stale after the destination moved.
-                if (route.length === 0 || !last || !nearVal(last.r, destR) || !nearVal(last.c, destC)) {
-                    if (nearVal(prev.r, destR) && nearVal(prev.c, destC)) {
-                        if (prev.s !== prev.targetS) {
-                            return { ...prev, onBridge: true, bridgeProgress: 0.05, route: [] };
-                        }
+                // Arrival is signalled by the route running out, NOT by matching the
+                // destination tile's centre — the route deliberately stops short of it.
+                const arrive = (state: typeof prev): typeof prev => {
+                    if (state.s !== state.targetS) {
+                        return { ...state, onBridge: true, bridgeProgress: 0.05, route: [], routeDestR: -1, routeDestC: -1 };
+                    }
 
-                        // Reached final target! Set pause based on season
-                        let pause = 0;
-                        if (phase === 'Harvest') pause = 50;
-                        else if (phase === 'Awakening' || phase === 'Bloom') pause = 25;
-                        else if (phase === 'Dormancy') pause = 120;
+                    // Reached final target! Set pause based on season
+                    let pause = 0;
+                    if (phase === 'Harvest') pause = 50;
+                    else if (phase === 'Awakening' || phase === 'Bloom') pause = 25;
+                    else if (phase === 'Dormancy') pause = 120;
 
-                        // Choose next target
-                        let nextTarget = { r: 2, c: 2, s: 0 };
-                        if (phase === 'Dormancy') {
-                            const atShelter = nearVal(prev.r, 0) && nearVal(prev.c, 0);
-                            nextTarget = atShelter ? { r: 4, c: 4, s: 0 } : { r: 0, c: 0, s: 0 };
-                        } else if ((phase === 'Harvest' || phase === 'Awakening' || phase === 'Bloom') && treePositions.length > 0) {
-                            const randTree = treePositions[Math.floor(Math.random() * treePositions.length)];
-                            nextTarget = { r: randTree.r, c: randTree.c, s: randTree.s };
-                        } else {
-                            nextTarget = {
-                                r: Math.floor(Math.random() * SECTOR_SIZE),
-                                c: Math.floor(Math.random() * SECTOR_SIZE),
-                                s: Math.floor(Math.random() * sectorsCount)
-                            };
-                        }
-
-                        return {
-                            ...prev,
-                            targetR: nextTarget.r,
-                            targetC: nextTarget.c,
-                            targetS: nextTarget.s,
-                            pauseTicks: pause,
-                            route: []
+                    // Choose next target. The shelter toggle compares the TARGET tile,
+                    // since the NPC now stops short of it and never sits on it exactly.
+                    let nextTarget = { r: 2, c: 2, s: 0 };
+                    if (phase === 'Dormancy') {
+                        const atShelter = state.targetR === 0 && state.targetC === 0;
+                        nextTarget = atShelter ? { r: 4, c: 4, s: 0 } : { r: 0, c: 0, s: 0 };
+                    } else if ((phase === 'Harvest' || phase === 'Awakening' || phase === 'Bloom') && treePositions.length > 0) {
+                        const randTree = treePositions[Math.floor(Math.random() * treePositions.length)];
+                        nextTarget = { r: randTree.r, c: randTree.c, s: randTree.s };
+                    } else {
+                        nextTarget = {
+                            r: Math.floor(Math.random() * SECTOR_SIZE),
+                            c: Math.floor(Math.random() * SECTOR_SIZE),
+                            s: Math.floor(Math.random() * sectorsCount)
                         };
                     }
-                    route = buildLatticeRoute(prev.r, prev.c, destR, destC, SECTOR_SIZE);
+
+                    return {
+                        ...state,
+                        targetR: nextTarget.r,
+                        targetC: nextTarget.c,
+                        targetS: nextTarget.s,
+                        pauseTicks: pause,
+                        route: [],
+                        routeDestR: -1,
+                        routeDestC: -1
+                    };
+                };
+
+                let route = prev.route || [];
+                // Rebuild when the route is spent, or stale after the destination moved.
+                if (route.length === 0 || prev.routeDestR !== destR || prev.routeDestC !== destC) {
+                    route = buildLatticeRoute(prev.r, prev.c, destR, destC, SECTOR_SIZE, prev.s === prev.targetS);
+                    if (route.length === 0) return arrive(prev);
+                    return { ...prev, route, routeDestR: destR, routeDestC: destC };
                 }
 
                 // Advance toward the next waypoint — one axis at a time, since
                 // consecutive waypoints differ in exactly one coordinate.
                 const wp = route[0];
-                if (!wp) return { ...prev, route: [] };
-
                 if (!nearVal(prev.r, wp.r)) {
                     const dR = wp.r > prev.r ? Math.min(step, wp.r - prev.r) : Math.max(-step, wp.r - prev.r);
-                    return { ...prev, r: prev.r + dR, route };
+                    return { ...prev, r: prev.r + dR };
                 }
                 if (!nearVal(prev.c, wp.c)) {
                     const dC = wp.c > prev.c ? Math.min(step, wp.c - prev.c) : Math.max(-step, wp.c - prev.c);
-                    return { ...prev, c: prev.c + dC, route };
+                    return { ...prev, c: prev.c + dC };
                 }
-                // Waypoint reached — snap onto it and take the next one.
-                return { ...prev, r: wp.r, c: wp.c, route: route.slice(1) };
+                // Waypoint reached — snap onto it; the last one means we have arrived.
+                const rest = route.slice(1);
+                const snapped = { ...prev, r: wp.r, c: wp.c, route: rest };
+                return rest.length === 0 ? arrive(snapped) : snapped;
             });
 
             // 2. Update Helper Worker (if present)
@@ -805,58 +826,62 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     if (prev.s < prev.targetS) { destR = 2; destC = SECTOR_SIZE - 1; }
                     else if (prev.s > prev.targetS) { destR = 2; destC = 0; }
 
-                    let route = prev.route || [];
-                    const last = route[route.length - 1];
-                    if (route.length === 0 || !last || !nearVal(last.r, destR) || !nearVal(last.c, destC)) {
-                        if (nearVal(prev.r, destR) && nearVal(prev.c, destC)) {
-                            if (prev.s !== prev.targetS) {
-                                return { ...prev, onBridge: true, bridgeProgress: 0.05, route: [] };
-                            }
+                    const arrive = (state: typeof prev): typeof prev => {
+                        if (state.s !== state.targetS) {
+                            return { ...state, onBridge: true, bridgeProgress: 0.05, route: [], routeDestR: -1, routeDestC: -1 };
+                        }
 
-                            let pause = 0;
-                            if (phase === 'Harvest') pause = 40;
-                            else if (phase === 'Awakening' || phase === 'Bloom') pause = 20;
-                            else if (phase === 'Dormancy') pause = 100;
+                        let pause = 0;
+                        if (phase === 'Harvest') pause = 40;
+                        else if (phase === 'Awakening' || phase === 'Bloom') pause = 20;
+                        else if (phase === 'Dormancy') pause = 100;
 
-                            let nextTarget = { r: 2, c: 2, s: 0 };
-                            if (phase === 'Dormancy') {
-                                const atShelter = nearVal(prev.r, 0) && nearVal(prev.c, SECTOR_SIZE - 1);
-                                nextTarget = atShelter ? { r: 4, c: 0, s: 0 } : { r: 0, c: 4, s: 0 };
-                            } else if ((phase === 'Harvest' || phase === 'Awakening' || phase === 'Bloom') && treePositions.length > 0) {
-                                const randTree = treePositions[Math.floor(Math.random() * treePositions.length)];
-                                nextTarget = { r: randTree.r, c: randTree.c, s: randTree.s };
-                            } else {
-                                nextTarget = {
-                                    r: Math.floor(Math.random() * SECTOR_SIZE),
-                                    c: Math.floor(Math.random() * SECTOR_SIZE),
-                                    s: Math.floor(Math.random() * sectorsCount)
-                                };
-                            }
-
-                            return {
-                                ...prev,
-                                targetR: nextTarget.r,
-                                targetC: nextTarget.c,
-                                targetS: nextTarget.s,
-                                pauseTicks: pause,
-                                route: []
+                        let nextTarget = { r: 2, c: 2, s: 0 };
+                        if (phase === 'Dormancy') {
+                            const atShelter = state.targetR === 0 && state.targetC === SECTOR_SIZE - 1;
+                            nextTarget = atShelter ? { r: 4, c: 0, s: 0 } : { r: 0, c: 4, s: 0 };
+                        } else if ((phase === 'Harvest' || phase === 'Awakening' || phase === 'Bloom') && treePositions.length > 0) {
+                            const randTree = treePositions[Math.floor(Math.random() * treePositions.length)];
+                            nextTarget = { r: randTree.r, c: randTree.c, s: randTree.s };
+                        } else {
+                            nextTarget = {
+                                r: Math.floor(Math.random() * SECTOR_SIZE),
+                                c: Math.floor(Math.random() * SECTOR_SIZE),
+                                s: Math.floor(Math.random() * sectorsCount)
                             };
                         }
-                        route = buildLatticeRoute(prev.r, prev.c, destR, destC, SECTOR_SIZE);
+
+                        return {
+                            ...state,
+                            targetR: nextTarget.r,
+                            targetC: nextTarget.c,
+                            targetS: nextTarget.s,
+                            pauseTicks: pause,
+                            route: [],
+                            routeDestR: -1,
+                            routeDestC: -1
+                        };
+                    };
+
+                    let route = prev.route || [];
+                    if (route.length === 0 || prev.routeDestR !== destR || prev.routeDestC !== destC) {
+                        route = buildLatticeRoute(prev.r, prev.c, destR, destC, SECTOR_SIZE, prev.s === prev.targetS);
+                        if (route.length === 0) return arrive(prev);
+                        return { ...prev, route, routeDestR: destR, routeDestC: destC };
                     }
 
                     const wp = route[0];
-                    if (!wp) return { ...prev, route: [] };
-
                     if (!nearVal(prev.r, wp.r)) {
                         const dR = wp.r > prev.r ? Math.min(step, wp.r - prev.r) : Math.max(-step, wp.r - prev.r);
-                        return { ...prev, r: prev.r + dR, route };
+                        return { ...prev, r: prev.r + dR };
                     }
                     if (!nearVal(prev.c, wp.c)) {
                         const dC = wp.c > prev.c ? Math.min(step, wp.c - prev.c) : Math.max(-step, wp.c - prev.c);
-                        return { ...prev, c: prev.c + dC, route };
+                        return { ...prev, c: prev.c + dC };
                     }
-                    return { ...prev, r: wp.r, c: wp.c, route: route.slice(1) };
+                    const rest = route.slice(1);
+                    const snapped = { ...prev, r: wp.r, c: wp.c, route: rest };
+                    return rest.length === 0 ? arrive(snapped) : snapped;
                 });
             }
         }, 30);
