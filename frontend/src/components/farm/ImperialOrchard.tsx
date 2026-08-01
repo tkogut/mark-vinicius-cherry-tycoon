@@ -24,6 +24,48 @@ const SECTOR_GAP = 72; // 120% Scaling (from 60)
 const X_OFFSET = SECTOR_SIZE * (TILE_W / 2); // 240px
 const Y_OFFSET = TILE_H / 2; // 24px
 
+// --- Sector layout --------------------------------------------------------
+//
+// Parcels tile the isometric plane like big diamonds rather than sitting in one
+// horizontal row (reviewed sketch, 2026-07-31): parcel 1 attaches UP-RIGHT of
+// the first, parcel 2 DOWN-RIGHT, parcel 3 to the RIGHT (= up-right + down-right),
+// and so on. A sector therefore lives at a cell (u, v) of a super-grid whose
+// axes are the same two isometric directions the tiles use:
+//   +v (down-right) == the +col direction, +u (up-right) == the -row direction.
+// The previous layout was `sectorIdx * (SECTOR_W + SECTOR_GAP)` on x only, i.e.
+// an ever-widening single row.
+const SECTOR_W = SECTOR_SIZE * TILE_W;                 // 480
+const SECTOR_H = SECTOR_SIZE * TILE_H;                 // 240
+const SECTOR_STEP_X = (SECTOR_W + SECTOR_GAP) / 2;     // 276 — half a sector + half a gap
+const SECTOR_STEP_Y = SECTOR_STEP_X / 2;               // 138 — keeps the 2:1 isometric ratio
+
+export interface SectorCell { u: number; v: number; }
+
+/**
+ * Stable placement of the i-th parcel on the super-grid. Fills expanding shells
+ * so a new parcel never moves the existing ones: shell k holds every cell with
+ * max(u,v) === k, ordered (k,0)…(k,k-1), (0,k)…(k-1,k), (k,k). For the first
+ * four that is (0,0) → (1,0) up-right → (0,1) down-right → (1,1) right, exactly
+ * the 1/2/3 order in the sketch.
+ */
+export const sectorCell = (i: number): SectorCell => {
+    const k = Math.floor(Math.sqrt(i));
+    const off = i - k * k;
+    if (off < k) return { u: k, v: off };
+    if (off < 2 * k) return { u: off - k, v: k };
+    return { u: k, v: k };
+};
+
+/**
+ * World offset of a sector's own origin, from its super-grid cell.
+ * +u is one step UP-RIGHT (+STEP_X, -STEP_Y), +v one step DOWN-RIGHT
+ * (+STEP_X, +STEP_Y); u = v = 1 therefore lands two steps to the RIGHT.
+ */
+export const sectorOrigin = (sectorIdx: number) => {
+    const { u, v } = sectorCell(sectorIdx);
+    return { x: (u + v) * SECTOR_STEP_X, y: (v - u) * SECTOR_STEP_Y };
+};
+
 // Helper to project grid coordinates (rows, cols) + sector offset to 2D screen coordinates
 const projectToIso = (row: number, col: number, sectorIdx: number = 0) => {
     const base = {
@@ -31,20 +73,43 @@ const projectToIso = (row: number, col: number, sectorIdx: number = 0) => {
         y: (col + row) * (TILE_H / 2)
     };
 
-    const sectorOffset = sectorIdx * ((SECTOR_SIZE * TILE_W) + SECTOR_GAP);
+    const origin = sectorOrigin(sectorIdx);
 
     return {
-        x: base.x + sectorOffset + X_OFFSET,
-        y: base.y + Y_OFFSET
+        x: base.x + origin.x + X_OFFSET,
+        y: base.y + origin.y + Y_OFFSET
     };
 };
 
-/** Row whose edge tiles carry the inter-sector crossing. */
-export const BRIDGE_ROW = 2;
+/** Middle row / column index — the crossing always uses the middle of a shared edge. */
+export const BRIDGE_ROW = Math.floor(SECTOR_SIZE / 2);
+export const BRIDGE_COL = Math.floor(SECTOR_SIZE / 2);
+/** Deck thickness across the direction of travel: one tile (reviewed sketch). */
+export const BRIDGE_DECK = TILE_H;
+
+/** The tiles a crossing leaves from / arrives at, for a super-grid step. */
+const crossingTiles = (du: number, dv: number) => {
+    // Exactly ONE step, on exactly one axis. A diagonal step (du and dv both
+    // non-zero, e.g. parcels 0 and 3) shares no edge and has no crossing.
+    if (du === 0 && dv === 1) return { exit: { r: BRIDGE_ROW, c: SECTOR_SIZE - 1 }, entry: { r: BRIDGE_ROW, c: 0 } };
+    if (du === 0 && dv === -1) return { exit: { r: BRIDGE_ROW, c: 0 }, entry: { r: BRIDGE_ROW, c: SECTOR_SIZE - 1 } };
+    if (dv === 0 && du === 1) return { exit: { r: 0, c: BRIDGE_COL }, entry: { r: SECTOR_SIZE - 1, c: BRIDGE_COL } };
+    if (dv === 0 && du === -1) return { exit: { r: SECTOR_SIZE - 1, c: BRIDGE_COL }, entry: { r: 0, c: BRIDGE_COL } };
+    return null;
+};
+
+/** True when two sectors share an edge (one super-grid step apart). */
+export const areSectorsAdjacent = (a: number, b: number): boolean => {
+    const ca = sectorCell(a), cb = sectorCell(b);
+    const du = cb.u - ca.u, dv = cb.v - ca.v;
+    return (Math.abs(du) === 1 && dv === 0) || (Math.abs(dv) === 1 && du === 0);
+};
 
 export interface BridgeGeometry {
     from: { x: number; y: number };
     to: { x: number; y: number };
+    exitTile: { r: number; c: number };
+    entryTile: { r: number; c: number };
     midX: number;
     midY: number;
     length: number;
@@ -58,15 +123,20 @@ export interface BridgeGeometry {
  * tile's y, while NPCs interpolated over the real (+360, -96) diagonal between
  * the two row-2 edge tile centres, so the walker crossed nowhere near the plank.
  */
-export const getBridgeGeometry = (fromSector: number, toSector: number): BridgeGeometry => {
-    const forward = toSector > fromSector;
-    const from = projectToIso(BRIDGE_ROW, forward ? SECTOR_SIZE - 1 : 0, fromSector);
-    const to = projectToIso(BRIDGE_ROW, forward ? 0 : SECTOR_SIZE - 1, toSector);
+export const getBridgeGeometry = (fromSector: number, toSector: number): BridgeGeometry | null => {
+    const ca = sectorCell(fromSector), cb = sectorCell(toSector);
+    const tiles = crossingTiles(cb.u - ca.u, cb.v - ca.v);
+    if (!tiles) return null; // not edge-adjacent — no crossing exists
+
+    const from = projectToIso(tiles.exit.r, tiles.exit.c, fromSector);
+    const to = projectToIso(tiles.entry.r, tiles.entry.c, toSector);
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     return {
         from,
         to,
+        exitTile: tiles.exit,
+        entryTile: tiles.entry,
         midX: (from.x + to.x) / 2,
         midY: (from.y + to.y) / 2,
         length: Math.sqrt(dx * dx + dy * dy),
@@ -136,6 +206,27 @@ const buildLatticeRoute = (fromR: number, fromC: number, toR: number, toC: numbe
         { r: toR, c: laneC },    // along the column lane
         { r: toR, c: stopC },    // spur off the lane, stopping short of the trunk
     ];
+};
+
+/**
+ * Next sector to step into when travelling from `s` toward `targetS`. Sector
+ * INDEX adjacency is not spatial adjacency on the diamond layout, so a trip is
+ * walked as a Manhattan path across the super-grid: close the u gap first, then
+ * the v gap, one shared edge at a time. Returns `s` when no neighbour exists in
+ * the needed direction (a hole in the layout), which parks the NPC instead of
+ * sending it across empty space.
+ */
+const nextSectorToward = (s: number, targetS: number, sectorsCount: number): number => {
+    if (s === targetS) return s;
+    const from = sectorCell(s), to = sectorCell(targetS);
+    const du = to.u - from.u, dv = to.v - from.v;
+    const wantU = du !== 0 ? from.u + Math.sign(du) : from.u;
+    const wantV = du !== 0 ? from.v : from.v + Math.sign(dv);
+    for (let i = 0; i < sectorsCount; i++) {
+        const c = sectorCell(i);
+        if (c.u === wantU && c.v === wantV) return i;
+    }
+    return s;
 };
 
 /** Season -> movement speed in tile units per tick. */
@@ -687,11 +778,28 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
     // Calculate sectorsCount based directly on the number of parcels
     const sectorsCount = displayParcels.length;
 
-    // Calculate default auto-zoom based on sector count
-    const defaultZoom = useMemo(() => {
-        // 1 sector: 1.0, 2 sectors: 0.85, 3 sectors: 0.7, etc.
-        return Math.min(1.2, Math.max(0.4, 1.25 / (1 + sectorsCount * 0.25)));
+    // World bounding box over the actual sector cells. The diamond layout grows
+    // in both axes and sectors up-right of the first have negative offsets, so
+    // the container can no longer be sized as one horizontal row.
+    const layoutBounds = useMemo(() => {
+        let minX = 0, maxX = 0, minY = 0, maxY = 0;
+        for (let s = 0; s < sectorsCount; s++) {
+            const o = sectorOrigin(s);
+            minX = Math.min(minX, o.x);
+            maxX = Math.max(maxX, o.x + SECTOR_W);
+            minY = Math.min(minY, o.y);
+            maxY = Math.max(maxY, o.y + SECTOR_H);
+        }
+        return { minX, minY, width: maxX - minX, height: maxY - minY };
     }, [sectorsCount]);
+
+    // Calculate default auto-zoom so the whole world fits, keyed off the real
+    // bounding box rather than the sector count (the layout is now 2D, so N
+    // sectors no longer imply a width of N).
+    const defaultZoom = useMemo(() => {
+        const spread = Math.max(layoutBounds.width / SECTOR_W, layoutBounds.height / SECTOR_H);
+        return Math.min(1.2, Math.max(0.4, 1.25 / (1 + spread * 0.25)));
+    }, [layoutBounds]);
 
     // Initialize zoom to defaultZoom when sectorsCount changes
     useEffect(() => {
@@ -723,8 +831,8 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
     }, [displayParcels, sectorsCount]);
 
     // Fixed Workers (NPCs) with Manhattan Movement and Seasonal Behavior
-    const [workerPos, setWorkerPos] = useState({ r: 0, c: 0, s: 0, targetR: 2, targetC: 2, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
-    const [helperPos, setHelperPos] = useState({ r: 4, c: 4, s: 0, targetR: 1, targetC: 1, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
+    const [workerPos, setWorkerPos] = useState({ r: 0, c: 0, s: 0, targetR: 2, targetC: 2, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, hopS: -1, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
+    const [helperPos, setHelperPos] = useState({ r: 4, c: 4, s: 0, targetR: 1, targetC: 1, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, hopS: -1, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
 
     const hasHelper = !!(hiredLabor && hiredLabor.length > 0);
 
@@ -735,14 +843,18 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 if (prev.onBridge) {
                     const nextProgress = prev.bridgeProgress + 0.05;
                     if (nextProgress >= 1.0) {
+                        const landing = getBridgeGeometry(prev.s, prev.hopS);
                         return {
                             ...prev,
                             onBridge: false,
                             bridgeProgress: 0,
-                            s: prev.targetS > prev.s ? prev.s + 1 : prev.s - 1,
-                            r: BRIDGE_ROW,
-                            c: prev.targetS > prev.s ? 0 : SECTOR_SIZE - 1,
-                            route: []
+                            s: landing ? prev.hopS : prev.s,
+                            r: landing ? landing.entryTile.r : prev.r,
+                            c: landing ? landing.entryTile.c : prev.c,
+                            hopS: -1,
+                            route: [],
+                            routeDestR: -1,
+                            routeDestC: -1
                         };
                     }
                     return { ...prev, bridgeProgress: nextProgress };
@@ -759,16 +871,21 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 // for the bridge crossing tile on row 2; same-sector trips head for
                 // the target tile. The walk itself is routed over the lattice by
                 // buildLatticeRoute, so long legs stay on the lanes.
+                // Cross-sector trips head for the exit tile of the crossing toward the
+                // NEXT sector on the super-grid path, which depends on direction — the
+                // diamond layout has up to four neighbours, not just s+/-1.
                 let destR = prev.targetR;
                 let destC = prev.targetC;
-                if (prev.s < prev.targetS) { destR = BRIDGE_ROW; destC = SECTOR_SIZE - 1; }
-                else if (prev.s > prev.targetS) { destR = BRIDGE_ROW; destC = 0; }
+                const hop = prev.s === prev.targetS ? prev.s : nextSectorToward(prev.s, prev.targetS, sectorsCount);
+                const hopSpan = hop === prev.s ? null : getBridgeGeometry(prev.s, hop);
+                if (hopSpan) { destR = hopSpan.exitTile.r; destC = hopSpan.exitTile.c; }
 
                 // Arrival is signalled by the route running out, NOT by matching the
                 // destination tile's centre — the route deliberately stops short of it.
                 const arrive = (state: typeof prev): typeof prev => {
-                    if (state.s !== state.targetS) {
-                        return { ...state, onBridge: true, bridgeProgress: 0.05, route: [], routeDestR: -1, routeDestC: -1 };
+                    const bridgeHop = state.s === state.targetS ? state.s : nextSectorToward(state.s, state.targetS, sectorsCount);
+                    if (bridgeHop !== state.s) {
+                        return { ...state, onBridge: true, bridgeProgress: 0.05, hopS: bridgeHop, route: [], routeDestR: -1, routeDestC: -1 };
                     }
 
                     // Reached final target! Set pause based on season
@@ -837,6 +954,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     if (prev.onBridge) {
                         const nextProgress = prev.bridgeProgress + 0.05;
                         if (nextProgress >= 1.0) {
+                            const landing = getBridgeGeometry(prev.s, prev.hopS);
                             return {
                                 ...prev,
                                 onBridge: false,
@@ -856,14 +974,19 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     const phase = seasonStyles.phase;
                     const step = stepForPhase(phase);
 
+                    // Cross-sector trips head for the exit tile of the crossing toward the
+                    // NEXT sector on the super-grid path, which depends on direction — the
+                    // diamond layout has up to four neighbours, not just s+/-1.
                     let destR = prev.targetR;
                     let destC = prev.targetC;
-                    if (prev.s < prev.targetS) { destR = BRIDGE_ROW; destC = SECTOR_SIZE - 1; }
-                    else if (prev.s > prev.targetS) { destR = BRIDGE_ROW; destC = 0; }
+                    const hop = prev.s === prev.targetS ? prev.s : nextSectorToward(prev.s, prev.targetS, sectorsCount);
+                    const hopSpan = hop === prev.s ? null : getBridgeGeometry(prev.s, hop);
+                    if (hopSpan) { destR = hopSpan.exitTile.r; destC = hopSpan.exitTile.c; }
 
                     const arrive = (state: typeof prev): typeof prev => {
-                        if (state.s !== state.targetS) {
-                            return { ...state, onBridge: true, bridgeProgress: 0.05, route: [], routeDestR: -1, routeDestC: -1 };
+                        const bridgeHop = state.s === state.targetS ? state.s : nextSectorToward(state.s, state.targetS, sectorsCount);
+                        if (bridgeHop !== state.s) {
+                            return { ...state, onBridge: true, bridgeProgress: 0.05, hopS: bridgeHop, route: [], routeDestR: -1, routeDestC: -1 };
                         }
 
                         let pause = 0;
@@ -994,27 +1117,41 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
             // 5. Visual Bridge
             //
             // Anchored on the SAME segment the NPC crossing interpolates over (see the
-            // onBridge branch below): from this sector's row-2 exit tile centre to the
-            // next sector's row-2 entry tile centre. Those two points differ by
-            // (+360, -96) at the default tile size, i.e. the crossing is a long
-            // up-right diagonal — the bridge used to be a 92px HORIZONTAL bar at the
-            // exit tile's y, so it covered about a quarter of the span and sat off the
-            // line the NPC actually walked. Derived from projectToIso rather than
-            // hard-coded, so it stays correct if tile size or SECTOR_GAP changes.
-            if (s < sectorsCount - 1) {
-                const span = getBridgeGeometry(s, s + 1);
+            // onBridge branch below): from the exit tile's centre in the middle of this
+            // sector's shared edge to the entry tile's centre opposite. Derived from
+            // projectToIso rather than hard-coded, so it follows tile size, SECTOR_GAP
+            // and the sector layout. It used to be a 92px HORIZONTAL bar at the exit
+            // tile's y, covering about a quarter of the span, off the walked line.
+            // One bridge per shared edge. With the diamond layout a sector can have
+            // up to four neighbours, and consecutive INDICES are not necessarily
+            // adjacent (parcels 0 and 3 sit diagonally, sharing no edge), so this
+            // pairs by super-grid adjacency instead of by `s + 1`. Only `t > s` is
+            // considered, so each edge yields exactly one bridge.
+            for (let t = s + 1; t < sectorsCount; t++) {
+                const span = getBridgeGeometry(s, t);
+                if (!span) continue;
                 entities.push({
                     type: 'bridge',
-                    key: `bridge-${s}`,
+                    key: `bridge-${s}-${t}`,
                     x: span.midX,
                     y: span.midY,
                     length: span.length,
                     angleDeg: span.angleDeg,
+                    // Unit vectors of the two isometric diagonals, so the deck can be
+                    // laid out as a parallelogram IN the iso plane. A plain rotate()
+                    // keeps the cross axis at 90 degrees to travel, which in isometric
+                    // reads as a slab standing up out of the ground.
+                    dirX: (span.to.x - span.from.x) / span.length,
+                    dirY: (span.to.y - span.from.y) / span.length,
                     s,
-                    // Below both sectors' tiles, so the plank emerges from under the
-                    // platform edges instead of lying on top of them; NPCs crossing it
-                    // key off their own y and stay above.
-                    zIndex: s * 100000 - 30000
+                    // Below the fields, so the plank emerges from under the platform
+                    // edges instead of lying on top of them. NOTE: GroundParcel renders
+                    // with Tailwind `z-0`/`z-50`, ignoring the y-based zIndex computed
+                    // for soil entities, so anything with a positive zIndex sits above
+                    // every unselected tile — the old `s * 100000 - 30000` put the deck
+                    // on top of the neighbour's field. NPCs use inline positive zIndex
+                    // and still pass over the deck.
+                    zIndex: -1
                 });
             }
         }
@@ -1023,10 +1160,11 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
         let wX = 0;
         let wY = 0;
         if (workerPos.onBridge) {
-            const startS = workerPos.s;
-            const endS = workerPos.targetS > startS ? startS + 1 : startS - 1;
             // Same geometry the bridge visual uses, so the walk is ON the plank.
-            const { from: posA, to: posB } = getBridgeGeometry(startS, endS);
+            const span = getBridgeGeometry(workerPos.s, workerPos.hopS);
+            const here = projectToIso(workerPos.r, workerPos.c, workerPos.s);
+            const posA = span ? span.from : here;
+            const posB = span ? span.to : here;
             wX = posA.x + (posB.x - posA.x) * workerPos.bridgeProgress;
             wY = posA.y + (posB.y - posA.y) * workerPos.bridgeProgress;
         } else {
@@ -1049,9 +1187,10 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
             let hX = 0;
             let hY = 0;
             if (helperPos.onBridge) {
-                const startS = helperPos.s;
-                const endS = helperPos.targetS > startS ? startS + 1 : startS - 1;
-                const { from: posA, to: posB } = getBridgeGeometry(startS, endS);
+                const span = getBridgeGeometry(helperPos.s, helperPos.hopS);
+                const here = projectToIso(helperPos.r, helperPos.c, helperPos.s);
+                const posA = span ? span.from : here;
+                const posB = span ? span.to : here;
                 hX = posA.x + (posB.x - posA.x) * helperPos.bridgeProgress;
                 hY = posA.y + (posB.y - posA.y) * helperPos.bridgeProgress;
             } else {
@@ -1135,11 +1274,21 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                         <div
                             className="relative"
                             style={{
-                                // Exact algebraic size of isometric grid with zero clipping and centered offsets
-                                width: `${SECTOR_SIZE * TILE_W + (sectorsCount - 1) * (SECTOR_SIZE * TILE_W + SECTOR_GAP)}px`,
-                                height: `${SECTOR_SIZE * TILE_H}px`
+                                // Exact algebraic size of the isometric world. With the
+                                // diamond sector layout it spreads in BOTH axes, so it is
+                                // measured from the actual sector cells rather than assuming
+                                // a single horizontal row of sectors.
+                                width: `${layoutBounds.width}px`,
+                                height: `${layoutBounds.height}px`
                             }}
                         >
+                            {/* Sectors placed up-right of the first have negative world x/y;
+                                this shifts the whole world so nothing is clipped, keeping
+                                projectToIso itself free of layout padding. */}
+                            <div
+                                className="absolute"
+                                style={{ left: `${-layoutBounds.minX}px`, top: `${-layoutBounds.minY}px` }}
+                            >
                             {worldEntities.map((entity) => {
                                 if (entity.type === 'soil') {
                                     return (
@@ -1236,9 +1385,12 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                                 left: `${entity.x}px`,
                                                 top: `${entity.y}px`,
                                                 width: `${entity.length}px`,
-                                                height: '10px',
+                                                height: `${BRIDGE_DECK}px`,
                                                 background: 'linear-gradient(to bottom, #8C7853, #C9A84C, #8C7853)',
-                                                transform: `translate(-50%, -50%) rotate(${entity.angleDeg}deg)`,
+                                                // matrix maps the deck's local x onto the travel
+                                                // diagonal and its local y onto the other iso
+                                                // diagonal (the mirrored one), then centres it.
+                                                transform: `matrix(${entity.dirX}, ${entity.dirY}, ${entity.dirX}, ${-entity.dirY}, 0, 0) translate(-50%, -50%)`,
                                                 zIndex: entity.zIndex,
                                                 boxShadow: '0 5px 10px rgba(0,0,0,0.6)',
                                                 borderRadius: '2px'
@@ -1251,6 +1403,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
 
                                 return null;
                             })}
+                            </div>
                         </div>
                     </div>
                 </div>
