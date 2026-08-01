@@ -84,6 +84,15 @@ const projectToIso = (row: number, col: number, sectorIdx: number = 0) => {
 /** Middle row / column index — the crossing always uses the middle of a shared edge. */
 export const BRIDGE_ROW = Math.floor(SECTOR_SIZE / 2);
 export const BRIDGE_COL = Math.floor(SECTOR_SIZE / 2);
+/**
+ * Position of a crossing ALONG its shared edge. Half a tile below the middle
+ * index, i.e. a half-integer, which is exactly where the path lattice puts its
+ * alleys (lanes live on tile boundaries — see drawPathTile). The crossing used
+ * to sit on the middle tile's CENTRE, so a bridge ran into the middle of a tile
+ * instead of continuing an alley; the reviewed arrows all point half a tile back
+ * along the edge, which is this.
+ */
+export const BRIDGE_LANE = Math.floor(SECTOR_SIZE / 2) - 0.5;
 /** Deck thickness across the direction of travel: one tile (reviewed sketch). */
 export const BRIDGE_DECK = TILE_H;
 
@@ -91,10 +100,13 @@ export const BRIDGE_DECK = TILE_H;
 const crossingTiles = (du: number, dv: number) => {
     // Exactly ONE step, on exactly one axis. A diagonal step (du and dv both
     // non-zero, e.g. parcels 0 and 3) shares no edge and has no crossing.
-    if (du === 0 && dv === 1) return { exit: { r: BRIDGE_ROW, c: SECTOR_SIZE - 1 }, entry: { r: BRIDGE_ROW, c: 0 } };
-    if (du === 0 && dv === -1) return { exit: { r: BRIDGE_ROW, c: 0 }, entry: { r: BRIDGE_ROW, c: SECTOR_SIZE - 1 } };
-    if (dv === 0 && du === 1) return { exit: { r: 0, c: BRIDGE_COL }, entry: { r: SECTOR_SIZE - 1, c: BRIDGE_COL } };
-    if (dv === 0 && du === -1) return { exit: { r: SECTOR_SIZE - 1, c: BRIDGE_COL }, entry: { r: 0, c: BRIDGE_COL } };
+    // A v-step crosses the last/first COLUMN, so its edge runs along the rows and
+    // BRIDGE_LANE indexes the row; a u-step crosses the first/last ROW, so the
+    // lane indexes the column.
+    if (du === 0 && dv === 1) return { exit: { r: BRIDGE_LANE, c: SECTOR_SIZE - 1 }, entry: { r: BRIDGE_LANE, c: 0 } };
+    if (du === 0 && dv === -1) return { exit: { r: BRIDGE_LANE, c: 0 }, entry: { r: BRIDGE_LANE, c: SECTOR_SIZE - 1 } };
+    if (dv === 0 && du === 1) return { exit: { r: 0, c: BRIDGE_LANE }, entry: { r: SECTOR_SIZE - 1, c: BRIDGE_LANE } };
+    if (dv === 0 && du === -1) return { exit: { r: SECTOR_SIZE - 1, c: BRIDGE_LANE }, entry: { r: 0, c: BRIDGE_LANE } };
     return null;
 };
 

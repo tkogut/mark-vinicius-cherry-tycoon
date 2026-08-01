@@ -18,6 +18,7 @@ import {
     sectorOrigin,
     BRIDGE_ROW,
     BRIDGE_COL,
+    BRIDGE_LANE,
 } from '../components/farm/ImperialOrchard';
 
 const SECTOR_STEP_X = 276; // (5*96 + 72) / 2
@@ -83,15 +84,32 @@ describe('inter-sector bridges', () => {
         expect(getBridgeGeometry(0, 3)).toBeNull();
     });
 
-    it('crosses the middle of the shared edge, on the matching axis', () => {
-        // Down-right neighbour: leave through the last column, arrive at the first.
+    it('crosses on a lattice lane, not through a tile centre', () => {
+        // Lanes are the half-integer coordinates (tile boundaries), so a bridge
+        // continues an alley instead of running into the middle of a tile.
+        expect(BRIDGE_LANE).toBe(1.5);
+        expect(Number.isInteger(BRIDGE_LANE)).toBe(false);
+
+        // Down-right neighbour: leave through the last column, arrive at the first,
+        // with the lane indexing the ROW.
         const dr = getBridgeGeometry(0, 2)!;
-        expect(dr.exitTile).toEqual({ r: BRIDGE_ROW, c: 4 });
-        expect(dr.entryTile).toEqual({ r: BRIDGE_ROW, c: 0 });
-        // Up-right neighbour: leave through the first row, arrive at the last.
+        expect(dr.exitTile).toEqual({ r: BRIDGE_LANE, c: 4 });
+        expect(dr.entryTile).toEqual({ r: BRIDGE_LANE, c: 0 });
+        // Up-right neighbour: leave through the first row, arrive at the last,
+        // with the lane indexing the COLUMN.
         const ur = getBridgeGeometry(0, 1)!;
-        expect(ur.exitTile).toEqual({ r: 0, c: BRIDGE_COL });
-        expect(ur.entryTile).toEqual({ r: 4, c: BRIDGE_COL });
+        expect(ur.exitTile).toEqual({ r: 0, c: BRIDGE_LANE });
+        expect(ur.entryTile).toEqual({ r: 4, c: BRIDGE_LANE });
+    });
+
+    it('sits half a tile back along the edge from the old tile-centre crossing', () => {
+        // The reviewed arrows: every deck moves by exactly half a tile along its
+        // own shared edge, which is (-48, +24) or (+48, -24) in world space.
+        const dr = getBridgeGeometry(0, 2)!;
+        expect(BRIDGE_ROW - BRIDGE_LANE).toBeCloseTo(0.5, 6);
+        // A half-step in row is (-TILE_W/2, +TILE_H/2)/2 = (-24, +12); moving from
+        // the centre to the lane is the opposite: up-right.
+        expect(dr.exitTile.r).toBeCloseTo(BRIDGE_ROW - 0.5, 6);
     });
 
     it('spans a real diagonal, not a short horizontal bar', () => {
@@ -126,5 +144,6 @@ describe('inter-sector bridges', () => {
     it('uses the middle of the sector for every crossing', () => {
         expect(BRIDGE_ROW).toBe(2);
         expect(BRIDGE_COL).toBe(2);
+        expect(BRIDGE_LANE).toBe(BRIDGE_ROW - 0.5);
     });
 });
