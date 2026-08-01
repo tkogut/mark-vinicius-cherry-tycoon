@@ -1156,14 +1156,16 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     dirX: (span.to.x - span.from.x) / span.length,
                     dirY: (span.to.y - span.from.y) / span.length,
                     s,
-                    // Below the fields, so the plank emerges from under the platform
-                    // edges instead of lying on top of them. NOTE: GroundParcel renders
-                    // with Tailwind `z-0`/`z-50`, ignoring the y-based zIndex computed
-                    // for soil entities, so anything with a positive zIndex sits above
-                    // every unselected tile — the old `s * 100000 - 30000` put the deck
-                    // on top of the neighbour's field. NPCs use inline positive zIndex
-                    // and still pass over the deck.
-                    zIndex: -1
+                    // ABOVE the fields. The deck runs from one parcel's edge tile,
+                    // across the gap, into the neighbour's edge tile, so roughly half of
+                    // its 94px length lies over a field; at zIndex -1 that half hid under
+                    // the tiles and the bridge read as a stub in the gap with its other
+                    // half missing (reported from a screenshot with the missing part
+                    // drawn in). A plank resting on both fields' edges is the intended
+                    // look. 40 clears the tiles — GroundParcel renders with Tailwind
+                    // `z-0`, ignoring the y-based zIndex computed for soil entities — and
+                    // stays far below trees and NPCs, which use `s * 100000 + ...`.
+                    zIndex: 40
                 });
             }
         }
