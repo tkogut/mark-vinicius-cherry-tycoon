@@ -765,6 +765,148 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
     );
 });
 
+
+/** Mutable state of one NPC walking the orchard. */
+export interface NpcState {
+    r: number; c: number; s: number;
+    targetR: number; targetC: number; targetS: number;
+    pauseTicks: number;
+    onBridge: boolean; bridgeProgress: number; hopS: number;
+    route: RouteWaypoint[]; routeDestR: number; routeDestC: number;
+}
+
+/** Per-NPC tuning: the only things the owner and the hired helper differ in. */
+export interface NpcConfig {
+    phase: string;
+    sectorsCount: number;
+    treePositions: { r: number; c: number; s: number }[];
+    pauseHarvest: number;
+    pauseSpring: number;
+    pauseDormancy: number;
+    shelterA: { r: number; c: number };
+    shelterB: { r: number; c: number };
+}
+
+/**
+ * One tick of NPC movement: bridge crossing, pause, lattice routing and target
+ * selection.
+ *
+ * The owner and the helper used to run two copies of this, and they silently
+ * diverged: the helper's bridge landing kept the pre-diamond-layout rule
+ * `s = targetS > s ? s + 1 : s - 1`. Sector INDEX adjacency is not spatial
+ * adjacency on the diamond layout, so the helper finished crossings in the wrong
+ * sector — landing on a valid-looking tile of a parcel it had never walked to,
+ * which is exactly the "worker vanishes and reappears elsewhere" report. Both
+ * NPCs now share this single implementation so the two cannot drift again.
+ */
+const advanceNpc = (prev: NpcState, cfg: NpcConfig): NpcState => {
+            if (prev.onBridge) {
+                const nextProgress = prev.bridgeProgress + 0.05;
+                if (nextProgress >= 1.0) {
+                    const landing = getBridgeGeometry(prev.s, prev.hopS);
+                    return {
+                        ...prev,
+                        onBridge: false,
+                        bridgeProgress: 0,
+                        s: landing ? prev.hopS : prev.s,
+                        r: landing ? landing.entryTile.r : prev.r,
+                        c: landing ? landing.entryTile.c : prev.c,
+                        hopS: -1,
+                        route: [],
+                        routeDestR: -1,
+                        routeDestC: -1
+                    };
+                }
+                return { ...prev, bridgeProgress: nextProgress };
+            }
+
+            if (prev.pauseTicks > 0) {
+                return { ...prev, pauseTicks: prev.pauseTicks - 1 };
+            }
+
+            const { phase, sectorsCount, treePositions } = cfg;
+            const step = stepForPhase(phase);
+
+            // Destination TILE for this leg of the trip. Cross-sector trips head
+            // for the bridge crossing tile on row 2; same-sector trips head for
+            // the target tile. The walk itself is routed over the lattice by
+            // buildLatticeRoute, so long legs stay on the lanes.
+            // Cross-sector trips head for the exit tile of the crossing toward the
+            // NEXT sector on the super-grid path, which depends on direction — the
+            // diamond layout has up to four neighbours, not just s+/-1.
+            let destR = prev.targetR;
+            let destC = prev.targetC;
+            const hop = prev.s === prev.targetS ? prev.s : nextSectorToward(prev.s, prev.targetS, sectorsCount);
+            const hopSpan = hop === prev.s ? null : getBridgeGeometry(prev.s, hop);
+            if (hopSpan) { destR = hopSpan.exitTile.r; destC = hopSpan.exitTile.c; }
+
+            // Arrival is signalled by the route running out, NOT by matching the
+            // destination tile's centre — the route deliberately stops short of it.
+            const arrive = (state: NpcState): NpcState => {
+                const bridgeHop = state.s === state.targetS ? state.s : nextSectorToward(state.s, state.targetS, sectorsCount);
+                if (bridgeHop !== state.s) {
+                    return { ...state, onBridge: true, bridgeProgress: 0.05, hopS: bridgeHop, route: [], routeDestR: -1, routeDestC: -1 };
+                }
+
+                // Reached final target! Set pause based on season
+                let pause = 0;
+                if (phase === 'Harvest') pause = cfg.pauseHarvest;
+                else if (phase === 'Awakening' || phase === 'Bloom') pause = cfg.pauseSpring;
+                else if (phase === 'Dormancy') pause = cfg.pauseDormancy;
+
+                // Choose next target. The shelter toggle compares the TARGET tile,
+                // since the NPC now stops short of it and never sits on it exactly.
+                let nextTarget = { r: 2, c: 2, s: 0 };
+                if (phase === 'Dormancy') {
+                    const atShelter = state.targetR === cfg.shelterA.r && state.targetC === cfg.shelterA.c;
+                    nextTarget = atShelter ? { ...cfg.shelterB, s: 0 } : { ...cfg.shelterA, s: 0 };
+                } else if ((phase === 'Harvest' || phase === 'Awakening' || phase === 'Bloom') && treePositions.length > 0) {
+                    const randTree = treePositions[Math.floor(Math.random() * treePositions.length)];
+                    nextTarget = { r: randTree.r, c: randTree.c, s: randTree.s };
+                } else {
+                    nextTarget = {
+                        r: Math.floor(Math.random() * SECTOR_SIZE),
+                        c: Math.floor(Math.random() * SECTOR_SIZE),
+                        s: Math.floor(Math.random() * sectorsCount)
+                    };
+                }
+
+                return {
+                    ...state,
+                    targetR: nextTarget.r,
+                    targetC: nextTarget.c,
+                    targetS: nextTarget.s,
+                    pauseTicks: pause,
+                    route: [],
+                    routeDestR: -1,
+                    routeDestC: -1
+                };
+            };
+
+            let route = prev.route || [];
+            // Rebuild when the route is spent, or stale after the destination moved.
+            if (route.length === 0 || prev.routeDestR !== destR || prev.routeDestC !== destC) {
+                route = buildLatticeRoute(prev.r, prev.c, destR, destC, SECTOR_SIZE, prev.s === prev.targetS);
+                if (route.length === 0) return arrive(prev);
+                return { ...prev, route, routeDestR: destR, routeDestC: destC };
+            }
+
+            // Advance toward the next waypoint — one axis at a time, since
+            // consecutive waypoints differ in exactly one coordinate.
+            const wp = route[0];
+            if (!nearVal(prev.r, wp.r)) {
+                const dR = wp.r > prev.r ? Math.min(step, wp.r - prev.r) : Math.max(-step, wp.r - prev.r);
+                return { ...prev, r: prev.r + dR };
+            }
+            if (!nearVal(prev.c, wp.c)) {
+                const dC = wp.c > prev.c ? Math.min(step, wp.c - prev.c) : Math.max(-step, wp.c - prev.c);
+                return { ...prev, c: prev.c + dC };
+            }
+            // Waypoint reached — snap onto it; the last one means we have arrived.
+            const rest = route.slice(1);
+            const snapped = { ...prev, r: wp.r, c: wp.c, route: rest };
+            return rest.length === 0 ? arrive(snapped) : snapped;};
+
 export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, season, hiredLabor, county = 'Opolski', onAction, automationConfig, totalCherries = 0, maxCapacity = 10000, seasonNumber = 1 }) => {
 
     // Safety fallback for empty parcels during initialization
@@ -875,208 +1017,19 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
     useEffect(() => {
         const interval = setInterval(() => {
             // 1. Update Owner Worker
-            setWorkerPos(prev => {
-                if (prev.onBridge) {
-                    const nextProgress = prev.bridgeProgress + 0.05;
-                    if (nextProgress >= 1.0) {
-                        const landing = getBridgeGeometry(prev.s, prev.hopS);
-                        return {
-                            ...prev,
-                            onBridge: false,
-                            bridgeProgress: 0,
-                            s: landing ? prev.hopS : prev.s,
-                            r: landing ? landing.entryTile.r : prev.r,
-                            c: landing ? landing.entryTile.c : prev.c,
-                            hopS: -1,
-                            route: [],
-                            routeDestR: -1,
-                            routeDestC: -1
-                        };
-                    }
-                    return { ...prev, bridgeProgress: nextProgress };
-                }
-
-                if (prev.pauseTicks > 0) {
-                    return { ...prev, pauseTicks: prev.pauseTicks - 1 };
-                }
-
-                const phase = seasonStyles.phase;
-                const step = stepForPhase(phase);
-
-                // Destination TILE for this leg of the trip. Cross-sector trips head
-                // for the bridge crossing tile on row 2; same-sector trips head for
-                // the target tile. The walk itself is routed over the lattice by
-                // buildLatticeRoute, so long legs stay on the lanes.
-                // Cross-sector trips head for the exit tile of the crossing toward the
-                // NEXT sector on the super-grid path, which depends on direction — the
-                // diamond layout has up to four neighbours, not just s+/-1.
-                let destR = prev.targetR;
-                let destC = prev.targetC;
-                const hop = prev.s === prev.targetS ? prev.s : nextSectorToward(prev.s, prev.targetS, sectorsCount);
-                const hopSpan = hop === prev.s ? null : getBridgeGeometry(prev.s, hop);
-                if (hopSpan) { destR = hopSpan.exitTile.r; destC = hopSpan.exitTile.c; }
-
-                // Arrival is signalled by the route running out, NOT by matching the
-                // destination tile's centre — the route deliberately stops short of it.
-                const arrive = (state: typeof prev): typeof prev => {
-                    const bridgeHop = state.s === state.targetS ? state.s : nextSectorToward(state.s, state.targetS, sectorsCount);
-                    if (bridgeHop !== state.s) {
-                        return { ...state, onBridge: true, bridgeProgress: 0.05, hopS: bridgeHop, route: [], routeDestR: -1, routeDestC: -1 };
-                    }
-
-                    // Reached final target! Set pause based on season
-                    let pause = 0;
-                    if (phase === 'Harvest') pause = 50;
-                    else if (phase === 'Awakening' || phase === 'Bloom') pause = 25;
-                    else if (phase === 'Dormancy') pause = 120;
-
-                    // Choose next target. The shelter toggle compares the TARGET tile,
-                    // since the NPC now stops short of it and never sits on it exactly.
-                    let nextTarget = { r: 2, c: 2, s: 0 };
-                    if (phase === 'Dormancy') {
-                        const atShelter = state.targetR === 0 && state.targetC === 0;
-                        nextTarget = atShelter ? { r: 4, c: 4, s: 0 } : { r: 0, c: 0, s: 0 };
-                    } else if ((phase === 'Harvest' || phase === 'Awakening' || phase === 'Bloom') && treePositions.length > 0) {
-                        const randTree = treePositions[Math.floor(Math.random() * treePositions.length)];
-                        nextTarget = { r: randTree.r, c: randTree.c, s: randTree.s };
-                    } else {
-                        nextTarget = {
-                            r: Math.floor(Math.random() * SECTOR_SIZE),
-                            c: Math.floor(Math.random() * SECTOR_SIZE),
-                            s: Math.floor(Math.random() * sectorsCount)
-                        };
-                    }
-
-                    return {
-                        ...state,
-                        targetR: nextTarget.r,
-                        targetC: nextTarget.c,
-                        targetS: nextTarget.s,
-                        pauseTicks: pause,
-                        route: [],
-                        routeDestR: -1,
-                        routeDestC: -1
-                    };
-                };
-
-                let route = prev.route || [];
-                // Rebuild when the route is spent, or stale after the destination moved.
-                if (route.length === 0 || prev.routeDestR !== destR || prev.routeDestC !== destC) {
-                    route = buildLatticeRoute(prev.r, prev.c, destR, destC, SECTOR_SIZE, prev.s === prev.targetS);
-                    if (route.length === 0) return arrive(prev);
-                    return { ...prev, route, routeDestR: destR, routeDestC: destC };
-                }
-
-                // Advance toward the next waypoint — one axis at a time, since
-                // consecutive waypoints differ in exactly one coordinate.
-                const wp = route[0];
-                if (!nearVal(prev.r, wp.r)) {
-                    const dR = wp.r > prev.r ? Math.min(step, wp.r - prev.r) : Math.max(-step, wp.r - prev.r);
-                    return { ...prev, r: prev.r + dR };
-                }
-                if (!nearVal(prev.c, wp.c)) {
-                    const dC = wp.c > prev.c ? Math.min(step, wp.c - prev.c) : Math.max(-step, wp.c - prev.c);
-                    return { ...prev, c: prev.c + dC };
-                }
-                // Waypoint reached — snap onto it; the last one means we have arrived.
-                const rest = route.slice(1);
-                const snapped = { ...prev, r: wp.r, c: wp.c, route: rest };
-                return rest.length === 0 ? arrive(snapped) : snapped;
-            });
+            setWorkerPos(prev => advanceNpc(prev, {
+                phase: seasonStyles.phase, sectorsCount, treePositions,
+                pauseHarvest: 50, pauseSpring: 25, pauseDormancy: 120,
+                shelterA: { r: 0, c: 0 }, shelterB: { r: 4, c: 4 }
+            }));
 
             // 2. Update Helper Worker (if present)
             if (hasHelper) {
-                setHelperPos(prev => {
-                    if (prev.onBridge) {
-                        const nextProgress = prev.bridgeProgress + 0.05;
-                        if (nextProgress >= 1.0) {
-                            const landing = getBridgeGeometry(prev.s, prev.hopS);
-                            return {
-                                ...prev,
-                                onBridge: false,
-                                bridgeProgress: 0,
-                                s: prev.targetS > prev.s ? prev.s + 1 : prev.s - 1,
-                                r: prev.targetS > prev.s ? 2 : 2,
-                                c: prev.targetS > prev.s ? 0 : 4
-                            };
-                        }
-                        return { ...prev, bridgeProgress: nextProgress };
-                    }
-
-                    if (prev.pauseTicks > 0) {
-                        return { ...prev, pauseTicks: prev.pauseTicks - 1 };
-                    }
-
-                    const phase = seasonStyles.phase;
-                    const step = stepForPhase(phase);
-
-                    // Cross-sector trips head for the exit tile of the crossing toward the
-                    // NEXT sector on the super-grid path, which depends on direction — the
-                    // diamond layout has up to four neighbours, not just s+/-1.
-                    let destR = prev.targetR;
-                    let destC = prev.targetC;
-                    const hop = prev.s === prev.targetS ? prev.s : nextSectorToward(prev.s, prev.targetS, sectorsCount);
-                    const hopSpan = hop === prev.s ? null : getBridgeGeometry(prev.s, hop);
-                    if (hopSpan) { destR = hopSpan.exitTile.r; destC = hopSpan.exitTile.c; }
-
-                    const arrive = (state: typeof prev): typeof prev => {
-                        const bridgeHop = state.s === state.targetS ? state.s : nextSectorToward(state.s, state.targetS, sectorsCount);
-                        if (bridgeHop !== state.s) {
-                            return { ...state, onBridge: true, bridgeProgress: 0.05, hopS: bridgeHop, route: [], routeDestR: -1, routeDestC: -1 };
-                        }
-
-                        let pause = 0;
-                        if (phase === 'Harvest') pause = 40;
-                        else if (phase === 'Awakening' || phase === 'Bloom') pause = 20;
-                        else if (phase === 'Dormancy') pause = 100;
-
-                        let nextTarget = { r: 2, c: 2, s: 0 };
-                        if (phase === 'Dormancy') {
-                            const atShelter = state.targetR === 0 && state.targetC === SECTOR_SIZE - 1;
-                            nextTarget = atShelter ? { r: 4, c: 0, s: 0 } : { r: 0, c: 4, s: 0 };
-                        } else if ((phase === 'Harvest' || phase === 'Awakening' || phase === 'Bloom') && treePositions.length > 0) {
-                            const randTree = treePositions[Math.floor(Math.random() * treePositions.length)];
-                            nextTarget = { r: randTree.r, c: randTree.c, s: randTree.s };
-                        } else {
-                            nextTarget = {
-                                r: Math.floor(Math.random() * SECTOR_SIZE),
-                                c: Math.floor(Math.random() * SECTOR_SIZE),
-                                s: Math.floor(Math.random() * sectorsCount)
-                            };
-                        }
-
-                        return {
-                            ...state,
-                            targetR: nextTarget.r,
-                            targetC: nextTarget.c,
-                            targetS: nextTarget.s,
-                            pauseTicks: pause,
-                            route: [],
-                            routeDestR: -1,
-                            routeDestC: -1
-                        };
-                    };
-
-                    let route = prev.route || [];
-                    if (route.length === 0 || prev.routeDestR !== destR || prev.routeDestC !== destC) {
-                        route = buildLatticeRoute(prev.r, prev.c, destR, destC, SECTOR_SIZE, prev.s === prev.targetS);
-                        if (route.length === 0) return arrive(prev);
-                        return { ...prev, route, routeDestR: destR, routeDestC: destC };
-                    }
-
-                    const wp = route[0];
-                    if (!nearVal(prev.r, wp.r)) {
-                        const dR = wp.r > prev.r ? Math.min(step, wp.r - prev.r) : Math.max(-step, wp.r - prev.r);
-                        return { ...prev, r: prev.r + dR };
-                    }
-                    if (!nearVal(prev.c, wp.c)) {
-                        const dC = wp.c > prev.c ? Math.min(step, wp.c - prev.c) : Math.max(-step, wp.c - prev.c);
-                        return { ...prev, c: prev.c + dC };
-                    }
-                    const rest = route.slice(1);
-                    const snapped = { ...prev, r: wp.r, c: wp.c, route: rest };
-                    return rest.length === 0 ? arrive(snapped) : snapped;
-                });
+                setHelperPos(prev => advanceNpc(prev, {
+                    phase: seasonStyles.phase, sectorsCount, treePositions,
+                    pauseHarvest: 40, pauseSpring: 20, pauseDormancy: 100,
+                    shelterA: { r: 0, c: SECTOR_SIZE - 1 }, shelterB: { r: 4, c: 0 }
+                }));
             }
         }, 30);
         return () => clearInterval(interval);
@@ -1210,7 +1163,6 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
             wX = npos.x;
             wY = npos.y;
         }
-
         entities.push({
             type: 'npc',
             key: 'npc-worker-1',
@@ -1236,7 +1188,6 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 hX = hpos.x;
                 hY = hpos.y;
             }
-
             entities.push({
                 type: 'npc',
                 key: 'npc-helper-1',
