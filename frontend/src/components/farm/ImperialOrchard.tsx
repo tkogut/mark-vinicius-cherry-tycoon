@@ -1424,8 +1424,16 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                                 background: 'linear-gradient(to bottom, #8C7853, #C9A84C, #8C7853)',
                                                 // matrix maps the deck's local x onto the travel
                                                 // diagonal and its local y onto the other iso
-                                                // diagonal (the mirrored one), then centres it.
-                                                transform: `matrix(${entity.dirX}, ${entity.dirY}, ${entity.dirX}, ${-entity.dirY}, 0, 0) translate(-50%, -50%)`,
+                                                // diagonal (the mirrored one).
+                                                //
+                                                // ORDER MATTERS: the centring translate must come
+                                                // FIRST so it happens in unsheared space. Written
+                                                // the other way round the -50% is measured in the
+                                                // sheared frame, which displaced every deck by
+                                                // M*(-w/2,-h/2)+(w/2,h/2) — (-7.2, +21.6) for the
+                                                // u-axis crossings, i.e. half a tile down off the
+                                                // gap, so half the plank fell outside it.
+                                                transform: `translate(-50%, -50%) matrix(${entity.dirX}, ${entity.dirY}, ${entity.dirX}, ${-entity.dirY}, 0, 0)`,
                                                 zIndex: entity.zIndex,
                                                 boxShadow: '0 5px 10px rgba(0,0,0,0.6)',
                                                 borderRadius: '2px'
