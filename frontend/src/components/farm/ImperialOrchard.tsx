@@ -93,8 +93,22 @@ export const BRIDGE_COL = Math.floor(SECTOR_SIZE / 2);
  * along the edge, which is this.
  */
 export const BRIDGE_LANE = Math.floor(SECTOR_SIZE / 2) - 0.5;
-/** Deck thickness across the direction of travel: one tile (reviewed sketch). */
-export const BRIDGE_DECK = TILE_H;
+/** Length of one tile edge in world space. */
+export const TILE_EDGE = Math.sqrt((TILE_W / 2) ** 2 + (TILE_H / 2) ** 2);
+/**
+ * Deck thickness across the direction of travel: half a tile. A full tile made
+ * the sheared parallelogram read as a lozenge lying on the field rather than a
+ * plank — the isometric shear puts its visual long diagonal at (127, -21),
+ * nearly horizontal, instead of along the direction of travel.
+ */
+export const BRIDGE_DECK = TILE_H / 2;
+/**
+ * How far the deck seats onto each field, beyond the gap it spans. The crossing
+ * runs between two tile-lane points half a tile inside each platform, so the raw
+ * span overlaps each field by half a tile; the reviewed screenshot marks that
+ * overhang for removal, leaving a short plank that just meets both edges.
+ */
+export const BRIDGE_SEAT = TILE_EDGE / 4;
 
 /** The tiles a crossing leaves from / arrives at, for a super-grid step. */
 const crossingTiles = (du: number, dv: number) => {
@@ -125,6 +139,8 @@ export interface BridgeGeometry {
     midX: number;
     midY: number;
     length: number;
+    /** Drawn length of the deck: the gap between the two fields plus BRIDGE_SEAT each side. */
+    deckLength: number;
     angleDeg: number;
 }
 
@@ -144,6 +160,7 @@ export const getBridgeGeometry = (fromSector: number, toSector: number): BridgeG
     const to = projectToIso(tiles.entry.r, tiles.entry.c, toSector);
     const dx = to.x - from.x;
     const dy = to.y - from.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
     return {
         from,
         to,
@@ -151,7 +168,11 @@ export const getBridgeGeometry = (fromSector: number, toSector: number): BridgeG
         entryTile: tiles.entry,
         midX: (from.x + to.x) / 2,
         midY: (from.y + to.y) / 2,
-        length: Math.sqrt(dx * dx + dy * dy),
+        length,
+        // Trim the half-tile overhang at each end, then seat the plank back onto
+        // each field by BRIDGE_SEAT. Both ends are symmetric, so the deck stays
+        // centred on the gap and needs no separate offset.
+        deckLength: length - TILE_EDGE + 2 * BRIDGE_SEAT,
         angleDeg: (Math.atan2(dy, dx) * 180) / Math.PI,
     };
 };
@@ -1147,7 +1168,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     key: `bridge-${s}-${t}`,
                     x: span.midX,
                     y: span.midY,
-                    length: span.length,
+                    length: span.deckLength,
                     angleDeg: span.angleDeg,
                     // Unit vectors of the two isometric diagonals, so the deck can be
                     // laid out as a parallelogram IN the iso plane. A plain rotate()

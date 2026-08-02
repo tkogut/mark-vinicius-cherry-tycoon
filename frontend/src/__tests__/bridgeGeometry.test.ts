@@ -19,6 +19,9 @@ import {
     BRIDGE_ROW,
     BRIDGE_COL,
     BRIDGE_LANE,
+    BRIDGE_DECK,
+    BRIDGE_SEAT,
+    TILE_EDGE,
 } from '../components/farm/ImperialOrchard';
 
 const SECTOR_STEP_X = 276; // (5*96 + 72) / 2
@@ -145,5 +148,33 @@ describe('inter-sector bridges', () => {
         expect(BRIDGE_ROW).toBe(2);
         expect(BRIDGE_COL).toBe(2);
         expect(BRIDGE_LANE).toBe(BRIDGE_ROW - 0.5);
+    });
+});
+
+describe('bridge deck proportions', () => {
+    it('is drawn shorter than the crossing, trimming the half-tile overhang', () => {
+        const span = getBridgeGeometry(0, 2)!;
+        // The crossing runs lane-point to lane-point, half a tile inside each field.
+        expect(span.length).toBeCloseTo(93.915, 2);
+        // The deck drops that overhang and seats a quarter tile onto each field, so
+        // it just meets both parcels instead of lying half a tile over each.
+        expect(span.deckLength).toBeCloseTo(span.length - TILE_EDGE + 2 * BRIDGE_SEAT, 6);
+        expect(span.deckLength).toBeLessThan(span.length);
+        expect(span.deckLength).toBeGreaterThan(span.length - TILE_EDGE); // still reaches past the bare gap
+    });
+
+    it('keeps the deck centred on the gap after trimming', () => {
+        // Both ends are trimmed equally, so the centre is untouched and no separate
+        // offset is needed.
+        for (const [a, b] of [[0, 1], [0, 2], [1, 3], [2, 3]]) {
+            const s = getBridgeGeometry(a, b)!;
+            expect(s.midX).toBeCloseTo((s.from.x + s.to.x) / 2, 6);
+            expect(s.midY).toBeCloseTo((s.from.y + s.to.y) / 2, 6);
+        }
+    });
+
+    it('is thinner than a tile so the sheared deck reads as a plank', () => {
+        expect(BRIDGE_DECK).toBeLessThan(TILE_EDGE);
+        expect(BRIDGE_DECK).toBe(24);
     });
 });
