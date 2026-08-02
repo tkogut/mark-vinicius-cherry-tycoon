@@ -87,11 +87,12 @@ describe('inter-sector bridges', () => {
         expect(getBridgeGeometry(0, 3)).toBeNull();
     });
 
-    it('crosses on a lattice lane, not through a tile centre', () => {
-        // Lanes are the half-integer coordinates (tile boundaries), so a bridge
-        // continues an alley instead of running into the middle of a tile.
-        expect(BRIDGE_LANE).toBe(1.5);
-        expect(Number.isInteger(BRIDGE_LANE)).toBe(false);
+    it('crosses at the middle tile of the shared edge', () => {
+        // Anchored on the middle TILE's centre. It briefly sat on the alley at 1.5
+        // to satisfy review arrows that were in fact compensating for a transform
+        // -order bug displacing the deck half a tile (fixed in 963cd2c).
+        expect(BRIDGE_LANE).toBe(2);
+        expect(Number.isInteger(BRIDGE_LANE)).toBe(true);
 
         // Down-right neighbour: leave through the last column, arrive at the first,
         // with the lane indexing the ROW.
@@ -105,14 +106,20 @@ describe('inter-sector bridges', () => {
         expect(ur.entryTile).toEqual({ r: 4, c: BRIDGE_LANE });
     });
 
-    it('sits half a tile back along the edge from the old tile-centre crossing', () => {
-        // The reviewed arrows: every deck moves by exactly half a tile along its
-        // own shared edge, which is (-48, +24) or (+48, -24) in world space.
+    it('anchors the crossing on the sector middle, not offset from it', () => {
         const dr = getBridgeGeometry(0, 2)!;
-        expect(BRIDGE_ROW - BRIDGE_LANE).toBeCloseTo(0.5, 6);
-        // A half-step in row is (-TILE_W/2, +TILE_H/2)/2 = (-24, +12); moving from
-        // the centre to the lane is the opposite: up-right.
-        expect(dr.exitTile.r).toBeCloseTo(BRIDGE_ROW - 0.5, 6);
+        expect(BRIDGE_ROW - BRIDGE_LANE).toBe(0);
+        expect(dr.exitTile.r).toBe(BRIDGE_ROW);
+    });
+
+    it('centres the deck on the gap between the two platforms', () => {
+        // Platform edges along a v-crossing sit at col 4.5 and col -0.5; the deck's
+        // midpoint must be the midpoint of those two, i.e. the middle of the gap.
+        const s = getBridgeGeometry(0, 2)!;
+        const edgeA = { x: 360, y: 180 };  // projectToIso(2, 4.5, 0)
+        const edgeB = { x: 396, y: 198 };  // projectToIso(2, -0.5, 2)
+        expect(s.midX).toBeCloseTo((edgeA.x + edgeB.x) / 2, 6);
+        expect(s.midY).toBeCloseTo((edgeA.y + edgeB.y) / 2, 6);
     });
 
     it('spans a real diagonal, not a short horizontal bar', () => {
@@ -147,7 +154,7 @@ describe('inter-sector bridges', () => {
     it('uses the middle of the sector for every crossing', () => {
         expect(BRIDGE_ROW).toBe(2);
         expect(BRIDGE_COL).toBe(2);
-        expect(BRIDGE_LANE).toBe(BRIDGE_ROW - 0.5);
+        expect(BRIDGE_LANE).toBe(BRIDGE_ROW);
     });
 });
 

@@ -85,14 +85,17 @@ const projectToIso = (row: number, col: number, sectorIdx: number = 0) => {
 export const BRIDGE_ROW = Math.floor(SECTOR_SIZE / 2);
 export const BRIDGE_COL = Math.floor(SECTOR_SIZE / 2);
 /**
- * Position of a crossing ALONG its shared edge. Half a tile below the middle
- * index, i.e. a half-integer, which is exactly where the path lattice puts its
- * alleys (lanes live on tile boundaries — see drawPathTile). The crossing used
- * to sit on the middle tile's CENTRE, so a bridge ran into the middle of a tile
- * instead of continuing an alley; the reviewed arrows all point half a tile back
- * along the edge, which is this.
+ * Position of a crossing ALONG its shared edge: the middle TILE's centre.
+ *
+ * This briefly carried a -0.5 shift onto the alley (tile boundary), because the
+ * reviewed arrows pointed half a tile back along every edge. That feedback was
+ * given while the deck's transform order was wrong, which displaced the u-axis
+ * planks by (-7.2, +21.6) — half a tile down, off their gap. The arrows were
+ * therefore compensating for a render bug, not asking for a different anchor;
+ * with the transform fixed (963cd2c) the compensation double-counted, so the
+ * crossing sits on the tile centre again.
  */
-export const BRIDGE_LANE = Math.floor(SECTOR_SIZE / 2) - 0.5;
+export const BRIDGE_LANE = Math.floor(SECTOR_SIZE / 2);
 /** Length of one tile edge in world space. */
 export const TILE_EDGE = Math.sqrt((TILE_W / 2) ** 2 + (TILE_H / 2) ** 2);
 /**
