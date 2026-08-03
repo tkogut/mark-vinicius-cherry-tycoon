@@ -756,17 +756,10 @@ const MACHINE_DRAW_FNS: Record<string, (ctx: CanvasRenderingContext2D, seed: num
     pruner: drawBranchPruner,
 };
 
-// Isometric unit vector for the "drive line" patrol below — matches this
-// file's TILE_W:TILE_H (96:48 = 2:1) ratio, so the patrol reads as motion
-// along the grid rather than a plain horizontal slide.
-const ISO_DRIVE_UX = 96 / Math.sqrt(96 * 96 + 48 * 48);
-const ISO_DRIVE_UY = 48 / Math.sqrt(96 * 96 + 48 * 48);
-
 /**
- * A parked machine's final resting spot/behavior isn't decided yet (tracked
- * separately) — this patrol motion exists only so the models can be
- * evaluated in motion per 2026-08-03 feedback. `seed` offsets each
- * instance's phase so a row of machines doesn't move in lockstep.
+ * World position (x,y) is driven externally by an NpcState walking the real
+ * lattice/bridge route (see the machine walkers above) — this component only
+ * owns the part-animation clock (rolling wheels, clamp/nozzle/blade motion).
  */
 const MachineSprite = React.memo(({ x, y, machineType, seed = 0 }: any) => {
     const [phaseStep, setPhaseStep] = React.useState(0);
@@ -786,16 +779,12 @@ const MachineSprite = React.memo(({ x, y, machineType, seed = 0 }: any) => {
         if (drawFn) drawFn(ctx, seed, phaseStep);
     }, [machineType, seed, phaseStep]);
 
-    const patrol = Math.sin(phaseStep * 0.3 + seed) * 26;
-    const patrolX = patrol * ISO_DRIVE_UX;
-    const patrolY = patrol * ISO_DRIVE_UY;
-
     return (
         <div
             className="absolute origin-bottom pointer-events-none"
             style={{
-                left: `${x + patrolX}px`,
-                top: `${y + patrolY}px`,
+                left: `${x}px`,
+                top: `${y}px`,
                 width: `${MACHINE_DISPLAY_W}px`,
                 height: `${MACHINE_DISPLAY_H}px`,
                 transform: 'translate(-50%, -100%)',
@@ -1058,6 +1047,16 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
     const [workerPos, setWorkerPos] = useState({ r: 0, c: 0, s: 0, targetR: 2, targetC: 2, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, hopS: -1, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
     const [helperPos, setHelperPos] = useState({ r: 4, c: 4, s: 0, targetR: 1, targetC: 1, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, hopS: -1, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
 
+    // Machine "walkers" — reuse the exact same NpcState shape/advanceNpc logic
+    // as the worker/helper above, added 2026-08-03 to test whether machines can
+    // use the path lattice/bridges at all (they hadn't moved before this; they
+    // were parked in a static row and only drifted with a decorative sine-wave
+    // patrol unrelated to the actual path network).
+    const [tractorPos, setTractorPos] = useState({ r: 1, c: 1, s: 0, targetR: 3, targetC: 3, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, hopS: -1, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
+    const [sprayerPos, setSprayerPos] = useState({ r: 3, c: 1, s: 0, targetR: 1, targetC: 3, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, hopS: -1, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
+    const [shakerPos, setShakerPos] = useState({ r: 0, c: 4, s: 0, targetR: 4, targetC: 0, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, hopS: -1, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
+    const [prunerPos, setPrunerPos] = useState({ r: 4, c: 0, s: 0, targetR: 0, targetC: 4, targetS: 0, pauseTicks: 0, onBridge: false, bridgeProgress: 0, hopS: -1, route: [] as RouteWaypoint[], routeDestR: -1, routeDestC: -1 });
+
     const hasHelper = !!(hiredLabor && hiredLabor.length > 0);
 
     useEffect(() => {
@@ -1077,12 +1076,51 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     shelterA: { r: 0, c: SECTOR_SIZE - 1 }, shelterB: { r: 4, c: 0 }
                 }));
             }
+
+            // 3. Update active machine walkers — each only ticks while its
+            // automationConfig flag is on, so an idle/unowned machine doesn't
+            // silently drift in the background.
+            if (automationConfig?.hasTractor) {
+                setTractorPos(prev => advanceNpc(prev, {
+                    phase: seasonStyles.phase, sectorsCount, treePositions,
+                    pauseHarvest: 30, pauseSpring: 30, pauseDormancy: 60,
+                    shelterA: { r: 0, c: 0 }, shelterB: { r: 4, c: 4 }
+                }));
+            }
+            if (automationConfig?.hasSprayer) {
+                setSprayerPos(prev => advanceNpc(prev, {
+                    phase: seasonStyles.phase, sectorsCount, treePositions,
+                    pauseHarvest: 30, pauseSpring: 30, pauseDormancy: 60,
+                    shelterA: { r: 4, c: 0 }, shelterB: { r: 0, c: 4 }
+                }));
+            }
+            if (automationConfig?.hasHarvesters) {
+                setShakerPos(prev => advanceNpc(prev, {
+                    phase: seasonStyles.phase, sectorsCount, treePositions,
+                    pauseHarvest: 30, pauseSpring: 30, pauseDormancy: 60,
+                    shelterA: { r: 0, c: 4 }, shelterB: { r: 4, c: 0 }
+                }));
+            }
+            if (automationConfig?.hasPruner) {
+                setPrunerPos(prev => advanceNpc(prev, {
+                    phase: seasonStyles.phase, sectorsCount, treePositions,
+                    pauseHarvest: 30, pauseSpring: 30, pauseDormancy: 60,
+                    shelterA: { r: 4, c: 4 }, shelterB: { r: 0, c: 0 }
+                }));
+            }
         }, 30);
         return () => clearInterval(interval);
-    }, [sectorsCount, treePositions, seasonStyles.phase, hasHelper]);
+    }, [sectorsCount, treePositions, seasonStyles.phase, hasHelper, automationConfig]);
 
-    // Flatten entities for Modular Isometric Projection
-    const worldEntities = useMemo(() => {
+    // Static entities (soil/tree/perimeter/bridge) — split out from the NPC/machine
+    // entities below so this memo depends ONLY on parcel data, not on the 30ms NPC
+    // tick. Before this split, soil/tree/perimeter/bridge divs were all recreated
+    // (new entity objects, new inline style objects) on every single NPC tick even
+    // though none of their values ever change from that — wasted work, and a likely
+    // contributor to an intermittent unclipped-rectangle flash reported on the
+    // Perimeter div (clip-path + transform elements can drop a frame of clipping
+    // when their compositing layer is torn down and rebuilt this often).
+    const staticEntities = useMemo(() => {
         const entities: any[] = [];
 
         for (let s = 0; s < sectorsCount; s++) {
@@ -1191,87 +1229,91 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     zIndex: 40
                 });
             }
-
-            // 6. Machines — parked in a row above the sector's tile grid, gated
-            // per-machine by automationConfig so nothing new appears unless a
-            // caller opts in (existing hasHarvesters callers keep working
-            // unchanged). Geometric Brass models ported from sketch 002.
-            const machineAnchor = projectToIso(0, 0, s);
-            const machineSpecs: { flag: boolean | undefined; type: string; dx: number }[] = [
-                { flag: automationConfig?.hasTractor, type: 'tractor', dx: -60 },
-                { flag: automationConfig?.hasSprayer, type: 'sprayer', dx: -20 },
-                { flag: automationConfig?.hasHarvesters, type: 'shaker', dx: 20 },
-                { flag: automationConfig?.hasPruner, type: 'pruner', dx: 60 },
-            ];
-            machineSpecs.forEach(({ flag, type, dx }) => {
-                if (!flag) return;
-                const mx = machineAnchor.x + dx;
-                const my = machineAnchor.y - TILE_H * 1.8;
-                entities.push({
-                    type: 'machine',
-                    key: `machine-${type}-${s}`,
-                    machineType: type,
-                    x: mx,
-                    y: my,
-                    s,
-                    zIndex: s * 100000 + 90000
-                });
-            });
         }
 
-        // 3. Owner Worker NPC
-        let wX = 0;
-        let wY = 0;
-        if (workerPos.onBridge) {
-            // Same geometry the bridge visual uses, so the walk is ON the plank.
-            const span = getBridgeGeometry(workerPos.s, workerPos.hopS);
-            const here = projectToIso(workerPos.r, workerPos.c, workerPos.s);
+        return entities;
+    }, [displayParcels, sectorsCount]);
+
+    // Resolves an NpcState's world position, handling the on-bridge interpolation
+    // the same way for workers, the helper, and (as of 2026-08-03) machines —
+    // shared so machines walk the exact lattice/bridge geometry already proven
+    // for the worker NPCs, instead of a separate ad-hoc motion.
+    const npcWorldPos = (pos: { r: number; c: number; s: number; onBridge: boolean; bridgeProgress: number; hopS: number }) => {
+        if (pos.onBridge) {
+            const span = getBridgeGeometry(pos.s, pos.hopS);
+            const here = projectToIso(pos.r, pos.c, pos.s);
             const posA = span ? span.from : here;
             const posB = span ? span.to : here;
-            wX = posA.x + (posB.x - posA.x) * workerPos.bridgeProgress;
-            wY = posA.y + (posB.y - posA.y) * workerPos.bridgeProgress;
-        } else {
-            const npos = projectToIso(workerPos.r, workerPos.c, workerPos.s);
-            wX = npos.x;
-            wY = npos.y;
+            return {
+                x: posA.x + (posB.x - posA.x) * pos.bridgeProgress,
+                y: posA.y + (posB.y - posA.y) * pos.bridgeProgress
+            };
         }
+        return projectToIso(pos.r, pos.c, pos.s);
+    };
+
+    // NPC + machine entities — split from staticEntities above so parcel-only
+    // changes don't touch these, and vice versa the 30ms movement tick doesn't
+    // touch soil/tree/perimeter/bridge.
+    const dynamicEntities = useMemo(() => {
+        const entities: any[] = [];
+
+        // 3. Owner Worker NPC
+        const wPos = npcWorldPos(workerPos);
         entities.push({
             type: 'npc',
             key: 'npc-worker-1',
-            x: wX,
-            y: wY,
+            x: wPos.x,
+            y: wPos.y,
             role: 'owner',
-            zIndex: workerPos.s * 100000 + Math.round(wY * 10) + 5
+            zIndex: workerPos.s * 100000 + Math.round(wPos.y * 10) + 5
         });
 
         // 3b. Helper Worker NPC (if active)
         if (hasHelper) {
-            let hX = 0;
-            let hY = 0;
-            if (helperPos.onBridge) {
-                const span = getBridgeGeometry(helperPos.s, helperPos.hopS);
-                const here = projectToIso(helperPos.r, helperPos.c, helperPos.s);
-                const posA = span ? span.from : here;
-                const posB = span ? span.to : here;
-                hX = posA.x + (posB.x - posA.x) * helperPos.bridgeProgress;
-                hY = posA.y + (posB.y - posA.y) * helperPos.bridgeProgress;
-            } else {
-                const hpos = projectToIso(helperPos.r, helperPos.c, helperPos.s);
-                hX = hpos.x;
-                hY = hpos.y;
-            }
+            const hPos = npcWorldPos(helperPos);
             entities.push({
                 type: 'npc',
                 key: 'npc-helper-1',
-                x: hX,
-                y: hY,
+                x: hPos.x,
+                y: hPos.y,
                 role: 'helper',
-                zIndex: helperPos.s * 100000 + Math.round(hY * 10) + 5
+                zIndex: helperPos.s * 100000 + Math.round(hPos.y * 10) + 5
             });
         }
 
-        return entities.sort((a, b) => a.zIndex - b.zIndex);
-    }, [displayParcels, sectorsCount, workerPos, helperPos, hiredLabor, automationConfig]);
+        // 4. Machines — walk the SAME lattice/bridge route the worker NPCs use
+        // (see the shared tick effect above), so this doubles as a test of
+        // whether machines can use the path network at all. Gated per-machine
+        // by automationConfig so nothing new appears unless a caller opts in.
+        // Where a parked/idle machine ends up when not "working" is explicitly
+        // undecided — this is movement-capability validation only.
+        const machineWalkers: { flag: boolean | undefined; type: string; pos: typeof workerPos }[] = [
+            { flag: automationConfig?.hasTractor, type: 'tractor', pos: tractorPos },
+            { flag: automationConfig?.hasSprayer, type: 'sprayer', pos: sprayerPos },
+            { flag: automationConfig?.hasHarvesters, type: 'shaker', pos: shakerPos },
+            { flag: automationConfig?.hasPruner, type: 'pruner', pos: prunerPos },
+        ];
+        machineWalkers.forEach(({ flag, type, pos }) => {
+            if (!flag) return;
+            const mPos = npcWorldPos(pos);
+            entities.push({
+                type: 'machine',
+                key: `machine-${type}`,
+                machineType: type,
+                x: mPos.x,
+                y: mPos.y,
+                zIndex: pos.s * 100000 + Math.round(mPos.y * 10) + 4
+            });
+        });
+
+        return entities;
+    }, [workerPos, helperPos, hasHelper, tractorPos, sprayerPos, shakerPos, prunerPos, automationConfig]);
+
+    const worldEntities = useMemo(
+        () => [...staticEntities, ...dynamicEntities].sort((a, b) => a.zIndex - b.zIndex),
+        [staticEntities, dynamicEntities]
+    );
 
     return (
         <div
@@ -1424,7 +1466,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                                 x={entity.x}
                                                 y={entity.y}
                                                 machineType={entity.machineType}
-                                                seed={entity.s * 7 + entity.machineType.length}
+                                                seed={entity.machineType.length * 7}
                                             />
                                         </div>
                                     );
