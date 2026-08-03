@@ -190,6 +190,7 @@ module {
       case (#Shaker) { 60_000 };
       case (#Sprayer) { 12_000 };
       case (#ProcessingFacility) { 100_000 };
+      case (#Pruner) { 18_000 };
     }
   };
 
@@ -201,7 +202,7 @@ module {
 
   public func getMaintenancePercentage(infraType: InfrastructureType) : Nat {
     switch (infraType) {
-      case (#GoldenHarvester or #Tractor or #Shaker or #Sprayer) { 2 }; // Machinery: 2%
+      case (#GoldenHarvester or #Tractor or #Shaker or #Sprayer or #Pruner) { 2 }; // Machinery: 2%
       case (#Warehouse or #ColdStorage or #ProcessingFacility or #SocialFacilities) { 1 }; // Buildings: 1%
     }
   };
@@ -237,6 +238,7 @@ module {
       switch (infra.infraType) {
         case (#Tractor) { laborEfficiency -= 0.15 * Float.fromInt(infra.level) };
         case (#Shaker) { laborEfficiency -= 0.30 * Float.fromInt(infra.level) };
+        case (#Pruner) { laborEfficiency -= 0.10 * Float.fromInt(infra.level) }; // automated trimming, modest labor savings
         case (#SocialFacilities) { laborEfficiency -= 0.05 * Float.fromInt(infra.level) };
         case (_) {};
       };
@@ -313,6 +315,7 @@ module {
         case (#Sprayer) { hasSpray := true; score += 5.0 * Float.fromInt(infra.level) };
         case (#ColdStorage) { hasColdStorage := true; score += 3.0 * Float.fromInt(infra.level) };
         case (#Shaker) { score -= 2.0 * Float.fromInt(infra.level) }; // Mechanical harvesting damages fruit slightly
+        case (#Pruner) { score += 4.0 * Float.fromInt(infra.level) }; // healthier canopy, better fruit exposure
         case (_) {};
       };
     };

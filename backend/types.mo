@@ -97,6 +97,7 @@ module {
     #Shaker;             // mechanical harvesting
     #Sprayer;            // lower disease risk, higher quality
     #ProcessingFacility; // juices, jams, liqueurs
+    #Pruner;             // automated branch-trimming, quality + modest labor savings
   };
 
   public type Infrastructure = {

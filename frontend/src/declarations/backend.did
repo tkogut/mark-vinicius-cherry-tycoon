@@ -274,6 +274,7 @@ type InfrastructureType =
    ColdStorage;
    GoldenHarvester;
    ProcessingFacility;
+   Pruner;
    Shaker;
    SocialFacilities;
    Sprayer;

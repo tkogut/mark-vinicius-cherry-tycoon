@@ -20,7 +20,29 @@ import { useStability } from '@/hooks/useFarm';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertCircle, ShoppingCart, CheckCircle2 } from 'lucide-react';
 import { isActionAllowed, SeasonPhase, PHASE_LABELS } from '@/config/phaseConstants';
+import { drawModernTractor, drawPrecisionSprayer, drawMechanicalShaker, drawBranchPruner } from './orchardMachines';
 
+const MACHINE_THUMBNAIL_DRAW_FNS: Record<string, (ctx: CanvasRenderingContext2D, seed: number) => void> = {
+    tractor: drawModernTractor,
+    sprayer: drawPrecisionSprayer,
+    shaker: drawMechanicalShaker,
+    pruner: drawBranchPruner,
+};
+
+/** Static single-frame render of the real orchard machine model (sketch 002 / orchardMachines.ts) as a Marketplace card thumbnail — same art the machine uses when walking the orchard, not a generic icon. */
+const MachineThumbnail: React.FC<{ machineType: string }> = ({ machineType }) => {
+    const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    React.useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const drawFn = MACHINE_THUMBNAIL_DRAW_FNS[machineType];
+        if (drawFn) drawFn(ctx, 0);
+    }, [machineType]);
+    return <canvas ref={canvasRef} width={200} height={200} style={{ width: '100%', height: '100%' }} />;
+};
 
 interface InfrastructureItem {
     id: string;
@@ -30,8 +52,8 @@ interface InfrastructureItem {
     icon: React.ReactNode;
     effect: string;
     type: 'Building' | 'Machinery';
-    /** UI-only placeholder: shown in the catalog but not yet purchasable — no backend InfrastructureType case exists for it. */
-    comingSoon?: boolean;
+    /** When set, the Marketplace card shows the real Geometric Brass model (orchardMachines.ts) instead of `icon`. */
+    machineType?: 'tractor' | 'sprayer' | 'shaker' | 'pruner';
 }
 
 const MARKET_ITEMS: InfrastructureItem[] = [
@@ -78,7 +100,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 30000,
         icon: <Truck className="h-6 w-6" />,
         effect: '-15% Labor Costs',
-        type: 'Machinery'
+        type: 'Machinery',
+        machineType: 'tractor'
     },
     {
         id: 'Shaker',
@@ -87,7 +110,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 60000,
         icon: <Zap className="h-6 w-6" />,
         effect: '-30% Labor Costs (Stackable)',
-        type: 'Machinery'
+        type: 'Machinery',
+        machineType: 'shaker'
     },
     {
         id: 'Sprayer',
@@ -96,7 +120,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 12000,
         icon: <Droplets className="h-6 w-6" />,
         effect: 'Reduces fertilizer usage cost by 10%',
-        type: 'Machinery'
+        type: 'Machinery',
+        machineType: 'sprayer'
     },
     {
         id: 'Pruner',
@@ -104,9 +129,9 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         description: 'Wheeled automated branch-trimming unit.',
         cost: 18000,
         icon: <Wrench className="h-6 w-6" />,
-        effect: 'Coming soon — visual model ready, not yet purchasable',
+        effect: '-10% Labor Costs · +Quality Score per level',
         type: 'Machinery',
-        comingSoon: true
+        machineType: 'pruner'
     }
 ];
 
@@ -148,18 +173,14 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                 <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                         <div className={cn(
-                            "p-2 rounded-lg",
+                            item.machineType ? "p-1 rounded-lg w-16 h-16" : "p-2 rounded-lg",
                             owned ? "bg-emerald-500/10 text-emerald-400" : "bg-slate-800 text-slate-400"
                         )}>
-                            {item.icon}
+                            {item.machineType ? <MachineThumbnail machineType={item.machineType} /> : item.icon}
                         </div>
                         {owned ? (
                             <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                                 Installed
-                            </Badge>
-                        ) : item.comingSoon ? (
-                            <Badge className="bg-slate-700/40 text-slate-400 border-slate-600/40">
-                                Coming Soon
                             </Badge>
                         ) : (
                             <div className="flex flex-col items-end">
@@ -209,15 +230,15 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                                     <Button
                                         className={cn(
                                             "w-full mt-4 h-9 text-xs font-bold transition-all",
-                                            (owned || item.comingSoon)
+                                            owned
                                                 ? "bg-slate-800 text-slate-500 cursor-not-allowed"
                                                 : (!canBuy ? "bg-slate-800 text-slate-500 opacity-60" : "bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-900/20")
                                         )}
-                                        disabled={owned || item.comingSoon || !canAfford || isLoading || !canBuy}
+                                        disabled={owned || !canAfford || isLoading || !canBuy}
                                         onClick={() => onPurchase(item.id)}
                                     >
                                         <ShoppingCart className="h-4 w-4 mr-2" />
-                                        {owned ? "OWNED" : item.comingSoon ? "COMING SOON" : (isLoading ? "PURCHASING..." : "PURCHASE")}
+                                        {owned ? "OWNED" : (isLoading ? "PURCHASING..." : "PURCHASE")}
                                     </Button>
                                 </div>
                             </TooltipTrigger>

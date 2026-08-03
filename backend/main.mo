@@ -2129,6 +2129,7 @@ actor CherryTycoon {
           case ("Shaker") { ?#Shaker };
           case ("Sprayer") { ?#Sprayer };
           case ("ProcessingFacility") { ?#ProcessingFacility };
+          case ("Pruner") { ?#Pruner };
           case (_) { null };
         };
 

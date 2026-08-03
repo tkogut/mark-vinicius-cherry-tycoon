@@ -236,6 +236,7 @@ export type InfrastructureType = { 'Sprayer' : null } |
   { 'GoldenHarvester' : null } |
   { 'ColdStorage' : null } |
   { 'ProcessingFacility' : null } |
+  { 'Pruner' : null } |
   { 'SocialFacilities' : null };
 export interface InputMarket {
   'fertilizerPrice' : bigint,

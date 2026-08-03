@@ -164,13 +164,14 @@ function AppContent() {
     // Wired to real purchased-machinery state 2026-08-03 (previously
     // hardcoded `hasHarvesters: false`, so the orchard never showed any
     // owned machine regardless of what was actually purchased in the
-    // Marketplace). hasPruner stays false — Branch Pruner is a Marketplace
-    // UI-only placeholder for now, not yet a backend-tracked InfrastructureType.
+    // Marketplace). Pruner is now a real backend InfrastructureType (added
+    // 2026-08-03 — types.mo, game_logic.mo, main.mo/main_mainnet.mo), so it
+    // reads from getInfraLevel like the other three.
     const orchardAutomationConfig = {
         hasHarvesters: getInfraLevel('Shaker') > 0,
         hasTractor: getInfraLevel('Tractor') > 0,
         hasSprayer: getInfraLevel('Sprayer') > 0,
-        hasPruner: false,
+        hasPruner: getInfraLevel('Pruner') > 0,
     };
 
     // Helper to determine current phase

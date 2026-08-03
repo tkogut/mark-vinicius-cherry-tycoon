@@ -325,6 +325,7 @@ export const idlFactory = ({ IDL }) => {
     'GoldenHarvester' : IDL.Null,
     'ColdStorage' : IDL.Null,
     'ProcessingFacility' : IDL.Null,
+    'Pruner' : IDL.Null,
     'SocialFacilities' : IDL.Null,
   });
   const Infrastructure = IDL.Record({
