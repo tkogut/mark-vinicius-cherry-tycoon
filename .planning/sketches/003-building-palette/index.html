@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sketch 003 — Building Palette</title>
+<link rel="stylesheet" href="../themes/neo-steampunk.css">
+<style>
+  body { padding-top: 56px; }
+  #variant-nav { position:fixed; top:0; left:0; right:0; z-index:9998; background:var(--color-surface); border-bottom:1px solid var(--color-border); padding:8px 16px; display:flex; gap:8px; font-family:var(--font-sans); }
+  .variant-tab { background:var(--color-surface-2); color:var(--color-text-muted); border:1px solid var(--color-border); padding:8px 14px; border-radius:var(--radius-md); cursor:pointer; font-size:var(--text-sm); transition:all 0.15s ease; }
+  .variant-tab:hover { color:var(--color-text); border-color:var(--color-brass); }
+  .variant-tab.active { background:var(--color-brass); color:#1a1408; border-color:var(--color-brass-bright); font-weight:600; }
+  .variant { display:none; padding: 24px 32px 64px; }
+  .variant.active { display:block; }
+  h1 { font-family:var(--font-serif); color:var(--color-brass-bright); font-size:var(--text-2xl); margin:0 0 4px; }
+  .subtitle { color:var(--color-text-muted); font-size:var(--text-sm); margin-bottom:24px; max-width:820px; }
+  .row { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-end; margin-bottom:32px; }
+  .item { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-lg); padding:16px; text-align:center; box-shadow:var(--shadow-md); }
+  .item canvas { display:block; border-radius:var(--radius-md); }
+  .item .label { margin-top:10px; font-size:var(--text-sm); color:var(--color-text); font-weight:600; }
+  .item .sub { font-size:var(--text-xs); color:var(--color-text-muted); }
+  .section-label { font-family:var(--font-serif); color:var(--color-text-muted); font-size:var(--text-lg); margin: 8px 0 14px; border-bottom:1px solid var(--color-border); padding-bottom:6px; }
+  .compare-note { margin-top:8px; background:var(--color-surface-2); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:14px 18px; font-size:var(--text-sm); color:var(--color-text-muted); max-width:820px; }
+  .compare-note b { color:var(--color-brass-bright); }
+  .swatches { display:flex; gap:6px; margin-top:10px; }
+  .swatch { width:20px; height:20px; border-radius:4px; border:1px solid rgba(255,255,255,0.25); }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <button class="variant-tab active" onclick="showVariant('a')">A: Teal &amp; Magenta Neon</button>
+  <button class="variant-tab" onclick="showVariant('b')">B: Jewel-Tone Brass</button>
+  <button class="variant-tab" onclick="showVariant('c')">C: Gunmetal Neon</button>
+</div>
+
+<!-- ============ VARIANT A ============ -->
+<div id="variant-a" class="variant active">
+  <h1>A: Teal &amp; Magenta Neon — lifted straight from the mood board</h1>
+  <p class="subtitle">Cool metallic teal/emerald body panels, hot pink/magenta glass and door accents, gold trim/rivets, and a soft neon glow riding the edges — the direction closest to clip.png. Highest contrast against the current muddy brown/ochre theme.</p>
+  <div class="row" id="buildings-a"></div>
+  <div class="compare-note"><b>Look for:</b> does the magenta read as "premium neon" or as visually loud next to the orchard's greens? Do the 4 buildings stay clearly distinguishable by silhouette alone (hex tank / gear roof / open pagoda / gabled barn) even before color is considered?</div>
+</div>
+
+<!-- ============ VARIANT B ============ -->
+<div id="variant-b" class="variant">
+  <h1>B: Jewel-Tone Brass — coherent evolution, brass kept as trim only</h1>
+  <p class="subtitle">Keeps the game's existing brass/gold identity, but demotes it to trim/rivets/mechanical details instead of the dominant fill. Body panels swap the muddy dark-brown/ochre base for saturated jewel tones — a different gem per building (emerald warehouse, sapphire cold storage, garnet processing plant, amethyst social hall) — so the brass reads as "the metal holding these jewels together," not as the wall color itself.</p>
+  <div class="row" id="buildings-b"></div>
+  <div class="compare-note"><b>Look for:</b> does this still feel like "our game" (brass rivets, warm lantern glow, Cinzel serif mood) while fixing the flatness complaint? Is the jewel-per-building idea a good secondary identity cue, or confusing (do players need color-coding, or is shape enough)?</div>
+</div>
+
+<!-- ============ VARIANT C ============ -->
+<div id="variant-c" class="variant">
+  <h1>C: Gunmetal Neon — darker, moodier third option</h1>
+  <p class="subtitle">A genuinely distinct direction: near-black gunmetal body panels (not colored metal at all) let saturated neon piping/glow do all the color work — green coolant lines on Cold Storage, magenta conveyor glow on the Processing Plant, cyan lantern strings on Social Facilities, hot-pink seam lighting on the Warehouse doors. Brass survives only as rivets. Higher contrast than B, cooler and more nocturnal than A.</p>
+  <div class="row" id="buildings-c"></div>
+  <div class="compare-note"><b>Look for:</b> does the near-black body read as "alive" (dramatic, neon-lit) or just "dark" (swapping one dull palette for another)? Does it fit an orchard scene lit mostly by daylight, or does it only work as a night/dusk look?</div>
+</div>
+
+<div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(0,0,0,0.7);color:white;padding:8px 12px;border-radius:8px;opacity:0.4;transition:opacity 0.2s;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.4'">
+  Sketch 003 · Building Palette
+</div>
+
+<script>
+function showVariant(id) {
+  document.querySelectorAll('.variant').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('variant-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ---------- shared helpers ----------
+function mulberry32(seed) {
+  let s = seed;
+  return function () {
+    s |= 0; s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function darken(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.floor(((n >> 16) & 255) * f), g = Math.floor(((n >> 8) & 255) * f), b = Math.floor((n & 255) * f);
+  return `rgb(${r},${g},${b})`;
+}
+function lighten(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, Math.floor(((n >> 16) & 255) + (255 - ((n >> 16) & 255)) * f));
+  const g = Math.min(255, Math.floor(((n >> 8) & 255) + (255 - ((n >> 8) & 255)) * f));
+  const b = Math.min(255, Math.floor((n & 255) + (255 - (n & 255)) * f));
+  return `rgb(${r},${g},${b})`;
+}
+function makeCanvas(container, w, h, bg, label, sub) {
+  const item = document.createElement('div');
+  item.className = 'item';
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.style.background = bg;
+  item.appendChild(c);
+  const l = document.createElement('div');
+  l.className = 'label'; l.textContent = label;
+  item.appendChild(l);
+  if (sub) { const s = document.createElement('div'); s.className = 'sub'; s.textContent = sub; item.appendChild(s); }
+  container.appendChild(item);
+  return c.getContext('2d');
+}
+function drawGroundShadow(ctx, x, y, w) {
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath(); ctx.ellipse(x, y, w, w * 0.26, 0, 0, Math.PI * 2); ctx.fill();
+}
+function poly(ctx, pts) {
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+  ctx.closePath();
+}
+function fillPoly(ctx, pts, fill, stroke, lw) {
+  poly(ctx, pts);
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.2; ctx.stroke(); }
+}
+// Small faceted gear/rivet accent — same family as sketch 002's gearRivetA.
+function gearRivet(ctx, x, y, r, trimBright, trimMid, trimDark) {
+  ctx.save(); ctx.translate(x, y);
+  const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r * 1.3);
+  grad.addColorStop(0, trimBright); grad.addColorStop(0.55, trimMid); grad.addColorStop(1, trimDark);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  for (let i = 0; i < 16; i++) {
+    const ang = (Math.PI * i) / 8;
+    const rad = i % 2 === 0 ? r : r * 0.68;
+    ctx.lineTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function pipe(ctx, pts, color, w, glow) {
+  ctx.save();
+  if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 8; }
+  ctx.strokeStyle = color; ctx.lineWidth = w || 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+  ctx.stroke();
+  ctx.restore();
+}
+function glowDot(ctx, x, y, r, color, glow) {
+  ctx.save();
+  ctx.shadowColor = glow || color; ctx.shadowBlur = 10;
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// ---------- isometric box: (cx,cy) is the ground-level FRONT corner ----------
+function isoBoxPoints(cx, cy, w, d, h) {
+  const front = [cx, cy];
+  const right = [cx + w / 2, cy - w / 4];
+  const left = [cx - d / 2, cy - d / 4];
+  const back = [cx + w / 2 - d / 2, cy - w / 4 - d / 4];
+  const shift = (p) => [p[0], p[1] - h];
+  return {
+    front, right, left, back,
+    front_t: shift(front), right_t: shift(right), left_t: shift(left), back_t: shift(back)
+  };
+}
+function drawIsoBox(ctx, B, cTop, cLeft, cRight, edge) {
+  // shadow/left face (away from light)
+  fillPoly(ctx, [B.front, B.left, B.left_t, B.front_t], cLeft, edge, 1.3);
+  // lit/right face
+  fillPoly(ctx, [B.front, B.right, B.right_t, B.front_t], cRight, edge, 1.3);
+  // top/roof face
+  fillPoly(ctx, [B.front_t, B.right_t, B.back_t, B.left_t], cTop, edge, 1.3);
+}
+
+// ======================================================================
+// Shared BUILDING SHAPES — identical geometry across all 3 variants;
+// only the palette object differs. This keeps the comparison a fair
+// "same building, different colors" test rather than a shape+color swap.
+//
+// Revision (2026-08-03): first pass read as thin/sparse "toy icons" next to
+// the reference mood board's chunky, richly-detailed assets — buildings were
+// narrow relative to their height, faces were flat single-tone fills, and
+// accent details (windows, gears, doors) were tiny dots rather than bold
+// panels. This pass: wider/shorter (more cube-like) bodies, big saturated
+// glass/gem window PANELS instead of glow dots, 3-stop gradients with a
+// visible highlight on every face, and much larger mechanical accents
+// (gears, doors) sized to actually read at a glance — closer to clip.png's
+// proportions and detail density.
+// ======================================================================
+
+// A window/glass panel big enough to actually read as glass, not a dot —
+// clip.png's buildings all have one or two large saturated panels like this.
+function glassPanel(ctx, cx, cy, w, h, colorBright, colorDark, glow, edge) {
+  ctx.save();
+  if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 14; }
+  const grad = ctx.createLinearGradient(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2);
+  grad.addColorStop(0, colorBright); grad.addColorStop(0.55, colorDark); grad.addColorStop(1, colorBright);
+  fillPoly(ctx, [[cx - w / 2, cy - h / 2], [cx + w / 2, cy - h / 2], [cx + w / 2, cy + h / 2], [cx - w / 2, cy + h / 2]], grad, edge, 1.4);
+  ctx.restore();
+  // corner highlight, so the panel reads as reflective glass
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  fillPoly(ctx, [[cx - w / 2 + 2, cy - h / 2 + 2], [cx - w / 4, cy - h / 2 + 2], [cx - w / 2 + 2, cy]], 'rgba(255,255,255,0.35)');
+}
+// Three-stop face gradient with a highlight streak — replaces the old flat
+// single-color fill used by drawIsoBox's callers.
+function faceGrad(ctx, x0, y0, x1, y1, dark, mid, light) {
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  g.addColorStop(0, light); g.addColorStop(0.45, mid); g.addColorStop(1, dark);
+  return g;
+}
+function drawIsoBoxRich(ctx, B, pal) {
+  fillPoly(ctx, [B.front, B.left, B.left_t, B.front_t], faceGrad(ctx, B.left[0], B.left[1], B.front[0], B.front[1], pal.bodyLeft, darken(pal.bodyRight, 0.75), pal.bodyRight), pal.edge, 1.6);
+  fillPoly(ctx, [B.front, B.right, B.right_t, B.front_t], faceGrad(ctx, B.right[0], B.right[1], B.front[0], B.front[1], darken(pal.bodyRight, 0.85), pal.bodyRight, lighten(pal.bodyRight, 0.35)), pal.edge, 1.6);
+  fillPoly(ctx, [B.front_t, B.right_t, B.back_t, B.left_t], faceGrad(ctx, B.left_t[0], B.left_t[1], B.right_t[0], B.right_t[1], pal.roofBase, pal.roofBase, lighten(pal.roofBase, 0.3)), pal.edge, 1.6);
+}
+
+// ---- Warehouse: wide gabled barn + big gold doors + pink corner windows + crates ----
+function drawWarehouse(ctx, pal, seed) {
+  const rng = mulberry32(seed);
+  drawGroundShadow(ctx, 130, 232, 100);
+  const B = isoBoxPoints(130, 208, 128, 82, 74);
+  drawIsoBoxRich(ctx, B, pal);
+
+  // gabled roof ridge running front-to-back, bold overhang
+  const rise = 40;
+  const ridgeFront = [B.front_t[0], B.front_t[1] - rise];
+  const ridgeBack = [B.back_t[0], B.back_t[1] - rise];
+  fillPoly(ctx, [B.front_t, B.left_t, ridgeBack, ridgeFront], faceGrad(ctx, B.left_t[0], B.left_t[1], ridgeFront[0], ridgeFront[1], pal.roofLeft, pal.roofLeft, lighten(pal.roofLeft, 0.25)), pal.edge, 1.6);
+  fillPoly(ctx, [B.front_t, B.right_t, ridgeBack, ridgeFront], faceGrad(ctx, B.right_t[0], B.right_t[1], ridgeFront[0], ridgeFront[1], darken(pal.roofRight, 0.8), pal.roofRight, lighten(pal.roofRight, 0.3)), pal.edge, 1.6);
+  pipe(ctx, [ridgeFront, ridgeBack], pal.trimMid2 || pal.trimMid, 4, pal.windowGlow);
+
+  // BIG gold double doors dominating the lit (right) face
+  const doorW = 34, doorH = 52;
+  const doorCx = (B.front[0] + B.right[0]) / 2 - 2, doorBaseY = (B.front[1] + B.right[1]) / 2 + 4;
+  for (let i = 0; i < 2; i++) {
+    const dx = doorCx - doorW + i * doorW;
+    const grad = ctx.createLinearGradient(dx, doorBaseY - doorH, dx + doorW, doorBaseY);
+    grad.addColorStop(0, pal.trimBright); grad.addColorStop(0.5, pal.trimMid); grad.addColorStop(1, pal.trimDark);
+    fillPoly(ctx, [[dx, doorBaseY], [dx + doorW - 2, doorBaseY - 6], [dx + doorW - 2, doorBaseY - doorH - 6], [dx, doorBaseY - doorH]], grad, pal.edge, 1.4);
+    gearRivet(ctx, dx + doorW / 2 - 1, doorBaseY - doorH / 2 - 3, 6, pal.trimBright, pal.trimMid, pal.trimDark);
+  }
+
+  // large saturated corner windows, top-left and top-right of the facade
+  glassPanel(ctx, B.front[0] - 30, B.front[1] - doorH - 20, 22, 22, pal.windowBright, pal.windowColor, pal.windowGlow, pal.edge);
+  glassPanel(ctx, doorCx + doorW + 8, doorBaseY - doorH - 8, 18, 18, pal.windowBright, pal.windowColor, pal.windowGlow, pal.edge);
+
+  // stacked crates beside the barn, bigger, with a tied-ribbon accent
+  for (let i = 0; i < 3; i++) {
+    const cx = 214 + (i % 2) * 22, cy = 220 - i * 18;
+    const size = 20;
+    ctx.save();
+    ctx.translate(cx, cy);
+    const grad = ctx.createLinearGradient(-size, -size, size, size);
+    grad.addColorStop(0, pal.crateLight); grad.addColorStop(1, pal.crateDark);
+    fillPoly(ctx, [[-size, 0], [0, -size * 0.55], [size, 0], [0, size * 0.55]], grad, pal.edge, 1.3);
+    pipe(ctx, [[-size, 0], [size, 0]], pal.trimMid2 || pal.windowColor, 2.5);
+    ctx.restore();
+  }
+  gearRivet(ctx, B.front[0], B.front[1] - 14, 7, pal.trimBright, pal.trimMid, pal.trimDark);
+}
+
+// ---- Cold Storage: the tank IS the building — big faceted hex tower + coolant pipes ----
+function drawColdStorage(ctx, pal, seed) {
+  const rng = mulberry32(seed);
+  drawGroundShadow(ctx, 130, 232, 88);
+  // short skirt base so the tank has somewhere to stand, then the faceted
+  // tank dominates — matches the reference's "building = tank" silhouette.
+  const B = isoBoxPoints(130, 218, 96, 66, 30);
+  drawIsoBoxRich(ctx, B, pal);
+
+  const tankCx = (B.front_t[0] + B.back_t[0]) / 2, tankCy = (B.front_t[1] + B.back_t[1]) / 2 - 8;
+  const sides = 8, rr = 54, rh = 70;
+  const topPts = [], botPts = [];
+  for (let i = 0; i < sides; i++) {
+    const ang = (Math.PI * 2 * i) / sides - Math.PI / 2;
+    const jr = rr * (0.94 + rng() * 0.1);
+    topPts.push([tankCx + Math.cos(ang) * jr, tankCy - rh + Math.sin(ang) * jr * 0.55]);
+    botPts.push([tankCx + Math.cos(ang) * jr, tankCy + Math.sin(ang) * jr * 0.55]);
+  }
+  // side facets first (drawn back-to-front), each its own gradient panel
+  for (let i = 0; i < sides; i++) {
+    const j = (i + 1) % sides;
+    const midAng = (i + 0.5) / sides;
+    const lit = Math.cos(midAng * Math.PI * 2) > -0.2;
+    fillPoly(ctx, [topPts[i], topPts[j], botPts[j], botPts[i]],
+      faceGrad(ctx, topPts[i][0], topPts[i][1], botPts[j][0], botPts[j][1],
+        lit ? darken(pal.tankDark, 0.85) : darken(pal.tankDark, 0.5),
+        lit ? pal.tankDark : darken(pal.tankDark, 0.7),
+        lit ? pal.tankLight : pal.tankDark),
+      pal.edge, 1.3);
+  }
+  // domed cap
+  fillPoly(ctx, topPts, faceGrad(ctx, topPts[0][0], topPts[0][1], tankCx, tankCy - rh - 10, pal.tankDark, pal.tankLight, '#ffffff'), pal.edge, 1.4);
+  gearRivet(ctx, tankCx, tankCy - rh - 4, 8, pal.trimBright, pal.trimMid, pal.trimDark);
+
+  // one BIG glass panel on the front facet — the reference's signature look
+  glassPanel(ctx, tankCx, tankCy - rh * 0.35, 34, 40, pal.windowBright, pal.windowColor, pal.windowGlow, pal.edge);
+
+  // coolant pipes wrapping down the side to the ground, thicker + glowing
+  pipe(ctx, [[tankCx - rr * 0.85, tankCy - 10], [B.left[0] + 4, B.left[1] - 34], [B.left[0] + 10, B.left[1] - 2]], pal.pipeColor, 8, pal.pipeGlow);
+  pipe(ctx, [[tankCx + rr * 0.75, tankCy - 4], [B.right[0] - 6, B.right[1] - 30], [B.right[0] - 10, B.right[1] - 2]], pal.pipeColor, 8, pal.pipeGlow);
+  glowDot(ctx, B.left[0] + 10, B.left[1] - 2, 5, pal.pipeColor, pal.pipeGlow);
+  glowDot(ctx, B.right[0] - 10, B.right[1] - 2, 5, pal.pipeColor, pal.pipeGlow);
+}
+
+// ---- Processing Plant: chunky body + roof cupola with BIG overlapping gears + conveyor+crates ----
+function drawProcessingPlant(ctx, pal, seed) {
+  const rng = mulberry32(seed);
+  drawGroundShadow(ctx, 128, 232, 98);
+  const B = isoBoxPoints(128, 212, 122, 76, 70);
+  drawIsoBoxRich(ctx, B, pal);
+
+  // cupola: secondary box centered on the roof, bold proportions
+  const capCx = (B.front_t[0] + B.back_t[0]) / 2, capCy = (B.front_t[1] + B.back_t[1]) / 2;
+  const C = isoBoxPoints(capCx, capCy, 56, 38, 26);
+  drawIsoBoxRich(ctx, C, pal);
+
+  // two BIG overlapping faceted gears on top — the mood board's signature roofline
+  gearRivet(ctx, capCx - 10, capCy - 50, 22, pal.trimBright, pal.trimMid, pal.trimDark);
+  gearRivet(ctx, capCx + 20, capCy - 36, 15, pal.trimBright2 || pal.trimBright, pal.trimMid2 || pal.trimMid, pal.trimDark);
+
+  // chimney pipe with glowing smoke puffs
+  pipe(ctx, [[capCx - 30, capCy - 20], [capCx - 30, capCy - 64]], pal.pipeColor, 10, pal.pipeGlow);
+  glowDot(ctx, capCx - 30, capCy - 70, 6, pal.pipeColor, pal.pipeGlow);
+  glowDot(ctx, capCx - 25, capCy - 82, 4, pal.pipeColor, pal.pipeGlow);
+
+  // large glass sorting window on the lit face
+  glassPanel(ctx, (B.front[0] + B.right[0]) / 2 - 4, (B.front[1] + B.right[1]) / 2 - 22, 26, 30, pal.windowBright, pal.windowColor, pal.windowGlow, pal.edge);
+
+  // conveyor ramp off the front-right face, sloping down to the ground, with crates riding it
+  const ramp = [[B.right[0] - 2, B.right[1] - 36], [B.right[0] + 46, B.right[1] + 30]];
+  pipe(ctx, ramp, pal.trimMid, 14);
+  pipe(ctx, ramp, darken(pal.trimMid, 0.6), 3);
+  for (let i = 0; i < 3; i++) {
+    const t = 0.15 + i * 0.32;
+    const rx = ramp[0][0] + (ramp[1][0] - ramp[0][0]) * t;
+    const ry = ramp[0][1] + (ramp[1][1] - ramp[0][1]) * t - 8;
+    const size = 8;
+    const grad = ctx.createLinearGradient(rx - size, ry - size, rx + size, ry + size);
+    grad.addColorStop(0, pal.crateLight); grad.addColorStop(1, pal.crateDark);
+    fillPoly(ctx, [[rx - size, ry], [rx, ry - size * 0.6], [rx + size, ry], [rx, ry + size * 0.6]], grad, pal.edge, 1);
+  }
+  // support strut
+  pipe(ctx, [[ramp[1][0], ramp[1][1]], [ramp[1][0] - 6, ramp[1][1] + 20]], pal.trimDark, 5);
+}
+
+// ---- Social Facilities: open gold-framed pavilion + big pink side panels + pool + garden ----
+function drawSocialFacilities(ctx, pal, seed) {
+  const rng = mulberry32(seed);
+  drawGroundShadow(ctx, 130, 232, 96);
+  const B = isoBoxPoints(130, 208, 114, 78, 58);
+
+  // thick gold corner posts
+  const postW = 9;
+  [B.front, B.right, B.left, B.back].forEach((p) => {
+    const grad = ctx.createLinearGradient(p[0] - postW / 2, p[1] - 58, p[0] + postW / 2, p[1]);
+    grad.addColorStop(0, pal.trimBright); grad.addColorStop(0.5, pal.trimMid); grad.addColorStop(1, pal.trimDark);
+    ctx.fillStyle = grad;
+    ctx.fillRect(p[0] - postW / 2, p[1] - 58, postW, 58);
+    gearRivet(ctx, p[0], p[1] - 58, 4.5, pal.trimBright, pal.trimMid, pal.trimDark);
+  });
+
+  // raised deck floor — drawn BEFORE the wall panels below, since it's the
+  // floor they stand on, not a layer that should paint over them.
+  fillPoly(ctx, [B.front, B.right, B.back, B.left].map(p => [p[0], p[1] - 6]), pal.deckColor, pal.edge, 1.4);
+  // small reflective pool at the front of the deck
+  const poolCx = B.front[0], poolCy = B.front[1] + 10;
+  fillPoly(ctx, [[poolCx - 22, poolCy], [poolCx, poolCy - 10], [poolCx + 22, poolCy], [poolCx, poolCy + 10]], faceGrad(ctx, poolCx, poolCy - 10, poolCx, poolCy + 10, pal.poolDark || pal.pipeColor, pal.poolLight || pal.windowColor, '#ffffff'), pal.edge, 1.2);
+
+  // big diamond accent panels between front-left and front-right posts —
+  // the reference's signature pink diamond side walls
+  const panelMidL = [(B.front[0] + B.left[0]) / 2, (B.front[1] + B.left[1]) / 2 - 24];
+  const panelMidR = [(B.front[0] + B.right[0]) / 2, (B.front[1] + B.right[1]) / 2 - 24];
+  glassPanel(ctx, panelMidL[0], panelMidL[1], 30, 34, pal.windowBright, pal.windowColor, pal.windowGlow, pal.edge);
+  glassPanel(ctx, panelMidR[0], panelMidR[1], 30, 34, pal.windowBright, pal.windowColor, pal.windowGlow, pal.edge);
+
+  // peaked roof, wide gold-trimmed overhang, ornate ridge
+  const roofH = 58, rise = 34;
+  const rb = isoBoxPoints(130, 208 - roofH, 128, 84, 0);
+  const ridgeFront = [rb.front_t[0], rb.front_t[1] - rise];
+  const ridgeBack = [rb.back_t[0], rb.back_t[1] - rise];
+  fillPoly(ctx, [rb.front, rb.left, ridgeBack, ridgeFront], faceGrad(ctx, rb.left[0], rb.left[1], ridgeFront[0], ridgeFront[1], pal.roofLeft, pal.roofLeft, lighten(pal.roofLeft, 0.25)), pal.trimMid, 2);
+  fillPoly(ctx, [rb.front, rb.right, ridgeBack, ridgeFront], faceGrad(ctx, rb.right[0], rb.right[1], ridgeFront[0], ridgeFront[1], darken(pal.roofRight, 0.8), pal.roofRight, lighten(pal.roofRight, 0.3)), pal.trimMid, 2);
+  pipe(ctx, [ridgeFront, ridgeBack], pal.trimBright, 4, pal.windowGlow);
+  gearRivet(ctx, (ridgeFront[0] + ridgeBack[0]) / 2, (ridgeFront[1] + ridgeBack[1]) / 2, 9, pal.trimBright, pal.trimMid, pal.trimDark);
+
+  // hanging lantern glow row under the eaves
+  for (let i = -1; i <= 1; i++) {
+    glowDot(ctx, 130 + i * 30, 208 - roofH + 14, 6, pal.windowColor, pal.windowGlow);
+  }
+
+  // garden facet clusters at the base — bigger, two facets each side
+  [[54, 226, 1], [206, 224, 2]].forEach(([gx, gy, s]) => {
+    [0, 1].forEach((k) => {
+      const grng = mulberry32(seed + s * 11 + k * 3);
+      ctx.save();
+      ctx.translate(gx + k * 14 - 7, gy - k * 10);
+      const size = 15;
+      const grad = ctx.createLinearGradient(-size, -size, size, size);
+      grad.addColorStop(0, pal.gardenLight); grad.addColorStop(1, pal.gardenDark);
+      fillPoly(ctx, [[-size, size * 0.3], [-size * 0.3, -size], [size * 0.7, -size * 0.7], [size, size * 0.2], [size * 0.1, size]], grad, pal.edge, 1.2);
+      ctx.restore();
+    });
+  });
+}
+
+// ================= palettes =================
+const paletteA = { // Teal & Magenta Neon
+  bodyLeft: '#0b3d39', bodyRight: '#1e9e8f',
+  roofBase: '#0f5951', roofLeft: '#0a2e2a', roofRight: '#17c9b3',
+  edge: 'rgba(45,212,191,0.55)',
+  trimBright: '#ffe27a', trimMid: '#f5c542', trimDark: '#8a6a10',
+  trimBright2: '#ff8fd6', trimMid2: '#ec4899',
+  windowColor: '#f472b6', windowBright: '#ffd6ef', windowGlow: 'rgba(236,72,153,0.9)',
+  pipeColor: '#67e8f9', pipeGlow: 'rgba(103,232,249,0.85)',
+  conveyorGlow: '#ec4899',
+  tankLight: '#dff7f4', tankDark: '#7fd8cf',
+  crateLight: '#f5c542', crateDark: '#8a6a10',
+  deckColor: '#1e9e8f', gardenLight: '#a3e635', gardenDark: '#3f6212',
+  poolLight: '#a5f3fc', poolDark: '#0891b2'
+};
+const paletteB = { // Jewel-Tone Brass (varies body hue per building, brass constant)
+  bodyLeft: '#064e3b', bodyRight: '#10b981', // emerald default (warehouse)
+  roofBase: '#065f46', roofLeft: '#022c22', roofRight: '#34d399',
+  edge: 'rgba(212,175,55,0.55)',
+  trimBright: '#f4e4a6', trimMid: '#d4af37', trimDark: '#7a5a12',
+  trimBright2: '#f4e4a6', trimMid2: '#d4af37',
+  windowColor: '#ffb84d', windowBright: '#fff2d4', windowGlow: 'rgba(255,184,77,0.85)',
+  pipeColor: '#38bdf8', pipeGlow: 'rgba(56,189,248,0.75)',
+  conveyorGlow: '#d4af37',
+  tankLight: '#e6eefc', tankDark: '#7fa8e0',
+  crateLight: '#d4af37', crateDark: '#7a5a12',
+  deckColor: '#10b981', gardenLight: '#bef264', gardenDark: '#4d7c0f',
+  poolLight: '#bae6fd', poolDark: '#0369a1'
+};
+const paletteB_sapphire = Object.assign({}, paletteB, { bodyLeft: '#1e3a8a', bodyRight: '#3b82f6', roofBase: '#1e3a8a', roofLeft: '#152a63', roofRight: '#60a5fa' });
+const paletteB_garnet = Object.assign({}, paletteB, { bodyLeft: '#5b0d1a', bodyRight: '#dc2626', roofBase: '#7f1d1d', roofLeft: '#450a0a', roofRight: '#f87171' });
+const paletteB_amethyst = Object.assign({}, paletteB, { bodyLeft: '#3b0764', bodyRight: '#8b5cf6', roofBase: '#4c1d95', roofLeft: '#2e0a5c', roofRight: '#a78bfa' });
+
+const paletteC = { // Gunmetal Neon
+  bodyLeft: '#12151b', bodyRight: '#2d3540',
+  roofBase: '#1a1f26', roofLeft: '#0c0e12', roofRight: '#3a4450',
+  edge: 'rgba(255,255,255,0.12)',
+  trimBright: '#e8c168', trimMid: '#b8860b', trimDark: '#5c4308',
+  trimBright2: '#ff7ad1', trimMid2: '#e0115f',
+  windowColor: '#22d3ee', windowBright: '#d0f7fc', windowGlow: 'rgba(34,211,238,0.9)',
+  pipeColor: '#39ff88', pipeGlow: 'rgba(57,255,136,0.85)',
+  conveyorGlow: '#ff2fb0',
+  tankLight: '#cbd5e1', tankDark: '#475569',
+  crateLight: '#b8860b', crateDark: '#5c4308',
+  deckColor: '#2d3540', gardenLight: '#39ff88', gardenDark: '#0f5132'
+};
+
+// ---------- render ----------
+function renderRow(containerId, palWarehouse, palCold, palProc, palSocial, seed, bg) {
+  const el = document.getElementById(containerId);
+  let ctx = makeCanvas(el, 300, 300, bg, 'Warehouse', 'basic storage'); drawWarehouse(ctx, palWarehouse, seed);
+  ctx = makeCanvas(el, 300, 300, bg, 'Cold Storage', 'climate-controlled storage'); drawColdStorage(ctx, palCold, seed + 5);
+  ctx = makeCanvas(el, 300, 300, bg, 'Processing Plant', 'on-site sorting & cleaning'); drawProcessingPlant(ctx, palProc, seed + 9);
+  ctx = makeCanvas(el, 300, 300, bg, 'Social Facilities', 'better conditions for seasonal workers'); drawSocialFacilities(ctx, palSocial, seed + 13);
+}
+function render() {
+  const bgA = 'radial-gradient(ellipse at 50% 82%, #0a1f1c 0%, #06090b 75%)';
+  renderRow('buildings-a', paletteA, paletteA, paletteA, paletteA, 1, bgA);
+
+  const bgB = 'radial-gradient(ellipse at 50% 82%, #14120a 0%, #0a0806 75%)';
+  renderRow('buildings-b', paletteB, paletteB_sapphire, paletteB_garnet, paletteB_amethyst, 20, bgB);
+
+  const bgC = 'radial-gradient(ellipse at 50% 82%, #0d0f12 0%, #050506 75%)';
+  renderRow('buildings-c', paletteC, paletteC, paletteC, paletteC, 40, bgC);
+}
+render();
+</script>
+</body>
+</html>
+</content>
