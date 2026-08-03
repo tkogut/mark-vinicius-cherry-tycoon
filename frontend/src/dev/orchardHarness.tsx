@@ -45,7 +45,7 @@ const App = () => (
             hiredLabor={[{ id: 'harness-helper', role: 'picker' }]}
             county="Opolski"
             onAction={(action, parcelId) => console.log('[harness] action', action, parcelId)}
-            automationConfig={{ hasHarvesters: false }}
+            automationConfig={{ hasHarvesters: true, hasTractor: true, hasSprayer: true, hasPruner: true }}
             totalCherries={2400}
             maxCapacity={10000}
             seasonNumber={3}

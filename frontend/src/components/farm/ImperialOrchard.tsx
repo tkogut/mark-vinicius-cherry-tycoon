@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
 import { drawGeometricBrassTree, drawGroundDecor, drawPathTile } from './geometricBrassTree';
+import { drawModernTractor, drawPrecisionSprayer, drawMechanicalShaker, drawBranchPruner, drawWorkerSturdyFacet, drawWorkerDynamicStride } from './orchardMachines';
 
 interface ImperialOrchardProps {
     parcels: any[];
@@ -8,7 +9,10 @@ interface ImperialOrchardProps {
     hiredLabor?: any;
     county?: 'Nyski' | 'Brzeski' | 'Opolski' | string;
     onAction: (action: 'water' | 'prune' | 'fertilize' | 'harvest' | 'plant' | 'select' | 'organic', parcelId: string | null) => void;
-    automationConfig?: { hasHarvesters: boolean };
+    // hasHarvesters existed already (wired but never read); hasTractor/hasSprayer/hasPruner
+    // are new — added 2026-08-03 alongside the Geometric Brass machine models (sketch 002).
+    // All optional/undefined-safe so existing callers that only pass hasHarvesters keep working.
+    automationConfig?: { hasHarvesters: boolean; hasTractor?: boolean; hasSprayer?: boolean; hasPruner?: boolean };
     totalCherries?: number;
     maxCapacity?: number;
     seasonNumber?: number;
@@ -676,29 +680,43 @@ const MechanicalTree = React.memo(({ x, y, isSelected, styles, onClick, seed = 0
     );
 });
 
+// Worker canvas resolution matches the sketch's working size (120x200);
+// displayed smaller via CSS (see WORKER_DISPLAY_W/H) — same "resolution vs
+// display size" technique geometricBrassTree.ts uses for tree canvases.
+const WORKER_CANVAS_W = 120;
+const WORKER_CANVAS_H = 200;
+const WORKER_DISPLAY_W = 40;
+const WORKER_DISPLAY_H = 67;
+
 const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner' }: any) => {
-    // Continuous walking phase
+    // Subtle walking bob — the two-legged canvas art itself is a static pose
+    // per proposal (Proposal A for owner, Proposal B for helper); this just
+    // keeps a bit of life in the sprite while it walks.
     const [phaseStep, setPhaseStep] = React.useState(0);
     React.useEffect(() => {
         const interval = setInterval(() => setPhaseStep(p => p + 0.15), 50);
         return () => clearInterval(interval);
     }, []);
+    const bobY = Math.abs(Math.sin(phaseStep)) * -1.0;
 
-    const isWinter = phase === 'Dormancy';
-    const isSummer = phase === 'Harvest';
-    const isSpring = phase === 'Awakening' || phase === 'Bloom';
+    // Deterministic per-role seed so the facet jitter doesn't re-randomize
+    // every render, matching the tree/decor seeding pattern elsewhere in
+    // this file.
+    const seed = role === 'owner' ? 11 : 23;
 
-    // Dress colors based on season & role
-    const shirtColor = role === 'owner'
-        ? (isWinter ? '#1e3a8a' : (isSummer ? '#991b1b' : (isSpring ? '#166534' : '#854d0e')))
-        : (isWinter ? '#475569' : (isSummer ? '#d97706' : (isSpring ? '#0f766e' : '#7c2d12')));
-
-    const pantsColor = role === 'owner'
-        ? (isWinter ? '#0f172a' : (isSummer ? '#1d4ed8' : '#27272a'))
-        : (isWinter ? '#1e293b' : (isSummer ? '#4f46e5' : '#3f3f46'));
-
-    const legAngle = Math.sin(phaseStep) * 25;
-    const bobY = Math.abs(Math.sin(phaseStep)) * -1.0; // Bouncy walk bobbing scaled down
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (role === 'owner') {
+            drawWorkerSturdyFacet(ctx, seed);
+        } else {
+            drawWorkerDynamicStride(ctx, seed);
+        }
+    }, [role, seed]);
 
     return (
         <div
@@ -707,64 +725,70 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
             style={{
                 left: `${x}px`,
                 top: `${y}px`,
-                width: '18px',
-                height: '22px', // Scaled down for better micro-tycoon proportions
+                width: `${WORKER_DISPLAY_W}px`,
+                height: `${WORKER_DISPLAY_H}px`,
                 transform: `translate(-50%, -100%) translateY(${bobY}px)`,
                 zIndex: isSelected ? 9999 : undefined
             }}
         >
-            {/* Shadow */}
-            <div className="absolute w-5 h-2 bg-[rgba(30,30,30,0.5)] rounded-full blur-[2px] opacity-60" style={{ left: '50%', bottom: '-1px', transform: 'translateX(-50%)' }} />
-
-            {/* Humanoid Body */}
-            <div className="flex flex-col items-center h-full relative">
-                {/* Steam boiler backpack */}
-                <div className="absolute -left-1 top-1 w-1.5 h-2.5 bg-[#b87333] border border-black/40 rounded-full shadow-md z-0">
-                    <div className="w-0.5 h-0.5 bg-[#c9a84c] rounded-full mx-auto mt-0.2" />
-                    {/* Steam spark chimney */}
-                    <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-[0.5px] h-0.5 bg-[#8c7853]" />
-                </div>
-
-                {/* Straw Hat for Owner in Summer */}
-                {role === 'owner' && isSummer && (
-                    <div className="w-3.5 h-1 bg-[#d97706] rounded-full border border-black/30 -mb-[1px] relative z-20 shadow-sm animate-pulse" />
-                )}
-                {/* Bandana for Helper in Summer */}
-                {role === 'helper' && isSummer && (
-                    <div className="w-3 h-0.7 bg-[#dc2626] rounded-t-full border border-black/30 -mb-[1px] relative z-20 shadow-sm" />
-                )}
-                {/* Winter cap */}
-                {isWinter && (
-                    <div className="w-2.5 h-1 bg-[#1e293b] rounded-t-full border border-black/30 -mb-[0.5px] relative z-20 shadow-sm" />
-                )}
-                
-                {/* Head (Smoother) */}
-                <div className="w-2 h-2 bg-[#D4A76A] rounded-full border border-black/30 shadow-sm z-10" />
-
-                {/* Torso (Rounded) */}
-                <div 
-                    className="w-3.5 h-3.5 rounded-full border border-black/40 -mt-0.5 relative shadow-inner transition-colors duration-500 z-10"
-                    style={{ backgroundColor: shirtColor }}
-                >
-                    <div className="absolute inset-x-0.5 bottom-0.5 h-1 bg-black/20 opacity-40 rounded-full" />
-                </div>
-
-                {/* Legs (Shorter) */}
-                <div className="flex gap-0.5 -mt-1 z-10">
-                    <div 
-                        className="w-1 h-2.5 rounded-full border border-black/40 transition-colors duration-500" 
-                        style={{ transformOrigin: 'top center', transform: `rotate(${legAngle}deg)`, backgroundColor: pantsColor }} 
-                    />
-                    <div 
-                        className="w-1 h-2.5 rounded-full border border-black/40 transition-colors duration-500" 
-                        style={{ transformOrigin: 'top center', transform: `rotate(${-legAngle}deg)`, backgroundColor: pantsColor }} 
-                    />
-                </div>
-            </div>
+            <canvas
+                ref={canvasRef}
+                width={WORKER_CANVAS_W}
+                height={WORKER_CANVAS_H}
+                className="absolute inset-0 pointer-events-none"
+                style={{ width: '100%', height: '100%' }}
+            />
         </div>
     );
 });
 
+
+// Machine canvas resolution matches the sketch's working size (200x200);
+// displayed smaller via CSS, same technique as trees/workers.
+const MACHINE_CANVAS_SIZE = 200;
+const MACHINE_DISPLAY_W = 70;
+const MACHINE_DISPLAY_H = 70;
+
+const MACHINE_DRAW_FNS: Record<string, (ctx: CanvasRenderingContext2D, seed: number) => void> = {
+    tractor: drawModernTractor,
+    sprayer: drawPrecisionSprayer,
+    shaker: drawMechanicalShaker,
+    pruner: drawBranchPruner,
+};
+
+const MachineSprite = React.memo(({ x, y, machineType, seed = 0 }: any) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const drawFn = MACHINE_DRAW_FNS[machineType];
+        if (drawFn) drawFn(ctx, seed);
+    }, [machineType, seed]);
+
+    return (
+        <div
+            className="absolute origin-bottom pointer-events-none"
+            style={{
+                left: `${x}px`,
+                top: `${y}px`,
+                width: `${MACHINE_DISPLAY_W}px`,
+                height: `${MACHINE_DISPLAY_H}px`,
+                transform: 'translate(-50%, -100%)',
+            }}
+        >
+            <canvas
+                ref={canvasRef}
+                width={MACHINE_CANVAS_SIZE}
+                height={MACHINE_CANVAS_SIZE}
+                className="absolute inset-0"
+                style={{ width: '100%', height: '100%' }}
+            />
+        </div>
+    );
+});
 
 /** Mutable state of one NPC walking the orchard. */
 export interface NpcState {
@@ -1145,6 +1169,32 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     zIndex: 40
                 });
             }
+
+            // 6. Machines — parked in a row above the sector's tile grid, gated
+            // per-machine by automationConfig so nothing new appears unless a
+            // caller opts in (existing hasHarvesters callers keep working
+            // unchanged). Geometric Brass models ported from sketch 002.
+            const machineAnchor = projectToIso(0, 0, s);
+            const machineSpecs: { flag: boolean | undefined; type: string; dx: number }[] = [
+                { flag: automationConfig?.hasTractor, type: 'tractor', dx: -60 },
+                { flag: automationConfig?.hasSprayer, type: 'sprayer', dx: -20 },
+                { flag: automationConfig?.hasHarvesters, type: 'shaker', dx: 20 },
+                { flag: automationConfig?.hasPruner, type: 'pruner', dx: 60 },
+            ];
+            machineSpecs.forEach(({ flag, type, dx }) => {
+                if (!flag) return;
+                const mx = machineAnchor.x + dx;
+                const my = machineAnchor.y - TILE_H * 1.8;
+                entities.push({
+                    type: 'machine',
+                    key: `machine-${type}-${s}`,
+                    machineType: type,
+                    x: mx,
+                    y: my,
+                    s,
+                    zIndex: s * 100000 + 90000
+                });
+            });
         }
 
         // 3. Owner Worker NPC
@@ -1199,7 +1249,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
         }
 
         return entities.sort((a, b) => a.zIndex - b.zIndex);
-    }, [displayParcels, sectorsCount, workerPos, helperPos, hiredLabor]);
+    }, [displayParcels, sectorsCount, workerPos, helperPos, hiredLabor, automationConfig]);
 
     return (
         <div
@@ -1340,6 +1390,19 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                                     if (navigator.vibrate) navigator.vibrate(20);
                                                     setSelectedEntity({ id: entity.key, type: 'worker' });
                                                 }}
+                                            />
+                                        </div>
+                                    );
+                                }
+
+                                if (entity.type === 'machine') {
+                                    return (
+                                        <div key={entity.key} style={{ zIndex: entity.zIndex, position: 'absolute' }}>
+                                            <MachineSprite
+                                                x={entity.x}
+                                                y={entity.y}
+                                                machineType={entity.machineType}
+                                                seed={entity.s * 7 + entity.machineType.length}
                                             />
                                         </div>
                                     );
