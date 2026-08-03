@@ -687,6 +687,17 @@ const WORKER_CANVAS_W = 120;
 const WORKER_CANVAS_H = 200;
 const WORKER_DISPLAY_W = 40;
 const WORKER_DISPLAY_H = 67;
+// Both worker draw functions in orchardMachines.ts place their ground shadow
+// at local canvas y≈163 (not 200 — the sketch's coordinate system leaves a
+// margin below "ground level"). The wrapper's `top` anchors the DISPLAY
+// BOX's bottom edge (canvas y=200) to the world lattice position, so without
+// compensation the actual feet/shadow render ~12px ABOVE that point on
+// screen — small, but on the isometric grid (TILE_H=48) that's a quarter
+// tile, enough to read as walking beside a path lane instead of on it
+// (reported 2026-08-03). Shifting `top` down by this same amount puts the
+// shadow, not the empty canvas margin, on the true lattice point.
+const WORKER_GROUND_LOCAL_Y = 163;
+const WORKER_Y_OFFSET = Math.round(WORKER_DISPLAY_H - (WORKER_GROUND_LOCAL_Y / WORKER_CANVAS_H) * WORKER_DISPLAY_H);
 
 const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner' }: any) => {
     // Subtle walking bob — the two-legged canvas art itself is a static pose
@@ -724,7 +735,7 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
             className={cn("absolute origin-bottom transition-[transform] duration-300 cursor-pointer")}
             style={{
                 left: `${x}px`,
-                top: `${y}px`,
+                top: `${y + WORKER_Y_OFFSET}px`,
                 width: `${WORKER_DISPLAY_W}px`,
                 height: `${WORKER_DISPLAY_H}px`,
                 transform: `translate(-50%, -100%) translateY(${bobY}px)`,
@@ -748,6 +759,10 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
 const MACHINE_CANVAS_SIZE = 200;
 const MACHINE_DISPLAY_W = 70;
 const MACHINE_DISPLAY_H = 70;
+// Same margin-compensation as WORKER_Y_OFFSET above — all four machine draw
+// functions place their ground shadow at local canvas y=178.
+const MACHINE_GROUND_LOCAL_Y = 178;
+const MACHINE_Y_OFFSET = Math.round(MACHINE_DISPLAY_H - (MACHINE_GROUND_LOCAL_Y / MACHINE_CANVAS_SIZE) * MACHINE_DISPLAY_H);
 
 const MACHINE_DRAW_FNS: Record<string, (ctx: CanvasRenderingContext2D, seed: number, t?: number) => void> = {
     tractor: drawModernTractor,
@@ -784,7 +799,7 @@ const MachineSprite = React.memo(({ x, y, machineType, seed = 0 }: any) => {
             className="absolute origin-bottom pointer-events-none"
             style={{
                 left: `${x}px`,
-                top: `${y}px`,
+                top: `${y + MACHINE_Y_OFFSET}px`,
                 width: `${MACHINE_DISPLAY_W}px`,
                 height: `${MACHINE_DISPLAY_H}px`,
                 transform: 'translate(-50%, -100%)',
