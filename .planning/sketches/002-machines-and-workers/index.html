@@ -44,10 +44,10 @@
   <div class="section-label">Machines</div>
   <div class="row" id="machines-a"></div>
 
-  <div class="section-label">Worker redesign — Canvas 2D faceted sprite (replaces the current CSS/DOM divs)</div>
+  <div class="section-label">Worker redesign — Canvas 2D faceted sprite with two legs and two arms (replaces the current CSS/DOM divs, and the single-blob first pass)</div>
   <div class="row worker-row" id="workers-a"></div>
 
-  <div class="compare-note"><b>Look for:</b> do the faceted panels feel like the same family as the tree canopy, or too busy next to a whole orchard of faceted trees?</div>
+  <div class="compare-note"><b>Look for:</b> do the faceted panels feel like the same family as the tree canopy, or too busy next to a whole orchard of faceted trees? Machine names now match the app's existing Marketplace terminology (see clip.png) — Modern Tractor, Precision Sprayer, Mechanical Shaker, Branch Pruner (new, wheeled). For the worker: Proposal A (symmetrical, gear tool) vs. Proposal B (mid-stride, lantern) — which reads better once several are wandering an orchard at once?</div>
 </div>
 
 <!-- ============ VARIANT B ============ -->
@@ -187,35 +187,54 @@ function drawTractorA(ctx, seed) {
   gearRivetA(ctx, 105, 128, 8);
 }
 function drawSpreaderA(ctx, seed) {
+  // "Precision Sprayer" — matches the game's existing droplet icon/effect
+  // ("reduces fertilizer usage cost"), so this reads as a tank + spray
+  // nozzle rather than a manure-flinging drum.
   drawGroundShadow(ctx, 100, 178, 58);
   drawWheel(ctx, 62, 172, 18); drawWheel(ctx, 138, 172, 18);
   connectorA(ctx, 62, 155, 138, 155, 20);
-  facetBlob(ctx, 100, 118, 46, 7, seed, '#b87333', '#5c3616');
-  for (let i = 0; i < 6; i++) {
-    const ang = (Math.PI * 2 * i) / 6;
-    facetBlob(ctx, 100 + Math.cos(ang) * 12, 120 + Math.sin(ang) * 10, 10, 5, seed + i + 5, '#e8c168', '#a8792e');
+  facetBlob(ctx, 100, 118, 44, 7, seed, '#b87333', '#5c3616'); // tank
+  connectorA(ctx, 138, 118, 158, 100, 6); // nozzle arm
+  for (let i = 0; i < 3; i++) {
+    const ang = -0.5 + i * 0.35;
+    ctx.fillStyle = 'rgba(120,200,255,0.85)';
+    ctx.beginPath();
+    ctx.ellipse(160 + Math.cos(ang) * 14, 96 + Math.sin(ang) * 10, 4, 6, ang, 0, Math.PI * 2);
+    ctx.fill();
   }
   gearRivetA(ctx, 100, 120, 7);
 }
 function drawHarvesterA(ctx, seed) {
+  // "Mechanical Shaker" — matches the game's existing "automated harvesting
+  // attachment" description: a vibrating clamp that grips and shakes the
+  // trunk, not a collection scoop.
   drawGroundShadow(ctx, 100, 178, 56);
   drawWheel(ctx, 65, 170, 20); drawWheel(ctx, 135, 170, 24);
   connectorA(ctx, 65, 152, 135, 148, 24);
   facetBlob(ctx, 102, 128, 38, 6, seed, '#c9922e', '#7a4f18');
-  // support arm from body up to the collection scoop
-  connectorA(ctx, 90, 100, 78, 62, 8);
-  // faceted collection scoop, raised in front, now anchored by the arm
-  for (let i = 0; i < 5; i++) {
-    const ang = -Math.PI * 0.9 + (i / 4) * Math.PI * 0.8;
-    facetBlob(ctx, 78 + Math.cos(ang) * 34, 55 + Math.sin(ang) * 16, 13, 5, seed + i + 20, '#e0115f', '#7a0d3f');
-  }
+  // arm raising the clamp attachment
+  connectorA(ctx, 90, 100, 78, 66, 8);
+  // faceted clamp jaws gripping a trunk stub
+  facetBlob(ctx, 78, 50, 7, 4, seed + 30, '#5c3616', '#2e1a0a'); // trunk stub
+  ctx.save();
+  ctx.translate(78, 60);
+  ctx.rotate(-0.5);
+  facetBlob(ctx, -16, 0, 16, 4, seed + 20, '#e0115f', '#7a0d3f');
+  ctx.rotate(1.0);
+  facetBlob(ctx, 16, 0, 16, 4, seed + 21, '#e0115f', '#7a0d3f');
+  ctx.restore();
   gearRivetA(ctx, 102, 128, 8);
 }
 function drawPrunerA(ctx, seed) {
-  drawGroundShadow(ctx, 100, 178, 40);
-  facetBlob(ctx, 100, 148, 26, 6, seed, '#c9922e', '#7a4f18');
+  // "Branch Pruner" — now wheeled like the other three machines, per
+  // clip.png's Machinery & Logistics terminology (all entries there are
+  // vehicles, not hand tools).
+  drawGroundShadow(ctx, 100, 178, 44);
+  drawWheel(ctx, 82, 172, 14); drawWheel(ctx, 118, 172, 14);
+  connectorA(ctx, 82, 160, 118, 160, 16);
+  facetBlob(ctx, 100, 144, 24, 6, seed, '#c9922e', '#7a4f18');
   // mounting rod up to the scissor head
-  connectorA(ctx, 100, 130, 100, 100, 7);
+  connectorA(ctx, 100, 126, 100, 100, 7);
   ctx.save();
   ctx.translate(100, 92);
   ctx.rotate(-0.35);
@@ -223,14 +242,52 @@ function drawPrunerA(ctx, seed) {
   ctx.rotate(0.7);
   facetBlob(ctx, 16, -14, 18, 4, seed + 4, '#e8ecef', '#8a9aa5');
   ctx.restore();
-  gearRivetA(ctx, 100, 148, 7);
+  gearRivetA(ctx, 100, 144, 7);
 }
-function drawWorkerA(ctx, seed) {
-  drawGroundShadow(ctx, 60, 178, 22);
-  facetBlob(ctx, 60, 150, 12, 5, seed, '#166534', '#0a3d1e'); // legs/base
-  facetBlob(ctx, 60, 118, 18, 6, seed + 1, '#854d0e', '#4a2a08'); // torso
-  facetBlob(ctx, 60, 88, 11, 6, seed + 2, '#D4A76A', '#8a6a3e'); // head
-  gearRivetA(ctx, 44, 118, 6); // backpack gear
+
+// Elongates/thins a facetBlob for limb-shaped pieces (legs, arms) without
+// duplicating the facet-drawing code.
+function facetBlobScaled(ctx, cx, cy, r, sides, seed, c1, c2, sx, sy) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(sx, sy);
+  facetBlob(ctx, 0, 0, r, sides, seed, c1, c2);
+  ctx.restore();
+}
+
+// Worker Proposal A — "Sturdy Facet": symmetrical stance, clearly separate
+// two legs + two arms, off-hand holding a small gear tool. Closest in spirit
+// to the original single-blob worker, just decomposed into limbs.
+function drawWorkerA1(ctx, seed) {
+  drawGroundShadow(ctx, 60, 178, 24);
+  gearRivetA(ctx, 45, 120, 6); // backpack gear, drawn first so the torso overlaps its inner edge
+  facetBlobScaled(ctx, 51, 150, 10, 5, seed, '#166534', '#0a3d1e', 0.85, 1.6); // left leg
+  facetBlobScaled(ctx, 69, 150, 10, 5, seed + 1, '#166534', '#0a3d1e', 0.85, 1.6); // right leg
+  facetBlobScaled(ctx, 41, 120, 8, 5, seed + 2, '#854d0e', '#4a2a08', 0.9, 1.35); // left arm
+  facetBlobScaled(ctx, 81, 118, 8, 5, seed + 3, '#854d0e', '#4a2a08', 0.9, 1.35); // right arm
+  facetBlob(ctx, 60, 118, 17, 6, seed + 4, '#854d0e', '#4a2a08'); // torso
+  gearRivetA(ctx, 88, 104, 5); // gear tool held in right hand
+  facetBlob(ctx, 60, 95, 11, 6, seed + 5, '#D4A76A', '#8a6a3e'); // head
+}
+
+// Worker Proposal B — "Dynamic Stride": mid-stride pose (legs offset
+// front/back, arms swinging opposite), holding a lantern — reads more alive
+// when several copies wander an orchard, at the cost of a slightly busier
+// silhouette.
+function drawWorkerA2(ctx, seed) {
+  drawGroundShadow(ctx, 60, 178, 26);
+  gearRivetA(ctx, 46, 118, 6); // backpack gear
+  facetBlobScaled(ctx, 50, 152, 10, 5, seed, '#166534', '#0a3d1e', 0.85, 1.55); // back leg
+  facetBlobScaled(ctx, 72, 148, 10, 5, seed + 1, '#166534', '#0a3d1e', 0.85, 1.65); // forward leg
+  facetBlobScaled(ctx, 80, 126, 8, 5, seed + 2, '#854d0e', '#4a2a08', 0.9, 1.3); // forward-swinging arm
+  facetBlobScaled(ctx, 42, 116, 8, 5, seed + 3, '#854d0e', '#4a2a08', 0.9, 1.25); // back-swinging arm (holds lantern)
+  facetBlob(ctx, 62, 116, 17, 6, seed + 4, '#854d0e', '#4a2a08'); // torso
+  // lantern
+  const lgrad = ctx.createRadialGradient(38, 128, 1, 38, 128, 8);
+  lgrad.addColorStop(0, '#ffe9a8'); lgrad.addColorStop(1, '#c9922e');
+  ctx.fillStyle = lgrad;
+  ctx.beginPath(); ctx.arc(38, 128, 6, 0, Math.PI * 2); ctx.fill();
+  facetBlob(ctx, 62, 93, 11, 6, seed + 5, '#D4A76A', '#8a6a3e'); // head
 }
 
 // ================= VARIANT B: Grounded Steampunk Machinery =================
@@ -296,8 +353,9 @@ function drawHarvesterB(ctx) {
   smokestackB(ctx, 128, 100);
 }
 function drawPrunerB(ctx) {
-  drawGroundShadow(ctx, 100, 178, 40);
-  cylinderB(ctx, 82, 130, 36, 44, '#8a5a2a', '#3a2410', 3);
+  drawGroundShadow(ctx, 100, 178, 44);
+  drawWheel(ctx, 84, 172, 14, '#8a5a2a'); drawWheel(ctx, 116, 172, 14, '#8a5a2a');
+  cylinderB(ctx, 82, 130, 36, 40, '#8a5a2a', '#3a2410', 3);
   pistonB(ctx, 100, 130, 82, 92);
   pistonB(ctx, 100, 130, 118, 92);
   ctx.fillStyle = '#c9c9c9';
@@ -353,8 +411,9 @@ function drawHarvesterC(ctx) {
   toyBody(ctx, 70, 85, 45, 32, '#f2d9a8', '#e0b26b');
 }
 function drawPrunerC(ctx) {
-  drawGroundShadow(ctx, 100, 178, 36);
-  toyBody(ctx, 78, 120, 44, 48, '#c97b3d', '#a8602a');
+  drawGroundShadow(ctx, 100, 178, 46);
+  toyWheel(ctx, 84, 168, 16); toyWheel(ctx, 116, 168, 16);
+  toyBody(ctx, 78, 120, 44, 44, '#c97b3d', '#a8602a');
   ctx.fillStyle = '#e8dcc4';
   ctx.beginPath(); ctx.moveTo(78, 118); ctx.quadraticCurveTo(50, 100, 62, 80); ctx.quadraticCurveTo(85, 95, 88, 118); ctx.closePath(); ctx.fill();
   ctx.beginPath(); ctx.moveTo(122, 118); ctx.quadraticCurveTo(150, 100, 138, 80); ctx.quadraticCurveTo(115, 95, 112, 118); ctx.closePath(); ctx.fill();
@@ -372,22 +431,30 @@ function drawWorkerC(ctx) {
 }
 
 // ---------- render all ----------
+// Machine names match the app's existing Marketplace terminology
+// (MAIN ASSETS & BUILDINGS / MACHINERY & LOGISTICS, see clip.png) —
+// "Modern Tractor", "Precision Sprayer" (droplet icon, fertilizer-cost
+// effect), "Mechanical Shaker" (described in-app as an automated harvesting
+// attachment). "Branch Pruner" doesn't exist as a named entity in the app
+// yet — added here on wheels to match the other three, per instruction to
+// keep this vehicle terminology consistent going forward.
 function render() {
-  [['machines-a', [ [drawTractorA,'Tractor',1], [drawSpreaderA,'Manure Spreader',2], [drawHarvesterA,'Fruit Harvester',3], [drawPrunerA,'Branch Pruner',4] ]],
+  [['machines-a', [ [drawTractorA,'Modern Tractor',1], [drawSpreaderA,'Precision Sprayer',2], [drawHarvesterA,'Mechanical Shaker',3], [drawPrunerA,'Branch Pruner',4] ]],
   ].forEach(([containerId, items]) => {
     const el = document.getElementById(containerId);
     items.forEach(([fn, label, seed]) => { const ctx = makeCanvas(el, 200, 200, label); fn(ctx, seed * 17); });
   });
-  { const el = document.getElementById('workers-a'); const ctx = makeCanvas(el, 120, 200, 'Worker (Owner)', 'faceted, matches canopy'); drawWorkerA(ctx, 5); }
+  { const el = document.getElementById('workers-a'); const ctx = makeCanvas(el, 120, 200, 'Worker — Proposal A', '"Sturdy Facet" — symmetrical stance, gear tool'); drawWorkerA1(ctx, 5); }
+  { const el = document.getElementById('workers-a'); const ctx = makeCanvas(el, 120, 200, 'Worker — Proposal B', '"Dynamic Stride" — mid-walk pose, lantern'); drawWorkerA2(ctx, 5); }
 
-  [['machines-b', [ [drawTractorB,'Tractor'], [drawSpreaderB,'Manure Spreader'], [drawHarvesterB,'Fruit Harvester'], [drawPrunerB,'Branch Pruner'] ]],
+  [['machines-b', [ [drawTractorB,'Modern Tractor'], [drawSpreaderB,'Precision Sprayer'], [drawHarvesterB,'Mechanical Shaker'], [drawPrunerB,'Branch Pruner'] ]],
   ].forEach(([containerId, items]) => {
     const el = document.getElementById(containerId);
     items.forEach(([fn, label]) => { const ctx = makeCanvas(el, 200, 200, label); fn(ctx); });
   });
   { const el = document.getElementById('workers-b'); const ctx = makeCanvas(el, 120, 200, 'Worker (Owner)', 'boiler-backpack operator'); drawWorkerB(ctx); }
 
-  [['machines-c', [ [drawTractorC,'Tractor'], [drawSpreaderC,'Manure Spreader'], [drawHarvesterC,'Fruit Harvester'], [drawPrunerC,'Branch Pruner'] ]],
+  [['machines-c', [ [drawTractorC,'Modern Tractor'], [drawSpreaderC,'Precision Sprayer'], [drawHarvesterC,'Mechanical Shaker'], [drawPrunerC,'Branch Pruner'] ]],
   ].forEach(([containerId, items]) => {
     const el = document.getElementById(containerId);
     items.forEach(([fn, label]) => { const ctx = makeCanvas(el, 200, 200, label); fn(ctx); });
