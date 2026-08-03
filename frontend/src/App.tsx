@@ -161,6 +161,18 @@ function AppContent() {
     const warehouseLevel = getInfraLevel('Warehouse');
     const maxCapacity = (warehouseLevel + 1) * 10000;
 
+    // Wired to real purchased-machinery state 2026-08-03 (previously
+    // hardcoded `hasHarvesters: false`, so the orchard never showed any
+    // owned machine regardless of what was actually purchased in the
+    // Marketplace). hasPruner stays false — Branch Pruner is a Marketplace
+    // UI-only placeholder for now, not yet a backend-tracked InfrastructureType.
+    const orchardAutomationConfig = {
+        hasHarvesters: getInfraLevel('Shaker') > 0,
+        hasTractor: getInfraLevel('Tractor') > 0,
+        hasSprayer: getInfraLevel('Sprayer') > 0,
+        hasPruner: false,
+    };
+
     // Helper to determine current phase
     const getCurrentPhaseName = (phase: any): any => {
         if (!phase) return 'Hiring';
@@ -716,7 +728,7 @@ function AppContent() {
                                             season={farm?.currentSeason}
                                             hiredLabor={farm?.hiredLabor}
                                             onAction={handleParcelAction as any}
-                                            automationConfig={{ hasHarvesters: false }}
+                                            automationConfig={orchardAutomationConfig}
                                             totalCherries={stats.totalCherries}
                                             maxCapacity={maxCapacity}
                                             seasonNumber={stats.seasonNumber}

@@ -712,11 +712,11 @@ const WorkerNPC = React.memo(({ x, y, phase, isSelected, onClick, role = 'owner'
         if (!ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (role === 'owner') {
-            drawWorkerSturdyFacet(ctx, seed);
+            drawWorkerSturdyFacet(ctx, seed, phaseStep);
         } else {
-            drawWorkerDynamicStride(ctx, seed);
+            drawWorkerDynamicStride(ctx, seed, phaseStep);
         }
-    }, [role, seed]);
+    }, [role, seed, phaseStep]);
 
     return (
         <div
@@ -749,14 +749,32 @@ const MACHINE_CANVAS_SIZE = 200;
 const MACHINE_DISPLAY_W = 70;
 const MACHINE_DISPLAY_H = 70;
 
-const MACHINE_DRAW_FNS: Record<string, (ctx: CanvasRenderingContext2D, seed: number) => void> = {
+const MACHINE_DRAW_FNS: Record<string, (ctx: CanvasRenderingContext2D, seed: number, t?: number) => void> = {
     tractor: drawModernTractor,
     sprayer: drawPrecisionSprayer,
     shaker: drawMechanicalShaker,
     pruner: drawBranchPruner,
 };
 
+// Isometric unit vector for the "drive line" patrol below — matches this
+// file's TILE_W:TILE_H (96:48 = 2:1) ratio, so the patrol reads as motion
+// along the grid rather than a plain horizontal slide.
+const ISO_DRIVE_UX = 96 / Math.sqrt(96 * 96 + 48 * 48);
+const ISO_DRIVE_UY = 48 / Math.sqrt(96 * 96 + 48 * 48);
+
+/**
+ * A parked machine's final resting spot/behavior isn't decided yet (tracked
+ * separately) — this patrol motion exists only so the models can be
+ * evaluated in motion per 2026-08-03 feedback. `seed` offsets each
+ * instance's phase so a row of machines doesn't move in lockstep.
+ */
 const MachineSprite = React.memo(({ x, y, machineType, seed = 0 }: any) => {
+    const [phaseStep, setPhaseStep] = React.useState(0);
+    React.useEffect(() => {
+        const interval = setInterval(() => setPhaseStep(p => p + 0.08), 50);
+        return () => clearInterval(interval);
+    }, []);
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -765,15 +783,19 @@ const MachineSprite = React.memo(({ x, y, machineType, seed = 0 }: any) => {
         if (!ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const drawFn = MACHINE_DRAW_FNS[machineType];
-        if (drawFn) drawFn(ctx, seed);
-    }, [machineType, seed]);
+        if (drawFn) drawFn(ctx, seed, phaseStep);
+    }, [machineType, seed, phaseStep]);
+
+    const patrol = Math.sin(phaseStep * 0.3 + seed) * 26;
+    const patrolX = patrol * ISO_DRIVE_UX;
+    const patrolY = patrol * ISO_DRIVE_UY;
 
     return (
         <div
             className="absolute origin-bottom pointer-events-none"
             style={{
-                left: `${x}px`,
-                top: `${y}px`,
+                left: `${x + patrolX}px`,
+                top: `${y + patrolY}px`,
                 width: `${MACHINE_DISPLAY_W}px`,
                 height: `${MACHINE_DISPLAY_H}px`,
                 transform: 'translate(-50%, -100%)',

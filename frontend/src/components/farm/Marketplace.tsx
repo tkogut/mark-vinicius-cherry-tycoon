@@ -30,6 +30,8 @@ interface InfrastructureItem {
     icon: React.ReactNode;
     effect: string;
     type: 'Building' | 'Machinery';
+    /** UI-only placeholder: shown in the catalog but not yet purchasable — no backend InfrastructureType case exists for it. */
+    comingSoon?: boolean;
 }
 
 const MARKET_ITEMS: InfrastructureItem[] = [
@@ -95,6 +97,16 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         icon: <Droplets className="h-6 w-6" />,
         effect: 'Reduces fertilizer usage cost by 10%',
         type: 'Machinery'
+    },
+    {
+        id: 'Pruner',
+        name: 'Branch Pruner',
+        description: 'Wheeled automated branch-trimming unit.',
+        cost: 18000,
+        icon: <Wrench className="h-6 w-6" />,
+        effect: 'Coming soon — visual model ready, not yet purchasable',
+        type: 'Machinery',
+        comingSoon: true
     }
 ];
 
@@ -145,6 +157,10 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                             <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                                 Installed
                             </Badge>
+                        ) : item.comingSoon ? (
+                            <Badge className="bg-slate-700/40 text-slate-400 border-slate-600/40">
+                                Coming Soon
+                            </Badge>
                         ) : (
                             <div className="flex flex-col items-end">
                                 <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Cost</span>
@@ -193,15 +209,15 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                                     <Button
                                         className={cn(
                                             "w-full mt-4 h-9 text-xs font-bold transition-all",
-                                            owned
+                                            (owned || item.comingSoon)
                                                 ? "bg-slate-800 text-slate-500 cursor-not-allowed"
                                                 : (!canBuy ? "bg-slate-800 text-slate-500 opacity-60" : "bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-900/20")
                                         )}
-                                        disabled={owned || !canAfford || isLoading || !canBuy}
+                                        disabled={owned || item.comingSoon || !canAfford || isLoading || !canBuy}
                                         onClick={() => onPurchase(item.id)}
                                     >
                                         <ShoppingCart className="h-4 w-4 mr-2" />
-                                        {owned ? "OWNED" : (isLoading ? "PURCHASING..." : "PURCHASE")}
+                                        {owned ? "OWNED" : item.comingSoon ? "COMING SOON" : (isLoading ? "PURCHASING..." : "PURCHASE")}
                                     </Button>
                                 </div>
                             </TooltipTrigger>
