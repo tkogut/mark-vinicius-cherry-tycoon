@@ -44,6 +44,31 @@ const MachineThumbnail: React.FC<{ machineType: string }> = ({ machineType }) =>
     return <canvas ref={canvasRef} width={200} height={200} style={{ width: '100%', height: '100%' }} />;
 };
 
+// Building types with a seasonal raster sprite set (see BUILDING_SPRITE_SEASONS
+// below) — first one wired is Cold Storage (2026-08-04), extracted+cleaned from
+// an AI-generated reference sheet (see tmp/extracted-buildings/), one per season,
+// transparent background, served from frontend/public/assets/buildings/<type>/.
+type BuildingSpriteType = 'coldStorage';
+const BUILDING_SPRITE_FOLDER: Record<BuildingSpriteType, string> = {
+    coldStorage: 'cold-storage',
+};
+const BUILDING_SPRITE_SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
+type BuildingSpriteSeason = typeof BUILDING_SPRITE_SEASONS[number];
+
+/** Extracts the season key ("Spring"/"Summer"/...) from a backend season variant object like `{ Spring: null }`, lowercased to match the sprite filenames. Falls back to 'spring' if unrecognized. */
+function seasonKeyFromBackend(season: any): BuildingSpriteSeason {
+    const raw = season && typeof season === 'object' ? Object.keys(season)[0] : season;
+    const lower = String(raw || '').toLowerCase();
+    return (BUILDING_SPRITE_SEASONS as readonly string[]).includes(lower) ? (lower as BuildingSpriteSeason) : 'spring';
+}
+
+/** Real seasonal raster sprite for a building — same pre-rendered art in every season the game recognizes, swapped by an <img> src change rather than redrawn. */
+const BuildingSprite: React.FC<{ buildingType: BuildingSpriteType; season: any }> = ({ buildingType, season }) => {
+    const seasonKey = seasonKeyFromBackend(season);
+    const src = `/assets/buildings/${BUILDING_SPRITE_FOLDER[buildingType]}/${seasonKey}.png`;
+    return <img src={src} alt="" className="w-full h-full object-contain" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }} />;
+};
+
 interface InfrastructureItem {
     id: string;
     name: string;
@@ -54,6 +79,8 @@ interface InfrastructureItem {
     type: 'Building' | 'Machinery';
     /** When set, the Marketplace card shows the real Geometric Brass model (orchardMachines.ts) instead of `icon`. */
     machineType?: 'tractor' | 'sprayer' | 'shaker' | 'pruner';
+    /** When set, the Marketplace card shows a real seasonal raster sprite (BuildingSprite) instead of `icon`. */
+    buildingType?: BuildingSpriteType;
 }
 
 const MARKET_ITEMS: InfrastructureItem[] = [
@@ -73,7 +100,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 40000,
         icon: <Snowflake className="h-6 w-6" />,
         effect: 'Spoilage Armor: 80% — retains 80% of stored cherries',
-        type: 'Building'
+        type: 'Building',
+        buildingType: 'coldStorage'
     },
     {
         id: 'ProcessingFacility',
@@ -141,9 +169,11 @@ interface MarketplaceProps {
     onPurchase: (id: string) => void;
     isLoading?: boolean;
     currentPhase?: SeasonPhase | string;
+    /** Backend season variant, e.g. `{ Spring: null }` — picks which BuildingSprite image to show. Optional so existing callers keep working; defaults to spring. */
+    season?: any;
 }
 
-export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastructure, onPurchase, isLoading, currentPhase }) => {
+export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastructure, onPurchase, isLoading, currentPhase, season }) => {
     // Normalize currentPhase
     const phaseKey = (typeof currentPhase === 'string'
         ? currentPhase
@@ -173,10 +203,12 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                 <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                         <div className={cn(
-                            item.machineType ? "p-1 rounded-lg w-16 h-16" : "p-2 rounded-lg",
+                            (item.machineType || item.buildingType) ? "p-1 rounded-lg w-16 h-16" : "p-2 rounded-lg",
                             owned ? "bg-emerald-500/10 text-emerald-400" : "bg-slate-800 text-slate-400"
                         )}>
-                            {item.machineType ? <MachineThumbnail machineType={item.machineType} /> : item.icon}
+                            {item.machineType ? <MachineThumbnail machineType={item.machineType} />
+                                : item.buildingType ? <BuildingSprite buildingType={item.buildingType} season={season} />
+                                : item.icon}
                         </div>
                         {owned ? (
                             <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">

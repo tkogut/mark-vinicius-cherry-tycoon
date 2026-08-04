@@ -771,6 +771,7 @@ function AppContent() {
                                     onPurchase={(id) => upgradeInfrastructure.mutate(id)}
                                     isLoading={upgradeInfrastructure.isPending}
                                     currentPhase={currentPhase}
+                                    season={stats.currentSeason}
                                 />
 
                             ) : activeTab === 'sports' ? (
