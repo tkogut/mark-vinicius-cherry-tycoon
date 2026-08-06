@@ -17,7 +17,7 @@ export const SeasonalEffects: React.FC<SeasonalEffectsProps> = ({ season }) => {
         if (!ctx) return;
 
         let animationFrameId: number;
-        let particles: any[] = [];
+        const particles: any[] = [];
 
         const resizeCanvas = () => {
             canvas.width = window.innerWidth;

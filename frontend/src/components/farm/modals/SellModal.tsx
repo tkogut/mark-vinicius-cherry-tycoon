@@ -58,7 +58,7 @@ export const SellModal: React.FC<SellModalProps> = ({
         if (seasonKey === 'Autumn') { seasonDemand = 50000; aiSupplyKg = 106400; } // 80% of 133k
         if (seasonKey === 'Winter') { seasonDemand = 20000; aiSupplyKg = 0; }
 
-        let popMod = 1.0;
+        const popMod = 1.0;
         let regionName = "Unknown Region";
         let population = 50000;
         let marketSize = 0.8;
@@ -76,9 +76,9 @@ export const SellModal: React.FC<SellModalProps> = ({
 
         // Shared Market Multiplier (Supply/Demand curve)
         const GLOBAL_BASELINE_KG = 20000;
-        let totalSupply = amount + aiSupplyKg + GLOBAL_BASELINE_KG;
-        let rawMarketMult = seasonDemand / (totalSupply || 1);
-        let marketMult = Math.max(0.5, Math.min(1.0, rawMarketMult)); // Floor 0.5, Cap 1.0
+        const totalSupply = amount + aiSupplyKg + GLOBAL_BASELINE_KG;
+        const rawMarketMult = seasonDemand / (totalSupply || 1);
+        const marketMult = Math.max(0.5, Math.min(1.0, rawMarketMult)); // Floor 0.5, Cap 1.0
 
         let finalUnitPrice = basePrice;
         let qualityBonus = 1.0;
@@ -91,7 +91,7 @@ export const SellModal: React.FC<SellModalProps> = ({
             organicMod = hasOrganicCertified ? 1.4 : 1.0;
             finalUnitPrice = basePrice * marketSize * qualityBonus * organicMod * marketMult;
         } else {
-            let wholesaleMultiplier = 0.7;
+            const wholesaleMultiplier = 0.7;
             volumePenalty = amount > 10000 ? 1.05 : (amount > 5000 ? 1.02 : 1.0);
             qualityBonus = 1.0 + (avgQuality / 100 * 0.1);
             finalUnitPrice = basePrice * wholesaleMultiplier * volumePenalty * qualityBonus * marketMult;

@@ -6,7 +6,11 @@
     "scripts": {
         "dev": "vite",
         "build": "tsc && vite build",
-        "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+        "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 185",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:integration": "RUN_INTEGRATION=1 vitest run",
         "preview": "vite preview"
     },
     "dependencies": {

@@ -65,14 +65,10 @@ export const ImperialDial: React.FC<ImperialDialProps> = ({ value, min, max, onC
 
         let clientX, clientY;
         if ('touches' in e) {
-            // @ts-ignore
             clientX = e.touches[0].clientX;
-            // @ts-ignore
             clientY = e.touches[0].clientY;
         } else {
-            // @ts-ignore
             clientX = e.clientX;
-            // @ts-ignore
             clientY = e.clientY;
         }
 

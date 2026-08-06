@@ -14,7 +14,11 @@ export function useMarketPrices() {
             if (!backendActor) {
                 throw new Error('Not authenticated');
             }
-            // @ts-ignore - Backend returns Result but codegen expects MarketPrice. Runtime is Result.
+            // NOTE: backend returns a Result variant here while the generated
+            // binding types this as a bare MarketPrice — the cast below is the
+            // real fix for that drift. (A `@ts-ignore` used to sit here too, but
+            // it suppressed nothing: the explicit cast already satisfies tsc.
+            // Removed 2026-08-06 when `@ts-expect-error` surfaced it as unused.)
             const result = await backendActor.getMarketPrices() as { Ok: MarketPrice } | { Err: object };
 
             if ('Ok' in result) {

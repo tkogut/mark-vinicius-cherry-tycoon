@@ -17,6 +17,7 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 ### Auth Correctness (AUTH)
 
 - [x] **AUTH-01**: `isAuthenticated` is set only after `backendActor` is ready in ALL code paths, including `initTestMode()` — fixed 2026-07-29, `frontend/src/context/AuthContext.tsx:150`
+- [ ] **AUTH-02**: Atomic Auth invariant still violated on the **restored-session** init path. When `client.isAuthenticated()` is already true, `AuthContext.tsx` calls `setIsAuthenticated(true)` unconditionally, so a failed `createBackendActor()` leaves `isAuthenticated === true` with `backendActor === null` — the state the invariant forbids. AUTH-01 fixed `initTestMode()` and the auto-login path guards with `if (actor)`; this branch never got the same guard. Found 2026-08-06 while rewriting the auth test suite; **flagged, not silently fixed** (production auth change is outside the approved test-infrastructure scope, per CLAUDE.md). A guard test already exists, marked `it.fails()` in `src/__tests__/useAuth.test.tsx` — when the fix lands, that test starts failing, which is the signal to drop the `.fails` marker.
 
 ### Football Clubs (SPORTS) — promoted from v2 to v1, core pillar per GDD v3
 
@@ -76,9 +77,12 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 
 ### Quality Infrastructure (QUAL)
 
-- [ ] **QUAL-01**: `npm test` runs the Vitest suite (script currently missing despite Vitest being configured); also fix `useAuth.test.tsx`'s missing `QueryClientProvider` wrapper (5/6 tests currently fail)
-- [ ] **QUAL-02**: ESLint/Prettier config exists and matches the already-present `lint` script and devDependencies
-- [ ] **QUAL-03**: Playwright is either wired into a real e2e test or removed from dependencies (currently installed but unused)
+- [x] **QUAL-01**: `npm test` runs the Vitest suite — added `test` / `test:watch` / `test:integration` / `typecheck` scripts; wired the already-installed `@testing-library/jest-dom` via a new `vitest.setup.ts` (`setupFiles` was `[]`); rewrote `useAuth.test.tsx` (its assertions had gone stale against AuthProvider's auto-login bypass, so a `QueryClientProvider` wrapper alone was not enough — see `src/test-utils/providers.tsx`); moved `backend_integration.test.ts` to opt-in L3. Suite went 5 failed + 1 erroring file → **26 passed, 3 skipped, 0 failed**. Done 2026-08-06.
+- [x] **QUAL-02**: ESLint config exists — `frontend/.eslintrc.cjs` (legacy format on purpose: ESLint 8.57 only honours flat config behind `ESLINT_USE_FLAT_CONFIG`, and the existing script's `--ext` flag is rejected by flat config). Before this, `npm run lint` did not run at all. Fixed 12 real findings while standing it up (7 × `prefer-const`, 5 × dead `@ts-ignore` that suppressed nothing). Done 2026-08-06. *Prettier deliberately not added — no formatting config existed to codify, and adding one would churn every file; out of scope.*
+- [ ] **QUAL-03**: Playwright is either wired into a real e2e test or removed from dependencies (currently installed but unused) — Phase 10, Etap 4
+- [ ] **QUAL-04**: Pay down the lint debt captured by the `--max-warnings` ratchet. Baseline at 2026-08-06 is **185 warnings** (96 `no-explicit-any`, 71 `no-unused-vars`, 10 `react-refresh/only-export-components`, 9 `react-hooks/exhaustive-deps`). Errors are already 0 and must stay 0. The ceiling in `package.json` may only ever be **lowered** — never raise it to make lint pass. The 9 `exhaustive-deps` warnings are the highest-risk subset (stale-closure bugs in the interval/animation-driven orchard components) and should be triaged first.
+- [ ] **QUAL-05**: Enforce TS↔Motoko economic-formula parity automatically. `frontend/src/lib/gameLogic.ts` re-implements the yield modifiers that `backend/game_logic.mo` computes, and `frontend/src/config/gameBalanceConstants.ts` says *"Keep in sync with … backend/game_logic.mo"* — today that sync is guaranteed by a code comment and nothing else. Phase 10, Etap 1 (oracle fixture generated from the canister + Vitest parity assertion).
+- [ ] **QUAL-06**: Candid drift guard — a CI step that runs `dfx generate` and fails if the committed `frontend/src/declarations/` differ, plus a static test asserting every backend method called from hooks still exists in `backend.did.d.ts`. This is the exact class of rot that broke ≥2 of the 23 `execution/tests/*.sh` scripts (calls to `getLeaderboard` / `advanceSeason`, both removed). Phase 10, Etap 2.
 
 ### UX/UI Deep Overhaul (UX) — scoped 2026-07-29 via live Playground screenshot audit, see `docs/game-design/UX-AUDIT-2026-07-29.md`
 
@@ -168,13 +172,17 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | UX-06 | Phase 9 | Pending |
 | UX-07 | Phase 9 | Pending |
 | UX-08 | Phase 9 | Pending |
-| QUAL-01 | Phase 10 | Pending |
-| QUAL-02 | Phase 10 | Pending |
+| QUAL-01 | Phase 10 | Complete |
+| QUAL-02 | Phase 10 | Complete |
 | QUAL-03 | Phase 10 | Pending |
+| QUAL-04 | Phase 10 | Pending |
+| QUAL-05 | Phase 10 | Pending |
+| QUAL-06 | Phase 10 | Pending |
+| AUTH-02 | Phase 10 | Pending |
 
 **Coverage:**
-- v1 requirements: 43 total (4 complete, 39 pending)
-- Mapped to phases: 43
+- v1 requirements: 47 total (6 complete, 41 pending)
+- Mapped to phases: 47
 - Unmapped: 0 ✓
 
 ---
