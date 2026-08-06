@@ -180,23 +180,51 @@ Plans:
 Plans:
 - [ ] 09-01: TBD (created by `/gsd-plan-phase 9`)
 
-#### Phase 10: Quality Infrastructure
+#### Phase 10: Quality Infrastructure ✅ (success criteria met 2026-08-06)
 **Goal**: Close the tooling gaps found during codebase mapping so future phases have working lint/test signal instead of silent gaps.
-**Depends on**: Nothing (independent, lowest urgency — doesn't block gameplay)
-**Requirements**: QUAL-01, QUAL-02, QUAL-03
+**Depends on**: Nothing (independent — doesn't block gameplay). Ran ahead of Phases 2–9 by user choice.
+**Requirements**: QUAL-01 ✅, QUAL-02 ✅, QUAL-03 ✅ (original scope) — plus QUAL-05 ✅, QUAL-06 ✅, QUAL-07 ✅, QUAL-08 ✅ discovered during execution
 **Success Criteria** (what must be TRUE):
-  1. `npm test` runs the Vitest suite and exits non-zero on failure
-  2. `npm run lint` runs against a real ESLint config (not a no-op)
-  3. Playwright is either running at least one real e2e test in CI, or removed from `frontend/package.json`
-**Plans**: TBD
+  1. ✅ `npm test` runs the Vitest suite and exits non-zero on failure — 324 passed / 3 skipped / 0 failed (was 5 failed + 1 erroring file)
+  2. ✅ `npm run lint` runs against a real ESLint config (not a no-op) — it did not run *at all* before: ESLint had no config file and exited with "couldn't find a configuration file"
+  3. ✅ Playwright is running real e2e tests in CI — 38 specs, `test-e2e.yml`
+
+**What was actually built** (4 sequenced stages, one commit each):
+
+| Stage | Delivered | Commit |
+|---|---|---|
+| 0 — Foundation | `.eslintrc.cjs`, `test`/`test:watch`/`test:integration`/`typecheck` scripts, `vitest.setup.ts` (jest-dom was installed but never registered), provider wrappers, `useAuth.test.tsx` rewritten, live-replica test moved to opt-in L3 | `e201e8e` |
+| 1 — Unit + parity | `economyParity.test.ts` (transcription of `calculateYieldPotential` + 47-case vector), `gameLogic.test.ts`, `phaseGateParity.test.ts` | `3894c99` |
+| 2 — Contract guard | `candidContract.test.ts` (method list read from the generated `idlFactory` at runtime), `dfx generate` drift step in CI, `test-unit.yml` | `f3e367c` |
+| 3 — Backend triage | PocketIC spike (**rejected**, see `.planning/spikes/001-pocketic-for-backend-tests.md`), `legacyShellScripts.test.ts` ratchet, CRLF normalization, `.gitattributes` | `00fe339` |
+| 4 — E2E | `playwright.config.ts`, 38 specs on the dev harnesses, `test-e2e.yml`, tsconfig widened to type-check the test infrastructure | `4ddaab4` |
+
+**Test pyramid now in place**: L1 unit → L1b TS↔Motoko parity → L2 Candid contract → L3 live-replica (opt-in) → L4 Playwright E2E. Three CI workflows (`test-unit.yml`, `test-backend-logic.yml`, `test-e2e.yml`); `deploy-playground.yml`/`deploy-mainnet.yml` untouched throughout, as required by CLAUDE.md.
+
+**Bugs found and fixed** (none of which had any test cover before):
+  - Frontend yield mirror was missing the **county bonus** and **Golden Harvester** entirely, and multiplied in a different order than Motoko → the UI **under-reported yield by 19%** on a realistic loadout (43,537 kg shown vs 53,743 kg paid out)
+  - UI enabled Marketplace purchases during `Maintenance`, which the canister rejects (`upgradeInfrastructure` requires `#Investment`) — a live button whose click always failed
+  - 5 `@ts-ignore` directives that suppressed nothing (surfaced by converting to `@ts-expect-error`), 7 × `prefer-const`
+  - 10 of 23 legacy shell scripts had CRLF and died under `bash` on Linux before their first API call — a failure hidden behind the dead-method problem
+
+**Bugs found and deliberately FLAGGED, not fixed** (outside test-infrastructure scope, per CLAUDE.md): `AUTH-02` (Atomic Auth still violated on the restored-session path; guard test exists marked `it.fails()`), `ECON-PARITY-01` (Motoko's infra modifier mixes `+=`/`*=` so the multiplier depends on array order), `MAINT-01` (the `Maintenance` phase has no player action wired — `inspectAndRepair` is never called), `GEO-07` (two parcel-purchase methods coexist).
+
+**Follow-ups still open**: QUAL-04 (pay down the 185-warning lint ratchet), QUAL-09 (port the 11 healthy shell scripts), QUAL-10 (full-journey E2E against an ephemeral replica).
 
 Plans:
-- [ ] 10-01: TBD (created by `/gsd-plan-phase 10`)
+- [x] 10-00: Architecture + sequencing decided from a measured audit rather than the docs' assumptions (see the four stage commits above)
+- [x] 10-01: Stage 0 — test/lint foundation — `e201e8e`
+- [x] 10-02: Stage 1 — unit + economy parity — `3894c99`
+- [x] 10-03: Stage 2 — Candid contract guard + fast CI gate — `f3e367c`
+- [x] 10-04: Stage 3 — PocketIC spike + legacy shell triage — `00fe339`
+- [x] 10-05: Stage 4 — Playwright E2E — `4ddaab4`
 
 ## Progress
 
 **Execution Order:**
 Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6 → 7 → 8 → 9 → 10. Phases 2–8 are largely independent of each other and can be reordered/parallelized if useful, except 5.1 which depends on 5 (and ideally 9); Phase 9 (UX overhaul) is intentionally sequenced late so it redesigns stable functionality; Phase 10 (quality infra) has no gameplay dependency and can move anywhere.
+
+**Deviation from that order (2026-08-06):** Phase 10 was executed early, at the user's request, before Phases 2–9. This turned out well beyond its own goal: the parity and contract layers it built immediately found real defects in Phase 3's and Phase 5's territory (the missing county-bonus/Golden-Harvester yield terms, the two rival parcel-purchase methods) that a gameplay-first order would have shipped first and discovered later. Phases 3 and 5 now start with automated parity enforcement already guarding the formulas they are about to change. Also note Phase 9's UX-06 work (sketch 001/002 → `ImperialOrchard.tsx`, `orchardMachines.ts`, Marketplace building sprites) was largely delivered ad hoc during the same stretch of sessions and is **not** yet reflected in this table's Phase 9 row.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
@@ -211,4 +239,4 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 7. Crop Insurance UI | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 8. Onboarding & Phase-System Teaching | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 9. UX/UI Deep Overhaul | Playable Release — V1 Parity | 0/TBD | Scoped (incl. sketch 001 winner), not started | - |
-| 10. Quality Infrastructure | Playable Release — V1 Parity | 0/TBD | Not started | - |
+| 10. Quality Infrastructure | Playable Release — V1 Parity | 5/5 | Complete (success criteria met; QUAL-04/09/10 spun out as follow-ups) | 2026-08-06 |
