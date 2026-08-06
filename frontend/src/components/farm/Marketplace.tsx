@@ -44,14 +44,34 @@ const MachineThumbnail: React.FC<{ machineType: string }> = ({ machineType }) =>
     return <canvas ref={canvasRef} width={200} height={200} style={{ width: '100%', height: '100%' }} />;
 };
 
-// Building types with a seasonal raster sprite set (see BUILDING_SPRITE_SEASONS
-// below) — first one wired is Cold Storage (2026-08-04), extracted+cleaned from
-// an AI-generated reference sheet (see tmp/extracted-buildings/), one per season,
-// transparent background, served from frontend/public/assets/buildings/<type>/.
-type BuildingSpriteType = 'coldStorage';
-const BUILDING_SPRITE_FOLDER: Record<BuildingSpriteType, string> = {
-    coldStorage: 'cold-storage',
+// Building types with a seasonal raster sprite set — extracted+cleaned from
+// AI-generated reference sheets (see tmp/extracted-buildings/), one per
+// season, transparent background, served from
+// frontend/public/assets/buildings/<folder>/<season>.png.
+//
+// Cold Storage and Warehouse have TWO art sets (an "l1" and a visibly bigger,
+// more detailed "l2"/upgraded set) — real Infrastructure.level is 1-5, but we
+// only have art for two tiers so far, so level >= 2 shows the l2 set and
+// everything else (including not-yet-purchased, level 0) shows l1. Processing
+// Plant and Social Facilities only have one art set so far; adding an l2 set
+// later just means adding a second entry to LEVELED_BUILDING_FOLDERS below.
+type BuildingSpriteType = 'coldStorage' | 'warehouse' | 'processingPlant' | 'socialFacilities';
+
+const LEVELED_BUILDING_FOLDERS: Partial<Record<BuildingSpriteType, { l1: string; l2: string }>> = {
+    coldStorage: { l1: 'cold-storage-l1', l2: 'cold-storage-l2' },
+    warehouse: { l1: 'warehouse-l1', l2: 'warehouse-l2' },
 };
+const SINGLE_TIER_BUILDING_FOLDERS: Partial<Record<BuildingSpriteType, string>> = {
+    processingPlant: 'processing-plant',
+    socialFacilities: 'social-facilities',
+};
+
+function buildingSpriteFolder(buildingType: BuildingSpriteType, level: number): string {
+    const leveled = LEVELED_BUILDING_FOLDERS[buildingType];
+    if (leveled) return level >= 2 ? leveled.l2 : leveled.l1;
+    return SINGLE_TIER_BUILDING_FOLDERS[buildingType] ?? '';
+}
+
 const BUILDING_SPRITE_SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 type BuildingSpriteSeason = typeof BUILDING_SPRITE_SEASONS[number];
 
@@ -62,10 +82,11 @@ function seasonKeyFromBackend(season: any): BuildingSpriteSeason {
     return (BUILDING_SPRITE_SEASONS as readonly string[]).includes(lower) ? (lower as BuildingSpriteSeason) : 'spring';
 }
 
-/** Real seasonal raster sprite for a building — same pre-rendered art in every season the game recognizes, swapped by an <img> src change rather than redrawn. */
-const BuildingSprite: React.FC<{ buildingType: BuildingSpriteType; season: any }> = ({ buildingType, season }) => {
+/** Real seasonal (and, for buildings with more than one art tier, level-aware) raster sprite — same pre-rendered art in every season the game recognizes, swapped by an <img> src change rather than redrawn. */
+const BuildingSprite: React.FC<{ buildingType: BuildingSpriteType; season: any; level: number }> = ({ buildingType, season, level }) => {
     const seasonKey = seasonKeyFromBackend(season);
-    const src = `/assets/buildings/${BUILDING_SPRITE_FOLDER[buildingType]}/${seasonKey}.png`;
+    const folder = buildingSpriteFolder(buildingType, level);
+    const src = `/assets/buildings/${folder}/${seasonKey}.png`;
     return <img src={src} alt="" className="w-full h-full object-contain" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }} />;
 };
 
@@ -91,7 +112,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 25000,
         icon: <Warehouse className="h-6 w-6" />,
         effect: 'Spoilage Armor: 20% — retains 20% of stored cherries',
-        type: 'Building'
+        type: 'Building',
+        buildingType: 'warehouse'
     },
     {
         id: 'ColdStorage',
@@ -110,7 +132,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 100000,
         icon: <Factory className="h-6 w-6" />,
         effect: 'Increases wholesale base price by 15%',
-        type: 'Building'
+        type: 'Building',
+        buildingType: 'processingPlant'
     },
     {
         id: 'SocialFacilities',
@@ -119,7 +142,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 15000,
         icon: <Users className="h-6 w-6" />,
         effect: '-5% Labor Costs',
-        type: 'Building'
+        type: 'Building',
+        buildingType: 'socialFacilities'
     },
     {
         id: 'Tractor',
@@ -191,6 +215,12 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
         });
     };
 
+    /** Current level of an owned infrastructure item, 0 if not owned — feeds BuildingSprite's l1/l2 art tier selection. */
+    const getLevel = (id: string): number => {
+        const infra = ownedInfrastructure.find(i => Object.keys(i.infraType)[0] === id);
+        return infra ? Number(infra.level) : 0;
+    };
+
     const renderItem = (item: InfrastructureItem) => {
         const owned = isOwned(item.id);
         const canAfford = Number(cash) >= item.cost;
@@ -207,7 +237,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                             owned ? "bg-emerald-500/10 text-emerald-400" : "bg-slate-800 text-slate-400"
                         )}>
                             {item.machineType ? <MachineThumbnail machineType={item.machineType} />
-                                : item.buildingType ? <BuildingSprite buildingType={item.buildingType} season={season} />
+                                : item.buildingType ? <BuildingSprite buildingType={item.buildingType} season={season} level={getLevel(item.id)} />
                                 : item.icon}
                         </div>
                         {owned ? (
