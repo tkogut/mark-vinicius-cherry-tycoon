@@ -55,6 +55,31 @@ jobs:
           echo "-- global season --"
           dfx canister call backend getGlobalSeason '()'
 
+      # ── QUAL-06: Candid drift guard ──────────────────────────────────────
+      # frontend/src/declarations/ is committed, so it can silently fall behind
+      # backend/*.mo. When it does, the frontend keeps compiling against a stale
+      # interface and only breaks at runtime — which is exactly how
+      # execution/tests/*.sh ended up calling `getLeaderboard` and
+      # `advanceSeason` long after both were gone from the backend.
+      #
+      # Regenerating here and failing on any diff makes that impossible to miss.
+      # The complementary runtime check (does every backendActor.X() call site
+      # still exist in the Candid interface?) lives in
+      # frontend/src/__tests__/candidContract.test.ts and runs in test-unit.yml.
+      - name: Regenerate Candid declarations
+        run: dfx generate backend
+
+      - name: Fail if committed declarations are stale
+        run: |
+          if ! git diff --exit-code --stat -- frontend/src/declarations/; then
+            echo ""
+            echo "::error::frontend/src/declarations/ is out of date with backend/*.mo."
+            echo "Run 'dfx generate backend' locally and commit the result."
+            git diff -- frontend/src/declarations/
+            exit 1
+          fi
+          echo "Candid declarations are in sync."
+
       - name: Stop local replica
         if: always()
         run: dfx stop

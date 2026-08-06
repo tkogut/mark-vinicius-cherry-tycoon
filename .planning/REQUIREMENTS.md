@@ -89,7 +89,13 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 - [ ] **QUAL-05b**: Close the parity loop against a *live* canister. `motokoReferenceYield()` in `economyParity.test.ts` is a hand-maintained transcription: it catches frontend drift immediately but cannot detect a change made on the Motoko side. A real oracle needs a `debugCalculateYield` query, because `GameLogic.calculateYieldPotential` is internal (only reachable via `main.mo`'s harvest path) — there is no method to generate a fixture from. Adding it is additive and has 7 existing `debug*` precedents, but it widens the canister's public interface, so it was deliberately left out of the test-infrastructure step.
 - [ ] **ECON-PARITY-01**: `getInfrastructureModifier` in `backend/game_logic.mo` folds additive terms (`modifier += …` for Tractor/Shaker/Sprayer/ColdStorage) and one multiplicative term (`modifier *= 1.05^level` for GoldenHarvester) in a single pass over the infrastructure array. Mixing `+=` and `*=` makes the result **depend on the array order** — the same equipment yields a different multiplier depending on purchase order (e.g. GH-then-Tractor gives 1.1025+0.15 = 1.2525, Tractor-then-GH gives 1.15×1.1025 = 1.2679). Found 2026-08-06; **flagged, not fixed** — changing it alters real payouts, which is an economy-balance decision, not a test fix. The frontend mirror reproduces the quirk faithfully (and a test pins that order-sensitivity) so the UI and the payout agree while it stands.
 - [x] **QUAL-07**: Phase-gate parity between the UI's `PHASE_ACTION_GATING` and the backend's `#SeasonalRestriction` guards. Done 2026-08-06 via `src/__tests__/phaseGateParity.test.ts`, which asserts the UI is **never more permissive** than `main.mo` (that direction produces an enabled button whose click fails) and enumerates the 12 places where it is deliberately stricter as UI guidance. **Found and fixed one real bug:** the UI enabled Marketplace purchases during the `Maintenance` phase, but `upgradeInfrastructure` (`main.mo:2118`) requires `#Investment` — so the PURCHASE button was live and the click failed with `#SeasonalRestriction`. Marketplace.tsx's own tooltip already read *"Purchases restricted to Investment phase"*, so the gating table contradicted both the canister and the UI's own copy. Also verified that `sellCherries` / `fertilizeParcel` / `buyParcel` have **no** backend phase guard, so the UI's permissiveness there is consistent.
-- [ ] **QUAL-06**: Candid drift guard — a CI step that runs `dfx generate` and fails if the committed `frontend/src/declarations/` differ, plus a static test asserting every backend method called from hooks still exists in `backend.did.d.ts`. This is the exact class of rot that broke ≥2 of the 23 `execution/tests/*.sh` scripts (calls to `getLeaderboard` / `advanceSeason`, both removed). Phase 10, Etap 2.
+- [x] **QUAL-06**: Candid drift guard. Done 2026-08-06 (Phase 10, Etap 2), in two halves that catch drift from either direction:
+  - **Runtime contract test** (`src/__tests__/candidContract.test.ts`): reads the method list out of the generated `idlFactory` at runtime (not a hand-maintained list, which would be one more thing that can drift) and scans application source for every `backendActor.X(...)` call site, asserting each exists in the Candid interface. Also pins that `getLeaderboard` and `advanceSeason` — the two methods that rotted the shell suite — stay absent, and that six hot read paths remain `query` (promoting one to an update call would silently add consensus latency to every render using it).
+  - **CI drift step** (in `test-backend-logic.yml`): runs `dfx generate backend` and fails on any diff in the committed `frontend/src/declarations/`.
+  - **Both halves verified by deliberately injecting drift**, not just by passing: renaming `getGlobalSeason` in `main.mo` made the CI guard report a 3-file diff; renaming `getPlayerFarm` made the runtime test fail with a message naming the offending caller (`hooks/useFarm.ts`). Repo restored afterwards and re-verified clean.
+- [ ] **QUAL-08**: Triage the 23 `execution/tests/*.sh` scripts. At least two provably call removed methods; the whole suite is untyped Candid string-matching against a live replica and is not run by any workflow. Decide per script: port to Vitest/PocketIC, or delete. Keeping 23 decorative scripts is debt, not coverage. Phase 10, Etap 3.
+- [ ] **MAINT-01**: The `Maintenance` phase has no player action wired. `inspectAndRepair` is the only backend method gated to `#Maintenance` (`main.mo:1023`) and the frontend **never calls it** — surfaced by QUAL-06's contract inventory. After the QUAL-07 fix removed the (backend-rejected) infrastructure purchase from that phase, `Maintenance` offers only `sell` plus an informational banner *"Machines are being serviced."* Wiring `inspectAndRepair` is a feature addition, hence flagged rather than bundled into the test work.
+- [ ] **GEO-07**: Two parcel-purchase methods coexist in the Candid interface — `buyParcel(text, nat)` (used by the frontend) and `purchaseParcel(Province, float64)` (never called; the geography-aware signature, and the one `lib/gddTemplate.ts` documents). Decide which is authoritative and retire the other, ideally alongside the Phase 5 geography rebuild.
 
 ### UX/UI Deep Overhaul (UX) — scoped 2026-07-29 via live Playground screenshot audit, see `docs/game-design/UX-AUDIT-2026-07-29.md`
 
@@ -185,14 +191,17 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | QUAL-04 | Phase 10 | Pending |
 | QUAL-05 | Phase 10 | Complete |
 | QUAL-05b | Phase 10 | Pending |
-| QUAL-06 | Phase 10 | Pending |
+| QUAL-06 | Phase 10 | Complete |
 | QUAL-07 | Phase 10 | Complete |
+| QUAL-08 | Phase 10 | Pending |
 | AUTH-02 | Phase 10 | Pending |
+| MAINT-01 | Backlog (gameplay) | Pending |
+| GEO-07 | Phase 5 | Pending |
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 50 total (8 complete, 42 pending)
-- Mapped to phases: 50
+- v1 requirements: 53 total (9 complete, 44 pending)
+- Mapped to phases: 53
 - Unmapped: 0 ✓
 
 ---
