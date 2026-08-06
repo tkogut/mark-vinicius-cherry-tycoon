@@ -14,6 +14,7 @@ export interface YieldBreakdown {
     waterMod: number;
     organicMod: number;
     ageMod: number;
+    countyMod: number;
     totalYield: number; // kg per hectare
     parcelYield: number; // total kg for the parcel
 }
@@ -45,7 +46,14 @@ export const getPhModifier = (pH: number): number => {
     return 0.7;
 };
 
-// Infrastructure modifier
+// Infrastructure modifier.
+//
+// Mirrors `getInfrastructureModifier` in game_logic.mo, including its
+// asymmetry: every term is ADDITIVE except GoldenHarvester, which is
+// MULTIPLICATIVE (1.05^level). Because the backend folds `+=` and `*=` in
+// array iteration order, the result is order-sensitive — so this must iterate
+// in the same order rather than, say, summing additive terms first.
+// See ECON-PARITY-01 for the underlying backend issue.
 export const getInfraModifier = (infrastructure: Infrastructure[]): number => {
     let modifier = 1.0;
     infrastructure.forEach(infra => {
@@ -53,6 +61,15 @@ export const getInfraModifier = (infrastructure: Infrastructure[]): number => {
         const level = Number(infra.level);
 
         switch (type) {
+            case 'GoldenHarvester': {
+                // Motoko: `var multi = 1.0; for (i in Iter.range(1, level)) { multi *= 1.05 }; modifier *= multi;`
+                // Reproduced as a loop (not Math.pow) to match the backend's
+                // floating-point accumulation bit for bit.
+                let multi = 1.0;
+                for (let i = 1; i <= level; i++) multi *= 1.05;
+                modifier *= multi;
+                break;
+            }
             case 'Tractor': modifier += 0.05 * level; break;
             case 'Shaker': modifier += 0.08 * level; break;
             case 'Sprayer': modifier += 0.03 * level; break;
@@ -60,6 +77,17 @@ export const getInfraModifier = (infrastructure: Infrastructure[]): number => {
         }
     });
     return modifier;
+};
+
+// County yield multiplier — Phase 5.1 "Opole DNA" (GDD §3.1).
+// Mirrors the `countyMod` switch inside game_logic.mo's calculateYieldPotential.
+export const getCountyModifier = (county: string): number => {
+    switch (county) {
+        case 'Głubczyce': return 1.10; // optimal sandy-clay cherry belt
+        case 'Opole': return 1.08;     // strong infrastructure, good soil
+        case 'Namysłów': return 1.05;  // good conditions, slightly cooler
+        default: return 1.0;
+    }
 };
 
 // Water level modifier
@@ -123,10 +151,19 @@ export const calculateYieldBreakdown = (
     const waterMod = getWaterModifier(parcel.waterLevel);
     const organicMod = getOrganicModifier(parcel.isOrganic);
     const ageMod = getAgeModifier(parcel.treeAge);
+    const countyMod = getCountyModifier(parcel.region.county);
 
-    const totalYieldTons = baseYield * soilMod * phMod * fertilityMod * infraMod * waterMod * organicMod * ageMod;
+    const totalYieldTons =
+        baseYield * soilMod * phMod * fertilityMod * infraMod * waterMod * organicMod * ageMod * countyMod;
+
+    // Per-hectare kg, for display only.
     const totalYieldKg = totalYieldTons * 1000;
-    const parcelYield = totalYieldKg * Number(parcel.size);
+
+    // Motoko computes `(tons * size) * 1000.0`, NOT `(tons * 1000) * size`.
+    // f64 multiplication is not associative, so the operand order is kept
+    // identical here — otherwise the two can land on either side of an integer
+    // boundary once the backend truncates via `Float.toInt`.
+    const parcelYield = totalYieldTons * Number(parcel.size) * 1000;
 
     // Weather and Labor impacts (calculated during harvesting)
     const weatherMod = weather ? getWeatherYieldImpact(weather.weather, weather.severity) : 1.0;
@@ -142,6 +179,7 @@ export const calculateYieldBreakdown = (
         waterMod,
         organicMod,
         ageMod,
+        countyMod,
         weatherMod,
         laborMod,
         totalYield: totalYieldKg,

@@ -30,7 +30,14 @@ export const PHASE_ACTION_GATING: Record<SeasonPhase, GameAction[]> = {
     'Market': ['fertilize', 'sell'],
     'Storage': ['fertilize', 'sell'],
     'CutAndPrune': ['prune', 'fertilize', 'sell'],
-    'Maintenance': ['buy_infrastructure', 'sell'],
+    // 'buy_infrastructure' removed from Maintenance 2026-08-06 (QUAL-05):
+    // `upgradeInfrastructure` in backend/main.mo:2118 requires #Investment, so
+    // enabling the Marketplace PURCHASE button here produced a live control
+    // whose click failed with #SeasonalRestriction. Marketplace.tsx's own
+    // tooltip already told the player "Purchases restricted to Investment
+    // phase", so this table was contradicting both the canister and the UI's
+    // own copy. Maintenance is for `inspectAndRepair`, not buying.
+    'Maintenance': ['sell'],
     'Planning': ['organic', 'buy_parcel', 'sell']
 };
 

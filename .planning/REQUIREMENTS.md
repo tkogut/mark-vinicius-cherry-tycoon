@@ -81,7 +81,14 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 - [x] **QUAL-02**: ESLint config exists — `frontend/.eslintrc.cjs` (legacy format on purpose: ESLint 8.57 only honours flat config behind `ESLINT_USE_FLAT_CONFIG`, and the existing script's `--ext` flag is rejected by flat config). Before this, `npm run lint` did not run at all. Fixed 12 real findings while standing it up (7 × `prefer-const`, 5 × dead `@ts-ignore` that suppressed nothing). Done 2026-08-06. *Prettier deliberately not added — no formatting config existed to codify, and adding one would churn every file; out of scope.*
 - [ ] **QUAL-03**: Playwright is either wired into a real e2e test or removed from dependencies (currently installed but unused) — Phase 10, Etap 4
 - [ ] **QUAL-04**: Pay down the lint debt captured by the `--max-warnings` ratchet. Baseline at 2026-08-06 is **185 warnings** (96 `no-explicit-any`, 71 `no-unused-vars`, 10 `react-refresh/only-export-components`, 9 `react-hooks/exhaustive-deps`). Errors are already 0 and must stay 0. The ceiling in `package.json` may only ever be **lowered** — never raise it to make lint pass. The 9 `exhaustive-deps` warnings are the highest-risk subset (stale-closure bugs in the interval/animation-driven orchard components) and should be triaged first.
-- [ ] **QUAL-05**: Enforce TS↔Motoko economic-formula parity automatically. `frontend/src/lib/gameLogic.ts` re-implements the yield modifiers that `backend/game_logic.mo` computes, and `frontend/src/config/gameBalanceConstants.ts` says *"Keep in sync with … backend/game_logic.mo"* — today that sync is guaranteed by a code comment and nothing else. Phase 10, Etap 1 (oracle fixture generated from the canister + Vitest parity assertion).
+- [x] **QUAL-05**: Enforce TS↔Motoko economic-formula parity automatically. Done 2026-08-06 (Phase 10, Etap 1). Added `src/__tests__/economyParity.test.ts` (line-by-line transcription of `calculateYieldPotential` + 47-case vector), `gameLogic.test.ts` (weather/labour mirrors) and `phaseGateParity.test.ts`. The suite **found three real divergences, all now closed**:
+  1. **County bonus missing in the frontend.** `game_logic.mo` multiplies yield by a county modifier (Głubczyce 1.10 / Opole 1.08 / Namysłów 1.05, Phase 5.1 "Opole DNA"); `gameLogic.ts` had no county term at all.
+  2. **Golden Harvester ignored by the frontend.** The backend applies it *multiplicatively* (1.05^level); the TS mirror's switch had no `GoldenHarvester` case, so the game's flagship upgrade contributed nothing to the displayed estimate.
+  3. **Multiplication order.** Motoko computes `(tons × size) × 1000`; the mirror did `(tons × 1000) × size`. f64 multiplication is not associative, and the backend truncates via `Float.toInt`, so the two could land either side of an integer boundary.
+  Combined player-visible impact, measured on a realistic loadout (Głubczyce, clay, organic, 2.5 ha, full kit incl. Golden Harvester L3): the UI **under-reported yield by 19%** — 43,537 kg shown vs 53,743 kg actually paid out.
+- [ ] **QUAL-05b**: Close the parity loop against a *live* canister. `motokoReferenceYield()` in `economyParity.test.ts` is a hand-maintained transcription: it catches frontend drift immediately but cannot detect a change made on the Motoko side. A real oracle needs a `debugCalculateYield` query, because `GameLogic.calculateYieldPotential` is internal (only reachable via `main.mo`'s harvest path) — there is no method to generate a fixture from. Adding it is additive and has 7 existing `debug*` precedents, but it widens the canister's public interface, so it was deliberately left out of the test-infrastructure step.
+- [ ] **ECON-PARITY-01**: `getInfrastructureModifier` in `backend/game_logic.mo` folds additive terms (`modifier += …` for Tractor/Shaker/Sprayer/ColdStorage) and one multiplicative term (`modifier *= 1.05^level` for GoldenHarvester) in a single pass over the infrastructure array. Mixing `+=` and `*=` makes the result **depend on the array order** — the same equipment yields a different multiplier depending on purchase order (e.g. GH-then-Tractor gives 1.1025+0.15 = 1.2525, Tractor-then-GH gives 1.15×1.1025 = 1.2679). Found 2026-08-06; **flagged, not fixed** — changing it alters real payouts, which is an economy-balance decision, not a test fix. The frontend mirror reproduces the quirk faithfully (and a test pins that order-sensitivity) so the UI and the payout agree while it stands.
+- [x] **QUAL-07**: Phase-gate parity between the UI's `PHASE_ACTION_GATING` and the backend's `#SeasonalRestriction` guards. Done 2026-08-06 via `src/__tests__/phaseGateParity.test.ts`, which asserts the UI is **never more permissive** than `main.mo` (that direction produces an enabled button whose click fails) and enumerates the 12 places where it is deliberately stricter as UI guidance. **Found and fixed one real bug:** the UI enabled Marketplace purchases during the `Maintenance` phase, but `upgradeInfrastructure` (`main.mo:2118`) requires `#Investment` — so the PURCHASE button was live and the click failed with `#SeasonalRestriction`. Marketplace.tsx's own tooltip already read *"Purchases restricted to Investment phase"*, so the gating table contradicted both the canister and the UI's own copy. Also verified that `sellCherries` / `fertilizeParcel` / `buyParcel` have **no** backend phase guard, so the UI's permissiveness there is consistent.
 - [ ] **QUAL-06**: Candid drift guard — a CI step that runs `dfx generate` and fails if the committed `frontend/src/declarations/` differ, plus a static test asserting every backend method called from hooks still exists in `backend.did.d.ts`. This is the exact class of rot that broke ≥2 of the 23 `execution/tests/*.sh` scripts (calls to `getLeaderboard` / `advanceSeason`, both removed). Phase 10, Etap 2.
 
 ### UX/UI Deep Overhaul (UX) — scoped 2026-07-29 via live Playground screenshot audit, see `docs/game-design/UX-AUDIT-2026-07-29.md`
@@ -176,13 +183,16 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | QUAL-02 | Phase 10 | Complete |
 | QUAL-03 | Phase 10 | Pending |
 | QUAL-04 | Phase 10 | Pending |
-| QUAL-05 | Phase 10 | Pending |
+| QUAL-05 | Phase 10 | Complete |
+| QUAL-05b | Phase 10 | Pending |
 | QUAL-06 | Phase 10 | Pending |
+| QUAL-07 | Phase 10 | Complete |
 | AUTH-02 | Phase 10 | Pending |
+| ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 47 total (6 complete, 41 pending)
-- Mapped to phases: 47
+- v1 requirements: 50 total (8 complete, 42 pending)
+- Mapped to phases: 50
 - Unmapped: 0 ✓
 
 ---
