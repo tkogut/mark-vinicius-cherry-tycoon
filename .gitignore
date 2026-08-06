@@ -57,3 +57,9 @@ backend/.dfx/
 *.temp
 *.log
 tmp/
+
+# Playwright (QUAL-03) — run artifacts, never committed
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/.playwright/

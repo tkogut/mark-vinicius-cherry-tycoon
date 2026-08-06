@@ -79,7 +79,12 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 
 - [x] **QUAL-01**: `npm test` runs the Vitest suite — added `test` / `test:watch` / `test:integration` / `typecheck` scripts; wired the already-installed `@testing-library/jest-dom` via a new `vitest.setup.ts` (`setupFiles` was `[]`); rewrote `useAuth.test.tsx` (its assertions had gone stale against AuthProvider's auto-login bypass, so a `QueryClientProvider` wrapper alone was not enough — see `src/test-utils/providers.tsx`); moved `backend_integration.test.ts` to opt-in L3. Suite went 5 failed + 1 erroring file → **26 passed, 3 skipped, 0 failed**. Done 2026-08-06.
 - [x] **QUAL-02**: ESLint config exists — `frontend/.eslintrc.cjs` (legacy format on purpose: ESLint 8.57 only honours flat config behind `ESLINT_USE_FLAT_CONFIG`, and the existing script's `--ext` flag is rejected by flat config). Before this, `npm run lint` did not run at all. Fixed 12 real findings while standing it up (7 × `prefer-const`, 5 × dead `@ts-ignore` that suppressed nothing). Done 2026-08-06. *Prettier deliberately not added — no formatting config existed to codify, and adding one would churn every file; out of scope.*
-- [ ] **QUAL-03**: Playwright is either wired into a real e2e test or removed from dependencies (currently installed but unused) — Phase 10, Etap 4
+- [x] **QUAL-03**: Playwright wired into real E2E tests. Done 2026-08-06 (Phase 10, Etap 4). `playwright.config.ts` + **38 specs** across `e2e/orchard.spec.ts` and `e2e/marketplace.spec.ts`, run by `npm run test:e2e` and by the new `test-e2e.yml` workflow (PR + nightly at an off-the-hour minute; chromium only, since the assertions are on canvas pixel data and computed z-index and are engine-independent).
+  - **Scope decision: the specs drive the dev harnesses, not the full app.** The harnesses mount the real components with mocked props and no auth/canister, so runs are deterministic. Driving the full app was tried repeatedly by hand during the UX work and was flaky for reasons unrelated to the code under test — a random "Severe Drought" weather modal intercepts clicks, and test-player init against Playground intermittently fails. Those are real gameplay behaviours, so full-journey coverage is split out as QUAL-10 rather than made everyone's flake.
+  - Locks in fixes that previously had **no automated cover at all**: the QUAL-07 phase gate (purchases disabled in `Maintenance` and 6 other phases, enabled in `Investment`) proven in a browser; seasonal sprite swap incl. a `naturalWidth > 0` check so a 404 cannot pass as "src is right"; the l1→l2 art-tier switch; deterministic tree placement across reloads; winter drawing a full canopy (asserted on actual canvas pixels in the upper half, per the sketch-001 rev-7 decision); worker movement over time; and the bridge topology — asserted as **exactly 4** bridges for 4 sectors, which discriminates between the old consecutive-index implementation (3) and a naive fully-connected one (6).
+  - `tsconfig.json` `include` widened to `src`, `e2e`, `playwright.config.ts`, `vitest.config.ts`, `vitest.setup.ts`, so `npm run typecheck` / `npm run build` now type-check the whole test infrastructure instead of only `src` — previously a type error in a spec would have gone unnoticed, since Playwright transpiles without checking. Verified `tsc --noEmit` still exits 0.
+  - Run artifacts (`test-results/`, `playwright-report/`, `blob-report/`) added to `.gitignore`.
+- [ ] **QUAL-10**: Full-journey E2E against an ephemeral local replica (init player → plant → advance phases → harvest → sell), the layer the harness specs deliberately exclude. Needs a deterministic way to neutralise the random weather-event modal and a reliable player reset (`debugResetPlayer` exists). Should reuse the ephemeral-replica pattern from `test-backend-logic.yml` rather than pointing at Playground.
 - [ ] **QUAL-04**: Pay down the lint debt captured by the `--max-warnings` ratchet. Baseline at 2026-08-06 is **185 warnings** (96 `no-explicit-any`, 71 `no-unused-vars`, 10 `react-refresh/only-export-components`, 9 `react-hooks/exhaustive-deps`). Errors are already 0 and must stay 0. The ceiling in `package.json` may only ever be **lowered** — never raise it to make lint pass. The 9 `exhaustive-deps` warnings are the highest-risk subset (stale-closure bugs in the interval/animation-driven orchard components) and should be triaged first.
 - [x] **QUAL-05**: Enforce TS↔Motoko economic-formula parity automatically. Done 2026-08-06 (Phase 10, Etap 1). Added `src/__tests__/economyParity.test.ts` (line-by-line transcription of `calculateYieldPotential` + 47-case vector), `gameLogic.test.ts` (weather/labour mirrors) and `phaseGateParity.test.ts`. The suite **found three real divergences, all now closed**:
   1. **County bonus missing in the frontend.** `game_logic.mo` multiplies yield by a county modifier (Głubczyce 1.10 / Opole 1.08 / Namysłów 1.05, Phase 5.1 "Opole DNA"); `gameLogic.ts` had no county term at all.
@@ -193,7 +198,7 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | UX-08 | Phase 9 | Pending |
 | QUAL-01 | Phase 10 | Complete |
 | QUAL-02 | Phase 10 | Complete |
-| QUAL-03 | Phase 10 | Pending |
+| QUAL-03 | Phase 10 | Complete |
 | QUAL-04 | Phase 10 | Pending |
 | QUAL-05 | Phase 10 | Complete |
 | QUAL-05b | Phase 10 | Pending |
@@ -201,14 +206,15 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | QUAL-07 | Phase 10 | Complete |
 | QUAL-08 | Phase 10 | Complete |
 | QUAL-09 | Phase 10 | Pending |
+| QUAL-10 | Phase 10 | Pending |
 | AUTH-02 | Phase 10 | Pending |
 | MAINT-01 | Backlog (gameplay) | Pending |
 | GEO-07 | Phase 5 | Pending |
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 54 total (10 complete, 44 pending)
-- Mapped to phases: 54
+- v1 requirements: 55 total (11 complete, 44 pending)
+- Mapped to phases: 55
 - Unmapped: 0 ✓
 
 ---
