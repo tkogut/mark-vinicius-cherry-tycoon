@@ -93,7 +93,13 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
   - **Runtime contract test** (`src/__tests__/candidContract.test.ts`): reads the method list out of the generated `idlFactory` at runtime (not a hand-maintained list, which would be one more thing that can drift) and scans application source for every `backendActor.X(...)` call site, asserting each exists in the Candid interface. Also pins that `getLeaderboard` and `advanceSeason` — the two methods that rotted the shell suite — stay absent, and that six hot read paths remain `query` (promoting one to an update call would silently add consensus latency to every render using it).
   - **CI drift step** (in `test-backend-logic.yml`): runs `dfx generate backend` and fails on any diff in the committed `frontend/src/declarations/`.
   - **Both halves verified by deliberately injecting drift**, not just by passing: renaming `getGlobalSeason` in `main.mo` made the CI guard report a 3-file diff; renaming `getPlayerFarm` made the runtime test fail with a message naming the offending caller (`hooks/useFarm.ts`). Repo restored afterwards and re-verified clean.
-- [ ] **QUAL-08**: Triage the 23 `execution/tests/*.sh` scripts. At least two provably call removed methods; the whole suite is untyped Candid string-matching against a live replica and is not run by any workflow. Decide per script: port to Vitest/PocketIC, or delete. Keeping 23 decorative scripts is debt, not coverage. Phase 10, Etap 3.
+- [x] **QUAL-08**: Triage the 23 `execution/tests/*.sh` scripts. Done 2026-08-06 (Phase 10, Etap 3). Measured rather than estimated — **the suite had two independent breakages**:
+  - **12 of 23 scripts (52%) call methods the backend no longer declares**: `advanceSeason` (9 scripts), `getLeaderboard` (2), `debugSetHansStorage` (2). Far worse than the "at least two" previously recorded.
+  - **10 of 23 had CRLF line endings**, so they died under `bash` on a Linux runner *before* their first `dfx canister call` — a failure completely hidden behind the dead-method problem. (An earlier scan of mine reported zero, because Python's text-mode reader silently translates `\r\n`; the JS scanner reads faithfully and caught my own mistake.) All 10 normalized — verified mechanically as line-endings-only (1271 insertions = 1271 deletions, content byte-identical after stripping `\r`), and `bash -n` now parses scripts that previously could not run at all.
+  - **Decision: pin the damage rather than delete or mass-migrate.** `src/__tests__/legacyShellScripts.test.ts` snapshots the broken set and checks method names against the generated Candid interface. A script that gains a call to a dead method fails the test; fixing or deleting one requires shrinking the snapshot. Same ratchet idea as the lint ceiling. Deleting the 12 would have discarded 12 encoded scenarios (phase gates, weather, auctions, organic workflow) that are worth porting; "fixing" all 23 is a migration, not a test-infrastructure step.
+  - `.gitattributes` added (`*.sh text eol=lf` and friends) so a Windows checkout cannot reintroduce the CRLF failure.
+  - **11 scripts call only existing methods** and are the porting candidates. Note "healthy" means the method names resolve — *not* that the scripts pass; their assertions are untyped Candid string-matching and were never re-verified.
+- [ ] **QUAL-09**: Port the 11 healthy legacy scripts to Vitest tests against an ephemeral dfx replica (the `backend_integration.test.ts` pattern: opt-in via `RUN_INTEGRATION`, typed actor, real assertions), then delete the originals and shrink `KNOWN_BROKEN`. PocketIC was evaluated for this and rejected for now — see `.planning/spikes/001-pocketic-for-backend-tests.md`.
 - [ ] **MAINT-01**: The `Maintenance` phase has no player action wired. `inspectAndRepair` is the only backend method gated to `#Maintenance` (`main.mo:1023`) and the frontend **never calls it** — surfaced by QUAL-06's contract inventory. After the QUAL-07 fix removed the (backend-rejected) infrastructure purchase from that phase, `Maintenance` offers only `sell` plus an informational banner *"Machines are being serviced."* Wiring `inspectAndRepair` is a feature addition, hence flagged rather than bundled into the test work.
 - [ ] **GEO-07**: Two parcel-purchase methods coexist in the Candid interface — `buyParcel(text, nat)` (used by the frontend) and `purchaseParcel(Province, float64)` (never called; the geography-aware signature, and the one `lib/gddTemplate.ts` documents). Decide which is authoritative and retire the other, ideally alongside the Phase 5 geography rebuild.
 
@@ -193,15 +199,16 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | QUAL-05b | Phase 10 | Pending |
 | QUAL-06 | Phase 10 | Complete |
 | QUAL-07 | Phase 10 | Complete |
-| QUAL-08 | Phase 10 | Pending |
+| QUAL-08 | Phase 10 | Complete |
+| QUAL-09 | Phase 10 | Pending |
 | AUTH-02 | Phase 10 | Pending |
 | MAINT-01 | Backlog (gameplay) | Pending |
 | GEO-07 | Phase 5 | Pending |
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 53 total (9 complete, 44 pending)
-- Mapped to phases: 53
+- v1 requirements: 54 total (10 complete, 44 pending)
+- Mapped to phases: 54
 - Unmapped: 0 ✓
 
 ---

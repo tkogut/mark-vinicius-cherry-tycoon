@@ -1,0 +1,35 @@
+# Force LF for anything executed by a shell or a CI runner.
+#
+# Added 2026-08-06 (QUAL-08). 10 of the 23 execution/tests/*.sh scripts had
+# CRLF line endings and therefore failed under `bash` on a Linux runner before
+# reaching their first `dfx canister call` — a breakage entirely separate from,
+# and hidden behind, the dead-method problem in the same suite. Normalizing the
+# files fixes today; this file stops a Windows checkout from reintroducing it.
+#
+# A regression guard also exists in
+# frontend/src/__tests__/legacyShellScripts.test.ts.
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Motoko, TS/JS and config: normalize in the repo, LF on checkout.
+*.mo text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.did text eol=lf
+
+# Binary assets — never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.wasm binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
