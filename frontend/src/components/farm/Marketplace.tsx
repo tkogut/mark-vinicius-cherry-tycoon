@@ -251,7 +251,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                                     "text-sm font-mono font-bold",
                                     canAfford ? "text-amber-400" : "text-rose-400"
                                 )}>
-                                    ${item.cost.toLocaleString()}
+                                    {item.cost.toLocaleString()} PLN
                                 </span>
                                 {(Number(cash) - item.cost < estimatedSurvivalCost) && Number(cash) >= item.cost && (
                                     <TooltipProvider>
@@ -269,7 +269,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                                     </TooltipProvider>
                                 )}
                                 <span className="text-[10px] text-slate-500 font-medium mt-1">
-                                    Upkeep: ${item.type === 'Machinery' ? (item.cost * 0.02) : (item.cost * 0.01)} / season
+                                    Upkeep: {item.type === 'Machinery' ? (item.cost * 0.02) : (item.cost * 0.01)} PLN / season
                                 </span>
                             </div>
                         )}

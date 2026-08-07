@@ -35,7 +35,18 @@ export function useFarm() {
             console.log('[useFarm] Calling getPlayerFarm()...');
             const result = await backendActor.getPlayerFarm();
             if ('Err' in result) {
-                console.error('[useFarm] getPlayerFarm failed:', result.Err);
+                // `NotFound` is the normal state for a player who has not been
+                // initialised yet — App.tsx's onboarding (and the non-`ic`
+                // auto-init) both key off this exact result. Logging it at
+                // `error` level meant every fresh session opened with a red
+                // console entry that looked like a failure, which is noise in
+                // the one place a real failure needs to stand out.
+                // The query still rejects; only the log level changes.
+                if ('NotFound' in result.Err) {
+                    console.info('[useFarm] No farm yet for this principal — onboarding will run.');
+                } else {
+                    console.error('[useFarm] getPlayerFarm failed:', result.Err);
+                }
                 throw new Error(getErrorMessage(result.Err));
             }
             console.log('[useFarm] Farm state received:', {

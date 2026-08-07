@@ -12,7 +12,14 @@ import {
     ChevronDown,
     ChevronUp,
     ShieldCheck,
-    Gauge
+    Gauge,
+    // UX-10: soil/state glyphs were emoji and rendered as tofu without an
+    // emoji font. lucide SVGs render everywhere.
+    Waves,
+    Blocks,
+    Snowflake,
+    Cherry,
+    Trees
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -87,24 +94,24 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
     };
 
     const getSoilIcon = () => {
-        if ('Sandy' in parcel.soilType) return "🏖️";
-        if ('Clay' in parcel.soilType) return "🧱";
-        if ('Waterlogged' in parcel.soilType) return "💧";
-        return "🌱";
+        if ('Sandy' in parcel.soilType) return Waves;
+        if ('Clay' in parcel.soilType) return Blocks;
+        if ('Waterlogged' in parcel.soilType) return Droplets;
+        return Sprout;
     };
 
     const getTreeVisual = () => {
         if (!isPlanted) return { icon: <Sprout className="h-8 w-8 mb-2 opacity-50" />, label: "Ready for planting", color: "text-slate-600" };
 
-        if (isWinter) return { icon: <div className="text-4xl">❄️</div>, label: "Dormant", color: "text-blue-300" };
-        if (isAutumn) return { icon: <div className="text-4xl">🍂</div>, label: "After Season", color: "text-amber-500" };
+        if (isWinter) return { icon: <Snowflake className="h-9 w-9 text-blue-300" />, label: "Dormant", color: "text-blue-300" };
+        if (isAutumn) return { icon: <Leaf className="h-9 w-9 text-orange-400" />, label: "After Season", color: "text-amber-500" };
         if (isSummer) return {
-            icon: <div className="text-4xl">{isReadyToHarvest ? "🍒" : "🌳"}</div>,
+            icon: isReadyToHarvest ? <Cherry className="h-9 w-9 text-rose-400" /> : <Trees className="h-9 w-9 text-emerald-400" />,
             label: isReadyToHarvest ? "Ready to Harvest" : "Maturing",
             color: isReadyToHarvest ? "text-rose-500" : "text-emerald-500"
         };
         // Spring
-        return { icon: <div className="text-4xl">🌳</div>, label: "Growing", color: "text-emerald-400" };
+        return { icon: <Trees className="h-9 w-9 text-emerald-400" />, label: "Growing", color: "text-emerald-400" };
     };
 
     return (
@@ -147,7 +154,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                             )}
                         </CardTitle>
                         <span className="text-[10px] text-copper/70 font-mono mt-0.5">
-                            {getSoilIcon()} {parcel.region.province ? Object.keys(parcel.region.province)[0] : 'Unknown'}
+                            {React.createElement(getSoilIcon(), { className: 'h-3 w-3 inline-block mr-1 -mt-0.5' })}{parcel.region.province ? Object.keys(parcel.region.province)[0] : 'Unknown'}
                         </span>
                     </div>
 

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Users, Trophy, Coins, Zap, TrendingUp } from "lucide-react"
+import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Users, Trophy, Coins, Zap, TrendingUp, Wrench} from "lucide-react"
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/hooks/useAuth"
@@ -723,7 +723,7 @@ function AppContent() {
                                         {isAuthenticated && currentPhase === 'Maintenance' && (
                                             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-blue-900/85 backdrop-blur-md border border-blue-500/50 rounded-lg p-3 shadow-[0_0_15px_rgba(59,130,246,0.5)] max-w-[22rem]">
                                                 <p className="text-xs text-blue-200 font-medium font-mono uppercase tracking-wider text-center">
-                                                    🛠️ Maintenance — Inspection &amp; Repair
+                                                    <Wrench className="h-3.5 w-3.5 inline-block mr-1 -mt-0.5" />Maintenance — Inspection &amp; Repair
                                                 </p>
                                                 {(() => {
                                                     const infra = farm?.infrastructure ?? [];
@@ -876,8 +876,11 @@ function AppContent() {
             {/* PWA Install Button (Conditional) */}
             <InstallPrompt />
 
-            {/* VERSION TAG: Unmistakable verification hook */}
-            <div className="fixed top-4 left-4 z-[9999] pointer-events-none">
+            {/* VERSION TAG: verification hook for "which build is actually live".
+                Moved off top-left (UX-01) — it sat exactly on top of the sidebar
+                logo and covered the second line of the wrapped title on every
+                screen. Bottom-right is the one corner nothing else occupies. */}
+            <div className="fixed bottom-3 right-3 z-50 pointer-events-none">
                 <span className="text-[10px] font-mono text-emerald-500/50 bg-black/40 px-2 py-1 rounded-md border border-emerald-500/20 backdrop-blur-sm">
                     v3.8
                 </span>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Medal, Sprout, Loader2, Gauge, Award, TrendingUp } from "lucide-react";
+import { Trophy, Medal, Sprout, Loader2, Gauge, Award, TrendingUp, AlertTriangle} from "lucide-react";
 import { useLeaderboard, useMyRank } from "@/hooks/useFarm";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -138,7 +138,7 @@ export const RankingsPanel: React.FC<RankingsPanelProps> = ({ playerStats }) => 
                             </motion.div>
                         ) : isError ? (
                             <div className="p-20 text-center text-rose-500 uppercase font-mono text-xs tracking-widest">
-                                ⚠️ Signal Interference: Failed to reach IC Backbone.
+                                <AlertTriangle className="h-3.5 w-3.5 inline-block mr-1 -mt-0.5" />Signal Interference: Failed to reach IC Backbone.
                             </div>
                         ) : (
                             <div className="divide-y divide-amber-900/20">

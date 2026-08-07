@@ -94,7 +94,7 @@ export const PriceChart: React.FC = () => {
                             <g key={`r-${i}`}>
                                 <circle cx={getX(i)} cy={getY(d.retail)} r="3" fill="#064e3b" stroke="#10b981" strokeWidth="2" />
                                 <text x={getX(i)} y={getY(d.retail) - 8} textAnchor="middle" fontSize="10" fill="#10b981" fontWeight="bold">
-                                    ${d.retail}
+                                    {d.retail} PLN
                                 </text>
                             </g>
                         ))}

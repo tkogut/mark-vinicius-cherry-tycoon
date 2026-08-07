@@ -1,5 +1,12 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
+// UX-10: icons are lucide SVGs, never emoji. Emoji render as tofu boxes (▯) on
+// any client without an emoji font — confirmed on the 2026-08-07 Playground
+// deploy, where the orchard info box read "▯ 50 trees".
+import {
+    Trees, MapPin, Sprout, Droplets, Scissors, Leaf, Cherry, ScrollText,
+    Plus, Minus, X,
+} from 'lucide-react';
 import { drawGeometricBrassTree, drawGroundDecor, drawPathTile } from './geometricBrassTree';
 import { drawModernTractor, drawPrecisionSprayer, drawMechanicalShaker, drawBranchPruner, drawWorkerSturdyFacet, drawWorkerDynamicStride } from './orchardMachines';
 
@@ -1366,14 +1373,14 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                             className="w-6 h-6 flex items-center justify-center rounded bg-gradient-to-b from-[#d4af37] to-[#8a5a00] hover:from-[#f5d08a] hover:to-[#d4af37] text-slate-950 font-bold border border-[#ffdf99] shadow active:scale-90 transition-all text-xs"
                             title="Zoom In"
                         >
-                            ➕
+                            <Plus className="h-3.5 w-3.5" strokeWidth={3} />
                         </button>
                         <button
                             onClick={() => setZoom(z => Math.max(0.4, z - 0.1))}
                             className="w-6 h-6 flex items-center justify-center rounded bg-gradient-to-b from-[#d4af37] to-[#8a5a00] hover:from-[#f5d08a] hover:to-[#d4af37] text-slate-950 font-bold border border-[#ffdf99] shadow active:scale-90 transition-all text-xs"
                             title="Zoom Out"
                         >
-                            ➖
+                            <Minus className="h-3.5 w-3.5" strokeWidth={3} />
                         </button>
                         <button
                             onClick={() => setZoom(defaultZoom)}
@@ -1563,18 +1570,18 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                     {/* Orchard Info (total trees / location / soil) — previously nowhere in the UI */}
                     <div className="flex flex-col gap-1 bg-black/50 border border-[var(--brass-primary)]/40 rounded-lg px-3 py-2 backdrop-blur-sm">
                         <div className="flex items-center gap-2 text-[10px] font-mono">
-                            <span className="text-[var(--brass-primary)]">🌳</span>
+                            <Trees className="h-3 w-3 text-[var(--brass-primary)] flex-shrink-0" />
                             <span className="text-slate-300">{orchardSummary.totalTrees.toLocaleString()} trees</span>
                         </div>
                         {orchardSummary.locationLabel && (
                             <div className="flex items-center gap-2 text-[10px] font-mono">
-                                <span className="text-[var(--brass-primary)]">📍</span>
+                                <MapPin className="h-3 w-3 text-[var(--brass-primary)] flex-shrink-0" />
                                 <span className="text-slate-300">{orchardSummary.locationLabel}</span>
                             </div>
                         )}
                         {(orchardSummary.avgFertility !== null || orchardSummary.avgHumidity !== null) && (
                             <div className="flex items-center gap-2 text-[10px] font-mono">
-                                <span className="text-[var(--brass-primary)]">🌱</span>
+                                <Sprout className="h-3 w-3 text-[var(--brass-primary)] flex-shrink-0" />
                                 <span className="text-slate-300">
                                     {orchardSummary.avgFertility !== null && `Fertility ${Math.round(orchardSummary.avgFertility * 100)}%`}
                                     {orchardSummary.avgFertility !== null && orchardSummary.avgHumidity !== null && ' · '}
@@ -1594,12 +1601,12 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                 <div className="absolute inset-0 -m-24 bg-black/60 backdrop-blur-md rounded-full animate-in zoom-in-50 duration-200 border border-[var(--brass-primary)]/30 shadow-[0_0_50px_rgba(0,0,0,0.8)]" />
 
                                 {[
-                                    { id: 'water', icon: '💧', label: 'Irrigate', angle: -135, color: 'bg-blue-900', shadow: 'rgba(30,58,138,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
-                                    { id: 'prune', icon: '✂️', label: 'Prune', angle: -45, color: 'bg-slate-800', shadow: 'rgba(30,41,59,0.8)', phases: ['Dormancy', 'Decay'] },
-                                    { id: 'fertilize', icon: '🌿', label: 'Fertilize', angle: 135, color: 'bg-emerald-900', shadow: 'rgba(6,78,59,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
-                                    { id: 'harvest', icon: '🍒', label: 'Harvest', angle: 45, color: 'bg-rose-900', shadow: 'rgba(136,19,55,0.8)', phases: ['Harvest'] },
-                                    { id: 'plant', icon: '🌱', label: 'Plant', angle: 180, color: 'bg-emerald-700', shadow: 'rgba(4,120,87,0.8)', phases: ['Investment'] },
-                                    { id: 'organic', icon: '📜', label: 'Organic', angle: 0, color: 'bg-green-800', shadow: 'rgba(22,101,52,0.8)', phases: ['Investment'] }
+                                    { id: 'water', Icon: Droplets, label: 'Irrigate', angle: -135, color: 'bg-blue-900', shadow: 'rgba(30,58,138,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
+                                    { id: 'prune', Icon: Scissors, label: 'Prune', angle: -45, color: 'bg-slate-800', shadow: 'rgba(30,41,59,0.8)', phases: ['Dormancy', 'Decay'] },
+                                    { id: 'fertilize', Icon: Leaf, label: 'Fertilize', angle: 135, color: 'bg-emerald-900', shadow: 'rgba(6,78,59,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
+                                    { id: 'harvest', Icon: Cherry, label: 'Harvest', angle: 45, color: 'bg-rose-900', shadow: 'rgba(136,19,55,0.8)', phases: ['Harvest'] },
+                                    { id: 'plant', Icon: Sprout, label: 'Plant', angle: 180, color: 'bg-emerald-700', shadow: 'rgba(4,120,87,0.8)', phases: ['Investment'] },
+                                    { id: 'organic', Icon: ScrollText, label: 'Organic', angle: 0, color: 'bg-green-800', shadow: 'rgba(22,101,52,0.8)', phases: ['Investment'] }
                                 ].map((action, i) => {
                                     const rad = (action.angle * Math.PI) / 180;
                                     const radius = 70;
@@ -1626,7 +1633,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                                 animationDelay: `${i * 50}ms`
                                             }}
                                         >
-                                            <span className="text-xl">{action.icon}</span>
+                                            <action.Icon className="h-5 w-5" />
                                             <span className={cn(
                                                 "absolute text-[12px] font-mono font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap drop-shadow-md",
                                                 ty < 0 ? "-top-8" : "-bottom-8",
@@ -1643,7 +1650,7 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                 })}
 
                                 <button onClick={() => setSelectedParcel(null)} className="absolute -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-black/90 border border-[var(--ruby-harvest)] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-[0_0_20px_var(--ruby-harvest)] animate-in fade-in zoom-in duration-300 hover:bg-red-900 transition-colors pointer-events-auto">
-                                    ❌
+                                    <X className="h-5 w-5" strokeWidth={3} />
                                 </button>
                             </div>
                         </div>

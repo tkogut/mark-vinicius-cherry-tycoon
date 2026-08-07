@@ -29,7 +29,7 @@ export const InventoryBar: React.FC<InventoryBarProps> = ({ cash, cherries, orga
                     <div className="flex flex-col">
                         <span className="text-[9px] md:text-[10px] uppercase tracking-wider text-slate-400 font-bold hidden xs:inline">Cash</span>
                         <span className="text-xs md:text-sm font-bold text-slate-100 font-mono">
-                            ${Number(cash).toLocaleString()}
+                            {Number(cash).toLocaleString()} PLN
                         </span>
                     </div>
                 </div>

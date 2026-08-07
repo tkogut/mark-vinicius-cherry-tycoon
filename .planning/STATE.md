@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 Phase: 3 of 10 (Core Economic Lever Fixes)
 Plan: 0 of TBD in current phase
 Status: Ready to plan (Phase 9's row reconciled 2026-08-07 — it was reading "not started" while most of its orchard work had shipped)
-Last activity: 2026-08-07 — Phase 2 (Sports Patron) shipped as an agreed vertical slice: 8 real clubs, real share purchases, SportsCenter rewired off two nonexistent fields; verified on a live replica across all 6 rejection paths plus a second identity. Before that: agent instruction layer rebuilt on open-mercato's patterns (Task Router, Always/Ask First/Never, LESSONS.md, one validate.sh gate, all guarded by agentDocs.test.ts); before that Phase 9 status reconciled against what actually shipped (UX-06/07/08, with the two gaps named rather than rounded up), and MAINT-01 + MAINT-02 fixed (real infrastructure wear, and repair priced off that wear so servicing is worth doing for every asset type) and AUTH-02 fixed (Atomic Auth guard on the restored-session path); lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
+Last activity: 2026-08-07 — deployed Phase 2 to Playground and audited the live build: UX-01 (sidebar header, on all 8 screens) fixed, plus two bugs invisible locally — UX-10 (30 emoji rendering as tofu without an emoji font) and UX-11 (13 places showing $ for a game priced in PLN). Lint ceiling 183 -> 182. Before that: Phase 2 (Sports Patron) shipped as an agreed vertical slice: 8 real clubs, real share purchases, SportsCenter rewired off two nonexistent fields; verified on a live replica across all 6 rejection paths plus a second identity. Before that: agent instruction layer rebuilt on open-mercato's patterns (Task Router, Always/Ask First/Never, LESSONS.md, one validate.sh gate, all guarded by agentDocs.test.ts); before that Phase 9 status reconciled against what actually shipped (UX-06/07/08, with the two gaps named rather than rounded up), and MAINT-01 + MAINT-02 fixed (real infrastructure wear, and repair priced off that wear so servicing is worth doing for every asset type) and AUTH-02 fixed (Atomic Auth guard on the restored-session path); lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
 
 Progress: [███░░░░░░░] 30%
 
@@ -41,7 +41,7 @@ Progress: [███░░░░░░░] 30%
 | 1. Enhanced Leaderboard & Rankings UI | 1/1 | Complete 2026-07-29 |
 | 1.1. Atomic Auth Fix | 1/1 | Complete 2026-07-29 |
 | 2. Football Clubs — Restore the Core Pillar | 1/1 | Complete 2026-08-07 |
-| 9. UX/UI Deep Overhaul | 1/2 | Partial — UX-07 done, UX-06/08 partial, UX-01..05 untouched (2026-08-07) |
+| 9. UX/UI Deep Overhaul | 2/3 | Partial — UX-01/07/10/11 done, UX-06/08 partial, UX-02..05 open (2026-08-07) |
 | 10. Quality Infrastructure | 5/5 | Complete 2026-08-06 |
 
 **Recent Trend:**
@@ -72,7 +72,7 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - **Design-token debt (candidate for its own ratchet, measured 2026-08-07):** `frontend/src` has **1018** hardcoded Tailwind colour shades, **271** arbitrary bracket values and **51** raw hex literals in `className`, against **15** uses of `var(--brass-*)`. `docs/game-design/design-tokens.md` declares a brass/copper/ruby/charcoal palette the code effectively ignores. This is the mechanical cause of the "przerażająco mdła kolorystyka" complaint that triggered the sketch-003 detour: the procedural orchard got 25 commits of attention while the HUD around it stayed an ad-hoc mix with no shared grammar. Proposed fix is a second ratchet plus a Boy Scout rule (touch a file → migrate the lines you touched), same mechanism as the lint ceiling. Not started.
-- QUAL-04: pay down the lint ratchet (ceiling now **183**, lowered from 185 while fixing AUTH-02). Triage the 9 `react-hooks/exhaustive-deps` warnings first — highest risk (stale-closure bugs in the interval-driven orchard components). Never raise the ceiling to make lint pass.
+- QUAL-04: pay down the lint ratchet (ceiling now **182**, lowered from 185 -> 183 -> 182). Triage the 9 `react-hooks/exhaustive-deps` warnings first — highest risk (stale-closure bugs in the interval-driven orchard components). Never raise the ceiling to make lint pass.
 - QUAL-09: port the 11 "healthy" legacy shell scripts to Vitest against an ephemeral dfx replica, then delete the originals and shrink `KNOWN_BROKEN` in `legacyShellScripts.test.ts`.
 - QUAL-10: full-journey E2E against an ephemeral local replica (the layer the harness specs deliberately exclude). Needs a deterministic way to neutralise the random weather-event modal.
 - QUAL-05b: close the parity loop against a live canister — needs a `debugCalculateYield` query, since `calculateYieldPotential` is internal.

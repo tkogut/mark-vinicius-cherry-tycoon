@@ -49,14 +49,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
             {/* Desktop Sidebar (Fixed Left) */}
             {isDesktop && (
                 <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 lg:w-72 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 text-slate-100 transition-all duration-300 z-40 desktop-sidebar">
-                    {/* Logo Area */}
-                    <div className="h-16 flex items-center px-6 border-b border-slate-800/50">
-                        <Cherry className="h-6 w-6 text-rose-500 animate-pulse mr-2" />
-                        <div className="flex flex-col">
-                            <span className="font-bold text-lg leading-tight tracking-tight bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent">
+                    {/* Logo Area — UX-01.
+                        Was `h-16` with a `text-lg` title. "Mark Vinicius Cherry
+                        Tycoon" cannot fit one line in a 256px rail, so it wrapped
+                        to two and, together with the subtitle, overflowed the
+                        fixed 64px box onto the first nav item. Longer
+                        translations (de: "Mark Vinicius Kirschen-Tycoon") make it
+                        worse. Now the box grows with its content and the title is
+                        sized to wrap deliberately rather than by accident. */}
+                    <div className="min-h-16 flex items-start gap-2 px-6 py-3 border-b border-slate-800/50">
+                        <Cherry className="h-5 w-5 text-rose-500 animate-pulse flex-shrink-0 mt-0.5" />
+                        <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-base leading-snug tracking-tight bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent">
                                 {t('app.title')}
                             </span>
-                            <span className="text-[10px] font-medium text-slate-500 tracking-wider">
+                            <span className="text-[10px] font-medium text-slate-500 tracking-wider leading-tight mt-0.5">
                                 {t('app.subtitle')}
                             </span>
                         </div>

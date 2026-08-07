@@ -7,7 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Coins, TrendingUp, Truck, Store, MapPin, Calendar, Users, AlertTriangle, Leaf } from "lucide-react";
+import { Coins, TrendingUp, Truck, Store, MapPin, Calendar, Users, AlertTriangle, Leaf, Flame} from "lucide-react";
 import { useMarketPrices } from '@/hooks/useMarketPrices';
 import { useFarm } from '@/hooks/useFarm';
 
@@ -134,12 +134,12 @@ export const SellModal: React.FC<SellModalProps> = ({
                         Market Exchange
                         {pricingFactors && pricingFactors.demandMultiplier > 1.1 && (
                             <Badge variant="outline" className="bg-rose-950/30 text-rose-400 border-rose-800 ml-2 animate-pulse">
-                                🔥 High Demand
+                                <Flame className="h-3.5 w-3.5 inline-block mr-1 -mt-0.5" />High Demand
                             </Badge>
                         )}
                         {pricingFactors && pricingFactors.demandMultiplier < 0.9 && (
                             <Badge variant="outline" className="bg-amber-950/30 text-amber-500 border-amber-800 ml-2">
-                                ⚠️ Market Saturated
+                                <AlertTriangle className="h-3.5 w-3.5 inline-block mr-1 -mt-0.5" />Market Saturated
                             </Badge>
                         )}
                     </DialogTitle>
@@ -301,7 +301,7 @@ export const SellModal: React.FC<SellModalProps> = ({
                                     <div>
                                         <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Total Revenue</span>
                                         <div className="text-3xl font-bold text-emerald-400 mt-2 truncate tracking-tight">
-                                            ${estimatedTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                            {estimatedTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} PLN
                                         </div>
                                     </div>
 

@@ -26,28 +26,24 @@ const seasonConfig = {
         color: 'text-green-500',
         bgColor: 'bg-green-500/10',
         borderColor: 'border-green-500/30',
-        emoji: '🌸',
     },
     Summer: {
         icon: Sun,
         color: 'text-yellow-500',
         bgColor: 'bg-yellow-500/10',
         borderColor: 'border-yellow-500/30',
-        emoji: '☀️',
     },
     Autumn: {
         icon: Leaf,
         color: 'text-orange-500',
         bgColor: 'bg-orange-500/10',
         borderColor: 'border-orange-500/30',
-        emoji: '🍂',
     },
     Winter: {
         icon: Snowflake,
         color: 'text-blue-500',
         bgColor: 'bg-blue-500/10',
         borderColor: 'border-blue-500/30',
-        emoji: '❄️',
     },
 };
 
@@ -79,7 +75,7 @@ export const SeasonDisplay: React.FC<SeasonDisplayProps> = ({
                 </span>
                 <div className="flex items-center gap-2">
                     <span className={cn("text-sm font-bold", config.color)}>
-                        {config.emoji} {seasonName}
+                        <config.icon className="h-3.5 w-3.5 inline-block mr-1 -mt-0.5" />{seasonName}
                     </span>
                     {showSteps && (
                         <span className="text-xs text-slate-500">

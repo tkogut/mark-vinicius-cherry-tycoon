@@ -96,6 +96,20 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** clipped parts of the artwork ("słabo to wyszło bo poucinałeś część grafik"). Replaced with `scipy.ndimage` connected-component labeling, taking the largest blob per quadrant, which also avoids bleed from neighbouring art.
 **Rule:** label components and take the largest blob per region. Never eyeball a crop box on someone else's artwork.
 
+## Deployed-only bugs
+
+### Never use emoji as a UI icon — they are tofu on someone else's machine
+
+**Was:** used emoji (🌳 📍 💧 ✂️ …) as icons in 30 places, and never saw a problem locally.
+**Actually:** every developer machine has an emoji font. A bare headless Chromium does not, and neither do many Linux clients. On the 2026-08-07 Playground deploy the orchard readout said `▯ 50 trees`. It also meant the app had two parallel icon vocabularies — lucide everywhere else, emoji here.
+**Rule:** icons are `lucide-react` SVGs. Pinned by `uiConventions.test.ts`. The wider point: a class of bug exists that is invisible on the machine that wrote it, so screenshot the *deployed* build, not just the dev server.
+
+### Grep is worse than a test at finding every instance
+
+**Was:** grepped for `$` currency signs, found 6, fixed them, moved on.
+**Actually:** the test I then wrote to lock the convention in found **7 more** I had missed — Marketplace costs and upkeep, RunningCosts, SellModal, PriceChart, and a Planting modal line reading `${...} PLN`, which was wrong twice over.
+**Rule:** when fixing a whole class of thing, write the check first and let it enumerate. A hand-rolled grep encodes the shape you already thought of.
+
 ## Working with the user
 
 ### Read the lever before wiring it

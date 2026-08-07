@@ -131,7 +131,7 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 
 ### UX/UI Deep Overhaul (UX) — scoped 2026-07-29 via live Playground screenshot audit, see `docs/game-design/UX-AUDIT-2026-07-29.md`
 
-- [ ] **UX-01**: Fix the shared sidebar header layout bug (title wrap + version badge overlap) — cross-cutting, confirmed on every screen in the audit; fix before redesigning individual screens
+- [x] **UX-01**: Shared sidebar header layout bug. Done 2026-08-07, after the Playground deploy showed it on all 8 screenshots — it really was on every screen. Two independent causes: (1) the logo area was `h-16`, a fixed 64px box holding a `text-lg` title that cannot fit one line in a 256px rail plus a subtitle, so it wrapped and overflowed onto the first nav item — and worse in `de`/`es`, where the title is longer; now `min-h-16` with `min-w-0` so it grows with its content. (2) The `v3.8` build badge was `fixed top-4 left-4 z-[9999]`, i.e. exactly on top of the logo, covering the second line of the wrapped title; moved to bottom-right, the one corner nothing else occupies. Both pinned by `uiConventions.test.ts`.
 - [ ] **UX-02**: Redesign the orchard/farm dashboard view to match the "tactile diorama" lore promise (visual density, God Rays/Golden Hour lighting cues) — currently the sparsest, least-finished screen
 - [ ] **UX-03**: Establish one consistent visual idiom for stat/diagnostic displays (currently mixes circular gauges, bar meters, and plain text blocks with no shared grammar)
 - [ ] **UX-04**: Resolve the two never-resolving placeholder boxes in the dashboard sidebar
@@ -140,6 +140,8 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 - [x] **UX-07 (new)**: Port the existing `WorkerNPC` system (`ImperialOrchard.tsx:579`, `hasHelper`-gated second NPC) to the isometric grid — reuse the hire-state gating and seasonal hooks, re-anchor positions via `isoToScreen()`, walk along the new path network instead of the old sector grid. Done 2026-08-02/03. `hasHelper` gating preserved, both NPCs are canvas-rendered with animated contralateral limbs, and **both** worker variants from sketch 002 ship (Sturdy Facet + Dynamic Stride) — the user chose to keep both proposals rather than pick one. Three real bugs surfaced only from live play and are worth remembering: z-order needed a continuous projected `y` rather than `(row+col)` buckets (workers vanished inside canopies), the elliptical trunk-base ring hid them entirely, and the sketch canvas' ground margin had to be compensated (`WORKER_Y_OFFSET`) or they walked beside the path instead of on it.
 - [~] **UX-08 (new)**: Add procedural machine visuals (tractor/shaker) — greenfield, same Canvas 2D technique as trees, visible only when the player owns the corresponding infrastructure level and during the phase it would plausibly operate. **Ownership half done, phase half not.** Four machines ship, not two — Modern Tractor, Precision Sprayer, Mechanical Shaker and a wheeled Branch Pruner, named to match the in-app Marketplace terminology at the user's instruction (`orchardMachines.ts`, `b32034f`/`b44b6ec`). Each is gated on `getInfraLevel(...) > 0` via `orchardAutomationConfig` (`App.tsx:171`) and moves along the path lattice with animated wheels, booms and clamps. **There is no `currentPhase` check on any machine**, so an owned Shaker drives around in Winter — the second half of this requirement is simply absent, not deferred by decision.
 - [ ] **UX-09 (new, 2026-08-07)**: Place the raster building sprites in the orchard, closing UX-06's buildable border zone. Records a **deliberate reversal**: UX-06 committed to "zero image assets, everything procedural", and buildings now use real PNG sprites instead (`frontend/public/assets/buildings/`, 24 files — 4 seasons x Cold Storage L1/L2, Warehouse L1/L2, Processing Plant, Social Facilities, extracted from user-supplied AI art via `scipy.ndimage` connected-component labeling after hand-tuned bounding boxes cut the artwork). Taken after the user judged the procedural palette "przerażająco mdła" and rejected sketch 003's Canvas 2D attempts, and after I stated plainly that faceted Canvas 2D has a ceiling for building-scale art that more iterations would not lift. Shipped in the **Marketplace only** (`f61ad9e`) with level tiers; the orchard still shows no buildings. The reversal is settled — what is open is placement.
+- [x] **UX-10 (new, 2026-08-07)**: Emoji were used as UI icons in 30 places across 7 components and render as **tofu boxes (▯) wherever no emoji font is installed**. Found on the Playground deploy, where the orchard readout read `▯ 50 trees`, `▯ Opole, Opole, Opolskie`, `▯ Fertility 70%`, plus `SEASON 1 ▯ Spring` and the silo's `▯ ▯` zoom buttons. Invisible locally — every dev machine has an emoji font; a bare headless Chromium and many Linux clients do not. All 30 replaced with `lucide-react` SVGs, which is already the app's icon system, so this also removed a second parallel icon vocabulary. Enforced by `uiConventions.test.ts` (verified by re-inserting an emoji).
+- [x] **UX-11 (new, 2026-08-07)**: Money was rendered with a literal `$` in 13 places (`$50,000` in the HUD cash tile, Marketplace costs and upkeep, Financial Report revenue/costs/net P&L, Sell and Planting modals, price chart) while the backend, the game's setting and the neighbouring labels all use PLN — one Planting modal line managed `${...} PLN`, both at once. Fixed to `{value} PLN` throughout. Enforced by `uiConventions.test.ts`, which found 7 instances my own grep had missed.
 
 ## v2 Requirements
 
@@ -213,7 +215,7 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | INSURANCE-02 | Phase 7 | Pending |
 | ONBOARD-01 | Phase 8 | Pending |
 | ONBOARD-02 | Phase 8 | Pending |
-| UX-01 | Phase 9 | Pending |
+| UX-01 | Phase 9 | Complete |
 | UX-02 | Phase 9 | Pending |
 | UX-03 | Phase 9 | Pending |
 | UX-04 | Phase 9 | Pending |
@@ -222,6 +224,8 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | UX-07 | Phase 9 | Complete |
 | UX-08 | Phase 9 | Partial (phase gating open) |
 | UX-09 | Phase 9 | Pending |
+| UX-10 | Phase 9 | Complete |
+| UX-11 | Phase 9 | Complete |
 | QUAL-01 | Phase 10 | Complete |
 | QUAL-02 | Phase 10 | Complete |
 | QUAL-03 | Phase 10 | Complete |
@@ -240,8 +244,8 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 60 total (18 complete, 2 partial, 40 pending)
-- Mapped to phases: 60
+- v1 requirements: 62 total (21 complete, 2 partial, 39 pending)
+- Mapped to phases: 62
 - Unmapped: 0 ✓
 
 ---
