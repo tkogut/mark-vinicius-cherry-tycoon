@@ -79,6 +79,91 @@ export const getInfraModifier = (infrastructure: Infrastructure[]): number => {
     return modifier;
 };
 
+// ── Infrastructure upkeep & wear (MAINT-01) ─────────────────────────────────
+// Mirrors game_logic.mo's getInfrastructureCost / getMaintenancePercentage /
+// getMaintenanceCost / degradeMaintenance / getRepairCost. Enforced by
+// economyParity.test.ts — the UI shows the player how far their upkeep has
+// drifted from spec and what a repair costs, so these must not drift.
+
+/** Purchase price per infrastructure type (game_logic.mo getInfrastructureCost). */
+export const INFRA_BASE_COST: Record<string, number> = {
+    SocialFacilities: 15_000,
+    Warehouse: 25_000,
+    ColdStorage: 40_000,
+    Tractor: 30_000,
+    GoldenHarvester: 0, // cost handled manually in upgrade_golden_harvester
+    Shaker: 60_000,
+    Sprayer: 12_000,
+    ProcessingFacility: 100_000,
+    Pruner: 18_000,
+};
+
+/** Machinery pays 2% of purchase price in upkeep, buildings 1%. */
+export const getMaintenancePercentage = (infraTypeKey: string): number => {
+    switch (infraTypeKey) {
+        case 'GoldenHarvester':
+        case 'Tractor':
+        case 'Shaker':
+        case 'Sprayer':
+        case 'Pruner':
+            return 2;
+        default:
+            return 1;
+    }
+};
+
+/** Canonical "as new" annual upkeep for one asset type. Integer division, like Motoko's Nat. */
+export const getMaintenanceCost = (infraTypeKey: string): number =>
+    Math.floor((INFRA_BASE_COST[infraTypeKey] ?? 0) * getMaintenancePercentage(infraTypeKey) / 100);
+
+/** Upkeep may never drift above 2x spec. */
+export const getMaintenanceCap = (infraTypeKey: string): number => getMaintenanceCost(infraTypeKey) * 2;
+
+/** One season of wear: +10% of spec (min 1), clamped to the cap. */
+export const degradeMaintenance = (infraTypeKey: string, currentMaintenanceCost: number): number => {
+    const spec = getMaintenanceCost(infraTypeKey);
+    const cap = spec * 2;
+    const step = Math.floor(spec / 10) === 0 ? 1 : Math.floor(spec / 10);
+    const next = currentMaintenanceCost + step;
+    return next > cap ? cap : next;
+};
+
+/** What `inspectAndRepair` charges: 500 per level point, 500 minimum. */
+export const getRepairCost = (infrastructure: Infrastructure[]): number => {
+    let total = 0;
+    infrastructure.forEach(infra => {
+        total += Number(infra.level) * 500;
+    });
+    return total === 0 ? 500 : total;
+};
+
+/**
+ * How far the player's upkeep has drifted above spec — the number that makes
+ * "should I pay for a repair?" an informed decision rather than a guess.
+ */
+export const getUpkeepDrift = (infrastructure: Infrastructure[]): {
+    current: number;
+    spec: number;
+    excess: number;
+    repairCost: number;
+    worthRepairing: boolean;
+} => {
+    let current = 0;
+    let spec = 0;
+    infrastructure.forEach(infra => {
+        const key = Object.keys(infra.infraType)[0];
+        current += Number(infra.maintenanceCost);
+        spec += getMaintenanceCost(key);
+    });
+    const excess = Math.max(0, current - spec);
+    const repairCost = getRepairCost(infrastructure);
+    // `current`/`spec` are annual figures; main.mo charges (fixed + variable) / 4
+    // per season advance, so the excess is felt as excess/4 each season.
+    // Repairing pays for itself within a year exactly when the annual excess
+    // exceeds the one-off repair cost.
+    return { current, spec, excess, repairCost, worthRepairing: excess > repairCost };
+};
+
 // County yield multiplier — Phase 5.1 "Opole DNA" (GDD §3.1).
 // Mirrors the `countyMod` switch inside game_logic.mo's calculateYieldPotential.
 export const getCountyModifier = (county: string): number => {

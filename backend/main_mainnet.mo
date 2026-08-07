@@ -918,9 +918,24 @@ actor CherryTycoon {
           return #Err(#InsufficientFunds { required = finalCost; available = farm.cash });
         };
 
-        // Mark infrastructure as maintained — refresh maintenanceCost sentinel
+        // Service every asset back to its canonical per-type upkeep.
+        //
+        // MAINT-01 (2026-08-07): this previously wrote `i.level * 100`, an
+        // arbitrary value unrelated to the asset type, while `maintenanceCost`
+        // is summed by GameLogic.calculateFixedCosts and charged every season —
+        // so it silently rewrote recurring upkeep (Shaker L1 1200 -> 100, a
+        // permanent 92% discount) and flattened the per-type 1%/2% pricing.
+        //
+        // TRACK-SEPARATION NOTE: only this one-line value fix is mirrored from
+        // Track A. Track A also gained real wear (GameLogic.degradeMaintenance
+        // applied on each season transition in _advanceSeasonInternal); that
+        // change is deliberately NOT copied here, because this file does not
+        // currently compile (pre-existing EOP-01 drift: AIStrategyState,
+        // contracts, baseCapacity), so any edit here is unverifiable. Fold the
+        // wear logic in as part of the EOP-01 reconciliation, when this file can
+        // actually be built and tested.
         let maintainedInfra = Array.map<Infrastructure, Infrastructure>(farm.infrastructure, func(i) {
-          { i with maintenanceCost = i.level * 100 }
+          { i with maintenanceCost = GameLogic.getMaintenanceCost(i.infraType) }
         });
 
         let updatedStats = updateSeasonalReport(farm, func(r) {

@@ -207,6 +207,65 @@ module {
     }
   };
 
+  // ============================================================================
+  // INFRASTRUCTURE WEAR (MAINT-01, added 2026-08-07)
+  // ============================================================================
+  //
+  // Background: `inspectAndRepair` has always advertised "Degradation
+  // prevented." but nothing in the backend ever degraded anything — no code
+  // path lowered an infra level or raised its upkeep. Worse, the method
+  // overwrote `maintenanceCost` with the arbitrary `level * 100`, and that
+  // field IS summed by `calculateFixedCosts` and charged every season, so the
+  // "repair" silently rewrote recurring upkeep (Shaker L1: 1200 -> 100, a 92%
+  // permanent discount; Warehouse L3: 250 -> 300, an increase) and flattened
+  // the per-type 1%/2% pricing this module exists to express.
+  //
+  // This makes the advertised behaviour real, using the field already wired
+  // into the cost loop rather than inventing new state:
+  //   * upkeep drifts UP each season transition (wear)
+  //   * `inspectAndRepair` resets it to the canonical per-type spec value
+  //
+  // Numbers chosen so repairing is a decision, not a reflex:
+  //   wear/season = 10% of spec (min 1, so cheap assets still drift)
+  //   cap         = 200% of spec (neglect can at most double upkeep)
+  //   repair cost = 500 per level point (unchanged, see main.mo)
+  // Worked example — Mechanical Shaker L1 (spec upkeep 1200):
+  //   after 1 season of wear  -> 1320 annual, i.e. +30/season once /4 is applied.
+  //                              Repairing costs 500, so it is NOT worth it yet.
+  //   at the 2400 cap         -> +1200 annual, i.e. +300/season.
+  //                              Repairing costs 500 and pays back in <2 seasons.
+
+  /** Upkeep may never drift above this multiple of the canonical spec value. */
+  public func getMaintenanceCap(infraType: InfrastructureType) : Nat {
+    getMaintenanceCost(infraType) * 2
+  };
+
+  /**
+   * One season of wear on a single asset. Returns the new `maintenanceCost`.
+   * Monotonically non-decreasing and clamped to `getMaintenanceCap`, so this can
+   * be applied every season transition without unbounded cost growth.
+   */
+  public func degradeMaintenance(infra: Infrastructure) : Nat {
+    let spec = getMaintenanceCost(infra.infraType);
+    let cap = spec * 2;
+    let step = if (spec / 10 == 0) { 1 } else { spec / 10 };
+    let next = infra.maintenanceCost + step;
+    if (next > cap) { cap } else { next }
+  };
+
+  /**
+   * What `inspectAndRepair` charges: 500 PLN per infrastructure level point,
+   * with a 500 minimum so a basic inspection is never free. Kept here so the
+   * frontend mirror has one canonical definition to match (QUAL-05).
+   */
+  public func getRepairCost(infrastructure: [Infrastructure]) : Nat {
+    var total : Nat = 0;
+    for (infra in infrastructure.vals()) {
+      total += infra.level * 500;
+    };
+    if (total == 0) { 500 } else { total }
+  };
+
   public func calculateFixedCosts(infrastructure: [Infrastructure]) : Nat {
     var total : Nat = 0;
     

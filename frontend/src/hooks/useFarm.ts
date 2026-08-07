@@ -236,6 +236,44 @@ export function useFarm() {
         },
     });
 
+    // MAINT-01: services all infrastructure back to its spec upkeep. Only valid
+    // in the Maintenance phase (backend/main.mo:1023 enforces this). Before this
+    // was wired, `inspectAndRepair` existed on the canister but was never called
+    // from the frontend, leaving Maintenance the one phase with no player action.
+    const inspectAndRepairMutation = useMutation({
+        mutationFn: async () => {
+            console.log('[useFarm] inspectAndRepair called');
+            if (!backendActor) {
+                console.warn('[useFarm] No backend actor for inspection');
+                throw new Error('Not authenticated');
+            }
+            const result = await backendActor.inspectAndRepair();
+            if ('Err' in result) {
+                console.error('[useFarm] inspectAndRepair failed:', result.Err);
+                throw new Error(getErrorMessage(result.Err));
+            }
+            console.log('[useFarm] inspectAndRepair succeeded');
+            return result.Ok;
+        },
+        onSuccess: (message) => {
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Inspection Complete",
+                description: message,
+                className: "bg-emerald-900 border-emerald-800 text-emerald-100",
+            });
+            playSFX(SOUNDS.GAME.PLANT);
+        },
+        onError: (error: Error) => {
+            console.error('[useFarm] inspectAndRepair mutation error:', error);
+            toast({
+                variant: "destructive",
+                title: "Inspection Failed",
+                description: error.message,
+            });
+        },
+    });
+
     const buyParcelMutation = useMutation({
         mutationFn: async ({ parcelId, price }: { parcelId: string; price: number }) => {
             console.log('[useFarm] buyParcel called:', { parcelId, price });
@@ -504,6 +542,7 @@ export function useFarm() {
         fertilize: fertilizeMutation,
         harvest: harvestMutation,
         cutAndPrune: cutAndPruneMutation,
+        inspectAndRepair: inspectAndRepairMutation,
         buyParcel: buyParcelMutation,
         sellCherries: sellCherriesMutation,
         startOrganicConversion: startOrganicConversionMutation,

@@ -25,7 +25,15 @@
 
 import { describe, it, expect } from 'vitest';
 import type { CherryParcel, Infrastructure } from '@/declarations/backend.did';
-import { calculateYieldBreakdown, getInfraModifier } from '@/lib/gameLogic';
+import {
+    calculateYieldBreakdown,
+    getInfraModifier,
+    getMaintenanceCost,
+    getMaintenanceCap,
+    degradeMaintenance,
+    getRepairCost,
+    getUpkeepDrift,
+} from '@/lib/gameLogic';
 import { PARITY_CASES, makeParcel, makeInfra } from '@/test-utils/economyVectors';
 
 // ============================================================================
@@ -208,6 +216,170 @@ describe('economy parity: infrastructure modifier term-by-term', () => {
         // ...and the app mirror must agree with the transcription, not just
         // with a hand-written number.
         expect(getInfraModifier(infra)).toBeCloseTo(refInfraModifier(infra), 10);
+    });
+});
+
+// ============================================================================
+// MAINT-01 — infrastructure upkeep, wear and repair
+// ============================================================================
+
+/** Transcription of game_logic.mo getInfrastructureCost. */
+const REF_BASE_COST: Record<string, number> = {
+    SocialFacilities: 15_000,
+    Warehouse: 25_000,
+    ColdStorage: 40_000,
+    Tractor: 30_000,
+    GoldenHarvester: 0,
+    Shaker: 60_000,
+    Sprayer: 12_000,
+    ProcessingFacility: 100_000,
+    Pruner: 18_000,
+};
+
+/** Transcription of game_logic.mo getMaintenancePercentage. */
+function refMaintenancePercentage(key: string): number {
+    switch (key) {
+        case 'GoldenHarvester':
+        case 'Tractor':
+        case 'Shaker':
+        case 'Sprayer':
+        case 'Pruner':
+            return 2;
+        default:
+            return 1;
+    }
+}
+
+/** Motoko: `(basePrice * percentage) / 100` — Nat division truncates. */
+function refMaintenanceCost(key: string): number {
+    return Math.floor((REF_BASE_COST[key] ?? 0) * refMaintenancePercentage(key) / 100);
+}
+
+/**
+ * Motoko `degradeMaintenance`:
+ *   let spec = getMaintenanceCost(infra.infraType);
+ *   let cap = spec * 2;
+ *   let step = if (spec / 10 == 0) { 1 } else { spec / 10 };
+ *   let next = infra.maintenanceCost + step;
+ *   if (next > cap) { cap } else { next }
+ */
+function refDegrade(key: string, current: number): number {
+    const spec = refMaintenanceCost(key);
+    const cap = spec * 2;
+    const step = Math.floor(spec / 10) === 0 ? 1 : Math.floor(spec / 10);
+    const next = current + step;
+    return next > cap ? cap : next;
+}
+
+const INFRA_KEYS = Object.keys(REF_BASE_COST);
+
+describe('economy parity: infrastructure upkeep (MAINT-01)', () => {
+    it.each(INFRA_KEYS)('spec upkeep for %s matches the backend', (key) => {
+        expect(getMaintenanceCost(key)).toBe(refMaintenanceCost(key));
+    });
+
+    it('machinery pays 2% and buildings 1% of purchase price', () => {
+        expect(getMaintenanceCost('Tractor')).toBe(600);   // 30_000 * 2%
+        expect(getMaintenanceCost('Shaker')).toBe(1_200);  // 60_000 * 2%
+        expect(getMaintenanceCost('Sprayer')).toBe(240);   // 12_000 * 2%
+        expect(getMaintenanceCost('Warehouse')).toBe(250); // 25_000 * 1%
+        expect(getMaintenanceCost('ColdStorage')).toBe(400);
+        expect(getMaintenanceCost('ProcessingFacility')).toBe(1_000);
+    });
+
+    it('upkeep is capped at twice spec', () => {
+        for (const key of INFRA_KEYS) {
+            expect(getMaintenanceCap(key)).toBe(refMaintenanceCost(key) * 2);
+        }
+    });
+});
+
+describe('economy parity: wear accumulation (MAINT-01)', () => {
+    it.each(INFRA_KEYS)('%s wears identically to the backend over 40 seasons', (key) => {
+        let mine = refMaintenanceCost(key);
+        let theirs = mine;
+        for (let season = 0; season < 40; season++) {
+            mine = degradeMaintenance(key, mine);
+            theirs = refDegrade(key, theirs);
+            expect(mine).toBe(theirs);
+        }
+    });
+
+    it('wear is monotonic and clamps at the cap — verified where a replica run could not reach', () => {
+        // The live-replica check during development confirmed the first three
+        // steps for a Sprayer (240 -> 264 -> 288 -> 312). Reaching the 480 cap
+        // would have taken ~10 more season transitions and risked the
+        // InsufficientFunds guard, so the ceiling is pinned here instead.
+        let cost = getMaintenanceCost('Sprayer');
+        expect(cost).toBe(240);
+
+        const seen: number[] = [];
+        for (let i = 0; i < 30; i++) {
+            const next = degradeMaintenance('Sprayer', cost);
+            expect(next).toBeGreaterThanOrEqual(cost); // monotonic
+            cost = next;
+            seen.push(cost);
+        }
+        expect(seen.slice(0, 3)).toEqual([264, 288, 312]); // matches the replica run
+        expect(cost).toBe(480);                            // 2x spec, and no further
+        expect(degradeMaintenance('Sprayer', 480)).toBe(480);
+    });
+
+    it('even zero-cost infrastructure still drifts (step floors at 1)', () => {
+        // GoldenHarvester's purchase price is 0 in the table (its cost is handled
+        // separately), so spec upkeep is 0 and `spec / 10` truncates to 0. The
+        // backend floors the step at 1 — but the cap is also 0, so it stays 0.
+        expect(getMaintenanceCost('GoldenHarvester')).toBe(0);
+        expect(degradeMaintenance('GoldenHarvester', 0)).toBe(refDegrade('GoldenHarvester', 0));
+    });
+});
+
+describe('economy parity: repair cost (MAINT-01)', () => {
+    it('charges 500 per level point', () => {
+        expect(getRepairCost([makeInfra({ Sprayer: null }, 1)])).toBe(500);
+        expect(getRepairCost([makeInfra({ Sprayer: null }, 3)])).toBe(1_500);
+        expect(getRepairCost([
+            makeInfra({ Tractor: null }, 2),
+            makeInfra({ Warehouse: null }, 1),
+        ])).toBe(1_500);
+    });
+
+    it('charges the 500 minimum for a farm with no infrastructure', () => {
+        expect(getRepairCost([])).toBe(500);
+    });
+});
+
+describe('economy parity: upkeep drift drives the repair decision', () => {
+    it('reports zero excess for freshly-bought infrastructure', () => {
+        const infra = [makeInfra({ Sprayer: null }, 1)];
+        infra[0].maintenanceCost = BigInt(getMaintenanceCost('Sprayer'));
+
+        const drift = getUpkeepDrift(infra);
+        expect(drift.excess).toBe(0);
+        expect(drift.worthRepairing).toBe(false);
+    });
+
+    it('is NOT worth repairing after one season of wear', () => {
+        // Sprayer: spec 240, one step of wear = 264, excess 24, repair 500.
+        const infra = [makeInfra({ Sprayer: null }, 1)];
+        infra[0].maintenanceCost = 264n;
+
+        const drift = getUpkeepDrift(infra);
+        expect(drift.excess).toBe(24);
+        expect(drift.repairCost).toBe(500);
+        expect(drift.worthRepairing).toBe(false);
+    });
+
+    it('IS worth repairing once the excess exceeds the repair cost', () => {
+        // A Shaker at its 2400 cap: excess 1200 against a 500 repair.
+        const infra = [makeInfra({ Shaker: null }, 1)];
+        infra[0].maintenanceCost = 2_400n;
+
+        const drift = getUpkeepDrift(infra);
+        expect(drift.spec).toBe(1_200);
+        expect(drift.excess).toBe(1_200);
+        expect(drift.repairCost).toBe(500);
+        expect(drift.worthRepairing).toBe(true);
     });
 });
 

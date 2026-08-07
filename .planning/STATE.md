@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 Phase: 2 of 10 (Football Clubs — Restore the Core Pillar)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-08-07 — AUTH-02 fixed (Atomic Auth guard on the restored-session path), lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
+Last activity: 2026-08-07 — MAINT-01 fixed (real infrastructure wear + repair, Maintenance phase no longer dead) and AUTH-02 fixed (Atomic Auth guard on the restored-session path); lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
 
 Progress: [███░░░░░░░] 30%
 
@@ -74,7 +74,7 @@ Recent decisions affecting current work:
 
 **Flagged defects, deliberately not fixed (all outside the scope they were found in):**
 - `ECON-PARITY-01`: `getInfrastructureModifier` in `game_logic.mo` folds `+=` (Tractor/Shaker/Sprayer/ColdStorage) and `*=` (GoldenHarvester) in one pass over the array, so the multiplier **depends on array order** (GH→Tractor 1.2525 vs Tractor→GH 1.2679). Changing it moves real payouts — an economy-balance decision. The frontend mirror reproduces the quirk faithfully so UI and payout agree while it stands.
-- `MAINT-01`: the `Maintenance` phase has **no player action wired**. `inspectAndRepair` is the only backend method gated to `#Maintenance` and the frontend never calls it.
+- `MAINT-02`: repair costs 500/level while max wear equals 100% of spec upkeep, so servicing never pays back for assets whose spec upkeep is under 500/level (Sprayer 240, Warehouse 250, ColdStorage 400, Pruner 360, SocialFacilities 150). The UI says so honestly, but the mechanic is inert for cheap assets. Economy-balance decision (scale repair to wear, or raise the cap).
 - `GEO-07`: two parcel-purchase methods coexist — `buyParcel` (used) and `purchaseParcel` (never called, and the one `lib/gddTemplate.ts` documents).
 
 **Backend / infrastructure:**
@@ -87,6 +87,7 @@ Recent decisions affecting current work:
 - ~~`useAuth.test.tsx` fails 5/6~~ → rewritten, 14 passing. A `QueryClientProvider` wrapper alone was insufficient: the assertions had also gone stale against `AuthProvider`'s auto-login bypass.
 - ~~`execution/tests/*.sh` (21 scripts) drifted~~ → measured properly: **23** scripts, **12** call removed methods (`advanceSeason` ×9, `getLeaderboard` ×2, `debugSetHansStorage` ×2) and **10** had CRLF. All CRLF fixed; the broken set is now pinned by a ratchet test so it cannot grow.
 - ~~UX/UI overhaul scoped but not started~~ → partially delivered (see Pending Todos, Phase 9 bookkeeping).
+- ~~`MAINT-01` Maintenance phase has no player action~~ → **fixed 2026-08-07**, but the premise was false: `inspectAndRepair` was a broken lever, not an unwired working method. It advertised "Degradation prevented." while no degradation existed, and really overwrote `maintenanceCost` with `level * 100` — a field that IS charged every season, so it was a permanent upkeep exploit (Shaker L1 1200 → 100). Now backed by real wear (`degradeMaintenance`, +10%/season, capped at 2x spec) with repair resetting to spec, wired to a UI card that states the actual numbers. Verified on a live replica.
 - ~~`AUTH-02` Atomic Auth violated on the restored-session path~~ → **fixed 2026-08-07**. Guard added; the `it.fails()` placeholder replaced by symmetric assertions across all three entry paths plus a `{network} × {alreadyAuthenticated}` matrix test. Verified by reverting the guard (2 tests fail, naming the combination). Severity was latent, not live: `createBackendActor` never actually returns null today.
 
 ## Deferred Items
@@ -110,6 +111,6 @@ Next step options:
 - `/gsd-plan-phase 2` (Football Clubs) — the intended next gameplay phase
 - Phase 3 (Economic Levers) — now the best-guarded area: `economyParity.test.ts` will catch formula drift the moment it happens
 - Reconcile Phase 9 bookkeeping (UX-06 already largely shipped) before planning it
-- Clear the remaining flagged defects above (`MAINT-01` is the next smallest; `ECON-PARITY-01` needs an economy-balance decision, not a code fix)
+- Clear the remaining flagged defects above (`GEO-07` folds naturally into Phase 5; `ECON-PARITY-01` and `MAINT-02` need economy-balance decisions, not code fixes)
 
 Resume file: None

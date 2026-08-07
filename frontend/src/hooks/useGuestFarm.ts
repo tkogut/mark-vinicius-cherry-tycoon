@@ -351,6 +351,10 @@ export function useGuestFarm() {
         buyParcel: mockMutation(async () => { }) as any, // Complex, leave empty for guest
         harvest: mockMutation(mockHarvestCherries) as any,
         cutAndPrune: mockMutation(mockCutAndPrune) as any,
+        // Guests have no canister, so there is nothing to service. The
+        // Maintenance card is gated on isAuthenticated anyway; this exists so a
+        // guest can never reach an undefined mutation (MAINT-01).
+        inspectAndRepair: mockMutation(async () => { }) as typeof realFarmOptions.inspectAndRepair,
         sellCherries: mockMutation(mockSellCherries) as any,
         advancePhase: mockMutation(mockAdvancePhase) as any,
         startOrganicConversion: mockMutation(async () => { }) as any,

@@ -108,7 +108,15 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
   - `.gitattributes` added (`*.sh text eol=lf` and friends) so a Windows checkout cannot reintroduce the CRLF failure.
   - **11 scripts call only existing methods** and are the porting candidates. Note "healthy" means the method names resolve — *not* that the scripts pass; their assertions are untyped Candid string-matching and were never re-verified.
 - [ ] **QUAL-09**: Port the 11 healthy legacy scripts to Vitest tests against an ephemeral dfx replica (the `backend_integration.test.ts` pattern: opt-in via `RUN_INTEGRATION`, typed actor, real assertions), then delete the originals and shrink `KNOWN_BROKEN`. PocketIC was evaluated for this and rejected for now — see `.planning/spikes/001-pocketic-for-backend-tests.md`.
-- [ ] **MAINT-01**: The `Maintenance` phase has no player action wired. `inspectAndRepair` is the only backend method gated to `#Maintenance` (`main.mo:1023`) and the frontend **never calls it** — surfaced by QUAL-06's contract inventory. After the QUAL-07 fix removed the (backend-rejected) infrastructure purchase from that phase, `Maintenance` offers only `sell` plus an informational banner *"Machines are being serviced."* Wiring `inspectAndRepair` is a feature addition, hence flagged rather than bundled into the test work.
+- [x] **MAINT-01**: The `Maintenance` phase now has a real player action. Done 2026-08-07. **The premise was false**: `inspectAndRepair` was not "a working method the frontend forgot to call" — investigating before wiring it found the method was a broken lever:
+  - It returned *"Degradation prevented."* while **no degradation existed anywhere in the backend** — `advancePhase` never touched infrastructure, nothing ever lowered a level, and the only reads of `maintenanceCost` were cost summations.
+  - Its real effect was undocumented and sometimes harmful: it overwrote `maintenanceCost` with the arbitrary `level * 100`, and that field IS summed by `calculateFixedCosts` and charged every season (`_advanceSeasonInternal`, `(fixed + variable) / 4`). So a Shaker L1 went 1200 → 100 (a permanent 92% upkeep discount — effectively an exploit) while a Warehouse L3 went 250 → 300 (an increase), and per-type 1%/2% pricing was flattened.
+  - **User chose to make the advertised behaviour real** rather than wire the broken lever or leave the phase dead.
+  - Implemented: `GameLogic.degradeMaintenance` (upkeep drifts +10% of spec per season transition, min 1, clamped to 200% of spec), applied in `_advanceSeasonInternal` **after** the season's costs are charged; `inspectAndRepair` now resets upkeep to the canonical `getMaintenanceCost(infraType)` and reports the real before → after numbers instead of the old false claim. New `GameLogic.getRepairCost` shared with the frontend mirror.
+  - Frontend: `inspectAndRepair` mutation in `useFarm` (plus a no-op guest mock), a `'repair'` action gated to `Maintenance` only, and the passive banner replaced by an actionable card showing current vs spec upkeep, accumulated wear, repair cost, and an honest verdict on whether repairing pays back.
+  - **Verified on a live replica**, not just compiled: wear 240 → 264 → 288 → 312 (only on season transitions, never on plain phase advances), repair charged exactly 500 and reset 312 → 240, cash 33_677 → 33_177. The 200% cap was pinned in the parity suite instead, since reaching it on the replica needed ~10 more transitions and risked the `InsufficientFunds` guard.
+  - Track B (`main_mainnet.mo`) received **only** the one-line `level * 100` → canonical value fix; the wear logic was deliberately not copied because that file does not compile (EOP-01), making any edit there unverifiable. Noted in-file for the EOP-01 reconciliation.
+- [ ] **MAINT-02**: Balance follow-up surfaced by MAINT-01's numbers. Repair costs 500 per level point while maximum wear equals 100% of spec upkeep, so for any asset whose spec upkeep is **below 500/level** a repair can never pay back — Sprayer (240), Warehouse (250), ColdStorage (400), Pruner (360), SocialFacilities (150). Only Tractor (600), ProcessingFacility (1000) and Shaker (1200) can justify servicing on their own. The UI states this honestly ("not yet worth it"), so no player is misled, but the mechanic is effectively inert for cheap assets. Options: scale repair cost to accumulated wear rather than a flat per-level fee, or raise the wear cap. Economy-balance decision, hence flagged rather than tuned here — same treatment as `ECON-PARITY-01`.
 - [ ] **GEO-07**: Two parcel-purchase methods coexist in the Candid interface — `buyParcel(text, nat)` (used by the frontend) and `purchaseParcel(Province, float64)` (never called; the geography-aware signature, and the one `lib/gddTemplate.ts` documents). Decide which is authoritative and retire the other, ideally alongside the Phase 5 geography rebuild.
 
 ### UX/UI Deep Overhaul (UX) — scoped 2026-07-29 via live Playground screenshot audit, see `docs/game-design/UX-AUDIT-2026-07-29.md`
@@ -211,13 +219,14 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | QUAL-09 | Phase 10 | Pending |
 | QUAL-10 | Phase 10 | Pending |
 | AUTH-02 | Phase 10 | Complete |
-| MAINT-01 | Backlog (gameplay) | Pending |
+| MAINT-01 | Phase 10 | Complete |
+| MAINT-02 | Backlog (economy balance) | Pending |
 | GEO-07 | Phase 5 | Pending |
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 55 total (12 complete, 43 pending)
-- Mapped to phases: 55
+- v1 requirements: 56 total (13 complete, 43 pending)
+- Mapped to phases: 56
 - Unmapped: 0 ✓
 
 ---

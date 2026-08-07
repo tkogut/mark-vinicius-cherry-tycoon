@@ -19,6 +19,7 @@ export type GameAction =
     | 'prune'
     | 'buy_infrastructure'
     | 'buy_parcel'
+    | 'repair'
     | 'sell';
 
 export const PHASE_ACTION_GATING: Record<SeasonPhase, GameAction[]> = {
@@ -37,7 +38,10 @@ export const PHASE_ACTION_GATING: Record<SeasonPhase, GameAction[]> = {
     // tooltip already told the player "Purchases restricted to Investment
     // phase", so this table was contradicting both the canister and the UI's
     // own copy. Maintenance is for `inspectAndRepair`, not buying.
-    'Maintenance': ['sell'],
+    // 'repair' -> inspectAndRepair, which main.mo:1023 gates to #Maintenance.
+    // Wiring it (MAINT-01, 2026-08-07) is what stopped this phase from being the
+    // one phase with no player action at all.
+    'Maintenance': ['repair', 'sell'],
     'Planning': ['organic', 'buy_parcel', 'sell']
 };
 

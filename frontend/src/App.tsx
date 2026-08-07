@@ -31,7 +31,7 @@ import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
 import { HiringModal } from "@/components/farm/HiringModal"
 import { useInstallPrompt } from "@/utils/pwa"
 import { useToast } from "@/components/ui/use-toast"
-import { calculateYieldBreakdown } from "@/lib/gameLogic"
+import { calculateYieldBreakdown, getUpkeepDrift } from "@/lib/gameLogic"
 import { PhaseIndicator } from "@/components/season/PhaseIndicator"
 import { WeatherEventModal, WeatherEventType } from "@/components/season/WeatherEventModal"
 import { WeatherOverlay } from "@/components/season/WeatherOverlay"
@@ -108,6 +108,7 @@ function AppContent() {
         upgradeInfrastructure,
         advancePhase,
         cutAndPrune,
+        inspectAndRepair,
         hireLabor
     } = useGuestFarm();
 
@@ -712,11 +713,60 @@ function AppContent() {
                                 <div className="flex-grow flex flex-col w-full min-h-0 gap-4 overflow-hidden">
                                     {/* Top - Imperial Orchard */}
                                     <div className="flex-[63%] relative z-10 w-full overflow-hidden min-h-0 rounded-2xl border shadow-inner" style={{ borderColor: 'rgba(201, 168, 76, 0.25)' }}>
+                                        {/* MAINT-01: the Maintenance phase used to show only this
+                                            passive caption while `inspectAndRepair` sat on the
+                                            canister uncalled — the one phase with no player action.
+                                            It is now an actionable card that states the real numbers
+                                            (upkeep has drifted above spec; what a repair costs;
+                                            whether it pays back) instead of the old copy's claim
+                                            that machines are "being serviced" by nobody. */}
                                         {isAuthenticated && currentPhase === 'Maintenance' && (
-                                            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-blue-900/80 backdrop-blur-md border border-blue-500/50 rounded-lg p-3 text-center shadow-[0_0_15px_rgba(59,130,246,0.5)]">
-                                                <p className="text-xs text-blue-200 font-medium font-mono uppercase tracking-wider">
-                                                    🛠️ Maintenance Phase: Machines are being serviced.
+                                            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-blue-900/85 backdrop-blur-md border border-blue-500/50 rounded-lg p-3 shadow-[0_0_15px_rgba(59,130,246,0.5)] max-w-[22rem]">
+                                                <p className="text-xs text-blue-200 font-medium font-mono uppercase tracking-wider text-center">
+                                                    🛠️ Maintenance — Inspection &amp; Repair
                                                 </p>
+                                                {(() => {
+                                                    const infra = farm?.infrastructure ?? [];
+                                                    const drift = getUpkeepDrift(infra);
+                                                    const canAfford = Number(stats.cash) >= drift.repairCost;
+                                                    return (
+                                                        <>
+                                                            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] font-mono text-blue-100/90">
+                                                                <span className="text-blue-300/70">Annual upkeep</span>
+                                                                <span className="text-right">{drift.current.toLocaleString()} PLN</span>
+                                                                <span className="text-blue-300/70">As-new spec</span>
+                                                                <span className="text-right">{drift.spec.toLocaleString()} PLN</span>
+                                                                <span className="text-blue-300/70">Wear</span>
+                                                                <span className={cn("text-right font-bold", drift.excess > 0 ? "text-amber-300" : "text-emerald-300")}>
+                                                                    {drift.excess > 0 ? `+${drift.excess.toLocaleString()} PLN` : 'none'}
+                                                                </span>
+                                                                <span className="text-blue-300/70">Repair cost</span>
+                                                                <span className="text-right">{drift.repairCost.toLocaleString()} PLN</span>
+                                                            </div>
+                                                            <p className="mt-2 text-[10px] text-blue-300/70 leading-snug">
+                                                                {infra.length === 0
+                                                                    ? 'No infrastructure yet — an inspection would only charge the 500 PLN minimum.'
+                                                                    : drift.excess === 0
+                                                                        ? 'Everything is at spec. Upkeep drifts up each season; come back once it has.'
+                                                                        : drift.worthRepairing
+                                                                            ? 'Worth it: the wear now costs more per year than the repair.'
+                                                                            : 'Not yet worth it: the repair costs more than a year of this wear.'}
+                                                            </p>
+                                                            <Button
+                                                                size="sm"
+                                                                disabled={!canAfford || inspectAndRepair.isPending}
+                                                                onClick={() => inspectAndRepair.mutate()}
+                                                                className="w-full mt-2 h-8 text-[11px] font-bold bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500"
+                                                            >
+                                                                {inspectAndRepair.isPending
+                                                                    ? 'INSPECTING…'
+                                                                    : canAfford
+                                                                        ? `SERVICE ALL — ${drift.repairCost.toLocaleString()} PLN`
+                                                                        : `NEED ${drift.repairCost.toLocaleString()} PLN`}
+                                                            </Button>
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         )}
                                         {isAuthenticated && currentPhase === 'Planning' && (

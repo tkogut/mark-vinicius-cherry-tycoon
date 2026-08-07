@@ -1024,25 +1024,29 @@ actor CherryTycoon {
           return #Err(#SeasonalRestriction("Inspection and repair only allowed in Maintenance phase. Current: " # debug_show(farm.currentPhase)));
         };
 
-        // Repair cost: 500 PLN per infrastructure level point
-        var totalRepairCost : Nat = 0;
-        for (infra in farm.infrastructure.vals()) {
-          totalRepairCost += infra.level * 500;
-        };
-
-        // Minimum charge (even with no infrastructure, still a basic inspection)
-        let finalCost = if (totalRepairCost == 0) { 500 } else { totalRepairCost };
+        // Repair cost: 500 PLN per infrastructure level point, 500 minimum.
+        // Shared with the frontend mirror via GameLogic.getRepairCost.
+        let finalCost = GameLogic.getRepairCost(farm.infrastructure);
 
         if (farm.cash < finalCost) {
           return #Err(#InsufficientFunds { required = finalCost; available = farm.cash });
         };
 
-        // Mark infrastructure as maintained (raise maintenanceCost by 0 — infra state unchanged)
-        // The key effect: advancePhase will NOT degrade infra this turn because repair was paid.
-        // We encode this by setting each infra's maintenanceCost to a sentinel value (level * 100)
-        // which signals the degradation check to skip degradation on next advance.
+        // Service every asset back to its canonical per-type upkeep.
+        //
+        // This used to write `maintenanceCost = i.level * 100`, an arbitrary
+        // value unrelated to the asset type, while a comment claimed it was a
+        // sentinel telling a degradation check to skip. No such check existed —
+        // nothing in the backend degraded anything — but `maintenanceCost` IS
+        // summed by GameLogic.calculateFixedCosts and charged every season, so
+        // that line silently rewrote recurring upkeep: a Shaker L1 went
+        // 1200 -> 100 (a permanent 92% discount) while a Warehouse L3 went
+        // 250 -> 300 (an increase). See MAINT-01.
+        //
+        // Wear is now real (GameLogic.degradeMaintenance, applied on each season
+        // transition), so resetting to spec is a genuine repair.
         let maintainedInfra = Array.map<Infrastructure, Infrastructure>(farm.infrastructure, func(i) {
-          { i with maintenanceCost = i.level * 100 } // Refresh to expected base cost (= maintained)
+          { i with maintenanceCost = GameLogic.getMaintenanceCost(i.infraType) }
         });
 
         let updatedStats = updateSeasonalReport(farm, func(r) {
@@ -1065,7 +1069,16 @@ actor CherryTycoon {
 
         playerFarms.put(caller, updatedFarm);
         let infraCount = farm.infrastructure.size();
-        #Ok("Infrastructure inspection complete. Repaired " # Nat.toText(infraCount) # " asset(s) for " # Nat.toText(finalCost) # " PLN. Degradation prevented.")
+        // Report what actually happened. The old message claimed "Degradation
+        // prevented." while no degradation existed and the real effect was an
+        // undocumented rewrite of recurring upkeep (MAINT-01).
+        let upkeepBefore = GameLogic.calculateFixedCosts(farm.infrastructure);
+        let upkeepAfter = GameLogic.calculateFixedCosts(maintainedInfra);
+        #Ok(
+          "Inspection complete. Serviced " # Nat.toText(infraCount) # " asset(s) for "
+          # Nat.toText(finalCost) # " PLN. Annual upkeep restored to spec: "
+          # Nat.toText(upkeepBefore) # " -> " # Nat.toText(upkeepAfter) # " PLN."
+        )
       };
     }
   };
@@ -1586,6 +1599,16 @@ actor CherryTycoon {
       };
     };
 
+    // MAINT-01: infrastructure wear. Applied AFTER this season's fixedCosts were
+    // charged above (those were computed from `farm.infrastructure`, the
+    // pre-wear values), so the player pays the current rate now and the higher
+    // rate from next season onward unless they run `inspectAndRepair` during the
+    // Maintenance phase. Clamped to 200% of spec by GameLogic.degradeMaintenance.
+    let wornInfrastructure = Array.map<Infrastructure, Infrastructure>(
+      farm.infrastructure,
+      func(i) { { i with maintenanceCost = GameLogic.degradeMaintenance(i) } }
+    );
+
     let updatedFarm = {
       farm with
       currentSeason = nextSeason;
@@ -1597,6 +1620,7 @@ actor CherryTycoon {
       cash = Int.abs((farm.cash : Int) - (totalCosts : Int)) + insurancePayout;
       parcels = updatedParcels;
       inventory = updatedInventory;
+      infrastructure = wornInfrastructure;
       statistics = updatedStats;
     };
 

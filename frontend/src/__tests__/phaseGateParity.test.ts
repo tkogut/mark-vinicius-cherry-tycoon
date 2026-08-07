@@ -44,6 +44,7 @@ const BACKEND_PHASE_REQUIREMENTS: Record<GameAction, {
     organic: { method: 'startOrganicConversion', line: 943, phases: ['Planning', 'Investment'] },
     prune: { method: 'cutAndPrune', line: 1081, phases: ['CutAndPrune'] },
     buy_infrastructure: { method: 'upgradeInfrastructure', line: 2118, phases: ['Investment'] },
+    repair: { method: 'inspectAndRepair', line: 1023, phases: ['Maintenance'] },
     // No `currentPhase` guard found in main.mo for these three.
     fertilize: { method: 'fertilizeParcel', line: 838, phases: null },
     sell: { method: 'sellCherries', line: 1220, phases: null },
