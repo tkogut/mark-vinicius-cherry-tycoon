@@ -905,7 +905,17 @@ actor CherryTycoon {
           return #Err(#SeasonalRestriction("Inspection and repair only allowed in Maintenance phase. Current: " # debug_show(farm.currentPhase)));
         };
 
-        // Repair cost: 500 PLN per infrastructure level point
+        // Repair cost: 500 PLN per infrastructure level point.
+        //
+        // MAINT-02 is deliberately NOT mirrored here, and this is not the same
+        // "unverifiable file" argument as the note below — it would be actively
+        // wrong. Track A now charges a fraction of the ACCUMULATED WEAR, which
+        // only exists because Track A applies GameLogic.degradeMaintenance on
+        // every season transition. This file has no wear, so every asset always
+        // sits exactly at spec, `GameLogic.getRepairCost` would return 0, and
+        // `inspectAndRepair` would become a permanent free no-op. The flat fee
+        // stays until wear itself lands here, as part of the EOP-01
+        // reconciliation — wear first, then the cost model that depends on it.
         var totalRepairCost : Nat = 0;
         for (infra in farm.infrastructure.vals()) {
           totalRepairCost += infra.level * 500;

@@ -1024,9 +1024,20 @@ actor CherryTycoon {
           return #Err(#SeasonalRestriction("Inspection and repair only allowed in Maintenance phase. Current: " # debug_show(farm.currentPhase)));
         };
 
-        // Repair cost: 500 PLN per infrastructure level point, 500 minimum.
-        // Shared with the frontend mirror via GameLogic.getRepairCost.
+        // Repair cost: half the accumulated wear, over the assets that have any
+        // (MAINT-02 — the old flat 500/level could never pay back for any asset
+        // whose spec upkeep was under ~625). Shared with the frontend mirror via
+        // GameLogic.getRepairCost.
         let finalCost = GameLogic.getRepairCost(farm.infrastructure);
+
+        // Nothing has worn: charging for this would be charging for a message.
+        if (finalCost == 0) {
+          return #Ok(
+            "Inspection complete. Every asset is already at spec upkeep ("
+            # Nat.toText(GameLogic.calculateFixedCosts(farm.infrastructure))
+            # " PLN/year) — nothing to service, no charge."
+          );
+        };
 
         if (farm.cash < finalCost) {
           return #Err(#InsufficientFunds { required = finalCost; available = farm.cash });
@@ -1045,8 +1056,15 @@ actor CherryTycoon {
         //
         // Wear is now real (GameLogic.degradeMaintenance, applied on each season
         // transition), so resetting to spec is a genuine repair.
+        //
+        // Only WORN assets are touched (MAINT-02). Assets already at spec are
+        // left as-is, and so are the below-spec ones left behind by the old
+        // `level * 100` bug — the player is not charged an inspection fee to
+        // have a discount taken away. Those climb back through spec on their own
+        // via degradeMaintenance.
         let maintainedInfra = Array.map<Infrastructure, Infrastructure>(farm.infrastructure, func(i) {
-          { i with maintenanceCost = GameLogic.getMaintenanceCost(i.infraType) }
+          let spec = GameLogic.getMaintenanceCost(i.infraType);
+          if (i.maintenanceCost > spec) { { i with maintenanceCost = spec } } else { i }
         });
 
         let updatedStats = updateSeasonalReport(farm, func(r) {
@@ -1068,10 +1086,14 @@ actor CherryTycoon {
         };
 
         playerFarms.put(caller, updatedFarm);
-        let infraCount = farm.infrastructure.size();
         // Report what actually happened. The old message claimed "Degradation
         // prevented." while no degradation existed and the real effect was an
-        // undocumented rewrite of recurring upkeep (MAINT-01).
+        // undocumented rewrite of recurring upkeep (MAINT-01). The count is the
+        // number of assets actually serviced, not the size of the fleet.
+        let infraCount = Array.filter<Infrastructure>(
+          farm.infrastructure,
+          func(i) { GameLogic.getMaintenanceExcess(i) > 0 }
+        ).size();
         let upkeepBefore = GameLogic.calculateFixedCosts(farm.infrastructure);
         let upkeepAfter = GameLogic.calculateFixedCosts(maintainedInfra);
         #Ok(

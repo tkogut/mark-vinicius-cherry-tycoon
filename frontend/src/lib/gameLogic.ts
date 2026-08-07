@@ -128,13 +128,29 @@ export const degradeMaintenance = (infraTypeKey: string, currentMaintenanceCost:
     return next > cap ? cap : next;
 };
 
-/** What `inspectAndRepair` charges: 500 per level point, 500 minimum. */
+/**
+ * How far one asset's upkeep has drifted above spec. Saturating — an asset
+ * below spec (a leftover of the pre-MAINT-01 `level * 100` bug) reports 0.
+ */
+export const getMaintenanceExcess = (infraTypeKey: string, currentMaintenanceCost: number): number =>
+    Math.max(0, currentMaintenanceCost - getMaintenanceCost(infraTypeKey));
+
+/**
+ * What `inspectAndRepair` charges: half the accumulated wear, over the assets
+ * that have any (MAINT-02). Assets already at spec are skipped, so a repair
+ * with nothing to repair costs nothing. Per asset the charge is
+ * `max(1, excess / 2)` so a 1 PLN drift is not free to fix.
+ */
 export const getRepairCost = (infrastructure: Infrastructure[]): number => {
     let total = 0;
     infrastructure.forEach(infra => {
-        total += Number(infra.level) * 500;
+        const key = Object.keys(infra.infraType)[0];
+        const excess = getMaintenanceExcess(key, Number(infra.maintenanceCost));
+        if (excess > 0) {
+            total += Math.max(1, Math.floor(excess / 2));
+        }
     });
-    return total === 0 ? 500 : total;
+    return total;
 };
 
 /**
@@ -160,7 +176,10 @@ export const getUpkeepDrift = (infrastructure: Infrastructure[]): {
     // `current`/`spec` are annual figures; main.mo charges (fixed + variable) / 4
     // per season advance, so the excess is felt as excess/4 each season.
     // Repairing pays for itself within a year exactly when the annual excess
-    // exceeds the one-off repair cost.
+    // exceeds the one-off repair cost. Since MAINT-02 priced the repair at half
+    // the excess, that is true for every worn asset — which is the point of the
+    // change. The flag stays computed rather than hardcoded so the UI keeps
+    // telling the truth if the ratio is ever retuned.
     return { current, spec, excess, repairCost, worthRepairing: excess > repairCost };
 };
 

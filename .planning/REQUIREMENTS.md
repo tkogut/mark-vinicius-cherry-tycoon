@@ -116,7 +116,14 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
   - Frontend: `inspectAndRepair` mutation in `useFarm` (plus a no-op guest mock), a `'repair'` action gated to `Maintenance` only, and the passive banner replaced by an actionable card showing current vs spec upkeep, accumulated wear, repair cost, and an honest verdict on whether repairing pays back.
   - **Verified on a live replica**, not just compiled: wear 240 → 264 → 288 → 312 (only on season transitions, never on plain phase advances), repair charged exactly 500 and reset 312 → 240, cash 33_677 → 33_177. The 200% cap was pinned in the parity suite instead, since reaching it on the replica needed ~10 more transitions and risked the `InsufficientFunds` guard.
   - Track B (`main_mainnet.mo`) received **only** the one-line `level * 100` → canonical value fix; the wear logic was deliberately not copied because that file does not compile (EOP-01), making any edit there unverifiable. Noted in-file for the EOP-01 reconciliation.
-- [ ] **MAINT-02**: Balance follow-up surfaced by MAINT-01's numbers. Repair costs 500 per level point while maximum wear equals 100% of spec upkeep, so for any asset whose spec upkeep is **below 500/level** a repair can never pay back — Sprayer (240), Warehouse (250), ColdStorage (400), Pruner (360), SocialFacilities (150). Only Tractor (600), ProcessingFacility (1000) and Shaker (1200) can justify servicing on their own. The UI states this honestly ("not yet worth it"), so no player is misled, but the mechanic is effectively inert for cheap assets. Options: scale repair cost to accumulated wear rather than a flat per-level fee, or raise the wear cap. Economy-balance decision, hence flagged rather than tuned here — same treatment as `ECON-PARITY-01`.
+- [x] **MAINT-02**: Repair pricing rebalanced so servicing is never a strictly losing move. Done 2026-08-07. Surfaced by MAINT-01's numbers, then re-derived properly, which changed the verdict:
+  - The flat `500 per level point` fee did not scale with what a repair is actually worth, and what it is worth is bounded by the spec value. A phase cycle is one year and contains 4 season transitions, so wear accrues at 40% of spec/year and hits the 200% cap after 2.5 years; `Maintenance` comes round once per year; `maintenanceCost` is annual. So the best achievable policy (service every year) is worth about **0.8x spec per year** versus never servicing — and no more, because wear restarts immediately after a repair.
+  - **Correction to the figure first recorded here**: the initial note said only assets under 500/level upkeep could never pay back, leaving Tractor (600) on the viable side. Under the model above the break-even is 0.8x spec > 500, i.e. spec > 625, so **Tractor was negative too**. Six of the eight priced types were unrepairable: SocialFacilities 150, Sprayer 240, Warehouse 250, Pruner 360, ColdStorage 400, Tractor 600. Only Shaker (1200) and ProcessingFacility (1000) ever justified a service. Pinned as a test so the list is re-derived rather than trusted if the spec table changes.
+  - **Fix**: `getRepairCost` now charges **half the accumulated wear**, summed over the assets that have any — `max(1, excess / 2)` per asset. This makes the trade scale-invariant: identical for a Sprayer and a Processing Plant, and always in the player's favour once anything has worn. Repair cost is now independent of `level`, which was never what a repair was worth.
+  - Assets already at spec are skipped and cost nothing, so the old 500 "minimum inspection" charge for a no-op is gone — that fee for nothing was half of why the mechanic was dead. `inspectAndRepair` returns an explicit free no-op instead. Below-spec assets left behind by the pre-MAINT-01 `level * 100` bug are also skipped: the player is not charged to have a discount taken away, and `degradeMaintenance` is monotonic so those climb back through spec on their own.
+  - **Verified on a live replica**: Sprayer bought at spec 240, three season transitions to `Maintenance` → 312; repair charged exactly 36 (= (312-240)/2), cash 33_677 → 33_641, upkeep reset to 240; an immediate second call returned the free no-op and left cash untouched.
+  - Track B (`main_mainnet.mo`) deliberately keeps the flat fee, and **not** for the usual "unverifiable file" reason — mirroring would be actively wrong. The new formula prices accumulated wear, which only exists because Track A applies `degradeMaintenance`; Track B has no wear, so every asset always sits at spec and `inspectAndRepair` would become a permanent free no-op. Wear must land there first, as part of EOP-01.
+
 - [ ] **GEO-07**: Two parcel-purchase methods coexist in the Candid interface — `buyParcel(text, nat)` (used by the frontend) and `purchaseParcel(Province, float64)` (never called; the geography-aware signature, and the one `lib/gddTemplate.ts` documents). Decide which is authoritative and retire the other, ideally alongside the Phase 5 geography rebuild.
 
 ### UX/UI Deep Overhaul (UX) — scoped 2026-07-29 via live Playground screenshot audit, see `docs/game-design/UX-AUDIT-2026-07-29.md`
@@ -220,12 +227,12 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | QUAL-10 | Phase 10 | Pending |
 | AUTH-02 | Phase 10 | Complete |
 | MAINT-01 | Phase 10 | Complete |
-| MAINT-02 | Backlog (economy balance) | Pending |
+| MAINT-02 | Phase 10 | Complete |
 | GEO-07 | Phase 5 | Pending |
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 56 total (13 complete, 43 pending)
+- v1 requirements: 56 total (14 complete, 42 pending)
 - Mapped to phases: 56
 - Unmapped: 0 ✓
 

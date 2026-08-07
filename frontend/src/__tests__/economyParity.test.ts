@@ -334,52 +334,170 @@ describe('economy parity: wear accumulation (MAINT-01)', () => {
     });
 });
 
-describe('economy parity: repair cost (MAINT-01)', () => {
-    it('charges 500 per level point', () => {
-        expect(getRepairCost([makeInfra({ Sprayer: null }, 1)])).toBe(500);
-        expect(getRepairCost([makeInfra({ Sprayer: null }, 3)])).toBe(1_500);
-        expect(getRepairCost([
-            makeInfra({ Tractor: null }, 2),
-            makeInfra({ Warehouse: null }, 1),
-        ])).toBe(1_500);
+/**
+ * Motoko `getRepairCost` after MAINT-02:
+ *   for (infra in infrastructure.vals()) {
+ *     let excess = getMaintenanceExcess(infra);
+ *     if (excess > 0) {
+ *       let half = excess / 2;
+ *       total += (if (half == 0) { 1 } else { half });
+ *     };
+ *   };
+ *   total
+ */
+function refRepairCost(assets: Array<{ key: string; maintenanceCost: number }>): number {
+    let total = 0;
+    for (const a of assets) {
+        const excess = Math.max(0, a.maintenanceCost - refMaintenanceCost(a.key));
+        if (excess > 0) {
+            const half = Math.floor(excess / 2);
+            total += half === 0 ? 1 : half;
+        }
+    }
+    return total;
+}
+
+const worn = (key: string, level: number, maintenanceCost: number) => {
+    const infra = makeInfra({ [key]: null } as never, level);
+    infra.maintenanceCost = BigInt(maintenanceCost);
+    return infra;
+};
+
+describe('economy parity: repair cost (MAINT-02)', () => {
+    it('charges half the accumulated wear, not a flat per-level fee', () => {
+        // Sprayer spec 240. One season of wear -> 264, excess 24, repair 12.
+        expect(getRepairCost([worn('Sprayer', 1, 264)])).toBe(12);
+        // At the 480 cap: excess 240, repair 120.
+        expect(getRepairCost([worn('Sprayer', 1, 480)])).toBe(120);
     });
 
-    it('charges the 500 minimum for a farm with no infrastructure', () => {
-        expect(getRepairCost([])).toBe(500);
+    it('is independent of level — level was never what a repair was worth', () => {
+        // The pre-MAINT-02 formula was `level * 500`, so these three differed by
+        // 3x for identical wear. Wear lives on maintenanceCost, not on level.
+        for (const level of [1, 2, 3]) {
+            expect(getRepairCost([worn('Sprayer', level, 480)])).toBe(120);
+        }
+    });
+
+    it('sums only the assets that have actually worn', () => {
+        const fleet = [
+            worn('Sprayer', 1, 480),                                    // excess 240 -> 120
+            worn('Warehouse', 3, getMaintenanceCost('Warehouse')),      // at spec   -> 0
+            worn('Shaker', 1, 1_800),                                   // excess 600 -> 300
+        ];
+        expect(getRepairCost(fleet)).toBe(420);
+        expect(getRepairCost(fleet)).toBe(refRepairCost([
+            { key: 'Sprayer', maintenanceCost: 480 },
+            { key: 'Warehouse', maintenanceCost: getMaintenanceCost('Warehouse') },
+            { key: 'Shaker', maintenanceCost: 1_800 },
+        ]));
+    });
+
+    it('costs nothing when there is nothing to service', () => {
+        // No longer a 500 "minimum inspection" charge — that fee for a no-op was
+        // half of why the mechanic was dead (MAINT-02).
+        expect(getRepairCost([])).toBe(0);
+        expect(getRepairCost([worn('Tractor', 1, getMaintenanceCost('Tractor'))])).toBe(0);
+    });
+
+    it('does not charge to remove a below-spec legacy discount', () => {
+        // The pre-MAINT-01 code wrote `level * 100`, leaving assets BELOW spec
+        // (Shaker L1: 100 against a 1200 spec). Excess saturates at 0, so those
+        // are skipped rather than "repaired" upward at the player's expense.
+        expect(getRepairCost([worn('Shaker', 1, 100)])).toBe(0);
+    });
+
+    it('floors at 1 per asset so a 1 PLN drift is not free to fix', () => {
+        expect(getRepairCost([worn('SocialFacilities', 1, getMaintenanceCost('SocialFacilities') + 1)])).toBe(1);
+    });
+
+    it.each(INFRA_KEYS)('%s matches the backend transcription across its whole wear range', (key) => {
+        const spec = refMaintenanceCost(key);
+        for (let cost = spec; cost <= spec * 2; cost += Math.max(1, Math.floor(spec / 10))) {
+            expect(getRepairCost([worn(key, 1, cost)])).toBe(
+                refRepairCost([{ key, maintenanceCost: cost }])
+            );
+        }
+    });
+});
+
+describe('economy parity: the MAINT-02 payback property holds for every asset type', () => {
+    // The defect MAINT-02 recorded: a flat 500 repair could never pay back for a
+    // cheap asset, because what a repair is worth is bounded by the spec value.
+    // A phase cycle is one year (4 season transitions, wear +10% of spec each),
+    // `Maintenance` comes round once per year, and `maintenanceCost` is annual —
+    // so servicing every year is worth at most ~0.8x spec/year versus never
+    // servicing. Pricing the repair at half the wear makes that ratio identical
+    // for every type, which is the property to hold onto.
+    it.each(INFRA_KEYS.filter((k) => refMaintenanceCost(k) > 0))(
+        '%s: a service always costs less than a year of the wear it removes',
+        (key) => {
+            const spec = refMaintenanceCost(key);
+            const step = Math.max(1, Math.floor(spec / 10));
+            for (let cost = spec + step; cost <= spec * 2; cost += step) {
+                const excess = cost - spec;              // extra PLN/year while it stands
+                const repair = getRepairCost([worn(key, 1, cost)]);
+                expect(repair).toBeLessThan(excess);
+            }
+        }
+    );
+
+    it('records the types the old flat 500 fee made unrepairable', () => {
+        // Regression guard on the reasoning, not on getRepairCost: if the spec
+        // table changes, this list should be re-derived rather than trusted.
+        const deadUnderFlatFee = INFRA_KEYS.filter((k) => {
+            const spec = refMaintenanceCost(k);
+            return spec > 0 && spec * 0.8 < 500;
+        });
+        expect(deadUnderFlatFee.sort()).toEqual([
+            'ColdStorage',    // 400 -> worth 320/yr
+            'Pruner',         // 360 -> worth 288/yr
+            'SocialFacilities', // 150 -> worth 120/yr
+            'Sprayer',        // 240 -> worth 192/yr
+            'Tractor',        // 600 -> worth 480/yr — marginal, but still negative
+            'Warehouse',      // 250 -> worth 200/yr
+        ]);
+        // Only Shaker (1200 -> 960/yr) and ProcessingFacility (1000 -> 800/yr)
+        // were ever worth servicing under the flat fee: 2 of 8 priced types.
+        expect(deadUnderFlatFee).toHaveLength(6);
     });
 });
 
 describe('economy parity: upkeep drift drives the repair decision', () => {
     it('reports zero excess for freshly-bought infrastructure', () => {
-        const infra = [makeInfra({ Sprayer: null }, 1)];
-        infra[0].maintenanceCost = BigInt(getMaintenanceCost('Sprayer'));
-
-        const drift = getUpkeepDrift(infra);
+        const drift = getUpkeepDrift([worn('Sprayer', 1, getMaintenanceCost('Sprayer'))]);
         expect(drift.excess).toBe(0);
+        expect(drift.repairCost).toBe(0);
         expect(drift.worthRepairing).toBe(false);
     });
 
-    it('is NOT worth repairing after one season of wear', () => {
-        // Sprayer: spec 240, one step of wear = 264, excess 24, repair 500.
-        const infra = [makeInfra({ Sprayer: null }, 1)];
-        infra[0].maintenanceCost = 264n;
-
-        const drift = getUpkeepDrift(infra);
+    it('is worth repairing after a single season of wear, on a cheap asset', () => {
+        // The MAINT-02 change, stated as a behaviour: Sprayer spec 240, one step
+        // of wear -> 264. Under the flat 500 fee this read "not yet worth it" and
+        // never stopped reading that, even at the cap. Now: excess 24, repair 12.
+        const drift = getUpkeepDrift([worn('Sprayer', 1, 264)]);
         expect(drift.excess).toBe(24);
-        expect(drift.repairCost).toBe(500);
-        expect(drift.worthRepairing).toBe(false);
+        expect(drift.repairCost).toBe(12);
+        expect(drift.worthRepairing).toBe(true);
     });
 
-    it('IS worth repairing once the excess exceeds the repair cost', () => {
-        // A Shaker at its 2400 cap: excess 1200 against a 500 repair.
-        const infra = [makeInfra({ Shaker: null }, 1)];
-        infra[0].maintenanceCost = 2_400n;
-
-        const drift = getUpkeepDrift(infra);
+    it('is worth repairing on an expensive asset at the cap', () => {
+        const drift = getUpkeepDrift([worn('Shaker', 1, 2_400)]);
         expect(drift.spec).toBe(1_200);
         expect(drift.excess).toBe(1_200);
-        expect(drift.repairCost).toBe(500);
+        expect(drift.repairCost).toBe(600);
         expect(drift.worthRepairing).toBe(true);
+    });
+
+    it('sums current and spec across a mixed fleet', () => {
+        const drift = getUpkeepDrift([
+            worn('Sprayer', 1, 480),      // spec 240
+            worn('Warehouse', 3, 250),    // spec 250, at spec
+        ]);
+        expect(drift.spec).toBe(490);
+        expect(drift.current).toBe(730);
+        expect(drift.excess).toBe(240);
+        expect(drift.repairCost).toBe(120);
     });
 });
 

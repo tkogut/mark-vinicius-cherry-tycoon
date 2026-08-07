@@ -745,24 +745,26 @@ function AppContent() {
                                                             </div>
                                                             <p className="mt-2 text-[10px] text-blue-300/70 leading-snug">
                                                                 {infra.length === 0
-                                                                    ? 'No infrastructure yet — an inspection would only charge the 500 PLN minimum.'
+                                                                    ? 'No infrastructure yet — nothing to service, and nothing to charge for.'
                                                                     : drift.excess === 0
-                                                                        ? 'Everything is at spec. Upkeep drifts up each season; come back once it has.'
+                                                                        ? 'Everything is at spec. Upkeep drifts up each season transition; come back once it has.'
                                                                         : drift.worthRepairing
-                                                                            ? 'Worth it: the wear now costs more per year than the repair.'
+                                                                            ? 'Worth it: a service costs half the wear, so it pays back inside a year.'
                                                                             : 'Not yet worth it: the repair costs more than a year of this wear.'}
                                                             </p>
                                                             <Button
                                                                 size="sm"
-                                                                disabled={!canAfford || inspectAndRepair.isPending}
+                                                                disabled={drift.repairCost === 0 || !canAfford || inspectAndRepair.isPending}
                                                                 onClick={() => inspectAndRepair.mutate()}
                                                                 className="w-full mt-2 h-8 text-[11px] font-bold bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500"
                                                             >
                                                                 {inspectAndRepair.isPending
                                                                     ? 'INSPECTING…'
-                                                                    : canAfford
-                                                                        ? `SERVICE ALL — ${drift.repairCost.toLocaleString()} PLN`
-                                                                        : `NEED ${drift.repairCost.toLocaleString()} PLN`}
+                                                                    : drift.repairCost === 0
+                                                                        ? 'NOTHING TO SERVICE'
+                                                                        : canAfford
+                                                                            ? `SERVICE ALL — ${drift.repairCost.toLocaleString()} PLN`
+                                                                            : `NEED ${drift.repairCost.toLocaleString()} PLN`}
                                                             </Button>
                                                         </>
                                                     );

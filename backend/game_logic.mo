@@ -225,15 +225,38 @@ module {
   //   * upkeep drifts UP each season transition (wear)
   //   * `inspectAndRepair` resets it to the canonical per-type spec value
   //
-  // Numbers chosen so repairing is a decision, not a reflex:
   //   wear/season = 10% of spec (min 1, so cheap assets still drift)
   //   cap         = 200% of spec (neglect can at most double upkeep)
-  //   repair cost = 500 per level point (unchanged, see main.mo)
+  //   repair cost = 50% of accumulated wear (MAINT-02, see getRepairCost)
+  //
+  // MAINT-02 (2026-08-07): repair cost used to be a flat 500 per level point,
+  // which made the mechanic dead for every cheap asset. The flat fee does not
+  // scale with what a repair is actually worth, and what it is worth is bounded
+  // by the spec value:
+  //   * A phase cycle is one year and contains 4 season transitions, so wear
+  //     accrues at 40% of spec per year and hits the 200% cap after 2.5 years.
+  //   * `maintenanceCost` is an annual figure; _advanceSeasonInternal charges
+  //     (fixed + variable) / 4 per transition, so an excess of E costs E per
+  //     year while it stands.
+  //   * `Maintenance` comes round once per year, so the best a player can do is
+  //     service ~0.4x spec of wear annually. Compared with never repairing
+  //     (a permanent 1.0x spec excess at the cap), that policy is worth about
+  //     0.8x spec per year — and NO MORE, because wear restarts immediately.
+  // So a flat 500 could never pay back for an asset whose spec upkeep was much
+  // under 625 (0.8 x spec > 500): Sprayer 240, Warehouse 250, Pruner 360,
+  // ColdStorage 400, SocialFacilities 150 — five of nine types, and Tractor
+  // (600 -> worth 480) was marginally negative too. Only Shaker (1200) and
+  // ProcessingFacility (1000) justified a service. Charging a fraction of the
+  // accrued wear instead makes the trade scale-invariant: identical for a
+  // Sprayer and a Processing Plant, and always in the player's favour once
+  // anything has actually worn.
   // Worked example — Mechanical Shaker L1 (spec upkeep 1200):
-  //   after 1 season of wear  -> 1320 annual, i.e. +30/season once /4 is applied.
-  //                              Repairing costs 500, so it is NOT worth it yet.
-  //   at the 2400 cap         -> +1200 annual, i.e. +300/season.
-  //                              Repairing costs 500 and pays back in <2 seasons.
+  //   after 1 season of wear -> 1320 annual. Repair costs (1320-1200)/2 = 60.
+  //   after a full year      -> 1680 annual. Repair costs 240, and leaving it
+  //                             costs 480/year. Clearly worth servicing.
+  //   at the 2400 cap        -> repair costs 600 against a 1200/year excess.
+  // Same ratios for a Sprayer (spec 240): 12 / 48 / 120. The decision is now
+  // cash-flow timing, not whether the mechanic is worth using at all.
 
   /** Upkeep may never drift above this multiple of the canonical spec value. */
   public func getMaintenanceCap(infraType: InfrastructureType) : Nat {
@@ -254,16 +277,37 @@ module {
   };
 
   /**
-   * What `inspectAndRepair` charges: 500 PLN per infrastructure level point,
-   * with a 500 minimum so a basic inspection is never free. Kept here so the
-   * frontend mirror has one canonical definition to match (QUAL-05).
+   * How far one asset's upkeep has drifted above its canonical spec value.
+   * Saturating: an asset BELOW spec reports 0 rather than a negative excess.
+   * (Farms serviced by the pre-MAINT-01 code can sit below spec — that bug
+   * wrote `level * 100`. Those are left alone; `degradeMaintenance` is
+   * monotonic, so they climb back through spec on their own.)
+   */
+  public func getMaintenanceExcess(infra: Infrastructure) : Nat {
+    let spec = getMaintenanceCost(infra.infraType);
+    if (infra.maintenanceCost > spec) { infra.maintenanceCost - spec } else { 0 }
+  };
+
+  /**
+   * What `inspectAndRepair` charges: half the accumulated wear, summed over the
+   * assets that actually have any (MAINT-02). Assets already at spec cost
+   * nothing and are skipped, so a repair with nothing to repair is a free
+   * no-op rather than a 500 PLN charge for a message.
+   *
+   * Per asset the charge is `max(1, excess / 2)` — the floor stops integer
+   * division from making a 1 PLN drift free to fix. Kept here so the frontend
+   * mirror has one canonical definition to match (QUAL-05).
    */
   public func getRepairCost(infrastructure: [Infrastructure]) : Nat {
     var total : Nat = 0;
     for (infra in infrastructure.vals()) {
-      total += infra.level * 500;
+      let excess = getMaintenanceExcess(infra);
+      if (excess > 0) {
+        let half = excess / 2;
+        total += (if (half == 0) { 1 } else { half });
+      };
     };
-    if (total == 0) { 500 } else { total }
+    total
   };
 
   public func calculateFixedCosts(infrastructure: [Infrastructure]) : Nat {
