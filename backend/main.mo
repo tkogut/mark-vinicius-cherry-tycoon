@@ -26,6 +26,7 @@ import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AuctionLogic "auction_logic";
 import RiskLogic "risk_logic";
+import SportsLogic "sports_logic";
 
 actor CherryTycoon {
   
@@ -3366,16 +3367,134 @@ actor CherryTycoon {
   };
 
   // ============================================================================
-  // SPORTS CENTER (Phase 6 Stubs)
+  // SPORTS CENTER — Phase 2 (SPORTS-01/02/03)
   // ============================================================================
+  //
+  // Was two stubs: `getAvailableFootballClubs` returned a hardcoded `#Ok([])`
+  // and `buyClubShares` always returned "Sports Center feature coming soon!".
+  // The GDD treats the football club as the second core pillar, so a
+  // permanently-empty screen was the largest gap between what the game claims
+  // and what it does.
+  //
+  // Scope of this slice, decided with the user: real clubs, real purchases,
+  // real UI. NO match simulation, NO Team Power Index, NO patron tiers, NO
+  // Local Reputation feeding prestige, NO league progression. Those are the
+  // rest of `docs/game-design/economy/gdd-sports-patron.md` and are tracked as
+  // SPORTS-05/06 — a club is currently an asset you can own, not yet a lever
+  // that changes the orchard.
+  //
+  // The catalogue is static data in SportsLogic; only ownership is persisted.
+  // Adding this `stable var` is additive — existing farms upgrade with an empty
+  // ownership list and see every club as unclaimed, which is correct.
 
-  public shared query({ caller = _ }) func getAvailableFootballClubs() : async GameResult<[Types.FootballClub], GameError> {
-    #Ok([])
+  /// Persisted club ownership: (clubId, ownerPrincipalText, percentHeld).
+  /// Single-patron model — see sports_logic.mo for why.
+  stable var stableClubOwnership : [(Text, Text, Nat)] = [];
+
+  private func _clubOwner(clubId: Text) : ?(Text, Nat) {
+    switch (Array.find<(Text, Text, Nat)>(stableClubOwnership, func((id, _, _)) { id == clubId })) {
+      case (?(_, ownerId, percent)) { ?(ownerId, percent) };
+      case null { null };
+    }
   };
 
-  public shared({ caller }) func buyClubShares(_clubId: Text, _amount: Nat) : async GameResult<Text, GameError> {
+  private func _recordClubOwnership(clubId: Text, ownerId: Text, percent: Nat) {
+    let existing = Array.find<(Text, Text, Nat)>(stableClubOwnership, func((id, _, _)) { id == clubId });
+    switch (existing) {
+      case (?_) {
+        stableClubOwnership := Array.map<(Text, Text, Nat), (Text, Text, Nat)>(
+          stableClubOwnership,
+          func((id, owner, held)) {
+            if (id == clubId) { (id, ownerId, percent) } else { (id, owner, held) }
+          }
+        );
+      };
+      case null {
+        stableClubOwnership := Array.append<(Text, Text, Nat)>(
+          stableClubOwnership, [(clubId, ownerId, percent)]
+        );
+      };
+    }
+  };
+
+  // [QUERY] The full club catalogue with live ownership overlaid. Open to any
+  // caller including anonymous — this is public game data, the same as the
+  // infrastructure price list, and gating it would only stop the login screen
+  // from previewing it.
+  public shared query({ caller = _ }) func getAvailableFootballClubs() : async GameResult<[Types.FootballClub], GameError> {
+    #Ok(SportsLogic.applyOwnership(SportsLogic.getClubCatalogue(), stableClubOwnership))
+  };
+
+  // Buy `percent` percent of a club. Not phase-gated: the GDD ties transfers to
+  // the winter break (#Planning), but that belongs with the league cycle in
+  // SPORTS-06 — gating it now would mean a phase restriction with no league
+  // behind it. `buyParcel` is ungated for the same reason.
+  public shared({ caller }) func buyClubShares(clubId: Text, percent: Nat) : async GameResult<Text, GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
-    #Err(#InvalidOperation("Sports Center feature coming soon!"))
+
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        let buyerId = Principal.toText(caller);
+        let club = SportsLogic.findClub(clubId);
+        let currentOwner = _clubOwner(clubId);
+
+        switch (SportsLogic.validatePurchase(club, currentOwner, buyerId, percent, farm.cash)) {
+          case (?#UnknownClub) { return #Err(#NotFound("No such club: " # clubId)) };
+          case (?#InvalidAmount) {
+            return #Err(#InvalidOperation("Stake must be between 1% and 100%. Got: " # Nat.toText(percent)));
+          };
+          case (?#ClubTakenByAnother) {
+            return #Err(#InvalidOperation("Another patron already backs this club. One club, one benefactor."));
+          };
+          case (?#NotEnoughSharesLeft { requested; available }) {
+            return #Err(#InvalidOperation(
+              "Only " # Nat.toText(available) # "% of this club is unclaimed; you asked for "
+              # Nat.toText(requested) # "%."
+            ));
+          };
+          case (?#CannotAfford { required; available }) {
+            return #Err(#InsufficientFunds { required = required; available = available });
+          };
+          case null {}; // legal
+        };
+
+        // Validation passed, so the club exists and the arithmetic below is safe.
+        let found = switch (club) { case (?c) { c }; case null { return #Err(#NotFound("No such club: " # clubId)) } };
+        let heldBefore = switch (currentOwner) { case (?(_, held)) { held }; case null { 0 } };
+        let heldAfter = heldBefore + percent;
+        let cost = SportsLogic.getSharePrice(found.marketValue, percent);
+
+        _recordClubOwnership(clubId, buyerId, heldAfter);
+
+        let alreadyListed = Array.find<Text>(farm.ownedClubs, func(id) { id == clubId }) != null;
+        let updatedOwnedClubs = if (alreadyListed) { farm.ownedClubs }
+                                else { Array.append<Text>(farm.ownedClubs, [clubId]) };
+
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          { r with
+            totalCosts = r.totalCosts + cost;
+            netProfit  = r.netProfit - (cost : Int);
+          }
+        });
+
+        playerFarms.put(caller, {
+          farm with
+          cash        = Int.abs((farm.cash : Int) - (cost : Int));
+          ownedClubs  = updatedOwnedClubs;
+          statistics  = { farm.statistics with
+            totalCosts      = farm.statistics.totalCosts + cost;
+            seasonalReports = updatedStats.seasonalReports;
+          };
+        });
+
+        #Ok(
+          "Acquired " # Nat.toText(percent) # "% of " # found.name # " for "
+          # Nat.toText(cost) # " PLN. You now hold " # Nat.toText(heldAfter) # "%"
+          # (if (heldAfter == 100) { " — full ownership." } else { "." })
+        )
+      };
+    }
   };
 
 }

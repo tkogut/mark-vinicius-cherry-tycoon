@@ -54,7 +54,7 @@ Plans:
 Plans:
 - [x] 01.1-01: Fix ordering in `frontend/src/context/AuthContext.tsx:150` (`initTestMode()`) — `.planning/phases/01.1-atomic-auth-fix/01.1-01-PLAN.md`
 
-#### Phase 2: Football Clubs — Restore the Core Pillar
+#### Phase 2: Football Clubs — Restore the Core Pillar ✅ (success criteria met 2026-08-07)
 **Goal**: Sports Patron stops being a permanently-empty dead end. Both frontend (`SportsCenter.tsx`) and backend types already exist — the backend just needs to stop hardcoding empty/error responses.
 **Depends on**: Nothing (both ends already built)
 **Requirements**: SPORTS-01, SPORTS-02, SPORTS-03
@@ -62,10 +62,20 @@ Plans:
   1. `getAvailableFootballClubs()` returns real, seeded club data instead of a hardcoded empty list
   2. `buyClubShares()` performs a real purchase (ownership%, cash deduction) instead of always returning "coming soon"
   3. `SportsCenter.tsx` displays real clubs and supports a real purchase flow end-to-end
-**Plans**: TBD
+**Plans**: 1 plan, scope agreed with the user before coding.
+
+**Status (2026-08-07): all 3 success criteria met.** Scope was a deliberate vertical slice — the spec (`docs/game-design/economy/gdd-sports-patron.md`) opens with "should remain paused until Manager decides to implement it" and describes far more than these criteria (three patron tiers with orchard effects, Team Power Index match simulation, the Autumn/Spring league cycle synced to the 10 phases, Local Reputation feeding prestige, event archetypes). The user chose the slice: real clubs, real purchases, real UI — nothing simulated.
+
+Two premises in this phase's own description turned out to be wrong, both found by reading before coding:
+  - "the backend just needs to stop hardcoding empty/error responses" — there was also **nowhere to put clubs**. No stable state, no `patron_logic.mo`. Solved by keeping the catalogue as code in a new pure `backend/sports_logic.mo` and persisting only ownership, which let `getAvailableFootballClubs` stay a `query`.
+  - "`SportsCenter.tsx` (already fully built)" — built, but against a contract that never existed: it read `c.price` and `c.sharesAvailable`, which are not fields of `Types.FootballClub`, so both rendered `0`, and printed the `Region` record as a string. Same defect class as ECON-06.
+
+Verified on a live replica across every path: purchase (5% of LZS Lubrza for 6 000, cash 50 000 → 44 000), top-up (25% more for 30 000 → 14 000, `ownedClubs` deduplicated), over-100% rejection, insufficient funds, unknown club, zero stake, and — with a second dfx identity — "another patron already backs this club" plus a rival successfully claiming a different club. No Candid change: `FootballClub` was already in the generated interface, so `declarations/` stayed clean.
+
+**Deliberately left open, each now a tracked requirement rather than a silent gap**: `SPORTS-04` (the `#Liga3`/`#Liga4` variant is misnamed by four tiers; a Candid rename, mitigated by correct display labels), `SPORTS-05` (patron tiers and their orchard impact — the part that makes a club a *pillar* rather than an asset; touches economy formulas), `SPORTS-06` (league simulation, TPI, reputation → prestige; its own phase). The UI states out loud that a stake does not yet affect the orchard.
 
 Plans:
-- [ ] 02-01: TBD (created by `/gsd-plan-phase 2`)
+- [x] 02-01: Sports Patron vertical slice — `sports_logic.mo` catalogue + ownership overlay, real `buyClubShares` with typed rejections, `SportsCenter.tsx` rewired to the real Candid type, share-price mirror + 8 parity tests
 
 #### Phase 3: Core Economic Lever Fixes
 **Goal**: Close the "dead lever" findings from the 2026-07-29 audit — small, mostly independent fixes bundled into one phase.

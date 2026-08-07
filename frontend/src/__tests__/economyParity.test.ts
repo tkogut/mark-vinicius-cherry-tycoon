@@ -33,6 +33,8 @@ import {
     degradeMaintenance,
     getRepairCost,
     getUpkeepDrift,
+    getClubSharePrice,
+    LEAGUE_LABELS,
 } from '@/lib/gameLogic';
 import { PARITY_CASES, makeParcel, makeInfra } from '@/test-utils/economyVectors';
 
@@ -498,6 +500,96 @@ describe('economy parity: upkeep drift drives the repair decision', () => {
         expect(drift.current).toBe(730);
         expect(drift.excess).toBe(240);
         expect(drift.repairCost).toBe(120);
+    });
+});
+
+// ============================================================================
+// SPORTS-02 — club share pricing
+// ============================================================================
+
+/**
+ * Motoko `SportsLogic.getSharePrice`:
+ *   let price = (marketValue * percent) / 100;
+ *   if (price == 0 and percent > 0) { percent } else { price }
+ */
+function refSharePrice(marketValue: number, percent: number): number {
+    const price = Math.floor((marketValue * percent) / 100);
+    return price === 0 && percent > 0 ? percent : price;
+}
+
+/** The authored catalogue's valuations, transcribed from backend/sports_logic.mo. */
+const CLUB_VALUES: Record<string, number> = {
+    KS_GLUBCZYCE: 420_000,
+    LZS_NAMYSLOW: 340_000,
+    OKS_OPOLE: 380_000,
+    GKS_PRUDNIK: 240_000,
+    LZS_KIETRZ: 180_000,
+    LZS_BRANICE: 145_000,
+    LZS_LUBRZA: 120_000,
+    LZS_STRZELECZKI: 132_000,
+};
+
+describe('economy parity: club share price (SPORTS-02)', () => {
+    it('matches the values observed on a live replica', () => {
+        // From the verification run: 5% of LZS_LUBRZA charged exactly 6000 and
+        // a further 25% charged 30000, cash 50_000 -> 44_000 -> 14_000.
+        expect(getClubSharePrice(120_000, 5)).toBe(6_000);
+        expect(getClubSharePrice(120_000, 25)).toBe(30_000);
+        // And the rejected case: 50% of KS_GLUBCZYCE quoted 210_000.
+        expect(getClubSharePrice(420_000, 50)).toBe(210_000);
+        // 3% of LZS_BRANICE charged 4350 for the rival identity.
+        expect(getClubSharePrice(145_000, 3)).toBe(4_350);
+    });
+
+    it.each(Object.entries(CLUB_VALUES))(
+        '%s is priced identically to the backend at every stake size',
+        (_club, value) => {
+            for (let percent = 0; percent <= 100; percent++) {
+                expect(getClubSharePrice(value, percent)).toBe(refSharePrice(value, percent));
+            }
+        }
+    );
+
+    it('a full takeover costs exactly the club value', () => {
+        for (const value of Object.values(CLUB_VALUES)) {
+            expect(getClubSharePrice(value, 100)).toBe(value);
+        }
+    });
+
+    it('is free only for a zero stake', () => {
+        expect(getClubSharePrice(120_000, 0)).toBe(0);
+        for (let percent = 1; percent <= 100; percent++) {
+            expect(getClubSharePrice(120_000, percent)).toBeGreaterThan(0);
+        }
+    });
+
+    it('never lets integer truncation make a stake free', () => {
+        // A club valued below 100 PLN would otherwise price every small stake
+        // at 0. No catalogue entry is that cheap today, but the floor is part of
+        // the backend formula and must be mirrored, not assumed unreachable.
+        expect(getClubSharePrice(50, 1)).toBe(1);
+        expect(getClubSharePrice(0, 7)).toBe(7);
+        expect(getClubSharePrice(199, 1)).toBe(1);
+    });
+
+    it('is monotonic in stake size', () => {
+        for (const value of Object.values(CLUB_VALUES)) {
+            let previous = 0;
+            for (let percent = 1; percent <= 100; percent++) {
+                const price = getClubSharePrice(value, percent);
+                expect(price).toBeGreaterThanOrEqual(previous);
+                previous = price;
+            }
+        }
+    });
+
+    it('labels both leagues with their real Polish names', () => {
+        // types.mo spells these #Liga3/#Liga4, which in the real pyramid means
+        // III/IV liga — four tiers above what the GDD models. Renaming the
+        // variant is a Candid change (SPORTS-04); until then the UI must not
+        // repeat the wrong name to the player.
+        expect(LEAGUE_LABELS.Liga3).toBe('Klasa Okręgowa');
+        expect(LEAGUE_LABELS.Liga4).toBe('Klasa A');
     });
 });
 

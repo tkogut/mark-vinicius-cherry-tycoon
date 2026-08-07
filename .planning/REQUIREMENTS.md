@@ -24,9 +24,12 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 
 ### Football Clubs (SPORTS) — promoted from v2 to v1, core pillar per GDD v3
 
-- [ ] **SPORTS-01**: `getAvailableFootballClubs()` returns real, seeded club data (currently hardcoded to always return an empty list, `main.mo:3325-3327`)
-- [ ] **SPORTS-02**: `buyClubShares()` performs a real purchase (ownership%, cash deduction) instead of always returning "Sports Center feature coming soon!" (`main.mo:3329-3332`)
-- [ ] **SPORTS-03**: `SportsCenter.tsx` (already fully built) displays real clubs and supports a real purchase flow end-to-end
+- [x] **SPORTS-01**: `getAvailableFootballClubs()` returns real club data. Done 2026-08-07. Eight clubs in the lower Opolskie pyramid (4 Klasa Okręgowa, 4 Klasa A) authored in a new pure module `backend/sports_logic.mo`. **The catalogue is code, not a `stable var`** — a club's identity is static game data like `getInfrastructureCost`'s price table, and keeping it in code lets the endpoint stay a `query` (a query cannot mutate, so it could never lazily seed stable state) and lets an upgrade retune clubs without a migration. Only ownership is persisted, in `stableClubOwnership : [(clubId, ownerId, percent)]` — additive, so existing farms upgrade with every club unclaimed, which is correct. Valuations set against the orchard economy: Klasa A 120–180k (1% = 1.2–1.8k), Klasa Okręgowa 240–420k (1% = 2.4–4.2k), against a 50k starting balance, so a token stake is an early-game decision and control is a mid-game one.
+- [x] **SPORTS-02**: `buyClubShares()` performs a real purchase. Done 2026-08-07. Deducts cash, records `ownershipPercent`, appends to `PlayerFarm.ownedClubs` (deduplicated), and books the cost into the seasonal report. Validation lives in `SportsLogic.validatePurchase` as a typed rejection variant so `main.mo` reads as a sequence of decisions: unknown club, stake outside 1–100, club already claimed by another patron, more requested than unclaimed, cannot afford. **Ownership is single-patron** — `Types.FootballClub` carries one `ownerId`/`ownershipPercent` and the GDD frames the player as *the* benefactor of a village club, so a club is unclaimed or belongs to exactly one patron holding 1–100%. There is no player-to-player share market. Not phase-gated: the GDD ties transfers to the winter break, but that belongs with the league cycle (SPORTS-06) — a phase restriction with no league behind it would be arbitrary.
+- [x] **SPORTS-03**: `SportsCenter.tsx` displays real clubs and supports a real purchase flow. Done 2026-08-07. **"Already fully built" was false** — the component mapped `c.price` and `c.sharesAvailable`, neither of which exists on `Types.FootballClub` (the real fields are `marketValue` and `ownershipPercent`), so both rendered as `0`; and it printed `c.region` as a string when it is a `Region` record. Same defect class as ECON-06's `baseCapacity`: a screen wired to a contract the backend never had. Now reads the real Candid type, shows club value / table position / stadium / claimed %, formats the region as `commune, pow. county`, surfaces the canister's own rejection reason in the toast instead of a generic failure, distinguishes "another patron backs this club" from "fully owned", and states plainly that a stake does not yet change orchard performance. Guest mode gets an explicit "sign in" state rather than an empty grid that would read as "there are no clubs".
+- [ ] **SPORTS-04**: `Types.League` spells the two tiers `#Liga3`/`#Liga4`, which in the real Polish pyramid means III/IV liga — four tiers above the Klasa Okręgowa / Klasa A that `gdd-sports-patron.md` actually specifies, and the roadmap's legacy row calls it "IV Liga Opolska", so the name is wrong in three places. Renaming the variant is a Candid contract change, hence flagged rather than folded into SPORTS-01/02/03. Mitigated meanwhile: `LEAGUE_LABELS` in `gameLogic.ts` displays the correct Polish names, pinned by a parity test, so the player is never shown the wrong league.
+- [ ] **SPORTS-05**: Patron tiers and their orchard impact — Kit Sponsor (−2% labour cost), Mecenas (+5% negotiation power), Właściciel (Patron Contracts), per `gdd-sports-patron.md` §3. This is what turns a club from an asset you own into the second *pillar*: today owning one costs cash and changes nothing on the farm, which the UI says out loud. Deliberately out of the agreed slice because it touches `calculateVariableCosts` and sale pricing, i.e. economy formulas — needs the `gameLogic.ts` mirror plus parity cases, and the tier thresholds are balance numbers (Ask First).
+- [ ] **SPORTS-06**: League simulation — Team Power Index match outcomes, the Autumn/Spring cycle synced to the 10 phases (autumn round in `#Market`/`#Storage`, transfer window in `#Planning`, finale in `#Harvest`), promotion/relegation, Local Reputation folded into `PrestigeScore` at ×1.5, and the event archetypes. `leaguePosition` is currently authored and static — it is displayed as the table position, which is true, but nothing advances it. A dedicated phase, not a slice.
 
 ### Core Economic Lever Fixes (ECON)
 
@@ -179,9 +182,12 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | LEAD-02 | Phase 1 | Complete |
 | LEAD-03 | Phase 1 | Complete |
 | AUTH-01 | Phase 1.1 | Complete |
-| SPORTS-01 | Phase 2 | Pending |
-| SPORTS-02 | Phase 2 | Pending |
-| SPORTS-03 | Phase 2 | Pending |
+| SPORTS-01 | Phase 2 | Complete |
+| SPORTS-02 | Phase 2 | Complete |
+| SPORTS-03 | Phase 2 | Complete |
+| SPORTS-04 | Phase 2 | Pending (Candid rename) |
+| SPORTS-05 | Backlog (economy) | Pending |
+| SPORTS-06 | Own phase | Pending |
 | ECON-01 | Phase 3 | Pending |
 | ECON-02 | Phase 3 | Pending |
 | ECON-03 | Phase 3 | Pending |
@@ -234,8 +240,8 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 57 total (15 complete, 2 partial, 40 pending)
-- Mapped to phases: 57
+- v1 requirements: 60 total (18 complete, 2 partial, 40 pending)
+- Mapped to phases: 60
 - Unmapped: 0 ✓
 
 ---

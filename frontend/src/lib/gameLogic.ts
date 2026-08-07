@@ -183,6 +183,27 @@ export const getUpkeepDrift = (infrastructure: Infrastructure[]): {
     return { current, spec, excess, repairCost, worthRepairing: excess > repairCost };
 };
 
+// ============================================================================
+// SPORTS PATRON (SPORTS-01/02/03)
+// ============================================================================
+
+/**
+ * Cost of `percent` percent of a club. Mirrors `SportsLogic.getSharePrice`:
+ * integer division, with a floor of 1 PLN per percent so truncation can never
+ * make a stake free. The UI must quote the same number the canister will
+ * charge, or the player sees a price change at the moment of purchase.
+ */
+export const getClubSharePrice = (marketValue: number, percent: number): number => {
+    const price = Math.floor((marketValue * percent) / 100);
+    return price === 0 && percent > 0 ? percent : price;
+};
+
+/** Display names for `Types.League`. See SPORTS-04 for why the variant is misnamed. */
+export const LEAGUE_LABELS: Record<string, string> = {
+    Liga3: 'Klasa Okręgowa',
+    Liga4: 'Klasa A',
+};
+
 // County yield multiplier — Phase 5.1 "Opole DNA" (GDD §3.1).
 // Mirrors the `countyMod` switch inside game_logic.mo's calculateYieldPotential.
 export const getCountyModifier = (county: string): number => {
