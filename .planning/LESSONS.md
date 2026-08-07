@@ -104,6 +104,12 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** every developer machine has an emoji font. A bare headless Chromium does not, and neither do many Linux clients. On the 2026-08-07 Playground deploy the orchard readout said `▯ 50 trees`. It also meant the app had two parallel icon vocabularies — lucide everywhere else, emoji here.
 **Rule:** icons are `lucide-react` SVGs. Pinned by `uiConventions.test.ts`. The wider point: a class of bug exists that is invisible on the machine that wrote it, so screenshot the *deployed* build, not just the dev server.
 
+### Playground canister IDs change on every deploy — never reuse the URL
+
+**Was:** deployed, screenshotted `4w6mb-…`, deployed a fix, screenshotted the same URL again, and concluded the fix had not shipped. Started digging through the built bundle for a build-cache problem that did not exist.
+**Actually:** Playground canisters are ephemeral leases. Each `dfx deploy --network playground` mints a **new** canister ID for both frontend and backend, so the old URL keeps serving the old build until its lease expires. The fix was live the whole time, at `ud6i4-…`.
+**Rule:** take the canister ID from *this* run's log every time — the workflow prints `canister_ids.json` at the end. Never carry a Playground URL across deploys, and never quote one to the user as if it were stable.
+
 ### Grep is worse than a test at finding every instance
 
 **Was:** grepped for `$` currency signs, found 6, fixed them, moved on.
