@@ -22,15 +22,15 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 Phase: 2 of 10 (Football Clubs — Restore the Core Pillar)
 Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-08-07 — MAINT-01 + MAINT-02 fixed (real infrastructure wear, and repair priced off that wear so servicing is worth doing for every asset type) and AUTH-02 fixed (Atomic Auth guard on the restored-session path); lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
+Status: Ready to plan (Phase 9's row reconciled 2026-08-07 — it was reading "not started" while most of its orchard work had shipped)
+Last activity: 2026-08-07 — Phase 9 status reconciled against what actually shipped (UX-06/07/08, with the two gaps named rather than rounded up), and MAINT-01 + MAINT-02 fixed (real infrastructure wear, and repair priced off that wear so servicing is worth doing for every asset type) and AUTH-02 fixed (Atomic Auth guard on the restored-session path); lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
 
 Progress: [███░░░░░░░] 30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7 (Phase 1: 1, Phase 1.1: 1, Phase 10: 5)
+- Total plans completed: 8 (Phase 1: 1, Phase 1.1: 1, Phase 9: 1 unplanned, Phase 10: 5)
 - Average duration: not tracked (work ran as a continuous session, not discrete timed plans)
 - Total execution time: not tracked
 
@@ -40,10 +40,12 @@ Progress: [███░░░░░░░] 30%
 |-------|-------|--------|
 | 1. Enhanced Leaderboard & Rankings UI | 1/1 | Complete 2026-07-29 |
 | 1.1. Atomic Auth Fix | 1/1 | Complete 2026-07-29 |
+| 9. UX/UI Deep Overhaul | 1/2 | Partial — UX-07 done, UX-06/08 partial, UX-01..05 untouched (2026-08-07) |
 | 10. Quality Infrastructure | 5/5 | Complete 2026-08-06 |
 
 **Recent Trend:**
 - Phase 10 delivered 5 stages in one session, each independently verified and committed
+- Two phases have now run out of order (10, then most of 9's orchard work). Phase 9's route — ad hoc, driven by the user reviewing live Playground screenshots each round — worked well for visual work and found bugs no test would have (workers inside canopies, paths on the wrong diagonal). It is a poor fit for the rest of Phase 9 (sidebar layout, stat idiom, placeholder boxes), which is why the remainder goes back through a plan.
 - Trend: infrastructure work is now unblocking gameplay work rather than trailing it
 
 *Updated after each plan completion*
@@ -68,7 +70,8 @@ Recent decisions affecting current work:
 - QUAL-09: port the 11 "healthy" legacy shell scripts to Vitest against an ephemeral dfx replica, then delete the originals and shrink `KNOWN_BROKEN` in `legacyShellScripts.test.ts`.
 - QUAL-10: full-journey E2E against an ephemeral local replica (the layer the harness specs deliberately exclude). Needs a deterministic way to neutralise the random weather-event modal.
 - QUAL-05b: close the parity loop against a live canister — needs a `debugCalculateYield` query, since `calculateYieldPotential` is internal.
-- Phase 9 bookkeeping: UX-06 (and much of UX-07/08) was delivered ad hoc across the 2026-07-30..08-04 sessions but the roadmap's Phase 9 row still reads "not started". Reconcile before planning Phase 9 properly.
+- Phase 9 remainder (reconciled 2026-08-07, was "roadmap says not started"): **UX-08's phase gating** — machines are gated on ownership but not on `currentPhase`, so an owned Shaker drives around in Winter (no `currentPhase` check exists anywhere in the machine path). **UX-06's buildable border zone** — never built; no building renders in the orchard at all. **UX-09 (new)** — place the raster building sprites, which currently exist only in the Marketplace. Plus UX-01..05, the untouched half of Phase 9 that came from the 2026-07-29 screenshot audit.
+- Mainnet deploy is broken at the config level (found 2026-08-07, no decision yet): `deploy-mainnet.yml:43` deploys a canister named `backend_mainnet`, which **is not in `dfx.json`** (only `backend`, `frontend`, `internet_identity`). It would fail on the first deploy step. That is also why `main_mainnet.mo` compiling was never noticed — nothing builds it. Re-checked today with `moc --check`: `duplicate field name activeInsurance` (line 261) plus contract type errors (1591). Track B is dead twice over. Not silently breaking CI (manual `workflow_dispatch`, never run), but it is the state of the mainnet path. Folds into EOP-01.
 
 ### Blockers/Concerns
 

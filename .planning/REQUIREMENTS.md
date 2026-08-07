@@ -133,9 +133,10 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 - [ ] **UX-03**: Establish one consistent visual idiom for stat/diagnostic displays (currently mixes circular gauges, bar meters, and plain text blocks with no shared grammar)
 - [ ] **UX-04**: Resolve the two never-resolving placeholder boxes in the dashboard sidebar
 - [ ] **UX-05**: Reconcile the "Processing Plant" marketplace card against the `SIM-04` deferral decision (functional partial-implementation vs. decorative dead lever) — new finding from the audit, not yet resolved
-- [ ] **UX-06 (new)**: Implement sketch 001's winning direction (Variant A, "Geometric Brass" — isometric Canvas 2D procedural trees, Neo-Steampunk palette, seasonal cycle, path lanes, buildable border zone) in the real orchard component, replacing the CSS-blur canopy
-- [ ] **UX-07 (new)**: Port the existing `WorkerNPC` system (`ImperialOrchard.tsx:579`, `hasHelper`-gated second NPC) to the isometric grid — reuse the hire-state gating and seasonal hooks, re-anchor positions via `isoToScreen()`, walk along the new path network instead of the old sector grid
-- [ ] **UX-08 (new)**: Add procedural machine visuals (tractor/shaker) — greenfield, same Canvas 2D technique as trees, visible only when the player owns the corresponding infrastructure level and during the phase it would plausibly operate
+- [~] **UX-06 (new)**: Implement sketch 001's winning direction (Variant A, "Geometric Brass" — isometric Canvas 2D procedural trees, Neo-Steampunk palette, seasonal cycle, path lanes, buildable border zone) in the real orchard component, replacing the CSS-blur canopy. **Mostly done 2026-07-30..2026-08-03**, ad hoc from live Playground screenshots rather than a phase plan (`9be8318`..`4c3a111`). Delivered: the CSS-blur canopy is gone, `drawGeometricBrassTree` renders each tree to one canvas with a seeded PRNG, parcels are diamond-tiled, seasons cycle, and NPCs/machines walk a path **lattice**. Two spec corrections found by implementing it: path lanes belong on tile *boundaries*, not through tile centres, and a same-row seam runs bottom-vertex→right-vertex (the wrong diagonal shipped twice before the user caught it on a live deploy). **Not done: the buildable border zone.** No building renders in the orchard at all — the building sprites went to the Marketplace instead (see UX-09). That residue keeps this requirement open.
+- [x] **UX-07 (new)**: Port the existing `WorkerNPC` system (`ImperialOrchard.tsx:579`, `hasHelper`-gated second NPC) to the isometric grid — reuse the hire-state gating and seasonal hooks, re-anchor positions via `isoToScreen()`, walk along the new path network instead of the old sector grid. Done 2026-08-02/03. `hasHelper` gating preserved, both NPCs are canvas-rendered with animated contralateral limbs, and **both** worker variants from sketch 002 ship (Sturdy Facet + Dynamic Stride) — the user chose to keep both proposals rather than pick one. Three real bugs surfaced only from live play and are worth remembering: z-order needed a continuous projected `y` rather than `(row+col)` buckets (workers vanished inside canopies), the elliptical trunk-base ring hid them entirely, and the sketch canvas' ground margin had to be compensated (`WORKER_Y_OFFSET`) or they walked beside the path instead of on it.
+- [~] **UX-08 (new)**: Add procedural machine visuals (tractor/shaker) — greenfield, same Canvas 2D technique as trees, visible only when the player owns the corresponding infrastructure level and during the phase it would plausibly operate. **Ownership half done, phase half not.** Four machines ship, not two — Modern Tractor, Precision Sprayer, Mechanical Shaker and a wheeled Branch Pruner, named to match the in-app Marketplace terminology at the user's instruction (`orchardMachines.ts`, `b32034f`/`b44b6ec`). Each is gated on `getInfraLevel(...) > 0` via `orchardAutomationConfig` (`App.tsx:171`) and moves along the path lattice with animated wheels, booms and clamps. **There is no `currentPhase` check on any machine**, so an owned Shaker drives around in Winter — the second half of this requirement is simply absent, not deferred by decision.
+- [ ] **UX-09 (new, 2026-08-07)**: Place the raster building sprites in the orchard, closing UX-06's buildable border zone. Records a **deliberate reversal**: UX-06 committed to "zero image assets, everything procedural", and buildings now use real PNG sprites instead (`frontend/public/assets/buildings/`, 24 files — 4 seasons x Cold Storage L1/L2, Warehouse L1/L2, Processing Plant, Social Facilities, extracted from user-supplied AI art via `scipy.ndimage` connected-component labeling after hand-tuned bounding boxes cut the artwork). Taken after the user judged the procedural palette "przerażająco mdła" and rejected sketch 003's Canvas 2D attempts, and after I stated plainly that faceted Canvas 2D has a ceiling for building-scale art that more iterations would not lift. Shipped in the **Marketplace only** (`f61ad9e`) with level tiers; the orchard still shows no buildings. The reversal is settled — what is open is placement.
 
 ## v2 Requirements
 
@@ -211,9 +212,10 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | UX-03 | Phase 9 | Pending |
 | UX-04 | Phase 9 | Pending |
 | UX-05 | Phase 9 | Pending |
-| UX-06 | Phase 9 | Pending |
-| UX-07 | Phase 9 | Pending |
-| UX-08 | Phase 9 | Pending |
+| UX-06 | Phase 9 | Partial (border zone open) |
+| UX-07 | Phase 9 | Complete |
+| UX-08 | Phase 9 | Partial (phase gating open) |
+| UX-09 | Phase 9 | Pending |
 | QUAL-01 | Phase 10 | Complete |
 | QUAL-02 | Phase 10 | Complete |
 | QUAL-03 | Phase 10 | Complete |
@@ -232,8 +234,8 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 56 total (14 complete, 42 pending)
-- Mapped to phases: 56
+- v1 requirements: 57 total (15 complete, 2 partial, 40 pending)
+- Mapped to phases: 57
 - Unmapped: 0 ✓
 
 ---

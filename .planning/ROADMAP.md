@@ -163,7 +163,7 @@ Plans:
 Plans:
 - [ ] 08-01: TBD (created by `/gsd-plan-phase 8`)
 
-#### Phase 9: UX/UI Deep Overhaul
+#### Phase 9: UX/UI Deep Overhaul 🟡 (partially delivered out of plan — see Status)
 **Goal**: Per GDD v3 Pillar 6 and V1's own UI/UX priorities (§13) — current layout matches neither. Scoped 2026-07-29 via a live Playground deploy + screenshot audit (`docs/game-design/UX-AUDIT-2026-07-29.md`), turning the earlier vague "current layout is weak" concern into concrete, visually-confirmed findings.
 **Depends on**: `ECON-06` and `ONBOARD-01` (Phase 3/8) should land before or during work on the Neighbors/onboarding screens specifically — otherwise the redesign faithfully re-skins live bugs (confirmed in the audit: `NaN%` market share, wrong player name shown). `SPORTS-01/02/03` (Phase 2) should land before redesigning Sports Center, which is currently a styled empty shell.
 **Requirements**: UX-01, UX-02, UX-03, UX-04, UX-05, UX-06, UX-07, UX-08
@@ -175,10 +175,21 @@ Plans:
   5. The "Processing Plant" marketplace card's status (real partial feature vs. dead lever) is resolved, not left ambiguous
   6. The existing `WorkerNPC` hire-gated system is ported to the isometric grid, walking the new path network
   7. Procedural machine visuals (tractor/shaker) appear when the player owns the corresponding infrastructure
-**Plans**: TBD — ready for a normal `/gsd-plan-phase 9` now that scoping (and sketch 001) is done
+**Plans**: partially executed OUT OF PLAN — see the status block below before planning the remainder.
+
+**Status (recorded 2026-08-07, retroactively):** criteria 6 and 7 are met and criterion 2 is *mostly* met, delivered ad hoc across ~25 commits between 2026-07-30 and 2026-08-03 in response to live Playground screenshots rather than through `/gsd-plan-phase 9`. This row read "not started" the whole time. Recording it now, with the gaps named rather than rounded up:
+
+  - ✅ **Criterion 6** (UX-07, `WorkerNPC` on the isometric grid) — done. `hasHelper` hire-gating preserved, both NPCs walk the path lattice, and two distinct canvas worker variants ship (the user chose to keep both proposals from sketch 002 rather than pick one).
+  - ✅ **Criterion 7** (UX-08, procedural machines) — **ownership gating done, phase gating NOT done.** Four machines (Modern Tractor, Precision Sprayer, Mechanical Shaker, Branch Pruner) render from `orchardAutomationConfig` in `App.tsx:171`, each flag driven by `getInfraLevel(...) > 0`, and they move along the path lattice with animated wheels/booms. But UX-08 also said "during the phase it would plausibly operate" — there is no `currentPhase` check anywhere in the machine path, so an owned Shaker drives around in Winter. Remaining work, not a delivered criterion.
+  - 🟡 **Criterion 2** (UX-06, the "tactile diorama") — the CSS-blur canopy is gone, replaced by sketch 001's Geometric Brass direction: isometric Canvas 2D procedural trees, Neo-Steampunk palette, seasonal cycle, diamond-tiled parcels, a path *lattice* on tile boundaries (the original spec said lanes through tile centres — corrected during implementation after the user reported paths on the wrong diagonal), and inter-sector bridges. **The "buildable border zone" from the spec was never built** — no building appears in the orchard at all; the raster building sprites live only in the Marketplace.
+  - ⬜ **Criteria 1, 3, 4, 5** (UX-01..UX-05) — untouched. The sidebar header bug, the stat-display idiom, the two permanent placeholder boxes, and the Processing Plant card are all still open, and they are the part of Phase 9 that came from the 2026-07-29 screenshot audit.
+  - ➕ **Out of scope, shipped anyway**: real raster building sprites (4 seasons x Cold Storage L1/L2, Warehouse L1/L2, Processing Plant, Social Facilities) wired into the Marketplace with level tiers. This was a deliberate reversal of UX-06's "zero image assets, all procedural" principle, taken after the user judged the procedural palette "przerażająco mdła" and I explained the ceiling of Canvas 2D for building-scale art. Recorded as UX-09 so the reversal is a decision on the record, not an undocumented drift.
+
+**Remaining for Phase 9**: UX-01, UX-02 (residual), UX-03, UX-04, UX-05, UX-06 (border zone), UX-08 (phase gating), UX-09 (place the building sprites in the orchard). Worth a real `/gsd-plan-phase 9` — the ad-hoc route worked for the orchard because the user was reviewing screenshots each round, which is not how the sidebar/stat-idiom work should go.
 
 Plans:
-- [ ] 09-01: TBD (created by `/gsd-plan-phase 9`)
+- [x] 09-00: UX-06/07/08 delivered ad hoc from live screenshot review — `9be8318` (Geometric Brass canvas) → `4c3a111` (worker/machine ground-margin), plus `f804c72` (Branch Pruner end-to-end) and `f61ad9e` (Marketplace building sprites). ~25 commits, no plan file.
+- [ ] 09-01: TBD (created by `/gsd-plan-phase 9`) — the remainder listed above
 
 #### Phase 10: Quality Infrastructure ✅ (success criteria met 2026-08-06)
 **Goal**: Close the tooling gaps found during codebase mapping so future phases have working lint/test signal instead of silent gaps.
