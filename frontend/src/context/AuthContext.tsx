@@ -41,8 +41,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const actor = await createBackendActor(id);
                 console.log('[AuthContext] Backend actor created:', actor ? 'SUCCESS' : 'FAILED');
 
-                setBackendActor(actor);
-                setIsAuthenticated(true);
+                // Atomic Auth (AUTH-01/AUTH-02): isAuthenticated may only be set
+                // once backendActor is actually available. This restored-session
+                // branch was the last one missing the guard — `login()`,
+                // `initTestMode()` and the auto-login bypass all check `if (actor)`,
+                // so only here could a falsy actor leave isAuthenticated === true
+                // with backendActor === null, the exact state the invariant forbids.
+                if (actor) {
+                    setBackendActor(actor);
+                    setIsAuthenticated(true);
+                }
             } else {
                 // AUTO-LOGIN BYPASS FOR LOCAL/PLAYGROUND
                 const network = import.meta.env.VITE_DFX_NETWORK;

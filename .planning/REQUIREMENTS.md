@@ -17,7 +17,10 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 ### Auth Correctness (AUTH)
 
 - [x] **AUTH-01**: `isAuthenticated` is set only after `backendActor` is ready in ALL code paths, including `initTestMode()` — fixed 2026-07-29, `frontend/src/context/AuthContext.tsx:150`
-- [ ] **AUTH-02**: Atomic Auth invariant still violated on the **restored-session** init path. When `client.isAuthenticated()` is already true, `AuthContext.tsx` calls `setIsAuthenticated(true)` unconditionally, so a failed `createBackendActor()` leaves `isAuthenticated === true` with `backendActor === null` — the state the invariant forbids. AUTH-01 fixed `initTestMode()` and the auto-login path guards with `if (actor)`; this branch never got the same guard. Found 2026-08-06 while rewriting the auth test suite; **flagged, not silently fixed** (production auth change is outside the approved test-infrastructure scope, per CLAUDE.md). A guard test already exists, marked `it.fails()` in `src/__tests__/useAuth.test.tsx` — when the fix lands, that test starts failing, which is the signal to drop the `.fails` marker.
+- [x] **AUTH-02**: Atomic Auth invariant on the **restored-session** init path. Fixed 2026-08-07. `AuthContext.tsx` called `setIsAuthenticated(true)` unconditionally when `client.isAuthenticated()` was already true, so a falsy `createBackendActor()` would leave `isAuthenticated === true` with `backendActor === null`. Every other branch (`login()`, `initTestMode()`, the auto-login bypass) already guarded with `if (actor)`; this was the last one without it. Now guarded identically.
+  - **Honest severity**: latent, not a live crash. `createBackendActor` currently either returns an actor or throws — it never returns null — and a throw is caught by the outer `.catch()`, which leaves the flag false. It matters because every sibling branch already anticipates a falsy actor, so a refactor making the function return null on failure (a natural change) would have broken only the unguarded branch. Defence in depth, plus consistency.
+  - The `it.fails()` placeholder is gone. `src/__tests__/useAuth.test.tsx` now asserts the invariant **symmetrically across all three entry paths** (restored session, auto-login, `login()`) plus a matrix test over `{network} × {alreadyAuthenticated}` that states the invariant directly — so a future refactor cannot reopen the hole in one branch while the others stay guarded, which is exactly how AUTH-02 survived AUTH-01.
+  - **Verified by reverting**: with the guard removed, 2 of the new tests fail and name the offending combination (`network=ic, alreadyAuthenticated=true`); with it restored, 14/14 pass.
 
 ### Football Clubs (SPORTS) — promoted from v2 to v1, core pillar per GDD v3
 
@@ -85,7 +88,7 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
   - `tsconfig.json` `include` widened to `src`, `e2e`, `playwright.config.ts`, `vitest.config.ts`, `vitest.setup.ts`, so `npm run typecheck` / `npm run build` now type-check the whole test infrastructure instead of only `src` — previously a type error in a spec would have gone unnoticed, since Playwright transpiles without checking. Verified `tsc --noEmit` still exits 0.
   - Run artifacts (`test-results/`, `playwright-report/`, `blob-report/`) added to `.gitignore`.
 - [ ] **QUAL-10**: Full-journey E2E against an ephemeral local replica (init player → plant → advance phases → harvest → sell), the layer the harness specs deliberately exclude. Needs a deterministic way to neutralise the random weather-event modal and a reliable player reset (`debugResetPlayer` exists). Should reuse the ephemeral-replica pattern from `test-backend-logic.yml` rather than pointing at Playground.
-- [ ] **QUAL-04**: Pay down the lint debt captured by the `--max-warnings` ratchet. Baseline at 2026-08-06 is **185 warnings** (96 `no-explicit-any`, 71 `no-unused-vars`, 10 `react-refresh/only-export-components`, 9 `react-hooks/exhaustive-deps`). Errors are already 0 and must stay 0. The ceiling in `package.json` may only ever be **lowered** — never raise it to make lint pass. The 9 `exhaustive-deps` warnings are the highest-risk subset (stale-closure bugs in the interval/animation-driven orchard components) and should be triaged first.
+- [ ] **QUAL-04**: Pay down the lint debt captured by the `--max-warnings` ratchet. Baseline **183 warnings** as of 2026-08-07 — lowered from the original 185 by removing three avoidable `any`s from the auth tests while fixing AUTH-02 (93 `no-explicit-any`, 71 `no-unused-vars`, 10 `react-refresh/only-export-components`, 9 `react-hooks/exhaustive-deps`). Errors are already 0 and must stay 0. The ceiling in `package.json` may only ever be **lowered** — never raise it to make lint pass. The 9 `exhaustive-deps` warnings are the highest-risk subset (stale-closure bugs in the interval/animation-driven orchard components) and should be triaged first.
 - [x] **QUAL-05**: Enforce TS↔Motoko economic-formula parity automatically. Done 2026-08-06 (Phase 10, Etap 1). Added `src/__tests__/economyParity.test.ts` (line-by-line transcription of `calculateYieldPotential` + 47-case vector), `gameLogic.test.ts` (weather/labour mirrors) and `phaseGateParity.test.ts`. The suite **found three real divergences, all now closed**:
   1. **County bonus missing in the frontend.** `game_logic.mo` multiplies yield by a county modifier (Głubczyce 1.10 / Opole 1.08 / Namysłów 1.05, Phase 5.1 "Opole DNA"); `gameLogic.ts` had no county term at all.
   2. **Golden Harvester ignored by the frontend.** The backend applies it *multiplicatively* (1.05^level); the TS mirror's switch had no `GoldenHarvester` case, so the game's flagship upgrade contributed nothing to the displayed estimate.
@@ -207,13 +210,13 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | QUAL-08 | Phase 10 | Complete |
 | QUAL-09 | Phase 10 | Pending |
 | QUAL-10 | Phase 10 | Pending |
-| AUTH-02 | Phase 10 | Pending |
+| AUTH-02 | Phase 10 | Complete |
 | MAINT-01 | Backlog (gameplay) | Pending |
 | GEO-07 | Phase 5 | Pending |
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 55 total (11 complete, 44 pending)
+- v1 requirements: 55 total (12 complete, 43 pending)
 - Mapped to phases: 55
 - Unmapped: 0 ✓
 

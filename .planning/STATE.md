@@ -23,7 +23,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 Phase: 2 of 10 (Football Clubs — Restore the Core Pillar)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-08-06 — Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
+Last activity: 2026-08-07 — AUTH-02 fixed (Atomic Auth guard on the restored-session path), lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
 
 Progress: [███░░░░░░░] 30%
 
@@ -59,12 +59,12 @@ Recent decisions affecting current work:
 - Tooling gap: This session's Agent tool did not recognize the newly-installed `gsd-codebase-mapper` subagent type — codebase mapping was done via `general-purpose` subagents following the same focus/template split. Re-verify native `gsd-codebase-mapper` availability in a fresh session.
 - GDD v3: rediscovered `Mark_Vinicius_V1.md` (original concept doc) after a code-only audit (`docs/game-design/CURRENT-STATE-2026-07-29.md`) had wrongly triaged football clubs as a side stub and Cherry Festival as scope creep. Both restored as in-scope per the original dual-pillar design (`docs/game-design/GDD-ONE-PAGER.md`). Roadmap Phases 2-10 rewritten accordingly.
 - **Visual direction (2026-07-30/08-03):** Sketch 001 winner "Geometric Brass" (procedural Canvas 2D isometric trees) ported into `ImperialOrchard.tsx`; sketch 002 machines + both worker variants ported into `orchardMachines.ts`. Buildings then deliberately **split off from the procedural approach** onto real illustrated raster sprites (`frontend/public/assets/buildings/`, 4 seasons × 6 sets incl. l1/l2 tiers) — Canvas 2D vector drawing has a hard quality ceiling the mood-board reference does not share, and buildings are a small fixed catalog that needs no per-instance variety. Sketch 003 (building palette) remains unresolved/superseded by that decision.
-- **Test architecture (2026-08-06):** four-layer pyramid with the TS↔Motoko parity oracle as the centrepiece, not an afterthought. Lint debt handled with a `--max-warnings` **ratchet** (errors 0 forever, 185 warnings capped, ceiling may only go down) rather than silencing rules. PocketIC evaluated and **rejected** — see `.planning/spikes/001-pocketic-for-backend-tests.md`.
+- **Test architecture (2026-08-06):** four-layer pyramid with the TS↔Motoko parity oracle as the centrepiece, not an afterthought. Lint debt handled with a `--max-warnings` **ratchet** (errors 0 forever, warnings capped — 185 at introduction, 183 since 2026-08-07; the ceiling may only go down) rather than silencing rules. PocketIC evaluated and **rejected** — see `.planning/spikes/001-pocketic-for-backend-tests.md`.
 - **Phase order deviation (2026-08-06):** Phase 10 ran before Phases 2–9. Justified in hindsight: its parity/contract layers found real defects inside Phase 3 and Phase 5 territory before those phases started.
 
 ### Pending Todos
 
-- QUAL-04: pay down the 185-warning lint ratchet. Triage the 9 `react-hooks/exhaustive-deps` warnings first — highest risk (stale-closure bugs in the interval-driven orchard components). Never raise the ceiling to make lint pass.
+- QUAL-04: pay down the lint ratchet (ceiling now **183**, lowered from 185 while fixing AUTH-02). Triage the 9 `react-hooks/exhaustive-deps` warnings first — highest risk (stale-closure bugs in the interval-driven orchard components). Never raise the ceiling to make lint pass.
 - QUAL-09: port the 11 "healthy" legacy shell scripts to Vitest against an ephemeral dfx replica, then delete the originals and shrink `KNOWN_BROKEN` in `legacyShellScripts.test.ts`.
 - QUAL-10: full-journey E2E against an ephemeral local replica (the layer the harness specs deliberately exclude). Needs a deterministic way to neutralise the random weather-event modal.
 - QUAL-05b: close the parity loop against a live canister — needs a `debugCalculateYield` query, since `calculateYieldPotential` is internal.
@@ -73,7 +73,6 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **Flagged defects, deliberately not fixed (all outside the scope they were found in):**
-- `AUTH-02`: Atomic Auth invariant still violated on the **restored-session** init path — `AuthContext.tsx` calls `setIsAuthenticated(true)` unconditionally when a session already exists, so a failed `createBackendActor()` yields `isAuthenticated === true` with `backendActor === null`. AUTH-01 only fixed `initTestMode()`. A guard test exists marked `it.fails()` in `useAuth.test.tsx`; when the production fix lands, that test starts failing, which is the signal to drop the marker.
 - `ECON-PARITY-01`: `getInfrastructureModifier` in `game_logic.mo` folds `+=` (Tractor/Shaker/Sprayer/ColdStorage) and `*=` (GoldenHarvester) in one pass over the array, so the multiplier **depends on array order** (GH→Tractor 1.2525 vs Tractor→GH 1.2679). Changing it moves real payouts — an economy-balance decision. The frontend mirror reproduces the quirk faithfully so UI and payout agree while it stands.
 - `MAINT-01`: the `Maintenance` phase has **no player action wired**. `inspectAndRepair` is the only backend method gated to `#Maintenance` and the frontend never calls it.
 - `GEO-07`: two parcel-purchase methods coexist — `buyParcel` (used) and `purchaseParcel` (never called, and the one `lib/gddTemplate.ts` documents).
@@ -85,9 +84,10 @@ Recent decisions affecting current work:
 
 **Resolved since the last STATE update** (kept briefly for continuity):
 - ~~No `npm test` script, no ESLint config, unused Playwright~~ → all three done (QUAL-01/02/03). Note the ESLint situation was *worse* than recorded: there was no config file at all, so `npm run lint` errored out rather than being a no-op.
-- ~~`useAuth.test.tsx` fails 5/6~~ → rewritten, 11 passing. A `QueryClientProvider` wrapper alone was insufficient: the assertions had also gone stale against `AuthProvider`'s auto-login bypass.
+- ~~`useAuth.test.tsx` fails 5/6~~ → rewritten, 14 passing. A `QueryClientProvider` wrapper alone was insufficient: the assertions had also gone stale against `AuthProvider`'s auto-login bypass.
 - ~~`execution/tests/*.sh` (21 scripts) drifted~~ → measured properly: **23** scripts, **12** call removed methods (`advanceSeason` ×9, `getLeaderboard` ×2, `debugSetHansStorage` ×2) and **10** had CRLF. All CRLF fixed; the broken set is now pinned by a ratchet test so it cannot grow.
 - ~~UX/UI overhaul scoped but not started~~ → partially delivered (see Pending Todos, Phase 9 bookkeeping).
+- ~~`AUTH-02` Atomic Auth violated on the restored-session path~~ → **fixed 2026-08-07**. Guard added; the `it.fails()` placeholder replaced by symmetric assertions across all three entry paths plus a `{network} × {alreadyAuthenticated}` matrix test. Verified by reverting the guard (2 tests fail, naming the combination). Severity was latent, not live: `createBackendActor` never actually returns null today.
 
 ## Deferred Items
 
@@ -103,13 +103,13 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-08-06
+Last session: 2026-08-07
 Stopped at: Phase 10 (Quality Infrastructure) complete against its success criteria — 4 stages, 5 commits (`e201e8e`, `3894c99`, `f3e367c`, `00fe339`, `4ddaab4`), all on `feature/gsd-migration`. Gates verified green: 324 unit tests / 3 skipped / 0 failed, 38 Playwright specs, lint 0 errors, typecheck, build. Nothing pushed to `master`.
 
 Next step options:
 - `/gsd-plan-phase 2` (Football Clubs) — the intended next gameplay phase
 - Phase 3 (Economic Levers) — now the best-guarded area: `economyParity.test.ts` will catch formula drift the moment it happens
 - Reconcile Phase 9 bookkeeping (UX-06 already largely shipped) before planning it
-- Clear the flagged defects above (`AUTH-02` is the smallest and has a test waiting for it)
+- Clear the remaining flagged defects above (`MAINT-01` is the next smallest; `ECON-PARITY-01` needs an economy-balance decision, not a code fix)
 
 Resume file: None

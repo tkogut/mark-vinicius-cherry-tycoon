@@ -45,6 +45,16 @@ const makeIdentity = (principal: string) => ({
     getPrincipal: () => ({ toText: () => principal }),
 }) as any;
 
+/**
+ * The subset of `AuthClient.login`'s options that AuthProvider actually calls.
+ * Typed rather than `any` so the mocks stay honest about the callback contract
+ * (and so this file does not spend ratchet budget on avoidable `any`s).
+ */
+interface LoginOptions {
+    onSuccess: () => void | Promise<void>;
+    onError: (err?: unknown) => void;
+}
+
 /** Minimal stand-in for the backend actor — presence/absence is what matters here. */
 const makeActor = () => ({ getPlayerFarm: vi.fn(), plantTrees: vi.fn() }) as any;
 
@@ -166,7 +176,7 @@ describe('useAuth — login / logout', () => {
 
     it('login() sets identity, actor and authenticated state', async () => {
         mockAuthClient.isAuthenticated.mockResolvedValue(false);
-        mockAuthClient.login.mockImplementation(async (options: any) => {
+        mockAuthClient.login.mockImplementation(async (options: LoginOptions) => {
             await options.onSuccess();
         });
 
@@ -182,7 +192,7 @@ describe('useAuth — login / logout', () => {
     it('login() rejects and stays unauthenticated when the flow errors', async () => {
         mockAuthClient.isAuthenticated.mockResolvedValue(false);
         const failure = new Error('Login failed');
-        mockAuthClient.login.mockImplementation((options: any) => {
+        mockAuthClient.login.mockImplementation((options: LoginOptions) => {
             options.onError(failure);
         });
 
@@ -216,23 +226,24 @@ describe('useAuth — contract', () => {
     });
 });
 
-describe('useAuth — known invariant gap (AUTH-02)', () => {
-    beforeEach(() => {
+// ── Atomic Auth, asserted symmetrically across every entry path ─────────────
+//
+// The invariant (CLAUDE.md): `isAuthenticated` may only become true once
+// `backendActor` is non-null. AUTH-01 fixed `initTestMode()`; AUTH-02 (fixed
+// 2026-08-07) fixed the restored-session branch, which was the last one calling
+// `setIsAuthenticated(true)` unconditionally. These tests cover every path that
+// can flip the flag, so a future refactor cannot quietly reopen the hole in one
+// branch while the others stay guarded — which is exactly how AUTH-02 survived
+// AUTH-01.
+//
+// Note on reachability: `createBackendActor` currently either returns an actor
+// or throws — it never returns null — so this is defence in depth rather than a
+// live crash. It matters because every other branch already anticipates a falsy
+// actor with `if (actor)`, so a refactor that makes the function return null on
+// failure (a very natural change) would have broken only the unguarded branch.
+describe('useAuth — Atomic Auth invariant (AUTH-01 / AUTH-02)', () => {
+    it('restored session: a falsy actor must not produce isAuthenticated=true', async () => {
         vi.stubEnv('VITE_DFX_NETWORK', 'ic');
-    });
-
-    // Phase 1.1 / AUTH-01 fixed the Atomic Auth ordering in `initTestMode()`,
-    // and the auto-login path guards with `if (actor)`. The
-    // already-authenticated restore path did NOT get the same guard: it calls
-    // `setIsAuthenticated(true)` unconditionally, so a failed actor creation
-    // yields `isAuthenticated === true` with `backendActor === null` — exactly
-    // the state the documented invariant forbids.
-    //
-    // Marked `.fails()` so it does not redden CI while the production fix is
-    // scoped separately (flagged, not papered over, per CLAUDE.md). When the
-    // guard is added, THIS test starts failing — that is the signal to delete
-    // `.fails` and let it assert normally.
-    it.fails('should keep isAuthenticated false if the restored session has no actor', async () => {
         mockAuthClient.isAuthenticated.mockResolvedValue(true);
         mocks.createBackendActor.mockResolvedValue(null);
 
@@ -240,5 +251,55 @@ describe('useAuth — known invariant gap (AUTH-02)', () => {
 
         expect(result.current.backendActor).toBeNull();
         expect(result.current.isAuthenticated).toBe(false);
+    });
+
+    it('auto-login: a falsy actor must not produce isAuthenticated=true', async () => {
+        vi.stubEnv('VITE_DFX_NETWORK', 'local');
+        mockAuthClient.isAuthenticated.mockResolvedValue(false);
+        mocks.createBackendActor.mockResolvedValue(null);
+
+        const { result } = await renderSettled();
+
+        expect(result.current.backendActor).toBeNull();
+        expect(result.current.isAuthenticated).toBe(false);
+    });
+
+    it('login(): a falsy actor must not produce isAuthenticated=true', async () => {
+        vi.stubEnv('VITE_DFX_NETWORK', 'ic');
+        mockAuthClient.isAuthenticated.mockResolvedValue(false);
+
+        const { result } = await renderSettled();
+
+        mocks.createBackendActor.mockResolvedValue(null);
+        mockAuthClient.login.mockImplementation(async (options: LoginOptions) => {
+            await options.onSuccess();
+        });
+        await result.current.login();
+
+        expect(result.current.isAuthenticated).toBe(false);
+    });
+
+    it('never reports authenticated while the actor is missing, on any path', async () => {
+        // The invariant stated directly, over the matrix of entry conditions.
+        for (const [network, alreadyAuthed] of [
+            ['ic', true],
+            ['ic', false],
+            ['local', true],
+            ['local', false],
+        ] as const) {
+            vi.stubEnv('VITE_DFX_NETWORK', network);
+            mockAuthClient.isAuthenticated.mockResolvedValue(alreadyAuthed);
+            mocks.createBackendActor.mockResolvedValue(null);
+
+            const { result, unmount } = renderHook(() => useAuth(), { wrapper: createAuthWrapper() });
+            await waitFor(() => expect(result.current.isInitializing).toBe(false));
+
+            expect(
+                result.current.isAuthenticated && result.current.backendActor === null,
+                `Atomic Auth violated for network=${network}, alreadyAuthenticated=${alreadyAuthed}`
+            ).toBe(false);
+
+            unmount();
+        }
     });
 });
