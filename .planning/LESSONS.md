@@ -116,11 +116,23 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** Playground canisters are ephemeral leases. Each `dfx deploy --network playground` mints a **new** canister ID for both frontend and backend, so the old URL keeps serving the old build until its lease expires. The fix was live the whole time, at `ud6i4-…`.
 **Rule:** take the canister ID from *this* run's log every time — the workflow prints `canister_ids.json` at the end. Never carry a Playground URL across deploys, and never quote one to the user as if it were stable.
 
+### `as any` on a typed actor call is how phantom fields survive
+
+**Was:** `useCompetitors` called `(backendActor as any).getCompetitorsDetail()`. The method was in the generated interface all along — the cast bought nothing.
+**Actually:** it let `CompetitorsPanel` read `comp.baseCapacity`, a field `AICompetitor` does not have, so every rival rendered `NaN%` for months. The same shape produced SPORTS-03's `c.price`/`c.sharesAvailable`. Two independent screens, same cause.
+**Rule:** never cast a generated actor to `any`. If a method looks missing, run `dfx generate` — the declarations are committed precisely so the compiler can check this.
+
 ### Grep is worse than a test at finding every instance
 
 **Was:** grepped for `$` currency signs, found 6, fixed them, moved on.
 **Actually:** the test I then wrote to lock the convention in found **7 more** I had missed — Marketplace costs and upkeep, RunningCosts, SellModal, PriceChart, and a Planting modal line reading `${...} PLN`, which was wrong twice over.
 **Rule:** when fixing a whole class of thing, write the check first and let it enumerate. A hand-rolled grep encodes the shape you already thought of.
+
+### Rewriting a doc to "match the code" needs the same verification as the code
+
+**Was:** deleting a dead spoilage function, I rewrote its doc and stated spoilage applies "once per season transition".
+**Actually:** the block is guarded by `if (farm.currentSeason == #Autumn)` — it fires **once a year**. I would have replaced one piece of fiction with another, in the very commit whose point was that the doc lied. The replica showed it: 100 000 kg untouched across two transitions, then −21% entering Winter.
+**Rule:** a claim in a doc is a claim about behaviour. Run it before writing it down. Reading the function is not enough — read its call site and its guards.
 
 ## Working with the user
 

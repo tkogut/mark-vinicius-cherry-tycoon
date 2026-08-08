@@ -37,8 +37,9 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 - [ ] **ECON-02**: Season affects sale price (currently hardcoded `seasonMultiplier = 1.0`, `main.mo:2808-2819`)
 - [ ] **ECON-03**: Auction runner-up receives the trickle-down amount (already computed in `AuctionResult.runnerUpId`, never read in `main.mo`)
 - [ ] **ECON-04**: Player gains prestige on winning an Imperial Contract, matching the +5 AI competitors already receive (`main.mo:3166`)
-- [ ] **ECON-05**: Only one spoilage system exists in code (delete dead `GameLogic.calculateSpoilageRate`, keep real `StorageLogic.calculateSpoilage`, document what actually runs)
-- [ ] **ECON-06**: `CompetitorsPanel.tsx` reads the real `productionCapacity` field (not the nonexistent `baseCapacity`) and drops the hardcoded "+4.2%" market-trend tile
+- [x] **ECON-05**: One spoilage system. Done 2026-08-08. `GameLogic.calculateSpoilageRate` (a 100%/80%/20% table returning a Float) was called from **nowhere** in either track, while `spoilage-rates.md` instructed that it "MUST return the values from this table" — a documented system that did not run, and a running one documented nowhere. Dead function deleted; doc rewritten against the code. **The rewrite is where the real finding was:** my first draft said spoilage applies "once per season transition", which is false — the block is guarded by `if (farm.currentSeason == #Autumn)`, so it fires **once a year**, entering Winter. Verified on a replica: 100 000 kg untouched through Spring→Summer and Summer→Autumn, then 79 000 kg entering Winter (exactly 21% = `15 * 100 / 70`). Doc now carries the real formula, an exact 6-row storage×labour table, and a note that Cold Storage beats a Warehouse regardless of array order. Also corrected the same file's upkeep row, wrong since MAINT-01.
+- [x] **ECON-06**: `CompetitorsPanel` shows computed figures. Done 2026-08-08. Both numbers on the screen were invented: rivals got `Number(comp.baseCapacity) / 100` — a field absent from `AICompetitor` — so every row rendered **NaN%**; the player got `min(15, cash / 1000)`, cash-derived and capped arbitrarily, so growing production could not move it. **Root cause named:** `useCompetitors` returned `any` via `(backendActor as any)`, hiding a contract that was already in the generated interface. Typed as `AICompetitor[]`, so reading a nonexistent field is now a compile error — that is the guard, not the arithmetic. Market share is now capacity as a percentage of total regional capacity (sums to 100, responds to growth), with the kg/season shown alongside so the number is checkable. The "+4.2% Market Trend" tile — a string literal nothing computed — is replaced by combined regional capacity. `computeMarketShares` extracted to `lib/marketShare.ts` (ESLint's react-refresh rule correctly rejects a non-component export in a component file) with 6 tests, verified by restoring the unguarded divide.
+- [ ] **ECON-08 (new, 2026-08-08)**: `organicCherries` is **never touched by the spoilage block** — only `cherries` rots. Confirmed on a replica: 50 000 organic in, 50 000 out, while conventional lost 21% in the same transition. Organic cherries already command a price premium and carry a 0.8x yield penalty as their cost; permanent spoilage immunity on top is a third, undocumented advantage. Whether that is intended is an economy-balance decision, hence flagged rather than tuned — same treatment as `ECON-PARITY-01` and `MAINT-02`.
 - [ ] **ECON-07**: AI archetype names (Marek/Kasia/Hans) are consistent across code (`#Traditionalist`/`#Innovator`/`#Businessman`), UI display names, and docs — pick one canonical scheme
 
 ### Weather UI Consolidation (WEATHER) — narrowed after audit found most of this already built
@@ -194,9 +195,10 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-02 | Phase 3 | Pending |
 | ECON-03 | Phase 3 | Pending |
 | ECON-04 | Phase 3 | Pending |
-| ECON-05 | Phase 3 | Pending |
-| ECON-06 | Phase 3 | Pending |
+| ECON-05 | Phase 3 | Complete |
+| ECON-06 | Phase 3 | Complete |
 | ECON-07 | Phase 3 | Pending |
+| ECON-08 | Backlog (economy balance) | Pending |
 | WEATHER-01 | Phase 4 | Pending |
 | WEATHER-02 | Phase 4 | Pending |
 | WEATHER-03 | Phase 4 | Pending |
@@ -244,8 +246,8 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 62 total (21 complete, 2 partial, 39 pending)
-- Mapped to phases: 62
+- v1 requirements: 63 total (23 complete, 2 partial, 38 pending)
+- Mapped to phases: 63
 - Unmapped: 0 ✓
 
 ---
