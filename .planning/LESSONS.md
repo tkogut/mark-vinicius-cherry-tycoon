@@ -104,6 +104,12 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** every developer machine has an emoji font. A bare headless Chromium does not, and neither do many Linux clients. On the 2026-08-07 Playground deploy the orchard readout said `▯ 50 trees`. It also meant the app had two parallel icon vocabularies — lucide everywhere else, emoji here.
 **Rule:** icons are `lucide-react` SVGs. Pinned by `uiConventions.test.ts`. The wider point: a class of bug exists that is invisible on the machine that wrote it, so screenshot the *deployed* build, not just the dev server.
 
+### A filesystem test can pass locally and fail on a fresh checkout
+
+**Was:** `agentDocs.test.ts` passed on every local run, so I treated it as proven.
+**Actually:** the first CI run of it failed twice. (1) `validate.sh` was committed as `100644` — I had `chmod +x`'d the working copy *after* `git add`, so my machine could run it and a fresh clone could not. (2) The test asserted every path named in `CLAUDE.md` resolves, but `.claude/settings.local.json` is untracked-by-design, so it exists here and nowhere else.
+**Rule:** any test that reads the filesystem is testing *your* working copy, not the repo. For anything about file modes or presence, ask git (`git ls-files -s`), and give intentionally-untracked paths an explicit exemption with a reason. Fix modes with `git update-index --chmod=+x`, not `chmod` alone.
+
 ### Playground canister IDs change on every deploy — never reuse the URL
 
 **Was:** deployed, screenshotted `4w6mb-…`, deployed a fix, screenshotted the same URL again, and concluded the fix had not shipped. Started digging through the built bundle for a build-cache problem that did not exist.

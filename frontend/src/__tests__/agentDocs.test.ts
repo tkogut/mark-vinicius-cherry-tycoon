@@ -27,6 +27,18 @@ const INSTRUCTION_FILES = [
 ];
 
 /**
+ * Paths the instruction files legitimately name but that are not in the repo,
+ * so they cannot resolve in a fresh checkout. Each needs a reason — this list
+ * is an escape hatch, not a place to silence a genuinely broken route.
+ */
+const LOCAL_ONLY: Array<{ path: string; why: string }> = [
+    {
+        path: '.claude/settings.local.json',
+        why: 'per-developer Claude Code settings, deliberately untracked; CLAUDE.md names it because that is where the .env hook denies live',
+    },
+];
+
+/**
  * Backtick-quoted things that look like repo paths. Bare filenames (`main.mo`)
  * are deliberately excluded — they appear as shorthand next to a full path in
  * the same row, and resolving them would mean guessing which directory was
@@ -77,8 +89,9 @@ describe.each(INSTRUCTION_FILES)('$path', ({ path, maxBytes }) => {
 
     it('every path it points at resolves', () => {
         const content = readFileSync(absolute, 'utf8');
+        const exempt = new Set(LOCAL_ONLY.map((entry) => entry.path));
         const broken = referencedPaths(content).filter(
-            (candidate) => !existsSync(resolve(REPO_ROOT, candidate))
+            (candidate) => !exempt.has(candidate) && !existsSync(resolve(REPO_ROOT, candidate))
         );
 
         expect(
@@ -129,6 +142,10 @@ describe('validate.sh', () => {
     const absolute = resolve(REPO_ROOT, 'validate.sh');
 
     it('exists and is executable', () => {
+        // This only bites in CI. Locally the file was chmod'ed after being
+        // written, so the working copy is executable while git still had it as
+        // 100644 — meaning a fresh clone could not run `./validate.sh` at all.
+        // Caught by the first PR run (`git update-index --chmod=+x` was the fix).
         expect(existsSync(absolute)).toBe(true);
         expect(statSync(absolute).mode & 0o111, 'validate.sh is not executable').toBeGreaterThan(0);
     });
