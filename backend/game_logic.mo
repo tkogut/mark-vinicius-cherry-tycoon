@@ -42,27 +42,18 @@ module {
     }
   };
 
-  // Spoilage calculation (GDD Section 4)
-  public func calculateSpoilageRate(infrastructure: [Infrastructure]) : Float {
-    var hasColdStorage = false;
-    var hasWarehouse = false;
-    
-    for (infra in infrastructure.vals()) {
-       switch (infra.infraType) {
-         case (#ColdStorage) { hasColdStorage := true };
-         case (#Warehouse) { hasWarehouse := true };
-         case (_) {};
-       };
-    };
-
-    if (hasColdStorage) {
-      0.20 // 20% spoilage with Cold Storage
-    } else if (hasWarehouse) {
-      0.80 // 80% spoilage with Warehouse
-    } else {
-      1.0 // 100% spoilage without storage
-    };
-  };
+  // ECON-05: `calculateSpoilageRate` used to live here — a 100%/80%/20%
+  // infrastructure table returning a Float. It was **never called from
+  // anywhere**, in either track, while `docs/game-design/economy/spoilage-rates.md`
+  // instructed the reader that it "MUST return the values from this table".
+  // So the game had a documented spoilage system that did not run and a
+  // running one that was documented nowhere.
+  //
+  // What actually runs is in `storage_logic.mo`, applied at season end in
+  // `main.mo` (_advanceSeasonInternal):
+  //   baseRate    = 15%, or 8% with a Warehouse, or 2% with Cold Storage
+  //   spoilage%   = baseRate * 100 / handlingQuality   (HiringLogic, 70-120)
+  // Deleting the dead copy is the fix; the doc now describes the real formula.
 
   // pH modifier (optimal 6.0-7.0)
   private func getPhModifier(pH: Float) : Float {
