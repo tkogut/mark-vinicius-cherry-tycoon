@@ -11,9 +11,14 @@ export const WeatherEffects: React.FC<WeatherEffectsProps> = ({ weatherState }) 
     const weatherType = weatherEvent ? Object.keys(weatherEvent.weather)[0] : null;
 
     useEffect(() => {
-        if (weatherType === 'Rainy' || weatherType === 'Frost') {
+        if (weatherType === 'Rainy' || weatherType === 'Frost' || weatherType === 'PestOutbreak' || weatherType === 'DiseaseOutbreak' || weatherType === 'Flood') {
             // Generate random starting positions for particles
-            const count = weatherType === 'Rainy' ? 100 : 50;
+            let count = 50;
+            if (weatherType === 'Rainy') count = 100;
+            if (weatherType === 'Flood') count = 200;
+            if (weatherType === 'PestOutbreak') count = 150;
+            if (weatherType === 'DiseaseOutbreak') count = 80;
+
             const newParticles = Array.from({ length: count }, () => Math.random() * 100);
             setParticles(newParticles);
         } else {
@@ -25,20 +30,23 @@ export const WeatherEffects: React.FC<WeatherEffectsProps> = ({ weatherState }) 
 
     return (
         <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-            {/* Rainy Effect */}
-            {weatherType === 'Rainy' && (
-                <div className="absolute inset-0 bg-blue-900/10">
+            {/* Rainy / Flood Effect */}
+            {(weatherType === 'Rainy' || weatherType === 'Flood') && (
+                <div className={`absolute inset-0 ${weatherType === 'Flood' ? 'bg-blue-900/20' : 'bg-blue-900/10'}`}>
                     {particles.map((left, i) => (
                         <div
                             key={i}
-                            className="absolute top-0 w-[2px] h-12 bg-blue-400/50"
+                            className={`absolute top-0 w-[2px] bg-blue-400/50 ${weatherType === 'Flood' ? 'h-24' : 'h-12'}`}
                             style={{
                                 left: `${left}%`,
-                                animation: `rain-fall ${0.5 + Math.random()}s linear infinite`,
+                                animation: `rain-fall ${weatherType === 'Flood' ? 0.3 : 0.6}s linear infinite`,
                                 animationDelay: `-${Math.random() * 2}s`
                             }}
                         />
                     ))}
+                    {weatherType === 'Flood' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-blue-900/40 to-transparent animate-pulse" />
+                    )}
                 </div>
             )}
 
@@ -53,6 +61,42 @@ export const WeatherEffects: React.FC<WeatherEffectsProps> = ({ weatherState }) 
                                 left: `${left}%`,
                                 animation: `snow-drift ${3 + Math.random() * 3}s linear infinite`,
                                 animationDelay: `-${Math.random() * 4}s`
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Pest Outbreak (Swarm) */}
+            {weatherType === 'PestOutbreak' && (
+                <div className="absolute inset-0">
+                    {particles.map((left, i) => (
+                        <div
+                            key={i}
+                            className="absolute w-1 h-1 bg-amber-900 rounded-full opacity-60"
+                            style={{
+                                left: `${left}%`,
+                                top: `${Math.random() * 100}%`,
+                                animation: `pest-swarm ${1 + Math.random() * 2}s ease-in-out infinite`,
+                                animationDelay: `-${Math.random() * 2}s`
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Disease Outbreak (Miasma) */}
+            {weatherType === 'DiseaseOutbreak' && (
+                <div className="absolute inset-0 bg-emerald-950/10">
+                    {particles.map((left, i) => (
+                        <div
+                            key={i}
+                            className="absolute w-8 h-8 bg-emerald-500/5 rounded-full filter blur-xl"
+                            style={{
+                                left: `${left}%`,
+                                top: `${Math.random() * 100}%`,
+                                animation: `miasma-drift ${5 + Math.random() * 5}s ease-in-out infinite`,
+                                animationDelay: `-${Math.random() * 5}s`
                             }}
                         />
                     ))}

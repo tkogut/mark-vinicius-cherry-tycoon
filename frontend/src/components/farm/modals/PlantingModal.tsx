@@ -119,7 +119,7 @@ export const PlantingModal: React.FC<PlantingModalProps> = ({
                                     "font-mono font-bold",
                                     parseInt(amount) * 50 > Number(userCash) ? 'text-rose-500' : 'text-amber-400'
                                 )}>
-                                    ${(parseInt(amount) * 50).toLocaleString()} PLN
+                                    {(parseInt(amount) * 50).toLocaleString()} PLN
                                 </span>
                             </div>
 
@@ -128,7 +128,7 @@ export const PlantingModal: React.FC<PlantingModalProps> = ({
                                     <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                                     <div className="text-[10px] text-amber-200 leading-normal">
                                         <span className="font-bold text-amber-500 block mb-0.5">FINANCIAL RISK</span>
-                                        This investment might leave you with insufficient funds to reach the next harvest season (Need: ${estimatedSurvivalCost.toLocaleString()} PLN).
+                                        This investment might leave you with insufficient funds to reach the next harvest season (Need: {estimatedSurvivalCost.toLocaleString()} PLN).
                                     </div>
                                 </div>
                             )}

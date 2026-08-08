@@ -20,7 +20,75 @@ import { useStability } from '@/hooks/useFarm';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertCircle, ShoppingCart, CheckCircle2 } from 'lucide-react';
 import { isActionAllowed, SeasonPhase, PHASE_LABELS } from '@/config/phaseConstants';
+import { drawModernTractor, drawPrecisionSprayer, drawMechanicalShaker, drawBranchPruner } from './orchardMachines';
 
+const MACHINE_THUMBNAIL_DRAW_FNS: Record<string, (ctx: CanvasRenderingContext2D, seed: number) => void> = {
+    tractor: drawModernTractor,
+    sprayer: drawPrecisionSprayer,
+    shaker: drawMechanicalShaker,
+    pruner: drawBranchPruner,
+};
+
+/** Static single-frame render of the real orchard machine model (sketch 002 / orchardMachines.ts) as a Marketplace card thumbnail — same art the machine uses when walking the orchard, not a generic icon. */
+const MachineThumbnail: React.FC<{ machineType: string }> = ({ machineType }) => {
+    const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    React.useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const drawFn = MACHINE_THUMBNAIL_DRAW_FNS[machineType];
+        if (drawFn) drawFn(ctx, 0);
+    }, [machineType]);
+    return <canvas ref={canvasRef} width={200} height={200} style={{ width: '100%', height: '100%' }} />;
+};
+
+// Building types with a seasonal raster sprite set — extracted+cleaned from
+// AI-generated reference sheets (see tmp/extracted-buildings/), one per
+// season, transparent background, served from
+// frontend/public/assets/buildings/<folder>/<season>.png.
+//
+// Cold Storage and Warehouse have TWO art sets (an "l1" and a visibly bigger,
+// more detailed "l2"/upgraded set) — real Infrastructure.level is 1-5, but we
+// only have art for two tiers so far, so level >= 2 shows the l2 set and
+// everything else (including not-yet-purchased, level 0) shows l1. Processing
+// Plant and Social Facilities only have one art set so far; adding an l2 set
+// later just means adding a second entry to LEVELED_BUILDING_FOLDERS below.
+type BuildingSpriteType = 'coldStorage' | 'warehouse' | 'processingPlant' | 'socialFacilities';
+
+const LEVELED_BUILDING_FOLDERS: Partial<Record<BuildingSpriteType, { l1: string; l2: string }>> = {
+    coldStorage: { l1: 'cold-storage-l1', l2: 'cold-storage-l2' },
+    warehouse: { l1: 'warehouse-l1', l2: 'warehouse-l2' },
+};
+const SINGLE_TIER_BUILDING_FOLDERS: Partial<Record<BuildingSpriteType, string>> = {
+    processingPlant: 'processing-plant',
+    socialFacilities: 'social-facilities',
+};
+
+function buildingSpriteFolder(buildingType: BuildingSpriteType, level: number): string {
+    const leveled = LEVELED_BUILDING_FOLDERS[buildingType];
+    if (leveled) return level >= 2 ? leveled.l2 : leveled.l1;
+    return SINGLE_TIER_BUILDING_FOLDERS[buildingType] ?? '';
+}
+
+const BUILDING_SPRITE_SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
+type BuildingSpriteSeason = typeof BUILDING_SPRITE_SEASONS[number];
+
+/** Extracts the season key ("Spring"/"Summer"/...) from a backend season variant object like `{ Spring: null }`, lowercased to match the sprite filenames. Falls back to 'spring' if unrecognized. */
+function seasonKeyFromBackend(season: any): BuildingSpriteSeason {
+    const raw = season && typeof season === 'object' ? Object.keys(season)[0] : season;
+    const lower = String(raw || '').toLowerCase();
+    return (BUILDING_SPRITE_SEASONS as readonly string[]).includes(lower) ? (lower as BuildingSpriteSeason) : 'spring';
+}
+
+/** Real seasonal (and, for buildings with more than one art tier, level-aware) raster sprite — same pre-rendered art in every season the game recognizes, swapped by an <img> src change rather than redrawn. */
+const BuildingSprite: React.FC<{ buildingType: BuildingSpriteType; season: any; level: number }> = ({ buildingType, season, level }) => {
+    const seasonKey = seasonKeyFromBackend(season);
+    const folder = buildingSpriteFolder(buildingType, level);
+    const src = `/assets/buildings/${folder}/${seasonKey}.png`;
+    return <img src={src} alt="" className="w-full h-full object-contain" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }} />;
+};
 
 interface InfrastructureItem {
     id: string;
@@ -30,6 +98,10 @@ interface InfrastructureItem {
     icon: React.ReactNode;
     effect: string;
     type: 'Building' | 'Machinery';
+    /** When set, the Marketplace card shows the real Geometric Brass model (orchardMachines.ts) instead of `icon`. */
+    machineType?: 'tractor' | 'sprayer' | 'shaker' | 'pruner';
+    /** When set, the Marketplace card shows a real seasonal raster sprite (BuildingSprite) instead of `icon`. */
+    buildingType?: BuildingSpriteType;
 }
 
 const MARKET_ITEMS: InfrastructureItem[] = [
@@ -40,7 +112,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 25000,
         icon: <Warehouse className="h-6 w-6" />,
         effect: 'Spoilage Armor: 20% — retains 20% of stored cherries',
-        type: 'Building'
+        type: 'Building',
+        buildingType: 'warehouse'
     },
     {
         id: 'ColdStorage',
@@ -49,7 +122,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 40000,
         icon: <Snowflake className="h-6 w-6" />,
         effect: 'Spoilage Armor: 80% — retains 80% of stored cherries',
-        type: 'Building'
+        type: 'Building',
+        buildingType: 'coldStorage'
     },
     {
         id: 'ProcessingFacility',
@@ -58,7 +132,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 100000,
         icon: <Factory className="h-6 w-6" />,
         effect: 'Increases wholesale base price by 15%',
-        type: 'Building'
+        type: 'Building',
+        buildingType: 'processingPlant'
     },
     {
         id: 'SocialFacilities',
@@ -67,7 +142,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 15000,
         icon: <Users className="h-6 w-6" />,
         effect: '-5% Labor Costs',
-        type: 'Building'
+        type: 'Building',
+        buildingType: 'socialFacilities'
     },
     {
         id: 'Tractor',
@@ -76,7 +152,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 30000,
         icon: <Truck className="h-6 w-6" />,
         effect: '-15% Labor Costs',
-        type: 'Machinery'
+        type: 'Machinery',
+        machineType: 'tractor'
     },
     {
         id: 'Shaker',
@@ -85,7 +162,8 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 60000,
         icon: <Zap className="h-6 w-6" />,
         effect: '-30% Labor Costs (Stackable)',
-        type: 'Machinery'
+        type: 'Machinery',
+        machineType: 'shaker'
     },
     {
         id: 'Sprayer',
@@ -94,7 +172,18 @@ const MARKET_ITEMS: InfrastructureItem[] = [
         cost: 12000,
         icon: <Droplets className="h-6 w-6" />,
         effect: 'Reduces fertilizer usage cost by 10%',
-        type: 'Machinery'
+        type: 'Machinery',
+        machineType: 'sprayer'
+    },
+    {
+        id: 'Pruner',
+        name: 'Branch Pruner',
+        description: 'Wheeled automated branch-trimming unit.',
+        cost: 18000,
+        icon: <Wrench className="h-6 w-6" />,
+        effect: '-10% Labor Costs · +Quality Score per level',
+        type: 'Machinery',
+        machineType: 'pruner'
     }
 ];
 
@@ -104,9 +193,11 @@ interface MarketplaceProps {
     onPurchase: (id: string) => void;
     isLoading?: boolean;
     currentPhase?: SeasonPhase | string;
+    /** Backend season variant, e.g. `{ Spring: null }` — picks which BuildingSprite image to show. Optional so existing callers keep working; defaults to spring. */
+    season?: any;
 }
 
-export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastructure, onPurchase, isLoading, currentPhase }) => {
+export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastructure, onPurchase, isLoading, currentPhase, season }) => {
     // Normalize currentPhase
     const phaseKey = (typeof currentPhase === 'string'
         ? currentPhase
@@ -124,6 +215,12 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
         });
     };
 
+    /** Current level of an owned infrastructure item, 0 if not owned — feeds BuildingSprite's l1/l2 art tier selection. */
+    const getLevel = (id: string): number => {
+        const infra = ownedInfrastructure.find(i => Object.keys(i.infraType)[0] === id);
+        return infra ? Number(infra.level) : 0;
+    };
+
     const renderItem = (item: InfrastructureItem) => {
         const owned = isOwned(item.id);
         const canAfford = Number(cash) >= item.cost;
@@ -136,10 +233,12 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                 <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                         <div className={cn(
-                            "p-2 rounded-lg",
+                            (item.machineType || item.buildingType) ? "p-1 rounded-lg w-16 h-16" : "p-2 rounded-lg",
                             owned ? "bg-emerald-500/10 text-emerald-400" : "bg-slate-800 text-slate-400"
                         )}>
-                            {item.icon}
+                            {item.machineType ? <MachineThumbnail machineType={item.machineType} />
+                                : item.buildingType ? <BuildingSprite buildingType={item.buildingType} season={season} level={getLevel(item.id)} />
+                                : item.icon}
                         </div>
                         {owned ? (
                             <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
@@ -152,7 +251,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                                     "text-sm font-mono font-bold",
                                     canAfford ? "text-amber-400" : "text-rose-400"
                                 )}>
-                                    ${item.cost.toLocaleString()}
+                                    {item.cost.toLocaleString()} PLN
                                 </span>
                                 {(Number(cash) - item.cost < estimatedSurvivalCost) && Number(cash) >= item.cost && (
                                     <TooltipProvider>
@@ -170,7 +269,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({ cash, ownedInfrastruct
                                     </TooltipProvider>
                                 )}
                                 <span className="text-[10px] text-slate-500 font-medium mt-1">
-                                    Upkeep: ${item.type === 'Machinery' ? (item.cost * 0.02) : (item.cost * 0.01)} / season
+                                    Upkeep: {item.type === 'Machinery' ? (item.cost * 0.02) : (item.cost * 0.01)} PLN / season
                                 </span>
                             </div>
                         )}

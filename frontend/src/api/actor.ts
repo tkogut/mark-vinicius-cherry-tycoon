@@ -9,7 +9,7 @@ const OFFICIAL_BACKEND_CANISTER_ID = "6mce5-laaaa-aaaab-qacsq-cai";
 
 
 export const createBackendActor = async (identity?: Identity) => {
-    const isLocal = window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1");
+    const isLocal = import.meta.env.VITE_DFX_NETWORK === 'local';
 
     // Dual Entrypoint Resolution:
     // Priority: explicit env var -> OFFICIAL hardcoded fallback
@@ -24,7 +24,8 @@ export const createBackendActor = async (identity?: Identity) => {
     if (!canisterId) {
         throw new Error("Canister ID is required for backend actor creation. Check environment variables.");
     }
-    const host = isLocal ? "http://127.0.0.1:8000" : "https://ic0.app";
+    // Use current origin for local so Vite proxies it to the WSL replica on port 8000
+    const host = isLocal ? window.location.origin : "https://ic0.app";
 
     const agent = new HttpAgent({
         host,

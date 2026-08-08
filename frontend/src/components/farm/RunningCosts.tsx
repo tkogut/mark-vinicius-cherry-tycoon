@@ -57,7 +57,7 @@ export const RunningCosts: React.FC<RunningCostsProps> = ({ ownedInfrastructure,
                         "text-xl font-mono font-bold",
                         isRisky ? "text-rose-500" : "text-amber-400"
                     )}>
-                        ${Math.round(totalEst).toLocaleString()}
+                        {Math.round(totalEst).toLocaleString()}
                     </span>
                     <span className="text-[10px] text-slate-500">PLN</span>
                 </div>

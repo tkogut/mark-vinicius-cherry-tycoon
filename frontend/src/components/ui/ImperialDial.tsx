@@ -65,14 +65,10 @@ export const ImperialDial: React.FC<ImperialDialProps> = ({ value, min, max, onC
 
         let clientX, clientY;
         if ('touches' in e) {
-            // @ts-ignore
             clientX = e.touches[0].clientX;
-            // @ts-ignore
             clientY = e.touches[0].clientY;
         } else {
-            // @ts-ignore
             clientX = e.clientX;
-            // @ts-ignore
             clientY = e.clientY;
         }
 
@@ -132,17 +128,17 @@ export const ImperialDial: React.FC<ImperialDialProps> = ({ value, min, max, onC
     const EmeraldDropShadow = `drop-shadow(0 0 ${glowPercentage * 0.3}px rgba(16, 185, 129, ${0.4 + glowPercentage * 0.006}))`;
 
     return (
-        <div className="flex flex-col items-center justify-center p-2 bg-black/40 rounded-3xl border border-[#d4af37]/30 shadow-2xl relative w-full overflow-hidden">
+        <div className="flex flex-col items-center justify-center p-1 bg-black/40 rounded-xl border border-[#d4af37]/30 shadow-2xl relative w-full overflow-hidden">
 
             {/* Background vignette */}
             <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%)' }}></div>
 
-            <div className="text-[#d4af37] font-bold tracking-[0.2em] text-[11px] mb-2 uppercase z-10" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+            <div className="text-[#d4af37] font-bold tracking-[0.2em] text-[8px] mb-0.5 uppercase z-10" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
                 {label}
             </div>
 
             <div
-                className="relative w-44 h-44 touch-none select-none"
+                className="relative w-24 h-24 touch-none select-none"
                 ref={dialRef}
                 onPointerDown={handlePointerDown}
                 onTouchStart={handlePointerDown}
@@ -154,12 +150,12 @@ export const ImperialDial: React.FC<ImperialDialProps> = ({ value, min, max, onC
                     style={{
                         backgroundImage: 'url(/assets/textures/mahogany.png)',
                         backgroundSize: 'cover',
-                        border: '6px solid #3e2723',
-                        boxShadow: 'inset 0 15px 30px rgba(0,0,0,0.9), 0 5px 15px rgba(0,0,0,0.5)'
+                        border: '3px solid #3e2723',
+                        boxShadow: 'inset 0 8px 16px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.5)'
                     }}
                 >
                     {/* Engraved Gold Scale Ring */}
-                    <div className="absolute inset-2 rounded-full border border-[#d4af37]/30 shadow-[inset_0_0_10px_rgba(0,0,0,0.8)]" />
+                    <div className="absolute inset-1 rounded-full border border-[#d4af37]/30 shadow-[inset_0_0_6px_rgba(0,0,0,0.8)]" />
                     <svg className="absolute inset-0 w-full h-full opacity-60" viewBox="0 0 100 100">
                         {/* Minor Ticks */}
                         <circle cx="50" cy="50" r="45" fill="none" stroke="#d4af37" strokeWidth="1" strokeDasharray="0.5 2.45" />
@@ -174,7 +170,7 @@ export const ImperialDial: React.FC<ImperialDialProps> = ({ value, min, max, onC
                     style={{
                         transform: `rotate(${rotation}deg)`,
                         transformOrigin: 'center center',
-                        filter: 'drop-shadow(0 5px 10px rgba(0,0,0,0.9))' // Deep shadow for embedded look
+                        filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.9))' // Deep shadow for embedded look
                     }}
                 >
                     {/* The Gear Texture Base */}
@@ -192,39 +188,39 @@ export const ImperialDial: React.FC<ImperialDialProps> = ({ value, min, max, onC
                     >
                         <div className="absolute inset-0 w-full h-full" style={{
                             backgroundImage: 'url(/assets/textures/brass_filigree.png)',
-                            backgroundSize: '150px',
+                            backgroundSize: '90px',
                             backgroundPosition: 'center',
                         }} />
                     </div>
 
                     {/* Engraved Indicator Notch */}
-                    <div className="absolute top-[18%] w-2 h-6 rounded-full bg-black/80 shadow-inner z-10" style={{ boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.9)' }} />
+                    <div className="absolute top-[18%] w-1 h-3 rounded-full bg-black/80 shadow-inner z-10" style={{ boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.9)' }} />
                 </div>
 
                 {/* Bioluminescent Emerald Glass Core — GOLDEN STANDARD RADIANCE */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
                     <div
-                        className="w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300"
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
                         style={{
                             background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #00ff41 30%, #059669 65%, #064e3b 100%)',
-                            boxShadow: `inset -5px -5px 20px rgba(0,0,0,0.9), inset 5px 5px 15px rgba(255,255,255,0.9), 0 0 ${glowPercentage * 0.8}px rgba(16,185,129,${0.5 + glowPercentage * 0.012})`,
-                            filter: `drop-shadow(0 0 30px rgba(0, 255, 65, 0.9))`,
-                            border: '2px solid rgba(255,255,255,0.8)'
+                            boxShadow: `inset -2px -2px 8px rgba(0,0,0,0.9), inset 2px 2px 8px rgba(255,255,255,0.9), 0 0 ${glowPercentage * 0.5}px rgba(16,185,129,${0.5 + glowPercentage * 0.012})`,
+                            filter: `drop-shadow(0 0 15px rgba(0, 255, 65, 0.9))`,
+                            border: '1px solid rgba(255,255,255,0.8)'
                         }}
                     >
                         {/* Sharp Specular Highlight */}
-                        <div className="w-4 h-4 bg-white/90 rounded-full absolute top-[15%] left-[15%] blur-[1px]" />
+                        <div className="w-2 h-2 bg-white/90 rounded-full absolute top-[15%] left-[15%] blur-[1px]" />
 
                         {/* Micro bubbles effect */}
-                        <div className="w-1 h-1 bg-white/80 rounded-full absolute top-[40%] left-[25%]" />
-                        <div className="w-1.5 h-1.5 bg-white/70 rounded-full absolute bottom-[30%] right-[30%]" />
+                        <div className="w-1 h-1 bg-white/80 rounded-full absolute top-[40%] left-[25%] opacity-60" />
+                        <div className="w-1.5 h-1.5 bg-white/70 rounded-full absolute bottom-[30%] right-[30%] opacity-60" />
                     </div>
                 </div>
 
             </div>
 
-            <div className="mt-[10px] text-2xl font-bold font-mono tracking-wider text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)] z-10 w-48 text-center bg-black/50 py-[18px] rounded-lg border border-emerald-900/50">
-                {value} <span className="text-xs opacity-80 ml-1">PLN / t</span>
+            <div className="mt-1 text-xs font-bold font-mono tracking-wider text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.8)] z-10 w-28 text-center bg-black/50 py-0.5 rounded-md border border-emerald-900/50">
+                {value} <span className="text-[9px] opacity-80 ml-0.5">PLN / t</span>
             </div>
         </div>
     );

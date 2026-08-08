@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { SOUNDS } from '@/config/sounds';
 import { useAudio } from '@/contexts/AudioContext';
 import { InvestmentCard } from './InvestmentCard';
+import { BlueprintShowcase } from './BlueprintShowcase';
 import {
     WAREHOUSE_SPOILAGE_ARMOR,
     COLD_STORAGE_SPOILAGE_ARMOR,
@@ -26,6 +27,8 @@ export const InvestmentsDashboard: React.FC<InvestmentsDashboardProps> = ({ onBa
     const { playSFX } = useAudio();
     const [isUpgrading, setIsUpgrading] = useState<string | null>(null);
     const [hapticShake, setHapticShake] = useState(false);
+    const [showBlueprintType, setShowBlueprintType] = useState<string | null>(null);
+    const [justLeveledUp, setJustLeveledUp] = useState(false);
 
     // Audio debounce
     const lastSoundRef = useRef<number>(0);
@@ -61,6 +64,8 @@ export const InvestmentsDashboard: React.FC<InvestmentsDashboardProps> = ({ onBa
         try {
             setIsUpgrading('GoldenHarvester');
             await upgradeGoldenHarvester.mutateAsync();
+            setJustLeveledUp(true);
+            setShowBlueprintType('GoldenHarvester');
         } finally {
             setIsUpgrading(null);
         }
@@ -151,8 +156,12 @@ export const InvestmentsDashboard: React.FC<InvestmentsDashboardProps> = ({ onBa
                                 canAfford={(farm?.cash ?? 0n) >= BigInt(harvesterNextCost)}
                                 isUpgrading={isUpgrading === 'GoldenHarvester'}
                                 onUpgrade={handleHarvesterUpgrade}
+                                secondaryAction={{
+                                    label: "View Showcase",
+                                    onClick: () => setShowBlueprintType('GoldenHarvester')
+                                }}
                                 stats={[
-                                    { label: "Yield Bonus", value: `${(yieldMultiplier * 100).toFixed(1)}%`, trend: "+5%" },
+                                    { label: "Yield Bonus", value: `+${yieldMultiplier > 1 ? ((yieldMultiplier - 1) * 100).toFixed(1) : 0}%`, trend: "+5%" },
                                     { label: "Asset Value", value: `${(harvesterLevel * 50000).toLocaleString()} PLN` }
                                 ]}
                             />
@@ -180,6 +189,10 @@ export const InvestmentsDashboard: React.FC<InvestmentsDashboardProps> = ({ onBa
                                     { label: "Storage Capacity", value: `${(warehouseLevel + 1) * 10} Tons` },
                                     { label: "Spoilage Armor", value: `${WAREHOUSE_SPOILAGE_ARMOR}%`, trend: "+10%" }
                                 ]}
+                                secondaryAction={{
+                                    label: "View Blueprint",
+                                    onClick: () => setShowBlueprintType('Warehouse')
+                                }}
                             />
                             <InvestmentCard
                                 title="Cold Storage"
@@ -194,6 +207,10 @@ export const InvestmentsDashboard: React.FC<InvestmentsDashboardProps> = ({ onBa
                                     { label: "Est. Quality Bonus", value: `+${coldStorageLevel * COLD_STORAGE_QUALITY_PER_LEVEL} Pts`, trend: `+${COLD_STORAGE_QUALITY_PER_LEVEL}` },
                                     { label: "Spoilage Armor", value: `${COLD_STORAGE_SPOILAGE_ARMOR}%`, trend: "+5%" }
                                 ]}
+                                secondaryAction={{
+                                    label: "View Blueprint",
+                                    onClick: () => setShowBlueprintType('ColdStorage')
+                                }}
                             />
                         </div>
                     </TabsContent>
@@ -213,6 +230,10 @@ export const InvestmentsDashboard: React.FC<InvestmentsDashboardProps> = ({ onBa
                                     { label: "Labor Cost", value: `-${tractorLevel * 15}%`, trend: "-15%" },
                                     { label: "Yield Bonus", value: "+5%", trend: "+5%" }
                                 ]}
+                                secondaryAction={{
+                                    label: "View Blueprint",
+                                    onClick: () => setShowBlueprintType('Tractor')
+                                }}
                             />
                             <InvestmentCard
                                 title="Steam Shaker"
@@ -227,6 +248,10 @@ export const InvestmentsDashboard: React.FC<InvestmentsDashboardProps> = ({ onBa
                                     { label: "Labor Cost", value: `-${shakerLevel * 30}%`, trend: "-30%" },
                                     { label: "Quality Penalty", value: `${SHAKER_QUALITY_PER_LEVEL} Pts`, trend: "Flat" }
                                 ]}
+                                secondaryAction={{
+                                    label: "View Blueprint",
+                                    onClick: () => setShowBlueprintType('Shaker')
+                                }}
                             />
                             <InvestmentCard
                                 title="Ruby Sprayer"
@@ -241,11 +266,111 @@ export const InvestmentsDashboard: React.FC<InvestmentsDashboardProps> = ({ onBa
                                     { label: "Disease Resist", value: "High" },
                                     { label: "Quality Bonus", value: `+${sprayerLevel * SPRAYER_QUALITY_PER_LEVEL} Pts`, trend: `+${SPRAYER_QUALITY_PER_LEVEL}` }
                                 ]}
+                                secondaryAction={{
+                                    label: "View Blueprint",
+                                    onClick: () => setShowBlueprintType('Sprayer')
+                                }}
                             />
                         </div>
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Cinematic Showcase Modal */}
+            {showBlueprintType && (
+                <BlueprintShowcase
+                    {...(() => {
+                        const level = getLevel(showBlueprintType);
+                        const isUpgradingThis = isUpgrading === showBlueprintType;
+
+                        // Map specific props based on type
+                        const typeMap: Record<string, any> = {
+                            'GoldenHarvester': {
+                                title: "The Golden Harvester",
+                                subtitle: "Imperial Infrastructure",
+                                blueprintUrl: "/assets/golden_harvester_blueprint.png",
+                                icon: Zap,
+                                cost: harvesterNextCost,
+                                stats: [
+                                    { label: "Yield Multiplier", value: `+${yieldMultiplier > 1 ? ((yieldMultiplier - 1) * 100).toFixed(1) : 0}%`, trend: "+5%" }
+                                ]
+                            },
+                            'Sprayer': {
+                                title: "Ruby Sprayer",
+                                subtitle: "Chemical Machinery",
+                                blueprintUrl: "/assets/ruby_sprayer_blueprint.png",
+                                icon: Droplets,
+                                cost: sprayerNextCost,
+                                stats: [
+                                    { label: "Quality Bonus", value: `+${sprayerLevel * SPRAYER_QUALITY_PER_LEVEL}` },
+                                    { label: "Disease Resist", value: "High" }
+                                ]
+                            },
+                            'Shaker': {
+                                title: "Steam Shaker",
+                                subtitle: "Harvesting Machinery",
+                                blueprintUrl: "/assets/steam_shaker_blueprint.png",
+                                icon: Hammer,
+                                cost: shakerNextCost,
+                                stats: [
+                                    { label: "Labor Cut", value: `${shakerLevel * 30}%` },
+                                    { label: "Quality Hit", value: `-${SHAKER_QUALITY_PER_LEVEL}`, trend: "Caution" }
+                                ]
+                            },
+                            'Tractor': {
+                                title: "Iron Horse",
+                                subtitle: "Cultivation Unit",
+                                blueprintUrl: "/assets/iron_horse_tractor_blueprint.png",
+                                icon: Tractor,
+                                cost: tractorNextCost,
+                                stats: [
+                                    { label: "Efficiency", value: `+${tractorLevel * 15}%` }
+                                ]
+                            },
+                            'ColdStorage': {
+                                title: "Cold Storage",
+                                subtitle: "Logistics Core",
+                                blueprintUrl: "/assets/cold_storage_blueprint.png",
+                                icon: Warehouse,
+                                cost: coldStorageNextCost,
+                                stats: [
+                                    { label: "Quality Protect", value: `+${coldStorageLevel * COLD_STORAGE_QUALITY_PER_LEVEL}` },
+                                    { label: "Spoilage Armor", value: `${COLD_STORAGE_SPOILAGE_ARMOR}%` }
+                                ]
+                            },
+                            'Warehouse': {
+                                title: "Imperial Warehouse",
+                                subtitle: "Industrial Logistics",
+                                blueprintUrl: "/assets/main_warehouse_blueprint.png",
+                                icon: Box,
+                                cost: warehouseNextCost,
+                                stats: [
+                                    { label: "Armor", value: `${WAREHOUSE_SPOILAGE_ARMOR}%` },
+                                    { label: "Volume", value: `${(warehouseLevel + 1) * 10}T` }
+                                ]
+                            }
+                        };
+
+                        const config = typeMap[showBlueprintType] || typeMap['GoldenHarvester'];
+
+                        return {
+                            ...config,
+                            level,
+                            cash: farm?.cash ?? 0n,
+                            nextCost: config.cost,
+                            isUpgrading: isUpgradingThis,
+                            isNewLevel: justLeveledUp,
+                            onUpgrade: showBlueprintType === 'GoldenHarvester'
+                                ? handleHarvesterUpgrade
+                                : () => handleInfraUpgrade(showBlueprintType, config.cost),
+                            onClose: () => {
+                                setShowBlueprintType(null);
+                                setJustLeveledUp(false);
+                            }
+                        };
+                    })()}
+                />
+            )}
         </div>
     );
 };

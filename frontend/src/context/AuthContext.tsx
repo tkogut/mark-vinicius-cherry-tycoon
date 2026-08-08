@@ -41,16 +41,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const actor = await createBackendActor(id);
                 console.log('[AuthContext] Backend actor created:', actor ? 'SUCCESS' : 'FAILED');
 
-                setBackendActor(actor);
-                setIsAuthenticated(true);
+                // Atomic Auth (AUTH-01/AUTH-02): isAuthenticated may only be set
+                // once backendActor is actually available. This restored-session
+                // branch was the last one missing the guard — `login()`,
+                // `initTestMode()` and the auto-login bypass all check `if (actor)`,
+                // so only here could a falsy actor leave isAuthenticated === true
+                // with backendActor === null, the exact state the invariant forbids.
+                if (actor) {
+                    setBackendActor(actor);
+                    setIsAuthenticated(true);
+                }
             } else {
-                // If not authenticated, still create an anonymous actor
-                console.log('[AuthContext] Not authenticated. Creating anonymous backend actor...');
-                const anonymousActor = await createBackendActor();
-                setBackendActor(anonymousActor);
+                // AUTO-LOGIN BYPASS FOR LOCAL/PLAYGROUND
+                const network = import.meta.env.VITE_DFX_NETWORK;
+                if (network !== 'ic') {
+                    console.log(`[AuthContext] Detected ${network} network. Triggering Auto-Login...`);
+                    try {
+                        const { Ed25519KeyIdentity } = await import('@dfinity/identity');
+                        const sessionIdentity = Ed25519KeyIdentity.generate();
+                        setIdentity(sessionIdentity);
+                        const actor = await createBackendActor(sessionIdentity);
+                        if (actor) {
+                            setBackendActor(actor);
+                            setIsAuthenticated(true);
+                        }
+                        console.log('[AuthContext] Auto-Login successful');
+                    } catch (e) {
+                        console.error('[AuthContext] Auto-Login failed:', e);
+                        // Fallback to anonymous
+                        const anonymousActor = await createBackendActor();
+                        setBackendActor(anonymousActor);
+                        setIsAuthenticated(false); // Anonymous is not "Authenticated" in our game logic
+                    }
+                } else {
+                    console.log('[AuthContext] Not authenticated. Creating anonymous backend actor...');
+                    const anonymousActor = await createBackendActor();
+                    setBackendActor(anonymousActor);
+                    setIsAuthenticated(false);
+                }
             }
 
-            console.log('[AuthContext] Initialization complete. Authenticated:', isAuth);
+            console.log('[AuthContext] Initialization complete. Authenticated:', isAuth || (import.meta.env.VITE_DFX_NETWORK !== 'ic' && !!backendActor));
             setIsInitializing(false);
         }).catch((error) => {
             console.error('[AuthContext] Failed to initialize:', error);
@@ -123,9 +154,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         try {
-            // Set authenticated immediately to provide UI feedback
-            setIsAuthenticated(true);
-
             // Generate a random Ed25519 key pair for the session identity
             // This bypasses the "Anonymous callers not allowed" check on the backend
             // for local development purposes.
@@ -139,9 +167,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const actor = await createBackendActor(sessionIdentity);
             console.log('[AuthContext] Test mode actor created:', actor ? 'SUCCESS' : 'FAILED');
 
-            // Set backend actor
+            // Atomic Auth: only set isAuthenticated once backendActor is ready
+            // (mirrors login()) — never set it ahead of the actor existing.
             if (actor) {
                 setBackendActor(actor);
+                setIsAuthenticated(true);
                 console.log('[AuthContext] Test mode actor set successfully');
             }
         } catch (error) {

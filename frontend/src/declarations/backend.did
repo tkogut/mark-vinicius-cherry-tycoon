@@ -211,10 +211,8 @@ type MarketPrice =
  };
 type League = 
  variant {
-   Liga1;
-   Liga2;
    Liga3;
-   TopLiga;
+   Liga4;
  };
 type LeaderboardEntry = 
  record {
@@ -276,6 +274,7 @@ type InfrastructureType =
    ColdStorage;
    GoldenHarvester;
    ProcessingFacility;
+   Pruner;
    Shaker;
    SocialFacilities;
    Sprayer;
@@ -332,12 +331,12 @@ type GameResult_2 =
    Err: GameError;
    Ok: ForecastReport;
  };
-type GameResult_16 = 
+type GameResult_17 = 
  variant {
    Err: GameError;
    Ok: InsurancePolicy;
  };
-type GameResult_15 = 
+type GameResult_16 = 
  variant {
    Err: GameError;
    Ok: record {
@@ -346,20 +345,25 @@ type GameResult_15 =
          isRisky: bool;
        };
  };
-type GameResult_14 = 
+type GameResult_15 = 
  variant {
    Err: GameError;
    Ok: vec Bid;
  };
-type GameResult_13 = 
+type GameResult_14 = 
  variant {
    Err: GameError;
    Ok: vec AuctionContract;
  };
-type GameResult_12 = 
+type GameResult_13 = 
  variant {
    Err: GameError;
    Ok: vec FootballClub;
+ };
+type GameResult_12 = 
+ variant {
+   Err: GameError;
+   Ok: vec AICompetitor;
  };
 type GameResult_11 = 
  variant {
@@ -542,6 +546,13 @@ type AuctionContract =
    winnerBidPLN: opt nat;
    winnerPlayerId: opt text;
  };
+type AIStrategyState = 
+ variant {
+   Aggressive;
+   Desperate;
+   Neutral;
+   Passive;
+ };
 type AIPersonality = 
  variant {
    Businessman;
@@ -550,15 +561,35 @@ type AIPersonality =
  };
 type AICompetitorSummary = 
  record {
-   baseCapacity: nat;
    county: text;
    id: text;
    isOrganic: bool;
    name: text;
    personality: AIPersonality;
    preferredSaleType: text;
+   prestige: nat;
+   productionCapacity: nat;
    reputation: nat;
+   seasonsActive: nat;
    totalArea: float64;
+ };
+type AICompetitor = 
+ record {
+   county: text;
+   currentStrategy: AIStrategyState;
+   id: text;
+   inventoryKg: nat;
+   isOrganic: bool;
+   lastSeasonProduction: nat;
+   name: text;
+   personality: AIPersonality;
+   preferredSaleType: text;
+   prestige: nat;
+   productionCapacity: nat;
+   reputation: nat;
+   seasonsActive: nat;
+   totalArea: float64;
+   totalRevenue: nat;
  };
 service : {
   _initializeAccessControlWithSecret: (text) -> ();
@@ -566,24 +597,25 @@ service : {
   assignCallerUserRole: (principal, UserRole) -> ();
   assignParcelToPlayer: (text, principal) -> (GameResult);
   buyClubShares: (text, nat) -> (GameResult);
-  buyInsurance: (InsuranceType) -> (GameResult_16);
+  buyInsurance: (InsuranceType) -> (GameResult_17);
   buyParcel: (text, nat) -> (GameResult);
-  checkStability: () -> (GameResult_15) query;
+  checkStability: () -> (GameResult_16) query;
   commitPreSeasonFuture: (text, nat) -> (GameResult);
   cutAndPrune: (text) -> (GameResult);
   debugClearBidsAndContracts: () -> (GameResult);
   debugClearMarket: () -> (GameResult);
-  debugGetBids: () -> (GameResult_14) query;
+  debugGetBids: () -> (GameResult_15) query;
   debugResetPlayer: () -> (GameResult);
-  debugSetHansStorage: (nat) -> (GameResult);
+  debugSetAIInventory: (text, nat) -> (GameResult);
   debugSetInventory: (nat, nat) -> (GameResult);
   debugSetWeather: (Weather, float64, bool) -> (GameResult);
   fertilizeParcel: (text, text) -> (GameResult);
-  getActiveContracts: () -> (GameResult_13) query;
-  getAvailableFootballClubs: () -> (GameResult_12) query;
+  getActiveContracts: () -> (GameResult_14) query;
+  getAvailableFootballClubs: () -> (GameResult_13) query;
   getCallerUserRole: () -> (UserRole) query;
   getCashBalance: () -> (GameResult_1) query;
   getCompetitorSummaries: () -> (vec AICompetitorSummary) query;
+  getCompetitorsDetail: () -> (GameResult_12) query;
   getFarmOverview: () -> (GameResult_11) query;
   getGlobalLeaderboard: () -> (vec LeaderboardEntry) query;
   getGlobalSeason: () -> (nat) query;

@@ -7,9 +7,9 @@ import {
     DialogDescription
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CloudRain, CloudLightning, Sun, Droplets, Wind, ShieldCheck, AlertTriangle } from "lucide-react";
+import { CloudRain, CloudLightning, Sun, Droplets, Wind, ShieldCheck, AlertTriangle, Bug, FlaskConical } from "lucide-react";
 
-export type WeatherEventType = 'Drought' | 'Storm' | 'Heatwave' | 'Frost' | 'Ideal';
+export type WeatherEventType = 'Drought' | 'Storm' | 'Heatwave' | 'Frost' | 'Ideal' | 'Pest' | 'Disease';
 
 interface WeatherEventModalProps {
     isOpen: boolean;
@@ -28,7 +28,9 @@ const WeatherIcons: Record<WeatherEventType, React.ReactNode> = {
     'Storm': <CloudLightning className="h-10 w-10 text-purple-500 animate-pulse" />,
     'Heatwave': <Sun className="h-10 w-10 text-red-500 animate-pulse" />,
     'Frost': <Wind className="h-10 w-10 text-cyan-500 animate-pulse" />,
-    'Ideal': <CloudRain className="h-10 w-10 text-emerald-500" />
+    'Ideal': <CloudRain className="h-10 w-10 text-emerald-500" />,
+    'Pest': <Bug className="h-10 w-10 text-amber-600 animate-bounce" />,
+    'Disease': <FlaskConical className="h-10 w-10 text-emerald-600 animate-pulse" />
 };
 
 export const WeatherEventModal: React.FC<WeatherEventModalProps> = ({ isOpen, onClose, event }) => {

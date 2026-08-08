@@ -26,6 +26,7 @@ import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AuctionLogic "auction_logic";
 import RiskLogic "risk_logic";
+import SportsLogic "sports_logic";
 
 actor CherryTycoon {
   
@@ -94,6 +95,7 @@ actor CherryTycoon {
     stableUserRoles := Iter.toArray(accessControlState.userRoles.entries());
     stableAdminAssigned := accessControlState.adminAssigned;
     stableTopPlayersCache := topPlayersCache;
+    stableAICompetitors := Iter.toArray(aiCompetitors.entries());
   };
 
   system func postupgrade() {
@@ -125,6 +127,18 @@ actor CherryTycoon {
       Principal.hash
     );
     stableUserRoles := [];
+    
+    let aiIter = HashMap.fromIter<Text, Types.AICompetitor>(Iter.fromArray(stableAICompetitors), 10, Text.equal, Text.hash);
+    
+    // Only re-seed if we have no persistent state from previous version
+    if (aiIter.size() == 0) {
+        let defaults = [CompetitorLogic.AI_MAREK, CompetitorLogic.AI_KASIA, CompetitorLogic.AI_HANS];
+        for (d in defaults.vals()) {
+            aiIter.put(d.id, d);
+        };
+    };
+    aiCompetitors := aiIter;
+    stableAICompetitors := [];
   };
 
   // Market Saturation (Phase 4)
@@ -132,6 +146,14 @@ actor CherryTycoon {
   var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
+
+  // AI Competitor Map (Persistent State)
+  var aiCompetitors = HashMap.HashMap<Text, Types.AICompetitor>(10, Text.equal, Text.hash);
+
+  // Initialize AI competitors on clean install
+  for (d in [CompetitorLogic.AI_MAREK, CompetitorLogic.AI_KASIA, CompetitorLogic.AI_HANS].vals()) {
+    aiCompetitors.put(d.id, d);
+  };
 
   // Core game data (Players and Farms)
   private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
@@ -479,7 +501,16 @@ actor CherryTycoon {
     stableBids := [];
     stableSpotPrice := 10;
     lastResolutionSeason := 0;
-    stableHansStorage := 0;
+    
+    // Clear AI inventories
+    let aiIds = ["ai_marek_GL02", "ai_kasia_NM01", "ai_hans_OPCITY"];
+    for (aiId in aiIds.vals()) {
+        switch (aiCompetitors.get(aiId)) {
+            case (?ai) { aiCompetitors.put(aiId, { ai with inventoryKg = 0; totalRevenue = 0 }) };
+            case null {};
+        }
+    };
+    
     Debug.print("DEBUG: Global market state cleared");
     #Ok("Global market state cleared")
   };
@@ -498,11 +529,16 @@ actor CherryTycoon {
     #Ok(stableBids)
   };
 
-  // DEBUG ONLY: Force set Hans storage for AI testing
-  public shared({ caller }) func debugSetHansStorage(amount: Nat) : async GameResult<Text, GameError> {
+  // DEBUG ONLY: Force set AI inventory for AI testing
+  public shared({ caller }) func debugSetAIInventory(aiId: Text, amount: Nat) : async GameResult<Text, GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
-    stableHansStorage := amount;
-    #Ok("Hans storage forced to: " # Nat.toText(amount) # " kg")
+    switch (aiCompetitors.get(aiId)) {
+        case (?ai) {
+            aiCompetitors.put(aiId, { ai with inventoryKg = amount });
+            #Ok("AI " # ai.name # " inventory forced to: " # Nat.toText(amount) # " kg")
+        };
+        case null { #Err(#NotFound("AI not found")) };
+    }
   };
 
   // DEBUG ONLY: Force set weather for testing payouts/mitigation
@@ -989,25 +1025,47 @@ actor CherryTycoon {
           return #Err(#SeasonalRestriction("Inspection and repair only allowed in Maintenance phase. Current: " # debug_show(farm.currentPhase)));
         };
 
-        // Repair cost: 500 PLN per infrastructure level point
-        var totalRepairCost : Nat = 0;
-        for (infra in farm.infrastructure.vals()) {
-          totalRepairCost += infra.level * 500;
-        };
+        // Repair cost: half the accumulated wear, over the assets that have any
+        // (MAINT-02 — the old flat 500/level could never pay back for any asset
+        // whose spec upkeep was under ~625). Shared with the frontend mirror via
+        // GameLogic.getRepairCost.
+        let finalCost = GameLogic.getRepairCost(farm.infrastructure);
 
-        // Minimum charge (even with no infrastructure, still a basic inspection)
-        let finalCost = if (totalRepairCost == 0) { 500 } else { totalRepairCost };
+        // Nothing has worn: charging for this would be charging for a message.
+        if (finalCost == 0) {
+          return #Ok(
+            "Inspection complete. Every asset is already at spec upkeep ("
+            # Nat.toText(GameLogic.calculateFixedCosts(farm.infrastructure))
+            # " PLN/year) — nothing to service, no charge."
+          );
+        };
 
         if (farm.cash < finalCost) {
           return #Err(#InsufficientFunds { required = finalCost; available = farm.cash });
         };
 
-        // Mark infrastructure as maintained (raise maintenanceCost by 0 — infra state unchanged)
-        // The key effect: advancePhase will NOT degrade infra this turn because repair was paid.
-        // We encode this by setting each infra's maintenanceCost to a sentinel value (level * 100)
-        // which signals the degradation check to skip degradation on next advance.
+        // Service every asset back to its canonical per-type upkeep.
+        //
+        // This used to write `maintenanceCost = i.level * 100`, an arbitrary
+        // value unrelated to the asset type, while a comment claimed it was a
+        // sentinel telling a degradation check to skip. No such check existed —
+        // nothing in the backend degraded anything — but `maintenanceCost` IS
+        // summed by GameLogic.calculateFixedCosts and charged every season, so
+        // that line silently rewrote recurring upkeep: a Shaker L1 went
+        // 1200 -> 100 (a permanent 92% discount) while a Warehouse L3 went
+        // 250 -> 300 (an increase). See MAINT-01.
+        //
+        // Wear is now real (GameLogic.degradeMaintenance, applied on each season
+        // transition), so resetting to spec is a genuine repair.
+        //
+        // Only WORN assets are touched (MAINT-02). Assets already at spec are
+        // left as-is, and so are the below-spec ones left behind by the old
+        // `level * 100` bug — the player is not charged an inspection fee to
+        // have a discount taken away. Those climb back through spec on their own
+        // via degradeMaintenance.
         let maintainedInfra = Array.map<Infrastructure, Infrastructure>(farm.infrastructure, func(i) {
-          { i with maintenanceCost = i.level * 100 } // Refresh to expected base cost (= maintained)
+          let spec = GameLogic.getMaintenanceCost(i.infraType);
+          if (i.maintenanceCost > spec) { { i with maintenanceCost = spec } } else { i }
         });
 
         let updatedStats = updateSeasonalReport(farm, func(r) {
@@ -1029,8 +1087,21 @@ actor CherryTycoon {
         };
 
         playerFarms.put(caller, updatedFarm);
-        let infraCount = farm.infrastructure.size();
-        #Ok("Infrastructure inspection complete. Repaired " # Nat.toText(infraCount) # " asset(s) for " # Nat.toText(finalCost) # " PLN. Degradation prevented.")
+        // Report what actually happened. The old message claimed "Degradation
+        // prevented." while no degradation existed and the real effect was an
+        // undocumented rewrite of recurring upkeep (MAINT-01). The count is the
+        // number of assets actually serviced, not the size of the fleet.
+        let infraCount = Array.filter<Infrastructure>(
+          farm.infrastructure,
+          func(i) { GameLogic.getMaintenanceExcess(i) > 0 }
+        ).size();
+        let upkeepBefore = GameLogic.calculateFixedCosts(farm.infrastructure);
+        let upkeepAfter = GameLogic.calculateFixedCosts(maintainedInfra);
+        #Ok(
+          "Inspection complete. Serviced " # Nat.toText(infraCount) # " asset(s) for "
+          # Nat.toText(finalCost) # " PLN. Annual upkeep restored to spec: "
+          # Nat.toText(upkeepBefore) # " -> " # Nat.toText(upkeepAfter) # " PLN."
+        )
       };
     }
   };
@@ -1397,7 +1468,7 @@ actor CherryTycoon {
           p with 
           organicCertified = isCertifiedNow;
           treeAge = newAge;
-          waterLevel = p.waterLevel * 0.7; // water depletes
+          waterLevel = GameLogic.calculateNextWaterLevel(p.waterLevel, farm.weather);
         }
       }
     );
@@ -1412,12 +1483,13 @@ actor CherryTycoon {
     } else {
       { province = #Opolskie; county = "Opole"; commune = "Opole"; communeType = #Mixed : Types.CommuneType; population = 120000; marketSize = 0.8; laborCostMultiplier = 1.0 }
     };
-    let variableCosts = GameLogic.calculateVariableCosts(
+    let variableCostsData = GameLogic.calculateVariableCosts(
       updatedParcels,
       parcelRegion,
       hasAnyOrganic,
       farm.infrastructure
     );
+    let variableCosts = variableCostsData.total;
     // Total costs per season is annual / 4
     let totalCosts = (fixedCosts + variableCosts) / 4;
 
@@ -1455,16 +1527,19 @@ actor CherryTycoon {
     let _currentSeasonName = farm.currentSeason;
     let _currentSeasonNum = farm.seasonNumber;
     
-    let laborShare = (variableCosts * 80) / 100;
-    let operationalShare = Int.abs((variableCosts : Int) - (laborShare : Int));
+    // Divide annual costs by 4 for seasonal reporting
+    let seasonalFixed = fixedCosts / 4;
+    let seasonalLabor = variableCostsData.labor / 4;
+    let seasonalOps = variableCostsData.operations / 4;
+    let seasonalTotal = totalCosts; // already annual / 4
     
     let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
       { r with 
-        maintenanceCosts = r.maintenanceCosts + fixedCosts;
-        laborCosts = r.laborCosts + laborShare;
-        operationalCosts = r.operationalCosts + operationalShare;
-        totalCosts = r.totalCosts + fixedCosts + variableCosts;
-        netProfit = r.netProfit - ((fixedCosts + variableCosts) : Int);
+        maintenanceCosts = r.maintenanceCosts + seasonalFixed;
+        laborCosts = r.laborCosts + seasonalLabor;
+        operationalCosts = r.operationalCosts + seasonalOps;
+        totalCosts = r.totalCosts + seasonalTotal;
+        netProfit = r.netProfit - (seasonalTotal : Int);
       }
     });
 
@@ -1547,6 +1622,16 @@ actor CherryTycoon {
       };
     };
 
+    // MAINT-01: infrastructure wear. Applied AFTER this season's fixedCosts were
+    // charged above (those were computed from `farm.infrastructure`, the
+    // pre-wear values), so the player pays the current rate now and the higher
+    // rate from next season onward unless they run `inspectAndRepair` during the
+    // Maintenance phase. Clamped to 200% of spec by GameLogic.degradeMaintenance.
+    let wornInfrastructure = Array.map<Infrastructure, Infrastructure>(
+      farm.infrastructure,
+      func(i) { { i with maintenanceCost = GameLogic.degradeMaintenance(i) } }
+    );
+
     let updatedFarm = {
       farm with
       currentSeason = nextSeason;
@@ -1558,6 +1643,7 @@ actor CherryTycoon {
       cash = Int.abs((farm.cash : Int) - (totalCosts : Int)) + insurancePayout;
       parcels = updatedParcels;
       inventory = updatedInventory;
+      infrastructure = wornInfrastructure;
       statistics = updatedStats;
     };
 
@@ -1664,9 +1750,14 @@ actor CherryTycoon {
                     
                     // Inject AI Bids into the global pool immediately
                     for (c in newContracts.vals()) {
-                        let mBid = AuctionLogic.getMarekBid(c, entropy, farm.seasonNumber);
-                        let kBid = AuctionLogic.getKasiaBid(c, entropy + 1, farm.seasonNumber);
-                        let hBid = AuctionLogic.getHansBid(c, entropy + 2, farm.seasonNumber, stableHansStorage);
+                        let mOpt = aiCompetitors.get("ai_marek_GL02");
+                        let kOpt = aiCompetitors.get("ai_kasia_NM01");
+                        let hOpt = aiCompetitors.get("ai_hans_OPCITY");
+
+                        let mBid = switch (mOpt) { case (?ai) AuctionLogic.getMarekBid(ai, c, entropy, farm.seasonNumber); case null null };
+                        let kBid = switch (kOpt) { case (?ai) AuctionLogic.getKasiaBid(ai, c, entropy + 1, farm.seasonNumber); case null null };
+                        let hBid = switch (hOpt) { case (?ai) AuctionLogic.getHansBid(ai, c, entropy + 2, farm.seasonNumber); case null null };
+                        
                         stableBids := Array.append<Types.Bid>(stableBids, Array.flatten<Types.Bid>([
                             switch (mBid) { case (?b) [b]; case null [] },
                             switch (kBid) { case (?b) [b]; case null [] },
@@ -1763,13 +1854,36 @@ actor CherryTycoon {
             };
 
             let aiText = if (nextPhase == #Harvest) {
-                let aiEntropy = Int.abs(Time.now()) % 1_000_000_000;
-                let _marekKg = CompetitorLogic.simulateAITurn(42,  45_000, #Summer, aiEntropy);
-                let _kasiaKg = CompetitorLogic.simulateAITurn(137, 18_000, #Summer, aiEntropy);
-                let _hansKg  = CompetitorLogic.simulateAITurn(999, 70_000, #Summer, aiEntropy);
-                // BUG-03: Update AI states to prevent stagnation (Ghost Rivals)
-                stableHansStorage := (stableHansStorage / 2) + _hansKg; // 50% decay + new harvest
-                " | AI Harvest Results: Marek=" # Nat.toText(_marekKg) # "kg, Kasia=" # Nat.toText(_kasiaKg) # "kg, Hans=" # Nat.toText(_hansKg) # "kg"
+                let aiEntropy = (Int.abs(Time.now()) + farm.seasonNumber * 7919) % 1_000_000_000;
+                let aiIds = ["ai_marek_GL02", "ai_kasia_NM01", "ai_hans_OPCITY"];
+                var resultsText = " | AI Harvest Results: ";
+                
+                for (aiId in aiIds.vals()) {
+                    switch (aiCompetitors.get(aiId)) {
+                        case (?ai) {
+                            let idSeed : Nat = switch (aiId) {
+                                case ("ai_marek_GL02") 42;
+                                case ("ai_kasia_NM01") 137;
+                                case ("ai_hans_OPCITY") 999;
+                                case (_) 0;
+                            };
+                            let harvested = CompetitorLogic.simulateAITurn(idSeed, ai.productionCapacity, #Summer, farm.seasonNumber);
+                            let newInventory = (ai.inventoryKg / 2) + harvested;
+                            let nextStrategy = CompetitorLogic.resolveStrategy({ ai with inventoryKg = newInventory }, #Summer);
+                            
+                            aiCompetitors.put(aiId, { ai with 
+                                inventoryKg = newInventory; 
+                                currentStrategy = nextStrategy;
+                                seasonsActive = ai.seasonsActive + 1;
+                                lastSeasonProduction = harvested;
+                            });
+                            
+                            resultsText := resultsText # ai.name # "=" # Nat.toText(harvested) # "kg, ";
+                        };
+                        case null {};
+                    };
+                };
+                resultsText
             } else { "" };
             
             let insuranceMsg = if (insurancePayout > 0) {
@@ -2062,6 +2176,7 @@ actor CherryTycoon {
           case ("Shaker") { ?#Shaker };
           case ("Sprayer") { ?#Sprayer };
           case ("ProcessingFacility") { ?#ProcessingFacility };
+          case ("Pruner") { ?#Pruner };
           case (_) { null };
         };
 
@@ -2804,38 +2919,15 @@ actor CherryTycoon {
       });
     };
 
-    // 2. Add AI competitors
-    let competitors = CompetitorLogic.getCompetitorSummaries();
-    for (ai in competitors.vals()) {
-      // AI Pseudo-stats based on archetype values
-      let aiInfraTotal : Nat = switch (ai.name) {
-        case ("Marek \"The Traditionalist\"") { 15 };
-        case ("Kasia \"The Eco-Visionary\"") { 10 };
-        case ("Hans \"The Aggressor\"")  { 25 };
-        case (_) { 5 };
-      };
-      
-      let aiSeasons : Nat = 10; 
-
-      let isOrganicAI = ai.isOrganic;
-      
-      // Estimate AI revenue
-      let aiRevenue = (ai.baseCapacity * 70 / 100) * 12;
-
-      let aiPrestige = LeaderboardLogic.calculatePrestige(
-        aiRevenue,
-        aiInfraTotal,
-        aiSeasons,
-        isOrganicAI
-      );
-
+    // 2. Add AI competitors (Persistent State)
+    for (ai in aiCompetitors.vals()) {
       entries.add({
-        id = "ai_" # Text.toLowercase(ai.name);
+        id = ai.id;
         name = ai.name;
         isAI = true;
-        prestige = aiPrestige;
-        seasonsCompleted = aiSeasons;
-        totalRevenue = aiRevenue;
+        prestige = ai.prestige;
+        seasonsCompleted = ai.seasonsActive;
+        totalRevenue = ai.totalRevenue;
       });
     };
 
@@ -2914,13 +3006,18 @@ actor CherryTycoon {
   // Per-season contracts are generated on demand and persisted between calls.
   stable var stableAuctionContracts : [Types.AuctionContract] = [];
   stable var stableSpotPrice : Nat = 10; // PLN/kg — adjusted by Flood Factor
-  stable var stableHansStorage : Nat = 0; // simulated Hans surplus kg
+  stable var stableAICompetitors : [(Text, Types.AICompetitor)] = []; // [PHASE 11] Persistent AI State
   stable var stableBids : [Types.Bid] = []; // [NEW] Buffer for closed-bid auctions
   stable var lastResolutionSeason : Nat = 0; // [NEW] Prevents double-resolution
 
   // [QUERY] Get all Imperial Contracts available in the current Market phase.
   // Generates contracts lazily if none exist for the current season.
   // Accessible by any authenticated player (no mutation — query only).
+  public shared query({ caller }) func getCompetitorsDetail() : async GameResult<[Types.AICompetitor], GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    #Ok(Iter.toArray(aiCompetitors.vals()))
+  };
+
   public shared query({ caller }) func getActiveContracts() : async GameResult<[Types.AuctionContract], GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     #Ok(stableAuctionContracts)
@@ -3105,6 +3202,20 @@ actor CherryTycoon {
           let result = AuctionLogic.resolveContract(c, contractBids);
           switch (result.winnerId) {
             case (?(winId)) {
+                // Persistent AI State Update (Prestige & Revenue)
+                switch (aiCompetitors.get(winId)) {
+                    case (?ai) {
+                        let revenue = result.revenueEarned;
+                        let delivered = if (ai.inventoryKg >= c.requiredVolumeKg) c.requiredVolumeKg else ai.inventoryKg;
+                        let remainder = if (ai.inventoryKg >= delivered) ai.inventoryKg - delivered else 0;
+                        aiCompetitors.put(winId, { ai with
+                            totalRevenue = ai.totalRevenue + revenue;
+                            inventoryKg = remainder;
+                            prestige = ai.prestige + 5; // Win bonus
+                        });
+                    };
+                    case null {}; // Player winner handled in resolveSeasonAuctions
+                };
               totalContractedKg += c.requiredVolumeKg;
               { c with status = #Fulfilled; winnerPlayerId = ?winId; winnerBidPLN = result.winnerPricePLN; awardedSeason = ?season }
             };
@@ -3256,16 +3367,134 @@ actor CherryTycoon {
   };
 
   // ============================================================================
-  // SPORTS CENTER (Phase 6 Stubs)
+  // SPORTS CENTER — Phase 2 (SPORTS-01/02/03)
   // ============================================================================
+  //
+  // Was two stubs: `getAvailableFootballClubs` returned a hardcoded `#Ok([])`
+  // and `buyClubShares` always returned "Sports Center feature coming soon!".
+  // The GDD treats the football club as the second core pillar, so a
+  // permanently-empty screen was the largest gap between what the game claims
+  // and what it does.
+  //
+  // Scope of this slice, decided with the user: real clubs, real purchases,
+  // real UI. NO match simulation, NO Team Power Index, NO patron tiers, NO
+  // Local Reputation feeding prestige, NO league progression. Those are the
+  // rest of `docs/game-design/economy/gdd-sports-patron.md` and are tracked as
+  // SPORTS-05/06 — a club is currently an asset you can own, not yet a lever
+  // that changes the orchard.
+  //
+  // The catalogue is static data in SportsLogic; only ownership is persisted.
+  // Adding this `stable var` is additive — existing farms upgrade with an empty
+  // ownership list and see every club as unclaimed, which is correct.
 
-  public shared query({ caller = _ }) func getAvailableFootballClubs() : async GameResult<[Types.FootballClub], GameError> {
-    #Ok([])
+  /// Persisted club ownership: (clubId, ownerPrincipalText, percentHeld).
+  /// Single-patron model — see sports_logic.mo for why.
+  stable var stableClubOwnership : [(Text, Text, Nat)] = [];
+
+  private func _clubOwner(clubId: Text) : ?(Text, Nat) {
+    switch (Array.find<(Text, Text, Nat)>(stableClubOwnership, func((id, _, _)) { id == clubId })) {
+      case (?(_, ownerId, percent)) { ?(ownerId, percent) };
+      case null { null };
+    }
   };
 
-  public shared({ caller }) func buyClubShares(_clubId: Text, _amount: Nat) : async GameResult<Text, GameError> {
+  private func _recordClubOwnership(clubId: Text, ownerId: Text, percent: Nat) {
+    let existing = Array.find<(Text, Text, Nat)>(stableClubOwnership, func((id, _, _)) { id == clubId });
+    switch (existing) {
+      case (?_) {
+        stableClubOwnership := Array.map<(Text, Text, Nat), (Text, Text, Nat)>(
+          stableClubOwnership,
+          func((id, owner, held)) {
+            if (id == clubId) { (id, ownerId, percent) } else { (id, owner, held) }
+          }
+        );
+      };
+      case null {
+        stableClubOwnership := Array.append<(Text, Text, Nat)>(
+          stableClubOwnership, [(clubId, ownerId, percent)]
+        );
+      };
+    }
+  };
+
+  // [QUERY] The full club catalogue with live ownership overlaid. Open to any
+  // caller including anonymous — this is public game data, the same as the
+  // infrastructure price list, and gating it would only stop the login screen
+  // from previewing it.
+  public shared query({ caller = _ }) func getAvailableFootballClubs() : async GameResult<[Types.FootballClub], GameError> {
+    #Ok(SportsLogic.applyOwnership(SportsLogic.getClubCatalogue(), stableClubOwnership))
+  };
+
+  // Buy `percent` percent of a club. Not phase-gated: the GDD ties transfers to
+  // the winter break (#Planning), but that belongs with the league cycle in
+  // SPORTS-06 — gating it now would mean a phase restriction with no league
+  // behind it. `buyParcel` is ungated for the same reason.
+  public shared({ caller }) func buyClubShares(clubId: Text, percent: Nat) : async GameResult<Text, GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
-    #Err(#InvalidOperation("Sports Center feature coming soon!"))
+
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        let buyerId = Principal.toText(caller);
+        let club = SportsLogic.findClub(clubId);
+        let currentOwner = _clubOwner(clubId);
+
+        switch (SportsLogic.validatePurchase(club, currentOwner, buyerId, percent, farm.cash)) {
+          case (?#UnknownClub) { return #Err(#NotFound("No such club: " # clubId)) };
+          case (?#InvalidAmount) {
+            return #Err(#InvalidOperation("Stake must be between 1% and 100%. Got: " # Nat.toText(percent)));
+          };
+          case (?#ClubTakenByAnother) {
+            return #Err(#InvalidOperation("Another patron already backs this club. One club, one benefactor."));
+          };
+          case (?#NotEnoughSharesLeft { requested; available }) {
+            return #Err(#InvalidOperation(
+              "Only " # Nat.toText(available) # "% of this club is unclaimed; you asked for "
+              # Nat.toText(requested) # "%."
+            ));
+          };
+          case (?#CannotAfford { required; available }) {
+            return #Err(#InsufficientFunds { required = required; available = available });
+          };
+          case null {}; // legal
+        };
+
+        // Validation passed, so the club exists and the arithmetic below is safe.
+        let found = switch (club) { case (?c) { c }; case null { return #Err(#NotFound("No such club: " # clubId)) } };
+        let heldBefore = switch (currentOwner) { case (?(_, held)) { held }; case null { 0 } };
+        let heldAfter = heldBefore + percent;
+        let cost = SportsLogic.getSharePrice(found.marketValue, percent);
+
+        _recordClubOwnership(clubId, buyerId, heldAfter);
+
+        let alreadyListed = Array.find<Text>(farm.ownedClubs, func(id) { id == clubId }) != null;
+        let updatedOwnedClubs = if (alreadyListed) { farm.ownedClubs }
+                                else { Array.append<Text>(farm.ownedClubs, [clubId]) };
+
+        let updatedStats = updateSeasonalReport(farm, func(r) {
+          { r with
+            totalCosts = r.totalCosts + cost;
+            netProfit  = r.netProfit - (cost : Int);
+          }
+        });
+
+        playerFarms.put(caller, {
+          farm with
+          cash        = Int.abs((farm.cash : Int) - (cost : Int));
+          ownedClubs  = updatedOwnedClubs;
+          statistics  = { farm.statistics with
+            totalCosts      = farm.statistics.totalCosts + cost;
+            seasonalReports = updatedStats.seasonalReports;
+          };
+        });
+
+        #Ok(
+          "Acquired " # Nat.toText(percent) # "% of " # found.name # " for "
+          # Nat.toText(cost) # " PLN. You now hold " # Nat.toText(heldAfter) # "%"
+          # (if (heldAfter == 100) { " — full ownership." } else { "." })
+        )
+      };
+    }
   };
 
 }

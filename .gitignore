@@ -52,11 +52,25 @@ frontend/.vite/
 # Backend build
 backend/.dfx/
 
-# Artifacts (documentation - keep in repo)
-# brain/ folder is for development only
-.gemini/
-
 # Temporary files
 *.tmp
 *.temp
 *.log
+tmp/
+
+# Playwright (QUAL-03) — run artifacts, never committed
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/.playwright/
+
+# UX audit screenshots — regenerated on demand from a live deploy or the local
+# harness (see docs/game-design/UX-AUDIT-2026-07-29.md for the written audit,
+# which is the part worth keeping). The PNGs are large, numerous and stale the
+# moment the UI changes.
+#
+# The 8 files under ux-audit-2026-07-29/ predate this rule and stay tracked —
+# ignoring a path does not untrack it, and deleting them would not shrink the
+# repo since they are already in history. They are also the audit Phase 9's
+# scope came from, so they are worth keeping.
+docs/game-design/ux-audit-*/

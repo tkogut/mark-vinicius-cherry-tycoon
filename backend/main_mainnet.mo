@@ -905,7 +905,17 @@ actor CherryTycoon {
           return #Err(#SeasonalRestriction("Inspection and repair only allowed in Maintenance phase. Current: " # debug_show(farm.currentPhase)));
         };
 
-        // Repair cost: 500 PLN per infrastructure level point
+        // Repair cost: 500 PLN per infrastructure level point.
+        //
+        // MAINT-02 is deliberately NOT mirrored here, and this is not the same
+        // "unverifiable file" argument as the note below — it would be actively
+        // wrong. Track A now charges a fraction of the ACCUMULATED WEAR, which
+        // only exists because Track A applies GameLogic.degradeMaintenance on
+        // every season transition. This file has no wear, so every asset always
+        // sits exactly at spec, `GameLogic.getRepairCost` would return 0, and
+        // `inspectAndRepair` would become a permanent free no-op. The flat fee
+        // stays until wear itself lands here, as part of the EOP-01
+        // reconciliation — wear first, then the cost model that depends on it.
         var totalRepairCost : Nat = 0;
         for (infra in farm.infrastructure.vals()) {
           totalRepairCost += infra.level * 500;
@@ -918,9 +928,24 @@ actor CherryTycoon {
           return #Err(#InsufficientFunds { required = finalCost; available = farm.cash });
         };
 
-        // Mark infrastructure as maintained — refresh maintenanceCost sentinel
+        // Service every asset back to its canonical per-type upkeep.
+        //
+        // MAINT-01 (2026-08-07): this previously wrote `i.level * 100`, an
+        // arbitrary value unrelated to the asset type, while `maintenanceCost`
+        // is summed by GameLogic.calculateFixedCosts and charged every season —
+        // so it silently rewrote recurring upkeep (Shaker L1 1200 -> 100, a
+        // permanent 92% discount) and flattened the per-type 1%/2% pricing.
+        //
+        // TRACK-SEPARATION NOTE: only this one-line value fix is mirrored from
+        // Track A. Track A also gained real wear (GameLogic.degradeMaintenance
+        // applied on each season transition in _advanceSeasonInternal); that
+        // change is deliberately NOT copied here, because this file does not
+        // currently compile (pre-existing EOP-01 drift: AIStrategyState,
+        // contracts, baseCapacity), so any edit here is unverifiable. Fold the
+        // wear logic in as part of the EOP-01 reconciliation, when this file can
+        // actually be built and tested.
         let maintainedInfra = Array.map<Infrastructure, Infrastructure>(farm.infrastructure, func(i) {
-          { i with maintenanceCost = i.level * 100 }
+          { i with maintenanceCost = GameLogic.getMaintenanceCost(i.infraType) }
         });
 
         let updatedStats = updateSeasonalReport(farm, func(r) {
@@ -1309,7 +1334,7 @@ actor CherryTycoon {
           p with 
           organicCertified = isCertifiedNow;
           treeAge = newAge;
-          waterLevel = p.waterLevel * 0.7; // water depletes
+          waterLevel = GameLogic.calculateNextWaterLevel(p.waterLevel, farm.weather);
         }
       }
     );
@@ -1324,12 +1349,13 @@ actor CherryTycoon {
     } else {
       { province = #Opolskie; county = "Opole"; commune = "Opole"; communeType = #Mixed : Types.CommuneType; population = 120000; marketSize = 0.8; laborCostMultiplier = 1.0 }
     };
-    let variableCosts = GameLogic.calculateVariableCosts(
+    let variableCostsData = GameLogic.calculateVariableCosts(
       updatedParcels,
       parcelRegion,
       hasAnyOrganic,
       farm.infrastructure
     );
+    let variableCosts = variableCostsData.total;
     // Total costs per season is annual / 4
     let totalCosts = (fixedCosts + variableCosts) / 4;
 
@@ -1365,16 +1391,19 @@ actor CherryTycoon {
     let _currentSeasonName = farm.currentSeason;
     let _currentSeasonNum = farm.seasonNumber;
     
-    let laborShare = (variableCosts * 80) / 100;
-    let operationalShare = Int.abs((variableCosts : Int) - (laborShare : Int));
+    // Divide annual costs by 4 for seasonal reporting
+    let seasonalFixed = fixedCosts / 4;
+    let seasonalLabor = variableCostsData.labor / 4;
+    let seasonalOps = variableCostsData.operations / 4;
+    let seasonalTotal = totalCosts; // already annual / 4
     
     let updatedSeasonStats = updateSeasonalReport(farm, func(r) {
       { r with 
-        maintenanceCosts = r.maintenanceCosts + fixedCosts;
-        laborCosts = r.laborCosts + laborShare;
-        operationalCosts = r.operationalCosts + operationalShare;
-        totalCosts = r.totalCosts + fixedCosts + variableCosts;
-        netProfit = r.netProfit - ((fixedCosts + variableCosts) : Int);
+        maintenanceCosts = r.maintenanceCosts + seasonalFixed;
+        laborCosts = r.laborCosts + seasonalLabor;
+        operationalCosts = r.operationalCosts + seasonalOps;
+        totalCosts = r.totalCosts + seasonalTotal;
+        netProfit = r.netProfit - (seasonalTotal : Int);
       }
     });
 
@@ -1939,6 +1968,7 @@ actor CherryTycoon {
           case ("Shaker") { ?#Shaker };
           case ("Sprayer") { ?#Sprayer };
           case ("ProcessingFacility") { ?#ProcessingFacility };
+          case ("Pruner") { ?#Pruner };
           case (_) { null };
         };
 

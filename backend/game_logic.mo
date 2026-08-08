@@ -190,6 +190,7 @@ module {
       case (#Shaker) { 60_000 };
       case (#Sprayer) { 12_000 };
       case (#ProcessingFacility) { 100_000 };
+      case (#Pruner) { 18_000 };
     }
   };
 
@@ -201,9 +202,112 @@ module {
 
   public func getMaintenancePercentage(infraType: InfrastructureType) : Nat {
     switch (infraType) {
-      case (#GoldenHarvester or #Tractor or #Shaker or #Sprayer) { 2 }; // Machinery: 2%
+      case (#GoldenHarvester or #Tractor or #Shaker or #Sprayer or #Pruner) { 2 }; // Machinery: 2%
       case (#Warehouse or #ColdStorage or #ProcessingFacility or #SocialFacilities) { 1 }; // Buildings: 1%
     }
+  };
+
+  // ============================================================================
+  // INFRASTRUCTURE WEAR (MAINT-01, added 2026-08-07)
+  // ============================================================================
+  //
+  // Background: `inspectAndRepair` has always advertised "Degradation
+  // prevented." but nothing in the backend ever degraded anything — no code
+  // path lowered an infra level or raised its upkeep. Worse, the method
+  // overwrote `maintenanceCost` with the arbitrary `level * 100`, and that
+  // field IS summed by `calculateFixedCosts` and charged every season, so the
+  // "repair" silently rewrote recurring upkeep (Shaker L1: 1200 -> 100, a 92%
+  // permanent discount; Warehouse L3: 250 -> 300, an increase) and flattened
+  // the per-type 1%/2% pricing this module exists to express.
+  //
+  // This makes the advertised behaviour real, using the field already wired
+  // into the cost loop rather than inventing new state:
+  //   * upkeep drifts UP each season transition (wear)
+  //   * `inspectAndRepair` resets it to the canonical per-type spec value
+  //
+  //   wear/season = 10% of spec (min 1, so cheap assets still drift)
+  //   cap         = 200% of spec (neglect can at most double upkeep)
+  //   repair cost = 50% of accumulated wear (MAINT-02, see getRepairCost)
+  //
+  // MAINT-02 (2026-08-07): repair cost used to be a flat 500 per level point,
+  // which made the mechanic dead for every cheap asset. The flat fee does not
+  // scale with what a repair is actually worth, and what it is worth is bounded
+  // by the spec value:
+  //   * A phase cycle is one year and contains 4 season transitions, so wear
+  //     accrues at 40% of spec per year and hits the 200% cap after 2.5 years.
+  //   * `maintenanceCost` is an annual figure; _advanceSeasonInternal charges
+  //     (fixed + variable) / 4 per transition, so an excess of E costs E per
+  //     year while it stands.
+  //   * `Maintenance` comes round once per year, so the best a player can do is
+  //     service ~0.4x spec of wear annually. Compared with never repairing
+  //     (a permanent 1.0x spec excess at the cap), that policy is worth about
+  //     0.8x spec per year — and NO MORE, because wear restarts immediately.
+  // So a flat 500 could never pay back for an asset whose spec upkeep was much
+  // under 625 (0.8 x spec > 500): Sprayer 240, Warehouse 250, Pruner 360,
+  // ColdStorage 400, SocialFacilities 150 — five of nine types, and Tractor
+  // (600 -> worth 480) was marginally negative too. Only Shaker (1200) and
+  // ProcessingFacility (1000) justified a service. Charging a fraction of the
+  // accrued wear instead makes the trade scale-invariant: identical for a
+  // Sprayer and a Processing Plant, and always in the player's favour once
+  // anything has actually worn.
+  // Worked example — Mechanical Shaker L1 (spec upkeep 1200):
+  //   after 1 season of wear -> 1320 annual. Repair costs (1320-1200)/2 = 60.
+  //   after a full year      -> 1680 annual. Repair costs 240, and leaving it
+  //                             costs 480/year. Clearly worth servicing.
+  //   at the 2400 cap        -> repair costs 600 against a 1200/year excess.
+  // Same ratios for a Sprayer (spec 240): 12 / 48 / 120. The decision is now
+  // cash-flow timing, not whether the mechanic is worth using at all.
+
+  /** Upkeep may never drift above this multiple of the canonical spec value. */
+  public func getMaintenanceCap(infraType: InfrastructureType) : Nat {
+    getMaintenanceCost(infraType) * 2
+  };
+
+  /**
+   * One season of wear on a single asset. Returns the new `maintenanceCost`.
+   * Monotonically non-decreasing and clamped to `getMaintenanceCap`, so this can
+   * be applied every season transition without unbounded cost growth.
+   */
+  public func degradeMaintenance(infra: Infrastructure) : Nat {
+    let spec = getMaintenanceCost(infra.infraType);
+    let cap = spec * 2;
+    let step = if (spec / 10 == 0) { 1 } else { spec / 10 };
+    let next = infra.maintenanceCost + step;
+    if (next > cap) { cap } else { next }
+  };
+
+  /**
+   * How far one asset's upkeep has drifted above its canonical spec value.
+   * Saturating: an asset BELOW spec reports 0 rather than a negative excess.
+   * (Farms serviced by the pre-MAINT-01 code can sit below spec — that bug
+   * wrote `level * 100`. Those are left alone; `degradeMaintenance` is
+   * monotonic, so they climb back through spec on their own.)
+   */
+  public func getMaintenanceExcess(infra: Infrastructure) : Nat {
+    let spec = getMaintenanceCost(infra.infraType);
+    if (infra.maintenanceCost > spec) { infra.maintenanceCost - spec } else { 0 }
+  };
+
+  /**
+   * What `inspectAndRepair` charges: half the accumulated wear, summed over the
+   * assets that actually have any (MAINT-02). Assets already at spec cost
+   * nothing and are skipped, so a repair with nothing to repair is a free
+   * no-op rather than a 500 PLN charge for a message.
+   *
+   * Per asset the charge is `max(1, excess / 2)` — the floor stops integer
+   * division from making a 1 PLN drift free to fix. Kept here so the frontend
+   * mirror has one canonical definition to match (QUAL-05).
+   */
+  public func getRepairCost(infrastructure: [Infrastructure]) : Nat {
+    var total : Nat = 0;
+    for (infra in infrastructure.vals()) {
+      let excess = getMaintenanceExcess(infra);
+      if (excess > 0) {
+        let half = excess / 2;
+        total += (if (half == 0) { 1 } else { half });
+      };
+    };
+    total
   };
 
   public func calculateFixedCosts(infrastructure: [Infrastructure]) : Nat {
@@ -225,59 +329,64 @@ module {
     parcels: [CherryParcel],
     region: Region,
     hasOrganic: Bool,
-    infrastructure: [Infrastructure] // New argument
-  ) : Nat {
-    var total : Nat = 0;
+    infrastructure: [Infrastructure]
+  ) : { labor: Nat; operations: Nat; total: Nat } {
+    var labor : Nat = 0;
+    var operations : Nat = 0;
     var totalArea : Float = 0.0;
     
     // Calculate labor efficiency from infrastructure
     var laborEfficiency = 1.0;
     for (infra in infrastructure.vals()) {
       switch (infra.infraType) {
-        case (#Tractor) { laborEfficiency -= 0.15 * Float.fromInt(infra.level) }; // -15% per level
-        case (#Shaker) { laborEfficiency -= 0.30 * Float.fromInt(infra.level) };  // -30% per level
-        case (#SocialFacilities) { laborEfficiency -= 0.05 * Float.fromInt(infra.level) }; // Better morale = efficiency
+        case (#Tractor) { laborEfficiency -= 0.15 * Float.fromInt(infra.level) };
+        case (#Shaker) { laborEfficiency -= 0.30 * Float.fromInt(infra.level) };
+        case (#Pruner) { laborEfficiency -= 0.10 * Float.fromInt(infra.level) }; // automated trimming, modest labor savings
+        case (#SocialFacilities) { laborEfficiency -= 0.05 * Float.fromInt(infra.level) };
         case (_) {};
       };
     };
-    // Cap efficiency at 0.2 (min 20% labor cost remains)
     if (laborEfficiency < 0.2) { laborEfficiency := 0.2 };
 
     for (parcel in parcels.vals()) {
       totalArea += parcel.size;
       
-      // Fertilizer costs
+      // Fertilizer costs (Operations)
       if (parcel.isOrganic) {
-        total += Int.abs(Float.toInt(parcel.size * 3000.0)); // organic fertilizers more expensive
+        operations += Int.abs(Float.toInt(parcel.size * 3000.0));
       } else {
-        total += Int.abs(Float.toInt(parcel.size * 1500.0)); // conventional
+        operations += Int.abs(Float.toInt(parcel.size * 1500.0));
       };
       
-      // Plant protection
+      // Plant protection (Operations)
       if (parcel.isOrganic) {
-        total += Int.abs(Float.toInt(parcel.size * 2000.0)); // natural treatments
+        operations += Int.abs(Float.toInt(parcel.size * 2000.0));
       } else {
-        total += Int.abs(Float.toInt(parcel.size * 1000.0)); // pesticides
+        operations += Int.abs(Float.toInt(parcel.size * 1000.0));
       };
     };
     
-    // Labor costs (varies by region AND infrastructure)
+    // Labor costs
     let laborCostBase = totalArea * 8000.0 * region.laborCostMultiplier;
     let laborCostOptimized = laborCostBase * laborEfficiency;
-    total += Int.abs(Float.toInt(laborCostOptimized));
+    labor += Int.abs(Float.toInt(laborCostOptimized));
     
-    // Fuel costs (Machines increase fuel usage slightly, but we simplify to area)
-    total += Int.abs(Float.toInt(totalArea * 500.0));
+    // Fuel costs (Operations)
+    operations += Int.abs(Float.toInt(totalArea * 500.0));
     
-    // Organic certification (GDD Section 5)
+    // Organic certification (Operations)
     if (hasOrganic) {
-      if (totalArea < 5.0) { total += 1500 }
-      else if (totalArea < 20.0) { total += 1800 }
-      else if (totalArea < 50.0) { total += 2090 }
-      else { total += 2500 };
+      if (totalArea < 5.0) { operations += 1500 }
+      else if (totalArea < 20.0) { operations += 1800 }
+      else if (totalArea < 50.0) { operations += 2090 }
+      else { operations += 2500 };
     };
     
-    total
+    {
+      labor = labor;
+      operations = operations;
+      total = labor + operations;
+    }
   };
 
   // ============================================================================
@@ -309,6 +418,7 @@ module {
         case (#Sprayer) { hasSpray := true; score += 5.0 * Float.fromInt(infra.level) };
         case (#ColdStorage) { hasColdStorage := true; score += 3.0 * Float.fromInt(infra.level) };
         case (#Shaker) { score -= 2.0 * Float.fromInt(infra.level) }; // Mechanical harvesting damages fruit slightly
+        case (#Pruner) { score += 4.0 * Float.fromInt(infra.level) }; // healthier canopy, better fruit exposure
         case (_) {};
       };
     };
@@ -363,6 +473,37 @@ module {
     };
     
     Int.abs(Float.toInt(Float.fromInt(baseYield) * impact))
+  };
+
+  /**
+   * Phase 9.1: Weather/Water Correlation
+   * Calculates the water level depletion/replenishment for the next season transition.
+   */
+  public func calculateNextWaterLevel(
+    current: Float, 
+    weatherOpt: ?Types.WeatherEvent
+  ) : Float {
+    // Base seasonal depletion (e.g. 20% loss due to natural absorption/evaporation)
+    var nextLevel = current * 0.8;
+
+    switch (weatherOpt) {
+      case (?w) {
+        let impact = switch (w.weather) {
+          case (#Rainy) { 0.15 * w.severity };       // +0% to +15%
+          case (#Flood) { 0.30 * w.severity };       // +0% to +30%
+          case (#Drought) { -(0.15 * w.severity) };  // -0% to -15%
+          case (#Heatwave) { -(0.10 * w.severity) }; // -0% to -10%
+          case (_) { 0.0 };
+        };
+        nextLevel += impact;
+      };
+      case (null) {};
+    };
+
+    // Clamp between 0.0 and 1.0
+    if (nextLevel < 0.0) { 0.0 }
+    else if (nextLevel > 1.0) { 1.0 }
+    else { nextLevel };
   };
 
   public func applyWeatherQualityImpact(
@@ -450,7 +591,7 @@ module {
        }
     };
     let variable = calculateVariableCosts(parcels, region, hasOrganic, infrastructure);
-    fixed + variable
+    fixed + variable.total
   };
 
   public func estimateHarvestCosts(

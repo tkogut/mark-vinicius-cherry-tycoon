@@ -35,7 +35,18 @@ export function useFarm() {
             console.log('[useFarm] Calling getPlayerFarm()...');
             const result = await backendActor.getPlayerFarm();
             if ('Err' in result) {
-                console.error('[useFarm] getPlayerFarm failed:', result.Err);
+                // `NotFound` is the normal state for a player who has not been
+                // initialised yet — App.tsx's onboarding (and the non-`ic`
+                // auto-init) both key off this exact result. Logging it at
+                // `error` level meant every fresh session opened with a red
+                // console entry that looked like a failure, which is noise in
+                // the one place a real failure needs to stand out.
+                // The query still rejects; only the log level changes.
+                if ('NotFound' in result.Err) {
+                    console.info('[useFarm] No farm yet for this principal — onboarding will run.');
+                } else {
+                    console.error('[useFarm] getPlayerFarm failed:', result.Err);
+                }
                 throw new Error(getErrorMessage(result.Err));
             }
             console.log('[useFarm] Farm state received:', {
@@ -231,6 +242,44 @@ export function useFarm() {
             toast({
                 variant: "destructive",
                 title: "Pruning Failed",
+                description: error.message,
+            });
+        },
+    });
+
+    // MAINT-01: services all infrastructure back to its spec upkeep. Only valid
+    // in the Maintenance phase (backend/main.mo:1023 enforces this). Before this
+    // was wired, `inspectAndRepair` existed on the canister but was never called
+    // from the frontend, leaving Maintenance the one phase with no player action.
+    const inspectAndRepairMutation = useMutation({
+        mutationFn: async () => {
+            console.log('[useFarm] inspectAndRepair called');
+            if (!backendActor) {
+                console.warn('[useFarm] No backend actor for inspection');
+                throw new Error('Not authenticated');
+            }
+            const result = await backendActor.inspectAndRepair();
+            if ('Err' in result) {
+                console.error('[useFarm] inspectAndRepair failed:', result.Err);
+                throw new Error(getErrorMessage(result.Err));
+            }
+            console.log('[useFarm] inspectAndRepair succeeded');
+            return result.Ok;
+        },
+        onSuccess: (message) => {
+            queryClient.invalidateQueries({ queryKey: FARM_QUERY_KEY });
+            toast({
+                title: "Inspection Complete",
+                description: message,
+                className: "bg-emerald-900 border-emerald-800 text-emerald-100",
+            });
+            playSFX(SOUNDS.GAME.PLANT);
+        },
+        onError: (error: Error) => {
+            console.error('[useFarm] inspectAndRepair mutation error:', error);
+            toast({
+                variant: "destructive",
+                title: "Inspection Failed",
                 description: error.message,
             });
         },
@@ -504,6 +553,7 @@ export function useFarm() {
         fertilize: fertilizeMutation,
         harvest: harvestMutation,
         cutAndPrune: cutAndPruneMutation,
+        inspectAndRepair: inspectAndRepairMutation,
         buyParcel: buyParcelMutation,
         sellCherries: sellCherriesMutation,
         startOrganicConversion: startOrganicConversionMutation,
@@ -545,6 +595,24 @@ export function useLeaderboard() {
     });
 }
 
+// LEAD-02: surfaces the player's rank even when they fall outside the
+// capped topPlayersCache (see backend/main.mo SEC-021 guard) returned by
+// getGlobalLeaderboard — RankingsPanel's own-row highlight only works
+// when the player is inside that cache.
+export function useMyRank() {
+    const { backendActor, isAuthenticated, identity } = useAuth();
+
+    return useQuery({
+        queryKey: ['myRank', identity?.getPrincipal().toText()],
+        queryFn: async () => {
+            if (!backendActor || !identity) throw new Error('Not authenticated');
+            return await backendActor.getPlayerRank(identity.getPrincipal());
+        },
+        enabled: !!backendActor && !!identity && isAuthenticated,
+        refetchInterval: 1000 * 60 * 5, // 5 minutes
+    });
+}
+
 export function useCompetitors() {
     const { backendActor, isAuthenticated } = useAuth();
 
@@ -552,10 +620,12 @@ export function useCompetitors() {
         queryKey: ['competitors'],
         queryFn: async () => {
             if (!backendActor) throw new Error('Not authenticated');
-            return await backendActor.getCompetitorSummaries();
+            const result = await (backendActor as any).getCompetitorsDetail();
+            if ('Err' in result) throw new Error(getErrorMessage(result.Err));
+            return result.Ok;
         },
         enabled: !!backendActor && isAuthenticated,
-        refetchInterval: 1000 * 60 * 5, // 5 minutes
+        refetchInterval: 1000 * 60 * 2, // 2 minutes (faster for AI strategy shifts)
     });
 }
 

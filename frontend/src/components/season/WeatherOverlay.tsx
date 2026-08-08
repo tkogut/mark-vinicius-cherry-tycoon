@@ -18,7 +18,7 @@ export const WeatherOverlay: React.FC<WeatherOverlayProps> = ({ type, intensity 
         if (!ctx) return;
 
         let animationFrameId: number;
-        let particles: any[] = [];
+        const particles: any[] = [];
 
         const resizeCanvas = () => {
             canvas.width = window.innerWidth;

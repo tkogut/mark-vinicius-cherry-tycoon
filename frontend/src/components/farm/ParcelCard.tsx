@@ -12,7 +12,14 @@ import {
     ChevronDown,
     ChevronUp,
     ShieldCheck,
-    Gauge
+    Gauge,
+    // UX-10: soil/state glyphs were emoji and rendered as tofu without an
+    // emoji font. lucide SVGs render everywhere.
+    Waves,
+    Blocks,
+    Snowflake,
+    Cherry,
+    Trees
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -32,9 +39,11 @@ interface ParcelCardProps {
     currentSeason?: any; // Season type from backend
     infrastructure: Infrastructure[];
     currentPhase?: SeasonPhase | string;
+    weather?: any; // [NEW] Current weather event
+    labor?: any;   // [NEW] Current hired labor
 }
 
-export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure, currentPhase }) => {
+export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure, currentPhase, weather, labor }) => {
     const [showDetails, setShowDetails] = useState(false);
 
     // Normalize currentPhase
@@ -46,7 +55,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
     // Harvest allowed from year 5 onwards (> 4 seasons)
     const isReadyToHarvest = isPlanted && Number(parcel.treeAge) > 4;
 
-    const yieldBreakdown = calculateYieldBreakdown(parcel, infrastructure);
+    const yieldBreakdown = calculateYieldBreakdown(parcel, infrastructure, weather, labor);
 
     // Determine specific season
     const isSummer = currentSeason && 'Summer' in currentSeason;
@@ -85,24 +94,24 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
     };
 
     const getSoilIcon = () => {
-        if ('Sandy' in parcel.soilType) return "🏖️";
-        if ('Clay' in parcel.soilType) return "🧱";
-        if ('Waterlogged' in parcel.soilType) return "💧";
-        return "🌱";
+        if ('Sandy' in parcel.soilType) return Waves;
+        if ('Clay' in parcel.soilType) return Blocks;
+        if ('Waterlogged' in parcel.soilType) return Droplets;
+        return Sprout;
     };
 
     const getTreeVisual = () => {
         if (!isPlanted) return { icon: <Sprout className="h-8 w-8 mb-2 opacity-50" />, label: "Ready for planting", color: "text-slate-600" };
 
-        if (isWinter) return { icon: <div className="text-4xl">❄️</div>, label: "Dormant", color: "text-blue-300" };
-        if (isAutumn) return { icon: <div className="text-4xl">🍂</div>, label: "After Season", color: "text-amber-500" };
+        if (isWinter) return { icon: <Snowflake className="h-9 w-9 text-blue-300" />, label: "Dormant", color: "text-blue-300" };
+        if (isAutumn) return { icon: <Leaf className="h-9 w-9 text-orange-400" />, label: "After Season", color: "text-amber-500" };
         if (isSummer) return {
-            icon: <div className="text-4xl">{isReadyToHarvest ? "🍒" : "🌳"}</div>,
+            icon: isReadyToHarvest ? <Cherry className="h-9 w-9 text-rose-400" /> : <Trees className="h-9 w-9 text-emerald-400" />,
             label: isReadyToHarvest ? "Ready to Harvest" : "Maturing",
             color: isReadyToHarvest ? "text-rose-500" : "text-emerald-500"
         };
         // Spring
-        return { icon: <div className="text-4xl">🌳</div>, label: "Growing", color: "text-emerald-400" };
+        return { icon: <Trees className="h-9 w-9 text-emerald-400" />, label: "Growing", color: "text-emerald-400" };
     };
 
     return (
@@ -145,7 +154,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                             )}
                         </CardTitle>
                         <span className="text-[10px] text-copper/70 font-mono mt-0.5">
-                            {getSoilIcon()} {parcel.region.province ? Object.keys(parcel.region.province)[0] : 'Unknown'}
+                            {React.createElement(getSoilIcon(), { className: 'h-3 w-3 inline-block mr-1 -mt-0.5' })}{parcel.region.province ? Object.keys(parcel.region.province)[0] : 'Unknown'}
                         </span>
                     </div>
 
@@ -175,26 +184,33 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                         <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger>
-                                                    <div className="text-[10px] font-bold text-brass flex items-center gap-1">
+                                                    <div className={cn(
+                                                        "text-[10px] font-bold flex items-center gap-1",
+                                                        yieldBreakdown.adjustedYield < yieldBreakdown.parcelYield ? "text-amber-400" : "text-brass"
+                                                    )}>
                                                         <Gauge className="h-2.5 w-2.5" />
-                                                        Yield: {Math.round(yieldBreakdown.parcelYield).toLocaleString()} kg
+                                                        Yield: {Math.round(yieldBreakdown.adjustedYield).toLocaleString()} kg
+                                                        {yieldBreakdown.adjustedYield < yieldBreakdown.parcelYield && (
+                                                            <span className="text-[8px] opacity-70 ml-1">(Adjusted)</span>
+                                                        )}
                                                     </div>
                                                 </TooltipTrigger>
                                                 <TooltipContent className="bg-hull border-brass/30 text-xs p-3 shadow-xl">
                                                     <div className="space-y-1.5">
-                                                        <p className="font-bold border-b border-slate-800 pb-1 mb-1 text-slate-200">Current Yield Potential</p>
+                                                        <p className="font-bold border-b border-slate-800 pb-1 mb-1 text-slate-200">Production Yield Breakdown</p>
                                                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                                            <span className="text-slate-400">Base Yield:</span> <span className="text-slate-300">25.0 t/ha</span>
-                                                            <span className="text-slate-400">Soil Type:</span> <span className="text-slate-300">x{yieldBreakdown.soilMod.toFixed(2)}</span>
-                                                            <span className="text-slate-400">pH Level:</span> <span className="text-slate-300">x{yieldBreakdown.phMod.toFixed(2)}</span>
-                                                            <span className="text-slate-400">Fertility:</span> <span className="text-slate-300">x{yieldBreakdown.fertilityMod.toFixed(2)}</span>
-                                                            <span className="text-slate-400">Infrastructure:</span> <span className="text-slate-300">x{yieldBreakdown.infraMod.toFixed(2)}</span>
-                                                            <span className="text-slate-400">Water Level:</span> <span className="text-slate-300">x{yieldBreakdown.waterMod.toFixed(2)}</span>
-                                                            <span className="text-slate-400">Organic:</span> <span className="text-slate-300">x{yieldBreakdown.organicMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">Potential:</span> <span className="text-slate-200 font-mono">{Math.round(yieldBreakdown.parcelYield).toLocaleString()} kg</span>
+                                                            <div className="col-span-2 border-t border-slate-800/50 my-1" />
                                                             <span className="text-slate-400">Tree Age:</span> <span className={yieldBreakdown.ageMod < 1 ? "text-amber-400" : "text-emerald-400"}>x{yieldBreakdown.ageMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">Water Mod:</span> <span className={yieldBreakdown.waterMod < 1 ? "text-amber-400" : "text-emerald-400"}>x{yieldBreakdown.waterMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">Soil/pH:</span> <span className="text-slate-300">x{(yieldBreakdown.soilMod * yieldBreakdown.phMod).toFixed(2)}</span>
+
+                                                            <div className="col-span-2 border-t border-slate-800/50 my-1 font-bold text-[9px] text-brass uppercase tracking-wider">Harvest Multipliers</div>
+                                                            <span className="text-slate-400">Weather:</span> <span className={yieldBreakdown.weatherMod < 1 ? "text-ruby" : "text-emerald-400"}>x{yieldBreakdown.weatherMod.toFixed(2)}</span>
+                                                            <span className="text-slate-400">Labor:</span> <span className={yieldBreakdown.laborMod < 1 ? "text-ruby" : "text-emerald-400"}>x{yieldBreakdown.laborMod.toFixed(2)}</span>
                                                         </div>
                                                         <div className="pt-1.5 mt-1 border-t border-slate-800 font-mono text-emerald-400 text-center">
-                                                            {(yieldBreakdown.totalYield / 1000).toFixed(2)} t / hectare
+                                                            Final: {Math.round(yieldBreakdown.adjustedYield).toLocaleString()} kg
                                                         </div>
                                                     </div>
                                                 </TooltipContent>
@@ -362,7 +378,7 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                 {/* Expandable Details Panel */}
                 {showDetails && (
                     <div className="mt-3 pt-3 border-t border-brass/15">
-                        <ParcelDetailsPanel parcel={parcel} infrastructure={infrastructure} />
+                        <ParcelDetailsPanel parcel={parcel} infrastructure={infrastructure} weather={weather} labor={labor} />
                     </div>
                 )}
             </CardContent>

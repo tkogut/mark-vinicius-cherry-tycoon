@@ -23,8 +23,10 @@ module {
     personality: Types.AIPersonality;
     county: Text;
     totalArea: Float;         // hectares
-    baseCapacity: Nat;        // kg per season potential
+    productionCapacity: Nat;        // kg per season potential
     reputation: Nat;          // 0-100
+    prestige: Nat;            // 0-1000
+    seasonsActive: Nat;       // 0+
     preferredSaleType: Text;  // "retail" | "wholesale"
     isOrganic: Bool;
   };
@@ -65,40 +67,85 @@ module {
   private let KASIA_SEED  : Nat = 137;
   private let HANS_SEED   : Nat = 999;
 
-  public let AI_MAREK : AICompetitorSummary = {
+  public let AI_MAREK : Types.AICompetitor = {
     id                = "ai_marek_GL02";
     name              = "Marek \"The Traditionalist\"";
     personality       = #Traditionalist;
-    county            = "Głubczyce (GL-02)";
+    currentStrategy   = #Aggressive;
     totalArea         = 15.0;
-    baseCapacity      = 45_000;
+    productionCapacity = 45_000;
+    inventoryKg       = 0;
+    prestige          = 600;
     reputation        = 60;
-    preferredSaleType = "wholesale";
+    county            = "Głubczyce (GL-02)";
     isOrganic         = false;
+    preferredSaleType = "wholesale";
+    lastSeasonProduction = 0;
+    totalRevenue      = 0;
+    seasonsActive     = 10;
   };
 
-  public let AI_KASIA : AICompetitorSummary = {
+  public let AI_KASIA : Types.AICompetitor = {
     id                = "ai_kasia_NM01";
     name              = "Kasia \"The Eco-Visionary\"";
     personality       = #Innovator;
-    county            = "Namysłów (NM-01)";
+    currentStrategy   = #Passive;
     totalArea         = 8.0;
-    baseCapacity      = 18_000;
+    productionCapacity = 18_000;
+    inventoryKg       = 0;
+    prestige          = 850;
     reputation        = 85;
-    preferredSaleType = "retail";
+    county            = "Namysłów (NM-01)";
     isOrganic         = true;
+    preferredSaleType = "retail";
+    lastSeasonProduction = 0;
+    totalRevenue      = 0;
+    seasonsActive     = 5;
   };
 
-  public let AI_HANS : AICompetitorSummary = {
+  public let AI_HANS : Types.AICompetitor = {
     id                = "ai_hans_OPCITY";
     name              = "Hans \"The Aggressor\"";
     personality       = #Businessman;
-    county            = "Opole (OP-CITY)";
+    currentStrategy   = #Neutral;
     totalArea         = 22.0;
-    baseCapacity      = 70_000;
+    productionCapacity = 70_000;
+    inventoryKg       = 0;
+    prestige          = 720;
     reputation        = 72;
-    preferredSaleType = "wholesale";
+    county            = "Opole (OP-CITY)";
     isOrganic         = false;
+    preferredSaleType = "wholesale";
+    lastSeasonProduction = 0;
+    totalRevenue      = 0;
+    seasonsActive     = 8;
+  };
+
+  // ============================================================================
+  // PUBLIC: RESOLVE AI STRATEGY
+  // Determines the bidding strategy for the next season based on state.
+  // ============================================================================
+  public func resolveStrategy(ai: Types.AICompetitor, season: Types.Season) : Types.AIStrategyState {
+    // 1. Desperate: Low prestige or extreme inventory surplus during market phase
+    if (ai.prestige < 200 or (ai.inventoryKg > ai.productionCapacity and season == #Autumn)) {
+        return #Desperate;
+    };
+
+    // 2. Personality-driven defaults
+    switch (ai.personality) {
+        case (#Traditionalist) {
+            // Marek gets aggressive if he has stock to clear
+            if (ai.inventoryKg > 5000) #Aggressive else #Neutral;
+        };
+        case (#Innovator) {
+            // Kasia stays passive to protect organic margins
+            #Passive;
+        };
+        case (#Businessman) {
+            // Hans is neutral but becomes aggressive if prestige is high (market lead)
+            if (ai.prestige > 800) #Aggressive else #Neutral;
+        };
+    }
   };
 
   // ============================================================================
@@ -117,7 +164,7 @@ module {
   // Deterministic: same (idSeed, season, entropy) always returns same result.
   //
   // Yield formula:
-  //   base = competitor.baseCapacity
+  //   base = competitor.productionCapacity
   //   roll = lcg(entropy XOR-mix idSeed) → [0.0, 1.0)
   //   yieldFactor = 0.65 + roll * 0.70   → [0.65, 1.35)
   //   production  = base * yieldFactor    (clamped to [0.60*base, 1.30*base])
@@ -179,9 +226,9 @@ module {
   // ============================================================================
 
   public func getAITotalSupply(season: Types.Season, entropy: Nat) : Nat {
-    let marekKg = simulateAITurn(MAREK_SEED, AI_MAREK.baseCapacity, season, entropy);
-    let kasiaKg = simulateAITurn(KASIA_SEED, AI_KASIA.baseCapacity, season, entropy);
-    let hansKg  = simulateAITurn(HANS_SEED,  AI_HANS.baseCapacity,  season, entropy);
+    let marekKg = simulateAITurn(MAREK_SEED, AI_MAREK.productionCapacity, season, entropy);
+    let kasiaKg = simulateAITurn(KASIA_SEED, AI_KASIA.productionCapacity, season, entropy);
+    let hansKg  = simulateAITurn(HANS_SEED,  AI_HANS.productionCapacity,  season, entropy);
     marekKg + kasiaKg + hansKg
   };
 

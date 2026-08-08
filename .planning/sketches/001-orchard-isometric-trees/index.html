@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sketch 001: Orchard Isometric Trees</title>
+<link rel="stylesheet" href="../themes/neo-steampunk.css" id="theme-link">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding-top: 52px; }
+
+  #variant-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9998;
+    background: var(--color-surface); border-bottom: 1px solid var(--color-border);
+    padding: 8px 16px; display: flex; gap: 8px; align-items: center; font-family: var(--font-sans);
+  }
+  .variant-tab {
+    background: var(--color-surface-2); color: var(--color-text-muted); border: 1px solid var(--color-border);
+    padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm);
+    transition: all 0.15s ease;
+  }
+  .variant-tab:hover { color: var(--color-text); border-color: var(--color-brass); }
+  .variant-tab.active { background: var(--color-brass); color: #1a1305; border-color: var(--color-brass-bright); font-weight: 600; }
+
+  .variant { display: none; padding: var(--space-6); }
+  .variant.active { display: block; }
+
+  .stage-header { text-align: center; margin-bottom: var(--space-4); }
+  .stage-header h1 { font-family: var(--font-serif); color: var(--color-brass-bright); font-size: var(--text-2xl); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stage-header p { color: var(--color-text-muted); font-size: var(--text-sm); margin: 0; max-width: 640px; margin: 0 auto; }
+
+  .viewport-wrap { max-width: var(--vp-width, 100%); margin: 0 auto; transition: max-width 0.2s ease; }
+
+  .grid-frame {
+    position: relative;
+    background: radial-gradient(ellipse at 50% 20%, #2a2318 0%, var(--color-shadow-deep) 75%);
+    border: 3px solid var(--color-brass);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg), inset 0 0 60px rgba(0,0,0,0.6), var(--shadow-glow-brass);
+    padding: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  .grid-frame::before,
+  .grid-frame::after {
+    content: '';
+    position: absolute; width: 20px; height: 20px;
+    border: 2px solid var(--color-copper);
+    border-radius: 50%;
+    background: var(--color-brass);
+    top: 8px;
+  }
+  .grid-frame::before { left: 8px; }
+  .grid-frame::after { right: 8px; }
+
+  canvas { display: block; width: 100%; height: auto; image-rendering: -webkit-optimize-contrast; }
+
+  .info-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: var(--space-3); padding: var(--space-2) var(--space-4);
+    background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    font-size: var(--text-sm); color: var(--color-text-muted);
+  }
+  .info-bar .highlight { color: var(--color-brass-bright); font-weight: 600; }
+  .reroll-btn {
+    background: var(--color-copper); color: #fff; border: 1px solid var(--color-copper-dark);
+    padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--text-sm);
+    transition: all 0.15s ease;
+  }
+  .reroll-btn:hover { background: var(--color-brass); box-shadow: var(--shadow-glow-brass); }
+
+  .season-bar {
+    display: flex; gap: 6px; justify-content: center; margin-bottom: var(--space-4);
+  }
+  .season-btn {
+    background: var(--color-surface-2); color: var(--color-text-muted); border: 1px solid var(--color-border);
+    padding: 6px 16px; border-radius: var(--radius-full); cursor: pointer; font-size: var(--text-sm);
+    transition: all 0.15s ease; display: flex; align-items: center; gap: 6px;
+  }
+  .season-btn:hover { color: var(--color-text); border-color: var(--color-brass); }
+  .season-btn.active { background: var(--color-copper); color: #fff; border-color: var(--color-brass-bright); font-weight: 600; }
+
+  .variant-tab.rejected { opacity: 0.4; text-decoration: line-through; cursor: not-allowed; }
+
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 9999;
+    background: rgba(10,8,5,0.95); border: 1px solid var(--color-brass); border-radius: var(--radius-sm);
+    padding: 6px 10px; font-size: var(--text-xs); color: var(--color-text); display: none;
+    box-shadow: var(--shadow-md);
+  }
+
+  #sketch-tools {
+    position: fixed; bottom: 12px; right: 12px; z-index: 9999; font-family: system-ui; font-size: 12px;
+    background: rgba(0,0,0,0.7); color: white; padding: 8px 12px; border-radius: 8px; opacity: 0.4;
+    transition: opacity 0.2s; display: flex; gap: 8px; align-items: center;
+  }
+  #sketch-tools:hover { opacity: 1; }
+  #sketch-tools button { background: #333; color: white; border: 1px solid #555; border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 11px; }
+  #sketch-tools button:hover { background: #555; }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <button class="variant-tab active" onclick="showVariant('a', event)">A: Geometric Brass ★ Selected</button>
+  <button class="variant-tab" onclick="showVariant('b', event)">B: Organic Noise</button>
+  <button class="variant-tab rejected" onclick="return false;" title="Rejected 2026-07-29 — dropped in favor of iterating A and B across seasons">C: Clockwork Hybrid (Rejected)</button>
+</div>
+
+<div id="variant-a" class="variant active">
+  <div class="stage-header">
+    <h1>Variant A — Geometric Brass</h1>
+    <p>Angular, faceted canopy shapes with visible brass-riveted trunks. Reads as sharp and mechanical — leans harder into the "industrial" half of Neo-Steampunk.</p>
+  </div>
+  <div class="season-bar">
+    <button class="season-btn active" onclick="setSeason('spring', event)">🌸 Spring</button>
+    <button class="season-btn" onclick="setSeason('summer', event)">☀️ Summer</button>
+    <button class="season-btn" onclick="setSeason('autumn', event)">🍂 Autumn</button>
+    <button class="season-btn" onclick="setSeason('winter', event)">❄️ Winter</button>
+  </div>
+  <div class="viewport-wrap"><div class="grid-frame"><canvas id="canvas-a" width="900" height="700"></canvas></div></div>
+  <div class="info-bar">
+    <span>9 parcels · seed <span class="highlight" id="seed-a">—</span> · season <span class="highlight" id="season-label-a">Spring</span></span>
+    <button class="reroll-btn" onclick="render('a')">Reroll Seed</button>
+  </div>
+</div>
+
+<div id="variant-b" class="variant">
+  <div class="stage-header">
+    <h1>Variant B — Organic Noise</h1>
+    <p>Rounded, layered canopy clusters (no blur — flat shapes with simple light/shadow layering to fake volume). Softer and more "orchard-like," closer to the current game's intent, but crisp instead of blurry.</p>
+  </div>
+  <div class="season-bar">
+    <button class="season-btn active" onclick="setSeason('spring', event)">🌸 Spring</button>
+    <button class="season-btn" onclick="setSeason('summer', event)">☀️ Summer</button>
+    <button class="season-btn" onclick="setSeason('autumn', event)">🍂 Autumn</button>
+    <button class="season-btn" onclick="setSeason('winter', event)">❄️ Winter</button>
+  </div>
+  <div class="viewport-wrap"><div class="grid-frame"><canvas id="canvas-b" width="900" height="700"></canvas></div></div>
+  <div class="info-bar">
+    <span>9 parcels · seed <span class="highlight" id="seed-b">—</span> · season <span class="highlight" id="season-label-b">Spring</span></span>
+    <button class="reroll-btn" onclick="render('b')">Reroll Seed</button>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<div id="sketch-tools">
+  <select onchange="document.getElementById('theme-link').href='../themes/'+this.value+'.css'">
+    <option value="neo-steampunk">Neo-Steampunk</option>
+  </select>
+  <button onclick="setViewport('375px')">📱 Phone</button>
+  <button onclick="setViewport('768px')">📱 Tablet</button>
+  <button onclick="setViewport('100%')">🖥 Desktop</button>
+</div>
+
+<script>
+// ---------- Sketch chrome ----------
+function showVariant(id, evt) {
+  document.querySelectorAll('.variant').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('variant-' + id).classList.add('active');
+  if (evt) evt.target.classList.add('active');
+}
+function setViewport(w) {
+  document.querySelectorAll('.viewport-wrap').forEach(el => el.style.setProperty('--vp-width', w));
+  document.documentElement.style.setProperty('--vp-width', w);
+  document.querySelectorAll('.viewport-wrap').forEach(el => el.style.maxWidth = w);
+}
+
+const currentSeason = { a: 'spring', b: 'spring' };
+const seasonLabels = { spring: 'Spring', summer: 'Summer', autumn: 'Autumn', winter: 'Winter' };
+function setSeason(season, evt) {
+  const variantEl = evt.target.closest('.variant');
+  const variant = variantEl.id.replace('variant-', '');
+  currentSeason[variant] = season;
+  variantEl.querySelectorAll('.season-btn').forEach(b => b.classList.remove('active'));
+  evt.target.classList.add('active');
+  document.getElementById('season-label-' + variant).textContent = seasonLabels[season];
+  render(variant, seeds[variant]);
+}
+
+// ---------- Seeded RNG (mulberry32) ----------
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---------- Isometric grid ----------
+const TILE_W = 140, TILE_H = 78;
+function isoToScreen(gx, gy, originX, originY) {
+  return {
+    x: originX + (gx - gy) * (TILE_W / 2),
+    y: originY + (gx + gy) * (TILE_H / 2)
+  };
+}
+
+function drawParcelTile(ctx, sx, sy, fillColor, borderColor) {
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - TILE_H / 2);
+  ctx.lineTo(sx + TILE_W / 2, sy);
+  ctx.lineTo(sx, sy + TILE_H / 2);
+  ctx.lineTo(sx - TILE_W / 2, sy);
+  ctx.closePath();
+  // Soil gradient — warm highlight near the top-left edge, deep shadow bottom-right
+  // (inspired by the mahogany.png / aged_brass_filigree.png texture warmth already
+  // used elsewhere in the game — kept as a canvas gradient, not an image, per the
+  // "zero image assets" procedural-rendering principle this sketch is built on).
+  const grad = ctx.createLinearGradient(sx - TILE_W / 2, sy - TILE_H / 2, sx + TILE_W / 2, sy + TILE_H / 2);
+  grad.addColorStop(0, fillColor.light);
+  grad.addColorStop(1, fillColor.dark);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawGearIcon(ctx, x, y, r, colorBright, colorDeep) {
+  ctx.save();
+  ctx.translate(x, y);
+  // Radial gradient bronze highlight -> deep shadow, evoking brass_gear_dial.png's
+  // ornate warm-metal glint rather than a flat fill.
+  const grad = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r * 1.3);
+  grad.addColorStop(0, colorBright || '#ffe9a8');
+  grad.addColorStop(0.55, colorDeep || '#d4af37');
+  grad.addColorStop(1, '#7a5a12');
+  ctx.fillStyle = grad;
+  const teeth = 8;
+  ctx.beginPath();
+  for (let i = 0; i < teeth * 2; i++) {
+    const ang = (Math.PI * i) / teeth;
+    const rad = i % 2 === 0 ? r : r * 0.68;
+    ctx.lineTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawTrunk(ctx, x, groundY, height, width, colorLight, colorDark) {
+  // Linear gradient light-mahogany highlight -> deep shadow, evoking mahogany.png's
+  // glossy wood-grain richness instead of a flat brown fill.
+  const grad = ctx.createLinearGradient(x - width / 2, groundY, x + width / 2, groundY - height);
+  grad.addColorStop(0, colorDark || '#3a2210');
+  grad.addColorStop(0.5, colorLight || '#7a4a28');
+  grad.addColorStop(1, colorDark || '#3a2210');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(x - width / 2, groundY);
+  ctx.lineTo(x - width / 3, groundY - height);
+  ctx.lineTo(x + width / 3, groundY - height);
+  ctx.lineTo(x + width / 2, groundY);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ---------- Season config ----------
+// facetScale/countScale shrink the canopy for spring (budding) and autumn (thinning).
+// Winter used to be bare-branches-only; per revision it now uses the SAME
+// cluster/facet structure as autumn, just recolored to a snow palette
+// (white/ice-blue/grey) — snow sitting on the canopy instead of leaves.
+// `glow` is the highlight color used at the center of each leaf-cluster's
+// radial gradient — inspired by the emerald_gauge_liquid.png / brass_gear_dial.png
+// textures already in frontend/public/assets/textures/ (glowing gold-green liquid,
+// warm bronze glints; winter's glow uses the same technique with a cold-white tint),
+// so foliage reads as lit-from-within rather than flat-filled.
+const SEASON_CONFIG = {
+  // Spring/autumn facetScale bumped +20% per revision (0.55->0.66, 0.8->0.96).
+  spring: { facetScale: 0.66, countDelta: -1, greens: ['#5fc23a', '#7fd64f', '#4aa82c'], glow: '#eaffd6', fruit: 'blossom', frost: false },
+  summer: { facetScale: 1.0, countDelta: 0, greens: ['#3d5c2f', '#4a6b38', '#33502a'], glow: '#c8f28a', fruit: 'cherry', frost: false },
+  // Autumn facetScale: 0.8 base -> +20% (0.96) -> -10% per latest revision (0.864).
+  autumn: { facetScale: 0.864, countDelta: -1, greens: ['#d9720f', '#e89020', '#a8420f'], glow: '#ffcf6a', fruit: 'none', frost: false },
+  // Winter: same structure/size as autumn (facetScale/countDelta copied), snow
+  // palette instead of foliage colors — white, ice-blue, grey.
+  winter: { facetScale: 0.864, countDelta: -1, greens: ['#ffffff', '#bcd8ec', '#9aa8b4'], glow: '#f4faff', fruit: 'none', frost: true }
+};
+
+// Shared vertical lift for canopy/fruit placement relative to canopyY — lowered
+// from 16-18px to 8px per revision so the canopy sits closer to the trunk
+// instead of "hanging" high above it.
+const CANOPY_LIFT = 8;
+
+// ---------- Seasonal ground decoration (grass tufts, flowers, fallen leaves, snow) ----------
+// Three-shade palettes per season, per revision (was a 2-tone dark/light pair).
+const GRASS_SHADES = {
+  spring: ['#3f9e2a', '#5cb83f', '#7fe654'],
+  summer: ['#8a7a2a', '#a89a3a', '#c9b94a']
+};
+const LEAF_SHADES = ['#d9720f', '#a8420f', '#f0b040'];
+
+// One "clump" = one small 3-blade tuft. A tuft SPOT now randomly renders 1-3
+// clumps clustered together, per revision, instead of always exactly one.
+function drawGrassClump(ctx, x, y, shades, rng) {
+  for (let i = 0; i < 3; i++) {
+    const ang = -Math.PI / 2 + (i - 1) * 0.4 + (rng() - 0.5) * 0.15;
+    const len = 4 + rng() * 2;
+    ctx.strokeStyle = shades[Math.floor(rng() * shades.length)];
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + Math.cos(ang) * 2, y + Math.sin(ang) * len * 0.5, x + Math.cos(ang) * 3, y + Math.sin(ang) * len);
+    ctx.stroke();
+  }
+}
+
+function drawGrassTuft(ctx, x, y, shades, rng) {
+  const clumpCount = 1 + Math.floor(rng() * 3); // 1, 2, or 3
+  for (let c = 0; c < clumpCount; c++) {
+    const jx = x + (rng() - 0.5) * 6;
+    const jy = y + (rng() - 0.5) * 4;
+    drawGrassClump(ctx, jx, jy, shades, rng);
+  }
+}
+
+function drawGroundDecor(ctx, sx, sy, season, rng) {
+  const w = TILE_W * 0.42, h = TILE_H * 0.42;
+
+  // Clip everything below to this parcel's own diamond so grass/leaves/snow
+  // never spill past the outer silhouette of the orchard (or into a
+  // neighboring parcel), per revision.
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - TILE_H / 2);
+  ctx.lineTo(sx + TILE_W / 2, sy);
+  ctx.lineTo(sx, sy + TILE_H / 2);
+  ctx.lineTo(sx - TILE_W / 2, sy);
+  ctx.closePath();
+  ctx.clip();
+
+  if (season === 'spring') {
+    // Intense fresh-spring green wash across the whole parcel.
+    ctx.fillStyle = 'rgba(70,180,40,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - TILE_H / 2); ctx.lineTo(sx + TILE_W / 2, sy);
+    ctx.lineTo(sx, sy + TILE_H / 2); ctx.lineTo(sx - TILE_W / 2, sy);
+    ctx.closePath(); ctx.fill();
+
+    const tufts = 10 + Math.floor(rng() * 5);
+    for (let i = 0; i < tufts; i++) {
+      drawGrassTuft(ctx, sx + (rng() - 0.5) * w * 2, sy + (rng() - 0.5) * h * 1.6, GRASS_SHADES.spring, rng);
+    }
+    const flowers = 5 + Math.floor(rng() * 5);
+    const flowerColors = ['#ffffff', '#ffe066', '#ff9fc4'];
+    for (let i = 0; i < flowers; i++) {
+      ctx.fillStyle = flowerColors[Math.floor(rng() * flowerColors.length)];
+      ctx.beginPath();
+      ctx.arc(sx + (rng() - 0.5) * w * 1.8, sy + (rng() - 0.5) * h * 1.4, 1.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (season === 'summer') {
+    // Fewer, drier/yellower tufts than spring.
+    const tufts = 4 + Math.floor(rng() * 3);
+    for (let i = 0; i < tufts; i++) {
+      drawGrassTuft(ctx, sx + (rng() - 0.5) * w * 2, sy + (rng() - 0.5) * h * 1.6, GRASS_SHADES.summer, rng);
+    }
+  } else if (season === 'autumn') {
+    const leaves = 8 + Math.floor(rng() * 6);
+    for (let i = 0; i < leaves; i++) {
+      const lx = sx + (rng() - 0.5) * w * 2, ly = sy + (rng() - 0.5) * h * 1.6;
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(rng() * Math.PI * 2);
+      ctx.fillStyle = LEAF_SHADES[Math.floor(rng() * LEAF_SHADES.length)];
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 2.8, 1.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  } else if (season === 'winter') {
+    const patches = 6 + Math.floor(rng() * 5);
+    for (let i = 0; i < patches; i++) {
+      const nx = sx + (rng() - 0.5) * w * 2, ny = sy + (rng() - 0.5) * h * 1.6;
+      const r = 4 + rng() * 6;
+      ctx.fillStyle = 'rgba(238,248,252,0.88)';
+      ctx.beginPath();
+      ctx.ellipse(nx, ny, r, r * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.restore(); // end clip
+}
+
+function drawCherry(ctx, cx, cy, r) {
+  // Glossy ruby gradient + glint, evoking the emerald_gauge_liquid.png bubble
+  // highlights rather than a flat red dot.
+  const grad = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.1, cx, cy, r * 1.1);
+  grad.addColorStop(0, '#ff6b81');
+  grad.addColorStop(0.5, '#c41e3a');
+  grad.addColorStop(1, '#6e0f1f');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.beginPath(); ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.25, 0, Math.PI * 2); ctx.fill();
+}
+
+function darkenHex(hex, factor) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.floor(((n >> 16) & 255) * factor);
+  const g = Math.floor(((n >> 8) & 255) * factor);
+  const b = Math.floor((n & 255) * factor);
+  return `rgb(${r},${g},${b})`;
+}
+
+function leafRadialFill(ctx, cx, cy, r, baseColor, glowColor) {
+  const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.05, cx, cy, r * 1.15);
+  grad.addColorStop(0, glowColor);
+  grad.addColorStop(0.55, baseColor);
+  grad.addColorStop(1, darkenHex(baseColor, 0.45));
+  return grad;
+}
+
+// drawBareBranches (leafless winter branches) removed per revision — winter
+// now flows through the same cluster/facet canopy code as autumn, recolored
+// via SEASON_CONFIG.winter instead of a separate bare-branch code path.
+
+function drawBlossom(ctx, x, y) {
+  ctx.fillStyle = '#ffe4ec';
+  ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ff9fc4';
+  ctx.beginPath(); ctx.arc(x, y, 0.8, 0, Math.PI * 2); ctx.fill();
+}
+
+// ---------- Variant A: Geometric Brass ----------
+function drawTreeA(ctx, x, groundY, rng, season) {
+  const cfg = SEASON_CONFIG[season];
+  const trunkH = 34 + rng() * 6;
+  drawTrunk(ctx, x, groundY, trunkH, 10, '#8a5a30', '#2e1a0a');
+  drawGearIcon(ctx, x, groundY - trunkH * 0.4, 4, '#ffe9a8', '#c9922e');
+
+  const canopyY = groundY - trunkH - 6;
+  const baseR = 34 + rng() * 10;
+
+  const facets = Math.max(2, 5 + cfg.countDelta);
+  for (let i = 0; i < facets; i++) {
+    const ang = (Math.PI * 2 * i) / facets + rng() * 0.3;
+    const dist = baseR * (0.35 + rng() * 0.25);
+    const fx = x + Math.cos(ang) * dist;
+    const fy = canopyY - CANOPY_LIFT + Math.sin(ang) * dist * 0.55;
+    const size = baseR * cfg.facetScale * (0.55 + rng() * 0.3);
+    ctx.save();
+    ctx.translate(fx, fy);
+    ctx.rotate(rng() * 0.6 - 0.3);
+    ctx.beginPath();
+    const sides = 5;
+    for (let s = 0; s < sides; s++) {
+      const a = (Math.PI * 2 * s) / sides - Math.PI / 2;
+      const r = size * (0.8 + (s % 2 === 0 ? 0.2 : 0));
+      const px = Math.cos(a) * r, py = Math.sin(a) * r * 0.85;
+      if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = leafRadialFill(ctx, 0, 0, size, cfg.greens[i % cfg.greens.length], cfg.glow);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(212,175,55,0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (cfg.fruit === 'cherry') {
+    const cherryCount = 5 + Math.floor(rng() * 4);
+    for (let i = 0; i < cherryCount; i++) {
+      const ang = rng() * Math.PI * 2;
+      const dist = baseR * (0.3 + rng() * 0.5);
+      const cx = x + Math.cos(ang) * dist;
+      const cy = canopyY - CANOPY_LIFT + Math.sin(ang) * dist * 0.55;
+      drawCherry(ctx, cx, cy, 3);
+    }
+  } else if (cfg.fruit === 'blossom') {
+    const blossomCount = 6 + Math.floor(rng() * 5);
+    for (let i = 0; i < blossomCount; i++) {
+      const ang = rng() * Math.PI * 2;
+      const dist = baseR * (0.25 + rng() * 0.45);
+      drawBlossom(ctx, x + Math.cos(ang) * dist, canopyY - CANOPY_LIFT + Math.sin(ang) * dist * 0.55);
+    }
+  }
+}
+
+// ---------- Variant B: Organic Noise ----------
+function drawTreeB(ctx, x, groundY, rng, season) {
+  const cfg = SEASON_CONFIG[season];
+  const trunkH = 32 + rng() * 8;
+  drawTrunk(ctx, x, groundY, trunkH, 9, '#8a5a30', '#2e1a0a');
+
+  const canopyY = groundY - trunkH - 4;
+  const baseR = 15;
+
+
+  const clusterCount = Math.max(3, 7 + cfg.countDelta);
+  const positions = [];
+  for (let i = 0; i < clusterCount; i++) {
+    const ang = rng() * Math.PI * 2;
+    const dist = rng() * 26;
+    positions.push({
+      x: x + Math.cos(ang) * dist,
+      y: canopyY - CANOPY_LIFT + Math.sin(ang) * dist * 0.6,
+      r: baseR * cfg.facetScale * (0.6 + rng() * 0.6)
+    });
+  }
+  // shadow pass (darker, offset)
+  positions.forEach(p => {
+    ctx.fillStyle = 'rgba(30,50,20,0.55)';
+    ctx.beginPath();
+    ctx.arc(p.x + 2, p.y + 3, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  // main leaf color pass — radial gradient per cluster (glow center -> darker edge)
+  // instead of a flat fill, so the canopy reads as lit rather than pasted-on.
+  positions.forEach((p, i) => {
+    ctx.fillStyle = leafRadialFill(ctx, p.x, p.y, p.r, cfg.greens[i % cfg.greens.length], cfg.glow);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  // highlight pass (top-left light) — slightly warmer/stronger than before to
+  // reinforce the "Golden Hour" glow instead of a flat white speck.
+  positions.forEach(p => {
+    ctx.fillStyle = 'rgba(255,244,214,0.22)';
+    ctx.beginPath();
+    ctx.arc(p.x - p.r * 0.3, p.y - p.r * 0.35, p.r * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  if (cfg.fruit === 'cherry') {
+    const cherryCount = 6 + Math.floor(rng() * 5);
+    for (let i = 0; i < cherryCount; i++) {
+      const p = positions[Math.floor(rng() * positions.length)];
+      const cx = p.x + (rng() - 0.5) * p.r;
+      const cy = p.y + (rng() - 0.5) * p.r * 0.7;
+      drawCherry(ctx, cx, cy, 2.6);
+    }
+  } else if (cfg.fruit === 'blossom') {
+    const blossomCount = 7 + Math.floor(rng() * 5);
+    for (let i = 0; i < blossomCount; i++) {
+      const p = positions[Math.floor(rng() * positions.length)];
+      const cx = p.x + (rng() - 0.5) * p.r;
+      const cy = p.y + (rng() - 0.5) * p.r * 0.7;
+      drawBlossom(ctx, cx, cy);
+    }
+  }
+}
+
+// ---------- Outer buildable border zone (future Warehouse/Workshop/Farmhouse plots) ----------
+function drawBuildableZone(ctx, gridSize, originX, originY) {
+  const corners = [
+    isoToScreen(0, 0, originX, originY),
+    isoToScreen(gridSize, 0, originX, originY),
+    isoToScreen(gridSize, gridSize, originX, originY),
+    isoToScreen(0, gridSize, originX, originY)
+  ].map((c, i) => {
+    // nudge each true grid corner outward to the tile's own outer vertex
+    if (i === 0) return { x: c.x, y: c.y - TILE_H / 2 };
+    if (i === 1) return { x: c.x + TILE_W / 2, y: c.y };
+    if (i === 2) return { x: c.x, y: c.y + TILE_H / 2 };
+    return { x: c.x - TILE_W / 2, y: c.y };
+  });
+  const cx = corners.reduce((s, c) => s + c.x, 0) / 4;
+  const cy = corners.reduce((s, c) => s + c.y, 0) / 4;
+  const margin = 58;
+  const outer = corners.map(c => {
+    const dx = c.x - cx, dy = c.y - cy;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    return { x: c.x + (dx / len) * margin, y: c.y + (dy / len) * margin };
+  });
+
+  // Cleared-land band between the orchard's true outer edge and the expanded
+  // outer boundary — reserved for future buildings (Warehouse/Workshop/Farmhouse).
+  ctx.beginPath();
+  ctx.moveTo(outer[0].x, outer[0].y);
+  outer.slice(1).forEach(c => ctx.lineTo(c.x, c.y));
+  ctx.closePath();
+  const grad = ctx.createRadialGradient(cx, cy, 40, cx, cy, margin + 140);
+  grad.addColorStop(0, 'rgba(90,74,50,0)');
+  grad.addColorStop(1, 'rgba(58,46,28,0.9)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(184,134,11,0.8)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Three placeholder building-plot outlines along the band — Warehouse,
+  // Workshop, Farmhouse — communicating "reserved for future construction"
+  // without committing to real building art yet.
+  const plotSpecs = [
+    { edgeA: outer[0], edgeB: outer[1], t: 0.5, label: 'Warehouse' },
+    { edgeA: outer[1], edgeB: outer[2], t: 0.5, label: 'Workshop' },
+    { edgeA: outer[3], edgeB: outer[0], t: 0.5, label: 'Farmhouse' }
+  ];
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  plotSpecs.forEach(spec => {
+    const px = spec.edgeA.x + (spec.edgeB.x - spec.edgeA.x) * spec.t;
+    const py = spec.edgeA.y + (spec.edgeB.y - spec.edgeA.y) * spec.t;
+    const pw = 34, ph = 20;
+    ctx.strokeStyle = 'rgba(212,175,55,0.65)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.strokeRect(px - pw / 2, py - ph / 2, pw, ph);
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(212,175,55,0.85)';
+    ctx.fillText(spec.label, px, py + ph / 2 + 12);
+  });
+}
+
+// ---------- Farmer/tractor path lanes along parcel boundaries ----------
+// Each tile's "bottom" vertex is the shared corner between up to 4 tiles.
+// The actual shared edge with the tile to its +gx neighbor is bottom->right;
+// the shared edge with the +gy neighbor is left->bottom. Previously this
+// function traced a line through isoToScreen(k, 0..gridSize), which passes
+// through tile CENTERS, not tile edges — fixed to trace the real seams.
+function tileVertex(gx, gy, which, originX, originY) {
+  const { x, y } = isoToScreen(gx, gy, originX, originY);
+  if (which === 'top') return { x, y: y - TILE_H / 2 };
+  if (which === 'right') return { x: x + TILE_W / 2, y };
+  if (which === 'bottom') return { x, y: y + TILE_H / 2 };
+  return { x: x - TILE_W / 2, y }; // 'left'
+}
+
+// Draws one seam as a STRAIGHT dirt path (centerline is not bent/curved) whose
+// EDGES are ragged/frayed — per revision, irregularity must come from a torn
+// boundary between path and grass (like a real trodden track), not from
+// bending the line itself. Built as a filled ribbon polygon: sample points
+// along the straight centerline, jitter each edge independently and
+// per-point so the boundary looks torn rather than a smooth parallel offset.
+function drawRaggedPath(ctx, x1, y1, x2, y2, halfWidth, color, rng) {
+  const steps = 16;
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  const px = -uy, py = ux; // perpendicular unit vector
+
+  const left = [], right = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const cx = x1 + dx * t, cy = y1 + dy * t;
+    // Independent per-point, per-side jitter (0.45x-1.15x of halfWidth) —
+    // this is what makes the edge look torn/frayed rather than a clean
+    // parallel offset of the centerline.
+    const jL = (0.45 + rng() * 0.7) * halfWidth;
+    const jR = (0.45 + rng() * 0.7) * halfWidth;
+    left.push({ x: cx + px * jL, y: cy + py * jL });
+    right.push({ x: cx - px * jR, y: cy - py * jR });
+  }
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(left[0].x, left[0].y);
+  for (let i = 1; i <= steps; i++) ctx.lineTo(left[i].x, left[i].y);
+  for (let i = steps; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawPathSeams(ctx, gridSize, originX, originY, halfWidth, color, rng) {
+  for (let gx = 0; gx < gridSize; gx++) {
+    for (let gy = 0; gy < gridSize; gy++) {
+      const bottom = tileVertex(gx, gy, 'bottom', originX, originY);
+      if (gx + 1 < gridSize) {
+        // seam shared with the +gx neighbor
+        const right = tileVertex(gx, gy, 'right', originX, originY);
+        drawRaggedPath(ctx, bottom.x, bottom.y, right.x, right.y, halfWidth, color, rng);
+      }
+      if (gy + 1 < gridSize) {
+        // seam shared with the +gy neighbor
+        const left = tileVertex(gx, gy, 'left', originX, originY);
+        drawRaggedPath(ctx, left.x, left.y, bottom.x, bottom.y, halfWidth, color, rng);
+      }
+    }
+  }
+}
+
+// Darker worn-dirt brown, widened +5% per revision (10 -> 10.5 outer,
+// 4 -> 4.2 inner, expressed here as half-widths for drawRaggedPath). Two-tone
+// (dark edge ribbon + narrower lighter trodden-center ribbon) so it still
+// reads as a worn track. Drawn with its own seeded rng so the ragged edges
+// are deterministic per orchard seed, not re-randomized every frame.
+function drawPathLanes(ctx, gridSize, originX, originY, seed) {
+  ctx.save();
+  const rngWide = mulberry32(seed + 5151);
+  drawPathSeams(ctx, gridSize, originX, originY, 5.25, 'rgba(58,40,22,0.92)', rngWide);
+  const rngNarrow = mulberry32(seed + 5151);
+  drawPathSeams(ctx, gridSize, originX, originY, 2.1, 'rgba(94,64,34,0.85)', rngNarrow);
+  ctx.restore();
+}
+
+// ---------- Grid render ----------
+const treeFns = { a: drawTreeA, b: drawTreeB };
+const seeds = { a: 0, b: 0 };
+
+function render(variant, forcedSeed) {
+  const canvas = document.getElementById('canvas-' + variant);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const seed = forcedSeed !== undefined ? forcedSeed : Math.floor(Math.random() * 1000000);
+  seeds[variant] = seed;
+  document.getElementById('seed-' + variant).textContent = seed;
+
+  const gridSize = 3;
+  const originX = canvas.width / 2;
+  const originY = 150;
+  const season = currentSeason[variant];
+  const soilColors = season === 'winter'
+    ? [{ light: '#6a7a88', dark: '#3a4550' }, { light: '#72828f', dark: '#404b56' }, { light: '#647380', dark: '#36414a' }]
+    : [{ light: '#5a4020', dark: '#241608' }, { light: '#644728', dark: '#2a1a0a' }, { light: '#523c1c', dark: '#201406' }];
+  const borderColor = 'rgba(184,134,11,0.55)';
+
+  // Outer buildable border zone (future Warehouse/Workshop/Farmhouse plots),
+  // drawn first so the actual parcel grid renders on top of it.
+  drawBuildableZone(ctx, gridSize, originX, originY);
+
+  // draw tiles back-to-front for correct overlap
+  const order = [];
+  for (let gx = 0; gx < gridSize; gx++)
+    for (let gy = 0; gy < gridSize; gy++) order.push({ gx, gy });
+  order.sort((p1, p2) => (p1.gx + p1.gy) - (p2.gx + p2.gy));
+
+  // Pass 1: tile fills only.
+  order.forEach((p, idx) => {
+    const { x, y } = isoToScreen(p.gx, p.gy, originX, originY);
+    drawParcelTile(ctx, x, y, soilColors[idx % soilColors.length], borderColor);
+  });
+
+  // Pass 2: path lanes drawn on top of tile fills but BEFORE ground decor
+  // and trees, so tree canopies/branches occlude the paths where they
+  // overlap — per revision, paths must read as running "under" the trees.
+  drawPathLanes(ctx, gridSize, originX, originY, seed);
+
+  // Trees sit 15% of a tile's height further down within their parcel than
+  // before, per revision — feels more "planted in the field" than floating
+  // at the tile's center.
+  const TREE_Y_OFFSET = TILE_H * 0.15;
+
+  // Pass 3: ground decor + trees on top of everything.
+  order.forEach((p, idx) => {
+    const { x, y } = isoToScreen(p.gx, p.gy, originX, originY);
+    const rng = mulberry32(seed + idx * 977);
+    drawGroundDecor(ctx, x, y, season, rng);
+    treeFns[variant](ctx, x, y + TREE_Y_OFFSET, rng, season);
+  });
+}
+
+render('a'); render('b');
+window.addEventListener('resize', () => {}); // canvas is fixed-res, CSS scales it
+</script>
+</body>
+</html>

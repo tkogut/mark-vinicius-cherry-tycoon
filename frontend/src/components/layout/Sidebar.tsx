@@ -13,24 +13,27 @@ interface SidebarProps {
     xp: number;
     nextLevelXp: number;
     activeTab: string;
-    onTabChange: (tab: 'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'pool') => void;
+    onTabChange: (tab: 'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'pool' | 'harvester') => void;
     ownedInfrastructure: any[];
     parcels: any[];
     onOpenFinancialReport: () => void;
     onOpenShop: () => void;
+    onOpenStats: () => void;
 }
 
 import { useTranslation } from 'react-i18next';
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, nextLevelXp, activeTab, onTabChange, ownedInfrastructure, parcels, onOpenFinancialReport, onOpenShop }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, nextLevelXp, activeTab, onTabChange, ownedInfrastructure, parcels, onOpenFinancialReport, onOpenShop, onOpenStats }) => {
     const { logout } = useAuth();
     const { t } = useTranslation();
 
     const navItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
+        { id: 'harvester', icon: Zap, label: 'Golden Harvester' },
         { id: 'marketplace', icon: ShoppingBag, label: t('nav.marketplace') },
         { id: 'shop', icon: Sparkles, label: 'Premium Shop' },
         { id: 'rankings', icon: Trophy, label: t('nav.rankings') },
+        { id: 'stats', icon: LayoutDashboard, label: 'Farm Stats' },
         { id: 'neighbors', icon: User, label: t('nav.neighbors') },
         { id: 'pool', icon: PieChart, label: 'Imperial Pool' },
         { id: 'sports', icon: Zap, label: t('nav.sports') },
@@ -46,14 +49,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
             {/* Desktop Sidebar (Fixed Left) */}
             {isDesktop && (
                 <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 lg:w-72 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 text-slate-100 transition-all duration-300 z-40 desktop-sidebar">
-                    {/* Logo Area */}
-                    <div className="h-16 flex items-center px-6 border-b border-slate-800/50">
-                        <Cherry className="h-6 w-6 text-rose-500 animate-pulse mr-2" />
-                        <div className="flex flex-col">
-                            <span className="font-bold text-lg leading-tight tracking-tight bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent">
+                    {/* Logo Area — UX-01.
+                        Was `h-16` with a `text-lg` title. "Mark Vinicius Cherry
+                        Tycoon" cannot fit one line in a 256px rail, so it wrapped
+                        to two and, together with the subtitle, overflowed the
+                        fixed 64px box onto the first nav item. Longer
+                        translations (de: "Mark Vinicius Kirschen-Tycoon") make it
+                        worse. Now the box grows with its content and the title is
+                        sized to wrap deliberately rather than by accident. */}
+                    <div className="min-h-16 flex items-start gap-2 px-6 py-3 border-b border-slate-800/50">
+                        <Cherry className="h-5 w-5 text-rose-500 animate-pulse flex-shrink-0 mt-0.5" />
+                        <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-base leading-snug tracking-tight bg-gradient-to-r from-rose-400 to-red-500 bg-clip-text text-transparent">
                                 {t('app.title')}
                             </span>
-                            <span className="text-[10px] font-medium text-slate-500 tracking-wider">
+                            <span className="text-[10px] font-medium text-slate-500 tracking-wider leading-tight mt-0.5">
                                 {t('app.subtitle')}
                             </span>
                         </div>
@@ -70,14 +80,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                         onOpenShop();
                                         return;
                                     }
-                                    if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool') {
+                                    if (item.id === 'stats') {
+                                        onOpenStats();
+                                        return;
+                                    }
+                                    if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool' || item.id === 'harvester') {
                                         onTabChange(item.id as any);
                                     }
                                 }}
                                 className={cn(
                                     "w-full justify-start gap-3 h-10 font-medium transition-all duration-200",
                                     activeTab === item.id
-                                        ? "bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
+                                        ? "bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30 shadow-[0_0_8px_rgba(201,168,76,0.2)] hover:bg-[#C9A84C]/20"
                                         : item.id === 'shop'
                                             ? "text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 border border-amber-500/20"
                                             : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50"
@@ -205,7 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
 
             {/* Mobile Bottom Navigation */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 flex items-center justify-around px-2 z-50 safe-area-bottom pb-safe">
-                {navItems.map((item) => (
+                {navItems.filter(item => ['dashboard', 'harvester', 'marketplace', 'rankings', 'sports'].includes(item.id)).map((item) => (
                     <button
                         key={item.id}
                         onClick={() => {
@@ -213,13 +227,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                 onOpenShop();
                                 return;
                             }
-                            if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool') {
+                            if (item.id === 'stats') {
+                                onOpenStats();
+                                return;
+                            }
+                            if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool' || item.id === 'harvester') {
                                 onTabChange(item.id as any);
                             }
                         }}
                         className={cn(
                             "flex flex-col items-center justify-center p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px]",
-                            activeTab === item.id ? "text-rose-400" : (item.id === 'shop' ? "text-amber-400" : "text-slate-500 hover:text-slate-300")
+                            activeTab === item.id ? "text-[#C9A84C] drop-shadow-[0_0_6px_rgba(201,168,76,0.4)]" : (item.id === 'shop' ? "text-amber-400" : "text-slate-500 hover:text-slate-300")
                         )}
                         style={{ touchAction: 'manipulation' }}
                     >
@@ -261,7 +279,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, level, xp, ne
                                             onClose();
                                             return;
                                         }
-                                        if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool') {
+                                        if (item.id === 'stats') {
+                                            onOpenStats();
+                                            onClose();
+                                            return;
+                                        }
+                                        if (item.id === 'dashboard' || item.id === 'marketplace' || item.id === 'sports' || item.id === 'neighbors' || item.id === 'rankings' || item.id === 'pool' || item.id === 'harvester') {
                                             onTabChange(item.id as any);
                                             onClose();
                                         }

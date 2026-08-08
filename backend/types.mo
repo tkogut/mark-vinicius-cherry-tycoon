@@ -97,6 +97,7 @@ module {
     #Shaker;             // mechanical harvesting
     #Sprayer;            // lower disease risk, higher quality
     #ProcessingFacility; // juices, jams, liqueurs
+    #Pruner;             // automated branch-trimming, quality + modest labor savings
   };
 
   public type Infrastructure = {
@@ -371,12 +372,9 @@ module {
     squadValue: Nat;
     youthDevelopment: Nat;   // 0-100 investment level
   };
-
   public type League = {
-    #TopLiga;    // Ekstraklasa equivalent
-    #Liga1;
-    #Liga2;
     #Liga3;
+    #Liga4;
   };
 
   // ============================================================================
@@ -384,22 +382,34 @@ module {
   // ============================================================================
 
   public type AIPersonality = {
-    #Traditionalist;  // conservative, slow growth, low risk
-    #Innovator;       // aggressive organic, high risk/reward
-    #Businessman;     // profit-focused, wholesale contracts
+    #Traditionalist;
+    #Innovator;
+    #Businessman;
+  };
+
+  public type AIStrategyState = {
+    #Neutral;      // standard bidding
+    #Aggressive;   // deep undercutting (Marek-style)
+    #Passive;      // high margins, low volume (Kasia-style)
+    #Desperate;    // bidding at cost to avoid bankruptcy
   };
 
   public type AICompetitor = {
     id: Text;
     name: Text;
     personality: AIPersonality;
+    currentStrategy: AIStrategyState;
     totalArea: Float;            // hectares
     productionCapacity: Nat;     // kg per season (base capacity)
-    reputation: Nat;             // 0-100
+    inventoryKg: Nat;            // current stored volume
+    prestige: Nat;               // 0-1000 persistent score
+    reputation: Nat;             // 0-100 local trust
     county: Text;                // e.g. "Głubczyce (GL-02)"
     isOrganic: Bool;             // true if farm is organically certified
     preferredSaleType: Text;     // "retail" | "wholesale"
-    lastSeasonProduction: Nat;   // kg simulated last season (0 before first simulation)
+    lastSeasonProduction: Nat;   // kg simulated last season
+    totalRevenue: Nat;           // lifetime earned PLN
+    seasonsActive: Nat;          // age of the AI farm
   };
 
   // ============================================================================

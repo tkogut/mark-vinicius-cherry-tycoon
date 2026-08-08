@@ -32,14 +32,14 @@ export const EmeraldGauge: React.FC<EmeraldGaugeProps> = ({ value, label }) => {
     const isEmpty = clampedValue === 0;
     const glowIntensity = clampedValue / 100;
 
-    const W = 64;
-    const H = 256;
-    const CAP_H = 22;
+    const W = 48;
+    const H = 130;
+    const CAP_H = 12;
     const liquidH = (H - CAP_H * 2) * (clampedValue / 100);
 
     return (
         <div
-            className={cn("flex flex-col items-center justify-center space-y-2 flex-shrink-0 animate-in fade-in zoom-in-95 duration-500")}
+            className={cn("flex flex-col items-center justify-center space-y-1 flex-shrink-0 animate-in fade-in zoom-in-95 duration-500")}
             style={{ width: `${W}px`, background: 'transparent' }}
         >
             {/* ═══ TUBE ASSEMBLY — 64 × 256 px ═════════════════════════════════ */}
@@ -114,7 +114,7 @@ export const EmeraldGauge: React.FC<EmeraldGaugeProps> = ({ value, label }) => {
                 ────────────────────────────────────────────────────────────── */}
                 <div style={{
                     position: 'absolute',
-                    left: '10px', right: '10px',
+                    left: '7px', right: '7px',
                     bottom: `${CAP_H}px`,
                     height: `${liquidH}px`,
                     zIndex: 2,
@@ -122,7 +122,7 @@ export const EmeraldGauge: React.FC<EmeraldGaugeProps> = ({ value, label }) => {
                     transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                     transform: `skewY(${sloshOffset}deg)`,
                     transformOrigin: 'bottom',
-                    borderRadius: '2px 2px 14px 14px',
+                    borderRadius: '2px 2px 10px 10px',
                     // RADIANCE FIX: Stronger, more saturated emerald glow
                     filter: isEmpty ? 'none' : `drop-shadow(0 0 16px rgba(0, 255, 65, 0.9))`,
                     animation: isNearFull ? 'vibrate 0.1s infinite' : 'none',
@@ -157,9 +157,9 @@ export const EmeraldGauge: React.FC<EmeraldGaugeProps> = ({ value, label }) => {
 
                     {/* Flat surface tension line — RADIANT WHITE */}
                     {!isEmpty && <div style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, height: '4px',
+                        position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
                         background: '#ffffff',
-                        boxShadow: '0 0 30px #00FF41, 0 0 15px #ffffff, 0 0 40px rgba(0,255,65,0.5)',
+                        boxShadow: '0 0 20px #00FF41, 0 0 10px #ffffff, 0 0 30px rgba(0,255,65,0.5)',
                         zIndex: 5,
                     }} />}
                 </div>
@@ -171,21 +171,21 @@ export const EmeraldGauge: React.FC<EmeraldGaugeProps> = ({ value, label }) => {
 
                 {/* LEFT Edge Blur Strip — bright refractive rim */}
                 <div style={{
-                    position: 'absolute', top: 0, bottom: 0, left: '8px', width: '12px', zIndex: 3,
-                    backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
+                    position: 'absolute', top: 0, bottom: 0, left: '6px', width: '8px', zIndex: 3,
+                    backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
                     background: 'linear-gradient(90deg, rgba(255,255,255,0.25) 0%, transparent 100%)',
                 }} />
 
                 {/* RIGHT Edge Blur Strip — shadow refraction */}
                 <div style={{
-                    position: 'absolute', top: 0, bottom: 0, right: '8px', width: '12px', zIndex: 3,
-                    backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)',
+                    position: 'absolute', top: 0, bottom: 0, right: '6px', width: '8px', zIndex: 3,
+                    backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
                     background: 'linear-gradient(270deg, rgba(0,0,0,0.3) 0%, transparent 100%)',
                 }} />
 
                 {/* God Ray + vertical ribbing — Center is perfectly sharp */}
                 <div style={{
-                    position: 'absolute', top: `${CAP_H}px`, bottom: `${CAP_H}px`, left: '8px', right: '8px', zIndex: 4,
+                    position: 'absolute', top: `${CAP_H}px`, bottom: `${CAP_H}px`, left: '6px', right: '6px', zIndex: 4,
                     backgroundImage: [
                         'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 100%)', // Much sharper God Ray
                         'repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0px, rgba(255,255,255,0.06) 1px, transparent 1px, transparent 8px)', // Tighter ribbing
@@ -194,24 +194,24 @@ export const EmeraldGauge: React.FC<EmeraldGaugeProps> = ({ value, label }) => {
 
                 {/* Specular Rim — Hand-crafted vertical highlights */}
                 <div style={{
-                    position: 'absolute', top: `${CAP_H}px`, bottom: `${CAP_H}px`, left: '8px', right: '8px', zIndex: 6,
-                    borderRadius: '3px', pointerEvents: 'none',
+                    position: 'absolute', top: `${CAP_H}px`, bottom: `${CAP_H}px`, left: '6px', right: '6px', zIndex: 6,
+                    borderRadius: '2px', pointerEvents: 'none',
                     boxShadow: [
-                        'inset 4px 0 0 0 rgba(255,255,255,0.4)', // Left Rim Light
-                        'inset -3px 0 0 0 rgba(0,0,0,0.3)',      // Right Rim Shadow
-                        'inset 12px 0 18px rgba(255,255,255,0.1)',
-                        'inset -12px 0 18px rgba(0,0,0,0.15)',
+                        'inset 3px 0 0 0 rgba(255,255,255,0.4)', // Left Rim Light
+                        'inset -2px 0 0 0 rgba(0,0,0,0.3)',      // Right Rim Shadow
+                        'inset 8px 0 12px rgba(255,255,255,0.1)',
+                        'inset -8px 0 12px rgba(0,0,0,0.15)',
                     ].join(', '),
                 }} />
 
             </div>
 
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.22em] font-mono mt-1 text-center block" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-[0.22em] font-mono mt-0.5 text-center block" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                 {label}
             </span>
             <span
-                className="text-[14px] font-bold font-mono text-center block"
-                style={{ color: '#00FF41', textShadow: '0 0 12px rgba(0,255,65,1)' }}
+                className="text-[12px] font-bold font-mono text-center block"
+                style={{ color: '#00FF41', textShadow: '0 0 10px rgba(0,255,65,1)' }}
             >
                 {clampedValue}%
             </span>

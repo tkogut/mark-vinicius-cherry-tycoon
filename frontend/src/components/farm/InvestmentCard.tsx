@@ -19,6 +19,10 @@ interface InvestmentCardProps {
         value: string;
         trend?: string;
     }[];
+    secondaryAction?: {
+        label: string;
+        onClick: () => void;
+    };
     onUpgrade: () => void;
 }
 
@@ -32,6 +36,7 @@ export const InvestmentCard: React.FC<InvestmentCardProps> = ({
     isUpgrading,
     icon: Icon,
     stats,
+    secondaryAction,
     onUpgrade
 }) => {
     const progress = (level / maxLevel) * 100;
@@ -49,7 +54,22 @@ export const InvestmentCard: React.FC<InvestmentCardProps> = ({
                         LVL {level}
                     </Badge>
                 </div>
-                <CardTitle className="mt-4 text-xl hull-header">{title}</CardTitle>
+                <div className="mt-4 flex justify-between items-center">
+                    <CardTitle className="text-xl hull-header">{title}</CardTitle>
+                    {secondaryAction && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                secondaryAction.onClick();
+                            }}
+                            className="h-7 px-2 text-[10px] uppercase font-bold text-amber-500 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/20"
+                        >
+                            {secondaryAction.label}
+                        </Button>
+                    )}
+                </div>
                 <CardDescription className="text-amber-100/60 line-clamp-2 min-h-[3rem]">
                     {description}
                 </CardDescription>
@@ -89,8 +109,8 @@ export const InvestmentCard: React.FC<InvestmentCardProps> = ({
 
                     <Button
                         className={`w-full h-11 text-sm font-bold tracking-widest transition-all duration-300 relative overflow-hidden ${canAfford
-                                ? 'bg-gradient-to-r from-amber-700 to-yellow-700 hover:from-amber-600 hover:to-yellow-600 text-white shadow-[0_0_15px_rgba(217,119,6,0.3)] hover:shadow-[0_0_25px_rgba(252,211,77,0.5)]'
-                                : 'bg-gray-800/50 text-gray-500 cursor-not-allowed border-gray-700/50'
+                            ? 'bg-gradient-to-r from-amber-700 to-yellow-700 hover:from-amber-600 hover:to-yellow-600 text-white shadow-[0_0_15px_rgba(217,119,6,0.3)] hover:shadow-[0_0_25px_rgba(252,211,77,0.5)]'
+                            : 'bg-gray-800/50 text-gray-500 cursor-not-allowed border-gray-700/50'
                             }`}
                         disabled={!canAfford || isUpgrading}
                         onClick={onUpgrade}

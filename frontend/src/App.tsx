@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Users, Trophy, Coins, Zap, TrendingUp } from "lucide-react"
+import { LayoutDashboard, Cherry, Settings, RefreshCcw, Menu, User, Users, Trophy, Coins, Zap, TrendingUp, Wrench} from "lucide-react"
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { LoginButton } from "@/components/LoginButton"
 import { useAuth } from "@/hooks/useAuth"
@@ -12,6 +12,8 @@ import { SellModal } from '@/components/farm/modals/SellModal';
 import { CompetitorsPanel } from "@/components/social/CompetitorsPanel";
 import { RankingsPanel } from "@/components/social/RankingsPanel";
 import { SportsCenter } from "@/components/sports/SportsCenter";
+import { MainDashboard } from "@/components/farm/MainDashboard";
+import { ImperialOrchard } from "@/components/farm/ImperialOrchard";
 const Marketplace = React.lazy(() => import('@/components/farm/Marketplace').then(module => ({ default: module.Marketplace })));
 import { InvestmentsDashboard } from "@/components/farm/InvestmentsDashboard";
 import { ParticleLayer } from "@/components/effects/ParticleLayer";
@@ -29,7 +31,7 @@ import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
 import { HiringModal } from "@/components/farm/HiringModal"
 import { useInstallPrompt } from "@/utils/pwa"
 import { useToast } from "@/components/ui/use-toast"
-import { calculateYieldBreakdown } from "@/lib/gameLogic"
+import { calculateYieldBreakdown, getUpkeepDrift } from "@/lib/gameLogic"
 import { PhaseIndicator } from "@/components/season/PhaseIndicator"
 import { WeatherEventModal, WeatherEventType } from "@/components/season/WeatherEventModal"
 import { WeatherOverlay } from "@/components/season/WeatherOverlay"
@@ -45,10 +47,11 @@ import { VolumeControl } from '@/components/ui/VolumeControl';
 import { SOUNDS } from '@/config/sounds';
 import { isActionAllowed, GameAction, SeasonPhase, PHASE_DESCRIPTIONS } from "@/config/phaseConstants";
 import { cn } from "@/lib/utils"
+import { mapBackendWeather } from "@/utils/weatherUtils";
 
 
 function AppContent() {
-    const { isAuthenticated, isInitializing, identity } = useAuth();
+    const { isAuthenticated, isInitializing, identity, backendActor } = useAuth();
     const { playBGM, stopBGM } = useAudio();
     const { toast } = useToast();
 
@@ -66,6 +69,7 @@ function AppContent() {
     const [hiringModalOpen, setHiringModalOpen] = useState(false);
     const [procurementModalOpen, setProcurementModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'sports' | 'neighbors' | 'rankings' | 'harvester' | 'pool'>('dashboard');
+    const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
     // Harvest Velocity — drives the Sunset-Glow particle intensity
     const [harvestVelocity, setHarvestVelocity] = useState(0);
@@ -91,6 +95,8 @@ function AppContent() {
     const {
         farm,
         isLoading,
+        isError,
+        error: farmError,
         refetch,
         plant,
         water,
@@ -102,10 +108,32 @@ function AppContent() {
         upgradeInfrastructure,
         advancePhase,
         cutAndPrune,
+        inspectAndRepair,
         hireLabor
     } = useGuestFarm();
 
-    const showOnboarding = isAuthenticated && !!identity && !isLoading && !farm;
+    // Only show onboarding if we specifically failed with "Not Found" OR if we are authenticated but have no data
+    const isNotFound = farmError?.message?.includes('Not Found') || (!farm && !isLoading && isAuthenticated && !isError);
+    const showOnboarding = isAuthenticated && !!identity && isNotFound;
+
+    // AUTO-ONBOARDING BYPASS
+    useEffect(() => {
+        const network = import.meta.env.VITE_DFX_NETWORK;
+        if (showOnboarding && network !== 'ic' && !isLoading) {
+            console.log('[App] Auto-Login detected. Automatically establishing farm for AgentTest...');
+            const autoInit = async () => {
+                try {
+                    // Using a stable test ID and name for easy debugging
+                    const result = await backendActor?.initializePlayer("agent_test", "Agent Test");
+                    console.log('[App] Auto-initialization result:', result);
+                    refetch();
+                } catch (e) {
+                    console.error('[App] Auto-onboarding failed:', e);
+                }
+            };
+            autoInit();
+        }
+    }, [showOnboarding, isLoading, backendActor, refetch]);
 
     // Derived state
     const stats = {
@@ -126,6 +154,26 @@ function AppContent() {
     };
 
     const parcels = farm ? farm.parcels : [];
+
+    const getInfraLevel = (type: string) => {
+        const infra = farm?.infrastructure.find(i => type in i.infraType);
+        return infra ? Number(infra.level) : 0;
+    };
+    const warehouseLevel = getInfraLevel('Warehouse');
+    const maxCapacity = (warehouseLevel + 1) * 10000;
+
+    // Wired to real purchased-machinery state 2026-08-03 (previously
+    // hardcoded `hasHarvesters: false`, so the orchard never showed any
+    // owned machine regardless of what was actually purchased in the
+    // Marketplace). Pruner is now a real backend InfrastructureType (added
+    // 2026-08-03 — types.mo, game_logic.mo, main.mo/main_mainnet.mo), so it
+    // reads from getInfraLevel like the other three.
+    const orchardAutomationConfig = {
+        hasHarvesters: getInfraLevel('Shaker') > 0,
+        hasTractor: getInfraLevel('Tractor') > 0,
+        hasSprayer: getInfraLevel('Sprayer') > 0,
+        hasPruner: getInfraLevel('Pruner') > 0,
+    };
 
     // Helper to determine current phase
     const getCurrentPhaseName = (phase: any): any => {
@@ -242,7 +290,10 @@ function AppContent() {
     const maxAffordableTrees = Number(stats.cash / 50n);
     const maxPlantable = Math.max(0, Math.min(200, maxAffordableTrees));
 
-    // Mock Weather Event State (To be connected to backend)
+    // Track the last seen weather event ID or timestamp to trigger modal only once
+    const lastEventRef = useRef<string | null>(null);
+
+    // Weather Event State (Connected to backend)
     const [weatherEvent, setWeatherEvent] = useState<{
         type: WeatherEventType;
         name: string;
@@ -250,6 +301,29 @@ function AppContent() {
         yieldImpact: number;
         infrastructureMitigation?: string;
     } | null>(null);
+
+    // Watch for backend weather changes
+    useEffect(() => {
+        const backendWeatherArr = farm?.weather;
+        if (backendWeatherArr && backendWeatherArr.length > 0) {
+            const event = backendWeatherArr[0];
+            if (!event) return;
+
+            const eventKey = `${Object.keys(event.weather)[0]}_${event.season}`;
+
+            // If it's a new event, map and show modal
+            if (lastEventRef.current !== eventKey) {
+                const mapping = mapBackendWeather(event.weather);
+                setWeatherEvent({
+                    ...mapping,
+                    yieldImpact: Number(event.severity) * -0.25,
+                });
+                lastEventRef.current = eventKey;
+            }
+        } else {
+            lastEventRef.current = null;
+        }
+    }, [farm?.weather]);
 
     // 4. Initialization loading screen (Neo-Steampunk Splash)
     if (isInitializing) {
@@ -367,6 +441,7 @@ function AppContent() {
             {/* Ambient Effects */}
             <WeatherOverlay
                 type={weatherEvent?.type === 'Storm' ? 'rain' : stats.currentSeason && 'Winter' in stats.currentSeason ? 'snow' : 'none'}
+                intensity={farm?.weather && farm.weather.length > 0 ? Number(farm.weather[0]!.severity) : 0.5}
             />
             <SeasonalEffects
                 season={stats.currentSeason ? Object.keys(stats.currentSeason)[0] as any : null}
@@ -443,6 +518,7 @@ function AppContent() {
                 parcels={farm?.parcels || []}
                 onOpenFinancialReport={() => setFinancialReportOpen(true)}
                 onOpenShop={() => setIsShopModalOpen(true)}
+                onOpenStats={() => setStatsModalOpen(true)}
             />
 
             <FinancialReportModal
@@ -459,7 +535,10 @@ function AppContent() {
                 } : undefined}
             />
 
-            <div className="main-layout-wrapper flex-1 w-full flex flex-col md:ml-64 lg:ml-72 min-h-screen transition-all duration-300 bg-slate-950 pb-20 md:pb-0">
+            <div className={cn(
+                "main-layout-wrapper flex-1 w-full flex flex-col md:ml-64 lg:ml-72 transition-all duration-300 bg-slate-950",
+                activeTab === 'dashboard' ? "h-screen overflow-hidden" : "min-h-screen pb-20 md:pb-0"
+            )}>
 
                 {/* Mobile/Tablet Header */}
                 <header className="sticky top-0 z-30 w-full border-b border-slate-800 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 md:hidden h-16 flex items-center justify-between px-4">
@@ -487,9 +566,14 @@ function AppContent() {
                     organicCherries={stats.organicCherries}
                     className="md:hidden sticky top-16 z-20"
                 />
-
-                <main className="flex-1 p-4 md:p-8 lg:p-10 pb-20 md:pb-8 text-slate-100">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <main className={cn(
+                    "flex-1 text-slate-100 flex flex-col min-h-0",
+                    activeTab === 'dashboard' ? "p-4 md:p-6 overflow-hidden" : "p-4 md:p-8 lg:p-10 pb-20 md:pb-8"
+                )}>
+                    <div className={cn(
+                        "flex flex-col md:flex-row justify-between items-start md:items-center gap-4",
+                        activeTab === 'dashboard' ? "mb-4 md:mb-6 flex-shrink-0" : "mb-8"
+                    )}>
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Farm Overview</h1>
                             <div className="flex flex-col gap-3">
@@ -525,7 +609,7 @@ function AppContent() {
                                         disabled={!isAuthenticated}
                                         variant="default"
                                         size="sm"
-                                        className="gap-2 bg-amber-600 hover:bg-amber-700 text-white flex shadow-[0_0_10px_rgba(217,119,6,0.5)] animate-pulse"
+                                        className="gap-2 bg-gradient-to-b from-[#b36a2a] via-[#8c4b16] to-[#592b08] hover:from-[#d68b4d] hover:via-[#b36a2a] hover:to-[#8c4b16] text-amber-100 font-bold border border-[#ffaa66] shadow-[0_0_10px_rgba(179,106,42,0.5)] transition-all hover:shadow-[0_0_20px_rgba(179,106,42,0.8)] flex uppercase tracking-wider text-[10px] rounded-lg h-9"
                                     >
                                         <Users className="h-4 w-4" />
                                         Hire Labor
@@ -539,7 +623,7 @@ function AppContent() {
                                         disabled={!isAuthenticated}
                                         variant="default"
                                         size="sm"
-                                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white flex shadow-[0_0_10px_rgba(4,120,87,0.5)] animate-pulse"
+                                        className="gap-2 bg-gradient-to-b from-[#00b359] via-[#00803c] to-[#004d20] hover:from-[#33e68a] hover:via-[#00b359] hover:to-[#00803c] text-emerald-100 font-bold border border-[#66ffb3] shadow-[0_0_10px_rgba(0,179,89,0.5)] transition-all hover:shadow-[0_0_20px_rgba(0,179,89,0.8)] flex uppercase tracking-wider text-[10px] rounded-lg h-9"
                                     >
                                         <Coins className="h-4 w-4" />
                                         Procure Supplies
@@ -553,10 +637,10 @@ function AppContent() {
                                     variant="default"
                                     size="sm"
                                     className={cn(
-                                        "gap-2 flex shadow-md font-semibold transition-all duration-300",
+                                        "gap-2 flex shadow-md font-bold transition-all duration-300 uppercase tracking-wider text-[10px] rounded-lg h-9 border",
                                         currentPhase === 'Planning'
-                                            ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 animate-pulse ring-2 ring-emerald-500/20"
-                                            : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                            ? "bg-gradient-to-b from-[#00b359] via-[#00803c] to-[#004d20] hover:from-[#33e68a] hover:via-[#00b359] hover:to-[#00803c] text-emerald-100 border-[#66ffb3] shadow-[0_0_10px_rgba(0,179,89,0.5)]"
+                                            : "bg-gradient-to-b from-[#4f46e5] via-[#3730a3] to-[#1e1b4b] hover:from-[#818cf8] hover:via-[#4f46e5] hover:to-[#3730a3] text-indigo-100 border-[#c7d2fe] shadow-[0_0_10px_rgba(79,70,229,0.5)]"
                                     )}
                                 >
                                     {advancePhase.isPending ? (
@@ -568,16 +652,6 @@ function AppContent() {
                                 </Button>
 
 
-                                <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => setActiveTab('harvester')}
-                                    disabled={!isAuthenticated}
-                                    className="gap-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-white border-0 shadow-[0_0_15px_rgba(251,191,36,0.3)] hover:shadow-[0_0_20px_rgba(251,191,36,0.5)] transition-all flex font-bold tracking-wider"
-                                >
-                                    <TrendingUp className="h-4 w-4" />
-                                    <span className="hidden sm:inline">HARVESTER</span>
-                                </Button>
 
                                 {/* Sell Cherries Button */}
                                 <Button
@@ -585,7 +659,7 @@ function AppContent() {
                                     disabled={!isAuthenticated || stats.totalCherries === 0 || sellCherries.isPending}
                                     variant="default"
                                     size="sm"
-                                    className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white flex"
+                                    className="gap-2 bg-gradient-to-b from-[#b82626] via-[#851616] to-[#540909] hover:from-[#e04c4c] hover:via-[#b82626] hover:to-[#851616] text-rose-100 font-bold border border-[#ffa3a3] shadow-[0_0_10px_rgba(184,38,38,0.5)] transition-all hover:shadow-[0_0_20px_rgba(184,38,38,0.8)] flex uppercase tracking-wider text-[10px] rounded-lg h-9"
                                 >
                                     <Cherry className="h-4 w-4" />
                                     Sell ({stats.totalCherries})
@@ -602,16 +676,6 @@ function AppContent() {
                                     <span className="hidden sm:inline">Refresh</span>
                                 </Button>
 
-                                <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => setStatsModalOpen(true)}
-                                    disabled={!isAuthenticated}
-                                    className="gap-2 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                                >
-                                    <LayoutDashboard className="h-4 w-4" />
-                                    <span>Farm stats</span>
-                                </Button>
 
                                 <div className="hidden md:flex items-center gap-2">
                                     <VolumeControl />
@@ -624,37 +688,129 @@ function AppContent() {
 
 
 
-                    {isAuthenticated ? (
+                    {/* Main UI Entry Point */}
+                    {isError && !isNotFound ? (
+                        <div className="min-h-[60vh] flex items-center justify-center p-4">
+                            <div className="mechanical-hull p-8 max-w-md w-full text-center border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.2)]">
+                                <RefreshCcw className="mx-auto h-12 w-12 text-rose-500 mb-4 opacity-50" />
+                                <h2 className="text-2xl text-rose-500 font-bold mb-2 uppercase tracking-tighter">System Malfunction</h2>
+                                <p className="text-slate-400 mb-6 font-mono text-xs leading-relaxed">
+                                    {farmError?.message || "Atmospheric interference detected in the cloud engines. Re-synchronizing may be required."}
+                                </p>
+                                <Button
+                                    onClick={() => refetch()}
+                                    className="bg-rose-600 hover:bg-rose-500 text-white font-bold h-11 w-full gap-2 transition-all active:scale-95"
+                                >
+                                    <RefreshCcw className="h-4 w-4" />
+                                    Re-align Dampers
+                                </Button>
+                                <p className="mt-4 text-[10px] text-slate-600 uppercase tracking-[0.2em]">Error Code: {isError ? 'SIG_FAIL_0X9' : 'OK'}</p>
+                            </div>
+                        </div>
+                    ) : isAuthenticated ? (
                         <React.Suspense fallback={<div className="flex justify-center p-12"><RefreshCcw className="animate-spin h-8 w-8 text-rose-500" /></div>}>
                             {activeTab === 'dashboard' ? (
-                                <div className="space-y-6">
-                                    {isAuthenticated && currentPhase === 'Maintenance' && (
-                                        <div className="bg-blue-900/10 border border-blue-500/20 rounded-lg p-4 text-center animate-in fade-in slide-in-from-top-4 duration-500">
-                                            <p className="text-sm text-blue-400 font-medium">
-                                                🛠️ Maintenance Phase: Your machines are being serviced. Good time to visit the Marketplace or end the phase.
-                                            </p>
+                                <div className="flex-grow flex flex-col w-full min-h-0 gap-4 overflow-hidden">
+                                    {/* Top - Imperial Orchard */}
+                                    <div className="flex-[63%] relative z-10 w-full overflow-hidden min-h-0 rounded-2xl border shadow-inner" style={{ borderColor: 'rgba(201, 168, 76, 0.25)' }}>
+                                        {/* MAINT-01: the Maintenance phase used to show only this
+                                            passive caption while `inspectAndRepair` sat on the
+                                            canister uncalled — the one phase with no player action.
+                                            It is now an actionable card that states the real numbers
+                                            (upkeep has drifted above spec; what a repair costs;
+                                            whether it pays back) instead of the old copy's claim
+                                            that machines are "being serviced" by nobody. */}
+                                        {isAuthenticated && currentPhase === 'Maintenance' && (
+                                            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-blue-900/85 backdrop-blur-md border border-blue-500/50 rounded-lg p-3 shadow-[0_0_15px_rgba(59,130,246,0.5)] max-w-[22rem]">
+                                                <p className="text-xs text-blue-200 font-medium font-mono uppercase tracking-wider text-center">
+                                                    <Wrench className="h-3.5 w-3.5 inline-block mr-1 -mt-0.5" />Maintenance — Inspection &amp; Repair
+                                                </p>
+                                                {(() => {
+                                                    const infra = farm?.infrastructure ?? [];
+                                                    const drift = getUpkeepDrift(infra);
+                                                    const canAfford = Number(stats.cash) >= drift.repairCost;
+                                                    return (
+                                                        <>
+                                                            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] font-mono text-blue-100/90">
+                                                                <span className="text-blue-300/70">Annual upkeep</span>
+                                                                <span className="text-right">{drift.current.toLocaleString()} PLN</span>
+                                                                <span className="text-blue-300/70">As-new spec</span>
+                                                                <span className="text-right">{drift.spec.toLocaleString()} PLN</span>
+                                                                <span className="text-blue-300/70">Wear</span>
+                                                                <span className={cn("text-right font-bold", drift.excess > 0 ? "text-amber-300" : "text-emerald-300")}>
+                                                                    {drift.excess > 0 ? `+${drift.excess.toLocaleString()} PLN` : 'none'}
+                                                                </span>
+                                                                <span className="text-blue-300/70">Repair cost</span>
+                                                                <span className="text-right">{drift.repairCost.toLocaleString()} PLN</span>
+                                                            </div>
+                                                            <p className="mt-2 text-[10px] text-blue-300/70 leading-snug">
+                                                                {infra.length === 0
+                                                                    ? 'No infrastructure yet — nothing to service, and nothing to charge for.'
+                                                                    : drift.excess === 0
+                                                                        ? 'Everything is at spec. Upkeep drifts up each season transition; come back once it has.'
+                                                                        : drift.worthRepairing
+                                                                            ? 'Worth it: a service costs half the wear, so it pays back inside a year.'
+                                                                            : 'Not yet worth it: the repair costs more than a year of this wear.'}
+                                                            </p>
+                                                            <Button
+                                                                size="sm"
+                                                                disabled={drift.repairCost === 0 || !canAfford || inspectAndRepair.isPending}
+                                                                onClick={() => inspectAndRepair.mutate()}
+                                                                className="w-full mt-2 h-8 text-[11px] font-bold bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500"
+                                                            >
+                                                                {inspectAndRepair.isPending
+                                                                    ? 'INSPECTING…'
+                                                                    : drift.repairCost === 0
+                                                                        ? 'NOTHING TO SERVICE'
+                                                                        : canAfford
+                                                                            ? `SERVICE ALL — ${drift.repairCost.toLocaleString()} PLN`
+                                                                            : `NEED ${drift.repairCost.toLocaleString()} PLN`}
+                                                            </Button>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+                                        {isAuthenticated && currentPhase === 'Planning' && (
+                                            <div className="absolute top-4 left-4 z-50">
+                                                <PlanningBoard />
+                                            </div>
+                                        )}
+                                        <ImperialOrchard
+                                            parcels={parcels}
+                                            season={farm?.currentSeason}
+                                            hiredLabor={farm?.hiredLabor}
+                                            onAction={handleParcelAction as any}
+                                            automationConfig={orchardAutomationConfig}
+                                            totalCherries={stats.totalCherries}
+                                            maxCapacity={maxCapacity}
+                                            seasonNumber={stats.seasonNumber}
+                                        />
+                                    </div>
+
+                                    {/* Bottom - Central Engine (HUD) / The Steam Drawer (Mobile) */}
+                                    <div
+                                        className={cn(
+                                            "w-full relative z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] border bg-slate-950 transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col flex-shrink-0 rounded-2xl overflow-hidden",
+                                            isDrawerExpanded
+                                                ? "h-[75vh] md:flex-[37%] min-h-[175px]"
+                                                : "h-[25vh] md:flex-[37%] min-h-[165px] md:h-auto"
+                                        )}
+                                        style={{ borderColor: 'var(--brass-primary)' }}
+                                    >
+                                        {/* Mobile Drawer Handle */}
+                                        <div
+                                            className="md:hidden flex items-center justify-center h-8 cursor-pointer w-full bg-slate-900 absolute top-0 left-0 z-30"
+                                            style={{ borderBottom: '1px solid var(--brass-rim, var(--brass-primary))' }}
+                                            onClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
+                                        >
+                                            <div className="w-12 h-1 rounded-full bg-slate-500 opacity-50" />
                                         </div>
-                                    )}
-                                    {isAuthenticated && currentPhase === 'Planning' && (
-                                        <PlanningBoard />
-                                    )}
-                                    <FarmGrid
-                                        parcels={parcels}
-                                        onAction={handleParcelAction}
-                                        onBuyParcel={handleBuyParcel}
-                                        loading={
-                                            isLoading ||
-                                            advancePhase.isPending ||
-                                            plant.isPending ||
-                                            water.isPending ||
-                                            fertilize.isPending ||
-                                            harvest.isPending ||
-                                            startOrganicConversion.isPending
-                                        }
-                                        currentSeason={stats.currentSeason}
-                                        infrastructure={farm?.infrastructure || []}
-                                        currentPhase={currentPhase}
-                                    />
+
+                                        <div className={cn("flex-grow min-h-0", "md:pt-0 pt-8")}>
+                                            <MainDashboard />
+                                        </div>
+                                    </div>
                                 </div>
                             ) : activeTab === 'harvester' ? (
                                 <div className="animate-in slide-in-from-right-[100%] duration-500 ease-out fill-mode-forwards sm:slide-in-from-right-[150%]">
@@ -667,6 +823,7 @@ function AppContent() {
                                     onPurchase={(id) => upgradeInfrastructure.mutate(id)}
                                     isLoading={upgradeInfrastructure.isPending}
                                     currentPhase={currentPhase}
+                                    season={stats.currentSeason}
                                 />
 
                             ) : activeTab === 'sports' ? (
@@ -719,8 +876,11 @@ function AppContent() {
             {/* PWA Install Button (Conditional) */}
             <InstallPrompt />
 
-            {/* VERSION TAG: Unmistakable verification hook */}
-            <div className="fixed top-4 left-4 z-[9999] pointer-events-none">
+            {/* VERSION TAG: verification hook for "which build is actually live".
+                Moved off top-left (UX-01) — it sat exactly on top of the sidebar
+                logo and covered the second line of the wrapped title on every
+                screen. Bottom-right is the one corner nothing else occupies. */}
+            <div className="fixed bottom-3 right-3 z-50 pointer-events-none">
                 <span className="text-[10px] font-mono text-emerald-500/50 bg-black/40 px-2 py-1 rounded-md border border-emerald-500/20 backdrop-blur-sm">
                     v3.8
                 </span>

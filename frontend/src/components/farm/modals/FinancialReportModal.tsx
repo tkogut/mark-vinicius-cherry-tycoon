@@ -18,8 +18,7 @@ import {
     BarChart3,
     Filter,
     MapPin,
-    Box
-} from "lucide-react";
+    Box, AlertTriangle} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -53,7 +52,7 @@ const VolumeBreakdownRow = ({ label, revenue, volume, color }: { label: string, 
                     <div className="text-slate-500 text-[8px] uppercase font-bold">Volume</div>
                 </div>
                 <div className="text-right border-l border-white/10 pl-4">
-                    <div className="text-emerald-400 font-mono font-bold">${unitPrice.toFixed(2)}/kg</div>
+                    <div className="text-emerald-400 font-mono font-bold">{unitPrice.toFixed(2)} PLN/kg</div>
                     <div className="text-slate-500 text-[8px] uppercase font-bold">Avg Price</div>
                 </div>
             </div>
@@ -265,12 +264,12 @@ const ReportContent = ({ report }: { report: any }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Revenue</span>
-                    <div className="text-2xl font-mono font-bold text-emerald-400">${Number(report.totalRevenue).toLocaleString()}</div>
+                    <div className="text-2xl font-mono font-bold text-emerald-400">{Number(report.totalRevenue).toLocaleString()} PLN</div>
                     <Progress value={100} className="h-1 mt-2 bg-slate-800" indicatorClassName="bg-emerald-500" />
                 </div>
                 <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Expenses</span>
-                    <div className="text-2xl font-mono font-bold text-rose-400">${Number(report.totalCosts).toLocaleString()}</div>
+                    <div className="text-2xl font-mono font-bold text-rose-400">{Number(report.totalCosts).toLocaleString()} PLN</div>
                     <Progress value={Math.min(100, Number(report.totalCosts) / Math.max(1, Number(report.totalRevenue)) * 100)} className="h-1 mt-2 bg-slate-800" indicatorClassName="bg-rose-500" />
                 </div>
                 <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl">
@@ -286,7 +285,7 @@ const ReportContent = ({ report }: { report: any }) => {
                 <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-2xl">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Net P&L</span>
                     <div className={cn("text-2xl font-mono font-bold", report.netProfit >= 0n ? "text-amber-400" : "text-rose-500")}>
-                        ${Number(report.netProfit).toLocaleString()}
+                        {Number(report.netProfit).toLocaleString()} PLN
                     </div>
                     <div className="flex justify-between items-center mt-2">
                         <span className="text-[10px] text-slate-500 uppercase font-bold">Margin</span>
@@ -315,7 +314,7 @@ const ReportContent = ({ report }: { report: any }) => {
                                 <div className="flex justify-between items-center text-[10px] text-slate-500 px-1">
                                     <span>Labor Cost Ratio</span>
                                     <span className={laborRatio > 40 ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"}>
-                                        {laborRatio.toFixed(1)}% {laborRatio > 40 && "⚠️"}
+                                        {laborRatio.toFixed(1)}% {laborRatio > 40 && <AlertTriangle className="h-3 w-3 inline-block ml-1 -mt-0.5" />}
                                     </span>
                                 </div>
                                 <BreakdownRow label="Maintenance" value={report.maintenanceCosts} total={report.totalCosts} color="bg-orange-500" />
@@ -352,16 +351,16 @@ const YearlyReportCard = ({ yr, onDetails }: { yr: YearlyReport, onDetails: () =
             {/* Standard stat cards... */}
             <div className="text-center p-3 bg-slate-900 rounded-xl">
                 <div className="text-[8px] text-slate-500 uppercase font-bold">Revenue</div>
-                <div className="text-sm font-mono font-bold text-emerald-400">${Number(yr.totalRevenue).toLocaleString()}</div>
+                <div className="text-sm font-mono font-bold text-emerald-400">{Number(yr.totalRevenue).toLocaleString()} PLN</div>
             </div>
             <div className="text-center p-3 bg-slate-900 rounded-xl">
                 <div className="text-[8px] text-slate-500 uppercase font-bold">Costs</div>
-                <div className="text-sm font-mono font-bold text-rose-400">${Number(yr.totalCosts).toLocaleString()}</div>
+                <div className="text-sm font-mono font-bold text-rose-400">{Number(yr.totalCosts).toLocaleString()} PLN</div>
             </div>
             <div className="text-center p-3 bg-slate-900 rounded-xl">
                 <div className="text-[8px] text-slate-500 uppercase font-bold">Net Profit</div>
                 <div className={cn("text-sm font-mono font-bold", yr.netProfit >= 0n ? "text-amber-400" : "text-rose-500")}>
-                    ${Number(yr.netProfit).toLocaleString()}
+                    {Number(yr.netProfit).toLocaleString()} PLN
                 </div>
             </div>
         </div>
@@ -388,7 +387,7 @@ const BreakdownRow = ({ label, value, total, color }: { label: string, value: bi
         <div className="space-y-1.5">
             <div className="flex justify-between items-center text-[10px]">
                 <span className="text-slate-400">{label}</span>
-                <span className="text-slate-100 font-mono font-bold">${Number(value).toLocaleString()}</span>
+                <span className="text-slate-100 font-mono font-bold">{Number(value).toLocaleString()} PLN</span>
             </div>
             <Progress value={percent} className="h-1 bg-slate-800" indicatorClassName={color} />
         </div>

@@ -1,13 +1,32 @@
+// LAYER 3 (live-canister integration) — NOT a unit test.
+//
+// This file talks to a real replica over HTTP. It used to run as part of the
+// default Vitest suite, where it could only ever fail: no replica listens
+// during a normal `npm test`, and the canister ID below was hardcoded to a
+// value that no longer matches a fresh `dfx deploy`. That single always-red
+// file is a large part of why the suite was ignored.
+//
+// It now self-skips unless RUN_INTEGRATION is set, so it stays VISIBLE in the
+// report as skipped (rather than being silently excluded by config) and is
+// opt-in via:
+//
+//   dfx start --background && dfx deploy backend
+//   npm run test:integration          # sets RUN_INTEGRATION=1
+//
+// Canister ID and host are read from the environment so the file does not go
+// stale again; the defaults match a stock local `dfx` setup.
 import { describe, it, expect, beforeAll } from 'vitest';
 import { HttpAgent, Actor } from '@dfinity/agent';
 import { idlFactory } from '../declarations/backend.did.js';
 import { _SERVICE } from '../declarations/backend.did';
 
-// Mocking the canister ID since we're in a test environment
-const canisterId = 'uxrrr-q7777-77774-qaaaq-cai';
-const host = 'http://127.0.0.1:8000';
+const RUN_INTEGRATION = !!process.env.RUN_INTEGRATION;
 
-describe('Backend Integration', () => {
+const canisterId =
+    process.env.BACKEND_CANISTER_ID ?? 'bkyz2-fmaaa-aaaaa-qaaaq-cai';
+const host = process.env.DFX_HOST ?? 'http://127.0.0.1:4943';
+
+describe.skipIf(!RUN_INTEGRATION)('Backend Integration (L3 — needs a live replica)', () => {
     let actor: _SERVICE;
 
     beforeAll(async () => {

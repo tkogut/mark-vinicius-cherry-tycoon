@@ -252,94 +252,97 @@ module {
   //   Hans:   Trap logic. Only bids when holding 120% of required volume.
   //           Prices at base minus 5%. Waits for defaults. Reputation=72.
 
-  // Returns a Bid for Marek on the given contract, or null if archetype skips it.
-  // SEC: All calculations Nat. No Float. lcgNext bounded (1 call).
-  public func getMarekBid(contract: Types.AuctionContract, entropy: Nat, season: Nat) : ?Types.Bid {
+  // Returns a Bid for Marek based on his current strategy.
+  public func getMarekBid(ai: Types.AICompetitor, contract: Types.AuctionContract, entropy: Nat, season: Nat) : ?Types.Bid {
     // Marek skips Bio contracts (not organic) and Pre-Season Futures
-    switch (contract.category) {
-      case (#Bio) return null;
-      case (_) {};
-    };
-    if (contract.isPreSeason) return null;
+    if (isBioContract(contract) or contract.isPreSeason) return null;
 
     let (_, r) = lcgNext(entropy + 42);
-    // Undercutting: offer between 75-85% of base (i.e., 15-25% discount)
-    // r ∈ [0,999] → discount ∈ [15,25] (scaled: 750–850 of 1000)
-    let discount10 : Nat = 15 + (r % 11); // 15..25
-    let offerPrice : Nat = (contract.basePricePLN * (100 - discount10)) / 100;
+    
+    // Bidding strategy modifiers
+    let (minDisc, maxDisc) = switch (ai.currentStrategy) {
+        case (#Aggressive) { (20, 35) }; // Marek targets volume at all costs
+        case (#Desperate)  { (30, 45) }; // Survival mode: huge discounts
+        case (_)           { (15, 25) }; // Standard Traditionalist
+    };
+
+    let discount : Nat = minDisc + (r % (maxDisc - minDisc + 1));
+    let offerPrice : Nat = (contract.basePricePLN * (100 - discount)) / 100;
     let safeOffer  : Nat = if (offerPrice == 0) 1 else offerPrice;
 
     ?{
       contractId        = contract.id;
-      bidderId          = "ai_marek_GL02";
+      bidderId          = ai.id;
       isAI              = true;
       offerPricePLN     = safeOffer;
       volumeCommittedKg = contract.requiredVolumeKg;
       isOrganic         = false;
-      globalPrestige    = 60;
-      localReputation   = 60;
+      globalPrestige    = ai.prestige;
+      localReputation   = ai.reputation;
       submittedSeason   = season;
     }
   };
 
-  // Returns a Bid for Kasia — Bio specialist. Only bids Bio contracts.
-  public func getKasiaBid(contract: Types.AuctionContract, _entropy: Nat, season: Nat) : ?Types.Bid {
+  // Returns a Bid for Kasia — Bio specialist.
+  public func getKasiaBid(ai: Types.AICompetitor, contract: Types.AuctionContract, _entropy: Nat, season: Nat) : ?Types.Bid {
     // Kasia ONLY bids Bio contracts
-    switch (contract.category) {
-      case (#Bio) {};
-      case (_) return null;
-    };
-    if (contract.isPreSeason) return null;
+    if (not isBioContract(contract) or contract.isPreSeason) return null;
 
-    // Offer at 95% of base (5% below) to protect premium positioning
-    let offerPrice : Nat = (contract.basePricePLN * 95) / 100;
+    // Offer modifier: Kasia protects margins unless desperate
+    let margin = switch (ai.currentStrategy) {
+        case (#Desperate) { 85 }; // 15% discount if desperate
+        case (#Aggressive) { 90 }; // 10% discount if aggressive
+        case (_)           { 95 }; // 5% discount (Standard Eco-Visionary)
+    };
+
+    let offerPrice : Nat = (contract.basePricePLN * margin) / 100;
     let safeOffer  : Nat = if (offerPrice == 0) 1 else offerPrice;
 
     ?{
       contractId        = contract.id;
-      bidderId          = "ai_kasia_NM01";
+      bidderId          = ai.id;
       isAI              = true;
       offerPricePLN     = safeOffer;
       volumeCommittedKg = contract.requiredVolumeKg;
-      isOrganic         = true;    // Kasia is always organic → QualityBonus in Bio
-      globalPrestige    = 85;
-      localReputation   = 85;
+      isOrganic         = true;
+      globalPrestige    = ai.prestige;
+      localReputation   = ai.reputation;
       submittedSeason   = season;
     }
   };
 
-  // Returns a Bid for Hans — only bids when he holds 120% of required volume.
-  // hansStorageKg simulates his inventory (passed from caller; stable state in main.mo).
+  // Returns a Bid for Hans — Businessman logic.
   public func getHansBid(
+    ai            : Types.AICompetitor,
     contract      : Types.AuctionContract,
     _entropy      : Nat,
-    season        : Nat,
-    hansStorageKg : Nat
+    season        : Nat
   ) : ?Types.Bid {
     // Hans skips Bio (not organic) and Pre-Season Futures
-    switch (contract.category) {
-      case (#Bio) return null;
-      case (_) {};
+    if (isBioContract(contract) or contract.isPreSeason) return null;
+
+    // Trap/Inventory logic: threshold varies by strategy
+    let thresholdPercent = switch (ai.currentStrategy) {
+        case (#Aggressive) { 100 }; // 100% (No safety buffer)
+        case (#Passive)    { 150 }; // 150% (High safety buffer)
+        case (_)           { 120 }; // 120% (Standard Business)
     };
-    if (contract.isPreSeason) return null;
 
-    // Trap logic: only enter if holding 120% of required volume
-    let threshold120 : Nat = (contract.requiredVolumeKg * 120) / 100;
-    if (hansStorageKg < threshold120) return null;
+    let thresholdKg : Nat = (contract.requiredVolumeKg * thresholdPercent) / 100;
+    if (ai.inventoryKg < thresholdKg) return null;
 
-    // Hans bids at base minus 5% — confident, not desperate
     let offerPrice : Nat = (contract.basePricePLN * 95) / 100;
     let safeOffer  : Nat = if (offerPrice == 0) 1 else offerPrice;
 
     ?{
       contractId        = contract.id;
-      bidderId          = "ai_hans_OPCITY";
+      bidderId          = ai.id;
       isAI              = true;
       offerPricePLN     = safeOffer;
-      volumeCommittedKg = hansStorageKg; // Hans bids his full excess
+      volumeCommittedKg = ai.inventoryKg;
       isOrganic         = false;
-      globalPrestige    = 72;
-      localReputation   = 72;
+      globalPrestige    = ai.prestige;
+      localReputation   = ai.reputation;
       submittedSeason   = season;
     }
   };
@@ -590,6 +593,16 @@ module {
       case (#Awarded)   "Awarded";
       case (#Fulfilled) "Fulfilled";
       case (#Defaulted) "Defaulted";
+    }
+  };
+
+  // Returns a human-readable label for AI strategy
+  public func strategyLabel(s: Types.AIStrategyState) : Text {
+    switch (s) {
+      case (#Neutral)    "Neutral (Balanced)";
+      case (#Aggressive) "Aggressive (Undercutting)";
+      case (#Passive)    "Passive (Premium Focus)";
+      case (#Desperate)  "Desperate (Liquidation)";
     }
   };
 

@@ -31,6 +31,14 @@
     --chart-4: 38 30% 70%;
     --chart-5: 15 60% 50%;
     --radius: 0.5rem;
+
+    /* Imperial Orchard Custom Tokens (Bird's Eye View) */
+    --brass-primary: #C9A84C;
+    --copper-dormant: #B87333;
+    --gold-imperial: #FFD700;
+    --ruby-harvest: #8B1A1A;
+    --emerald-glow: rgba(80, 200, 120, 0.8);
+    --charcoal: #121212;
   }
 
   .dark {
@@ -238,12 +246,53 @@
    ═══════════════════════════════════════════════ */
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-spin-slow {
   animation: spin-slow 12s linear infinite;
+}
+
+/* Pest Swarm (Amber insects) */
+@keyframes pest-swarm {
+
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate(15px, -15px) rotate(10deg);
+  }
+
+  50% {
+    transform: translate(0, -30px) rotate(-10deg);
+  }
+
+  75% {
+    transform: translate(-15px, -15px) rotate(5deg);
+  }
+}
+
+/* Disease Miasma (Green fog) */
+@keyframes miasma-drift {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.1;
+  }
+
+  50% {
+    transform: translate(30px, 20px) scale(1.5);
+    opacity: 0.3;
+  }
 }
 
 /* Neo-Steampunk: Liquid Mercury shimmer for XP bar */
@@ -261,5 +310,101 @@
   100% {
     transform: translateX(200%);
     opacity: 0.3;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Neo-Steampunk Tokens (Main Dashboard Refactoring)
+   ═══════════════════════════════════════════════ */
+
+@layer components {
+
+  /* Skueomorphic metallic borders */
+  .brass-rim {
+    @apply relative overflow-hidden;
+    border: 2px solid #C9A84C;
+    box-shadow:
+      inset 0 0 10px rgba(201, 168, 76, 0.4),
+      0 0 15px rgba(201, 168, 76, 0.3),
+      0 4px 6px rgba(0, 0, 0, 0.6);
+  }
+
+  /* CSS simulated aged wood texture */
+  .mahogany-plate {
+    background: linear-gradient(135deg, #3e2723 0%, #2b170c 100%);
+    position: relative;
+    border-radius: inherit;
+  }
+
+  .mahogany-plate::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+    background-image: repeating-linear-gradient(45deg, #000 0px, #000 1px, transparent 1px, transparent 4px);
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  /* 45 Degree Atmospheric light ray */
+  .god-ray-45 {
+    @apply absolute pointer-events-none mix-blend-overlay;
+    background: linear-gradient(135deg,
+        rgba(255, 215, 0, 0.15) 0%,
+        rgba(255, 180, 0, 0.05) 50%,
+        transparent 100%);
+    animation: god-ray-45-anim 8s ease-in-out infinite;
+  }
+}
+
+@keyframes god-ray-45-anim {
+  0% {
+    transform: rotate(45deg) scale(1) translateY(-5%);
+    opacity: 0.15;
+  }
+
+  50% {
+    transform: rotate(45deg) scale(1.1) translateY(5%);
+    opacity: 0.35;
+  }
+
+  100% {
+    transform: rotate(45deg) scale(1) translateY(-5%);
+    opacity: 0.15;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Imperial Orchard Animations (Bird's Eye View)
+   ═══════════════════════════════════════════════ */
+
+@keyframes wind-sway {
+  0% {
+    transform: rotate(-1deg);
+  }
+
+  50% {
+    transform: rotate(1deg);
+  }
+
+  100% {
+    transform: rotate(-1deg);
+  }
+}
+
+@keyframes steam-puff {
+  0% {
+    transform: scale(0.5) translateY(0);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(2) translateY(-30px);
+    opacity: 0;
   }
 }

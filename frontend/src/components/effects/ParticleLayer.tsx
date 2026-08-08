@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-type Preset = 'CherryBlossom' | 'GoldenPollen' | 'SteamSparks' | 'SunsetGlow';
+type Preset = 'CherryBlossom' | 'GoldenPollen' | 'SteamSparks' | 'SunsetGlow' | 'EmeraldPollen';
 
 interface ParticleLayerProps {
     preset: Preset;
@@ -38,6 +38,7 @@ export const ParticleLayer: React.FC<ParticleLayerProps> = ({ preset, intensity 
         const baseCounts: Record<Preset, number> = {
             CherryBlossom: 50,
             GoldenPollen: 100,
+            EmeraldPollen: 100,
             SteamSparks: 75,
             SunsetGlow: 120,
         };
@@ -46,7 +47,7 @@ export const ParticleLayer: React.FC<ParticleLayerProps> = ({ preset, intensity 
         for (let i = 0; i < particleCount; i++) {
             const isSunset = preset === 'SunsetGlow';
             const isSteam = preset === 'SteamSparks';
-            const isGolden = preset === 'GoldenPollen';
+            const isGolden = preset === 'GoldenPollen' || preset === 'EmeraldPollen';
 
             particles.push({
                 x: Math.random() * width,
@@ -105,6 +106,10 @@ export const ParticleLayer: React.FC<ParticleLayerProps> = ({ preset, intensity 
                     fillColor = `rgba(255, 215, 0, ${p.opacity * 0.8})`; // Gold/Amber
                     ctx.shadowBlur = 10;
                     ctx.shadowColor = 'rgba(255, 140, 0, 0.8)'; // Orange glow
+                } else if (preset === 'EmeraldPollen') {
+                    fillColor = `rgba(80, 200, 120, ${p.opacity * 0.8})`; // #50C878 Emerald
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = 'rgba(0, 255, 65, 0.8)'; // Bright green glow
                 } else if (preset === 'SteamSparks') {
                     fillColor = `rgba(255, 100, 0, ${p.opacity})`; // Brass/Fire
                     ctx.shadowBlur = 5;

@@ -11,6 +11,8 @@ interface ParcelDetailsPanelProps {
     parcel: CherryParcel;
     infrastructure: Infrastructure[];
     className?: string;
+    weather?: any;
+    labor?: any;
 }
 
 // Helper to get soil type name
@@ -37,8 +39,8 @@ const getProgressColor = (value: number, min: number = 0.5, max: number = 1.0): 
     return 'bg-red-500';
 };
 
-export const ParcelDetailsPanel: React.FC<ParcelDetailsPanelProps> = ({ parcel, infrastructure, className }) => {
-    const yieldBreakdown = calculateYieldBreakdown(parcel, infrastructure);
+export const ParcelDetailsPanel: React.FC<ParcelDetailsPanelProps> = ({ parcel, infrastructure, className, weather, labor }) => {
+    const yieldBreakdown = calculateYieldBreakdown(parcel, infrastructure, weather, labor);
 
     const waterPercentage = parcel.waterLevel * 100;
     const fertilityPercentage = parcel.fertility * 100;
@@ -104,16 +106,31 @@ export const ParcelDetailsPanel: React.FC<ParcelDetailsPanelProps> = ({ parcel, 
                     {/* Water Level */}
                     <div>
                         <div className="flex justify-between mb-1">
-                            <span className="text-slate-500">Water</span>
-                            <span className={cn("font-mono", getStatusColor(parcel.waterLevel, 0.5, 1.0))}>
+                            <span className="text-slate-500">Water Level</span>
+                            <span className={cn(
+                                "font-mono font-bold",
+                                waterPercentage >= 70 && waterPercentage <= 85 ? "text-emerald-400" :
+                                    waterPercentage > 85 ? "text-ruby" :
+                                        waterPercentage < 40 ? "text-ruby" : "text-amber-400"
+                            )}>
                                 {waterPercentage.toFixed(0)}%
+                                {waterPercentage >= 75 && waterPercentage <= 85 && <span className="text-[8px] ml-1 uppercase">(Optimal)</span>}
                             </span>
                         </div>
-                        <Progress
-                            value={waterPercentage}
-                            className="h-1.5 bg-slate-800"
-                            indicatorClassName={getProgressColor(parcel.waterLevel, 0.5, 1.0)}
-                        />
+                        <div className="relative h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                            <div
+                                className={cn(
+                                    "h-full transition-all duration-500",
+                                    waterPercentage < 40 ? "bg-ruby" :
+                                        waterPercentage < 70 ? "bg-amber-500" :
+                                            waterPercentage <= 85 ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" :
+                                                "bg-blue-600"
+                                )}
+                                style={{ width: `${waterPercentage}%` }}
+                            />
+                            {/* Optimal Marker */}
+                            <div className="absolute left-[80%] top-0 bottom-0 w-0.5 bg-white/30 z-10" />
+                        </div>
                     </div>
 
                     {/* Fertility */}
@@ -180,38 +197,45 @@ export const ParcelDetailsPanel: React.FC<ParcelDetailsPanelProps> = ({ parcel, 
                 <div className="bg-emerald-950/20 rounded-lg p-3 border border-emerald-900/30">
                     <div className="flex justify-between items-baseline mb-2">
                         <span className="text-slate-400">Exp. Harvest</span>
-                        <span className="text-sm font-bold text-emerald-400 font-mono">
-                            {Math.round(yieldBreakdown.parcelYield).toLocaleString()} kg
-                        </span>
+                        <div className="flex flex-col items-end">
+                            <span className="text-sm font-bold text-emerald-400 font-mono">
+                                {Math.round(yieldBreakdown.adjustedYield).toLocaleString()} kg
+                            </span>
+                            {yieldBreakdown.adjustedYield !== yieldBreakdown.parcelYield && (
+                                <span className="text-[9px] text-slate-500 line-through">
+                                    {Math.round(yieldBreakdown.parcelYield).toLocaleString()} kg
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-[10px]">
                         <div className="space-y-1">
                             <div className="flex justify-between">
-                                <span className="text-slate-500">Soil Mod</span>
-                                <span className="text-slate-300">x{yieldBreakdown.soilMod.toFixed(2)}</span>
+                                <span className="text-slate-500">Weather Mod</span>
+                                <span className={cn(yieldBreakdown.weatherMod < 1 ? "text-ruby" : "text-emerald-500")}>x{yieldBreakdown.weatherMod.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-slate-500">pH Mod</span>
-                                <span className="text-slate-300">x{yieldBreakdown.phMod.toFixed(2)}</span>
+                                <span className="text-slate-500">Labor Mod</span>
+                                <span className={cn(yieldBreakdown.laborMod < 1 ? "text-ruby" : "text-emerald-500")}>x{yieldBreakdown.laborMod.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-slate-500">Water Mod</span>
-                                <span className="text-slate-300">x{yieldBreakdown.waterMod.toFixed(2)}</span>
+                                <span className={cn(yieldBreakdown.waterMod < 1 ? "text-amber-500" : "text-emerald-500")}>x{yieldBreakdown.waterMod.toFixed(2)}</span>
                             </div>
                         </div>
                         <div className="space-y-1">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Age Mod</span>
+                                <span className={cn(yieldBreakdown.ageMod < 1 ? "text-amber-500" : "text-slate-300")}>x{yieldBreakdown.ageMod.toFixed(2)}</span>
+                            </div>
                             <div className="flex justify-between">
                                 <span className="text-slate-500">Infra Mod</span>
                                 <span className="text-slate-300">x{yieldBreakdown.infraMod.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-slate-500">Organic Mod</span>
-                                <span className="text-slate-300">x{yieldBreakdown.organicMod.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">Age Mod</span>
-                                <span className={cn(yieldBreakdown.ageMod < 1 ? "text-amber-500" : "text-slate-300")}>x{yieldBreakdown.ageMod.toFixed(2)}</span>
+                                <span className="text-slate-500">Fertility</span>
+                                <span className="text-slate-300">x{yieldBreakdown.fertilityMod.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
