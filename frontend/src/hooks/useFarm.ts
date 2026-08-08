@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
-import { GameError } from '@/declarations/backend.did';
+import { GameError, AICompetitor } from '@/declarations/backend.did';
 import { useAudio } from '@/contexts/AudioContext';
 import { SOUNDS } from '@/config/sounds';
 
@@ -618,9 +618,13 @@ export function useCompetitors() {
 
     return useQuery({
         queryKey: ['competitors'],
-        queryFn: async () => {
+        // ECON-06: was `(backendActor as any)`, which is how CompetitorsPanel
+        // came to read `comp.baseCapacity` — a field that does not exist on
+        // AICompetitor — and render NaN for months. The method is in the
+        // generated interface; the cast was hiding the contract, not needing it.
+        queryFn: async (): Promise<AICompetitor[]> => {
             if (!backendActor) throw new Error('Not authenticated');
-            const result = await (backendActor as any).getCompetitorsDetail();
+            const result = await backendActor.getCompetitorsDetail();
             if ('Err' in result) throw new Error(getErrorMessage(result.Err));
             return result.Ok;
         },

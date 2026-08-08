@@ -832,9 +832,9 @@ function AppContent() {
                                 />
                             ) : activeTab === 'neighbors' ? (
                                 <CompetitorsPanel
-                                    playerCash={stats.cash}
                                     playerReputation={farm?.reputation}
                                     playerName={farm?.playerName}
+                                    playerProductionKg={stats.productionRate}
                                 />
                             ) : activeTab === 'pool' ? (
                                 <AuctionDashboard />
