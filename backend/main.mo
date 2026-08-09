@@ -3294,6 +3294,7 @@ actor CherryTycoon {
         var cashDelta : Int = 0;
         var prestigeDelta : Nat = 0;
         var defaultCount : Nat = 0;
+        var contractWins : Nat = 0;   // ECON-04
         
         // Use a local inventory copy to track depletion across all contracts
         var remCherries = farm.inventory.cherries;
@@ -3309,6 +3310,7 @@ actor CherryTycoon {
               let rev = vol * price;
 
               cashDelta += (rev : Int);
+              contractWins += 1; // ECON-04
               resolutionSummary #= " | 🏆 WON " # c.id # " (" # Nat.toText(rev) # " PLN)";
 
               // Deduct from inventory
@@ -3399,7 +3401,26 @@ actor CherryTycoon {
 
         // Apply net changes
         let newCash : Int = (farm.cash : Int) + cashDelta;
-        let newReputation : Nat = if (prestigeDelta > farm.reputation) 0 else farm.reputation - prestigeDelta;
+
+        // ECON-04: standing for winning an Imperial Contract.
+        //
+        // AI rivals have always received `prestige + 5` per win
+        // (_performGlobalAuctionResolution). The player received nothing, and
+        // `reputation` — which submitAuctionBid passes as the player's
+        // `globalPrestige`, i.e. the very term that scales their V_bid score —
+        // could only ever FALL: it starts at 50 and the sole writer was the
+        // default penalty. A player's auction competitiveness degraded
+        // monotonically over a whole game with no way back.
+        //
+        // Both numbers here are pre-existing, not invented: +5 per win is the
+        // AI's own bonus, and the 0-100 ceiling is `reputation`'s documented
+        // range in types.mo. The gain is applied BEFORE the default penalty so
+        // a season that both won and defaulted nets out rather than being
+        // silently clamped at 0 first.
+        let REPUTATION_CEILING : Nat = 100;
+        let reputationGain = contractWins * 5;
+        let raised = Nat.min(farm.reputation + reputationGain, REPUTATION_CEILING);
+        let newReputation : Nat = if (prestigeDelta > raised) 0 else raised - prestigeDelta;
 
         let (finalCash, finalDebt) = if (newCash >= 0) {
           (Int.abs(newCash), farm.debt)
@@ -3417,10 +3438,14 @@ actor CherryTycoon {
         };
         playerFarms.put(caller, updatedFarm);
 
+        let repNote = if (newReputation > farm.reputation) {
+          " Reputation +" # Nat.toText(newReputation - farm.reputation) # " (now " # Nat.toText(newReputation) # ")."
+        } else { "" };
+
         let msg = if (defaultCount > 0) {
-          "⚠️ " # Nat.toText(defaultCount) # " defaulted! Rep -" # Nat.toText(prestigeDelta) # " pts. Cash: " # Int.toText(cashDelta) # " PLN." # resolutionSummary
+          "⚠️ " # Nat.toText(defaultCount) # " defaulted! Rep -" # Nat.toText(prestigeDelta) # " pts. Cash: " # Int.toText(cashDelta) # " PLN." # repNote # resolutionSummary
         } else {
-          "✅ All resolutions completed." # resolutionSummary
+          "✅ All resolutions completed." # repNote # resolutionSummary
         };
         #Ok(msg)
       };
