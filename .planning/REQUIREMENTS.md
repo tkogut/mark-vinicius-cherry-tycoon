@@ -35,8 +35,8 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 
 - [ ] **ECON-01**: Fertilizer type selection produces a measurably different outcome (currently `_fertilizerType` is accepted and ignored, `main.mo:858`)
 - [ ] **ECON-02**: Season affects sale price (currently hardcoded `seasonMultiplier = 1.0`, `main.mo:2808-2819`)
-- [ ] **ECON-03**: Auction runner-up receives the trickle-down amount (already computed in `AuctionResult.runnerUpId`, never read in `main.mo`)
-- [ ] **ECON-04**: Player gains prestige on winning an Imperial Contract, matching the +5 AI competitors already receive (`main.mo:3166`)
+- [x] **ECON-03**: Runner-up trickle-down paid. Done 2026-08-09. **Correction to the wording:** the amount was NOT "already computed" — only the ID was. The 20% existed solely in a comment, beside a constant pair `_RUNNER_UP_TRICKLE_NUM/_DEN` that nothing referenced, and the runner's *price* was not carried at all, so no payout was possible even if `main.mo` had read the ID. Now `AuctionContract` carries `runnerUpPlayerId`/`runnerUpBidPLN` (additive stable-state + Candid change, **agreed with the user** as an Ask First surface) so the runner-up collects through the same `resolveSeasonAuctions` path as the winner — cash in and volume out accounted together. Pays only for deliverable volume, so a partial sale can never pay for cherries the player lacks. Verified on a replica with the player deliberately placed second: `2nd place on imp_S2_0 (3000 kg, 18000 PLN)`, cash 47_250 → 65_250, cherries 50_000 → 47_000.
+- [x] **ECON-04**: Player rewarded for a contract win. Done 2026-08-09. The stated asymmetry hid a worse one: the player has no stored prestige at all (leaderboard prestige is derived), and what the auction system actually uses is `farm.reputation` — `submitAuctionBid` passes it as the bid's `globalPrestige`, the term that scales V_bid. That value **could only ever fall**: it starts at 50 and its sole writer was the default penalty, so a player's auction competitiveness degraded monotonically across a whole game with no way back. Fixed by making that same score two-directional: +5 per win (the AI's own bonus), ceiling 100 (`reputation`'s documented range), gain applied before the default penalty so a season that both won and defaulted nets out. Verified on a replica: `Reputation +5 (now 55)`, 50 → 55. The 100 ceiling is enforced by `Nat.min` but not exercised — reaching it needs ten winning seasons.
 - [x] **ECON-05**: One spoilage system. Done 2026-08-08. `GameLogic.calculateSpoilageRate` (a 100%/80%/20% table returning a Float) was called from **nowhere** in either track, while `spoilage-rates.md` instructed that it "MUST return the values from this table" — a documented system that did not run, and a running one documented nowhere. Dead function deleted; doc rewritten against the code. **The rewrite is where the real finding was:** my first draft said spoilage applies "once per season transition", which is false — the block is guarded by `if (farm.currentSeason == #Autumn)`, so it fires **once a year**, entering Winter. Verified on a replica: 100 000 kg untouched through Spring→Summer and Summer→Autumn, then 79 000 kg entering Winter (exactly 21% = `15 * 100 / 70`). Doc now carries the real formula, an exact 6-row storage×labour table, and a note that Cold Storage beats a Warehouse regardless of array order. Also corrected the same file's upkeep row, wrong since MAINT-01.
 - [x] **ECON-06**: `CompetitorsPanel` shows computed figures. Done 2026-08-08. Both numbers on the screen were invented: rivals got `Number(comp.baseCapacity) / 100` — a field absent from `AICompetitor` — so every row rendered **NaN%**; the player got `min(15, cash / 1000)`, cash-derived and capped arbitrarily, so growing production could not move it. **Root cause named:** `useCompetitors` returned `any` via `(backendActor as any)`, hiding a contract that was already in the generated interface. Typed as `AICompetitor[]`, so reading a nonexistent field is now a compile error — that is the guard, not the arithmetic. Market share is now capacity as a percentage of total regional capacity (sums to 100, responds to growth), with the kg/season shown alongside so the number is checkable. The "+4.2% Market Trend" tile — a string literal nothing computed — is replaced by combined regional capacity. `computeMarketShares` extracted to `lib/marketShare.ts` (ESLint's react-refresh rule correctly rejects a non-component export in a component file) with 6 tests, verified by restoring the unguarded divide.
 - [ ] **ECON-08 (new, 2026-08-08)**: `organicCherries` is **never touched by the spoilage block** — only `cherries` rots. Confirmed on a replica: 50 000 organic in, 50 000 out, while conventional lost 21% in the same transition. Organic cherries already command a price premium and carry a 0.8x yield penalty as their cost; permanent spoilage immunity on top is a third, undocumented advantage. Whether that is intended is an economy-balance decision, hence flagged rather than tuned — same treatment as `ECON-PARITY-01` and `MAINT-02`.
@@ -193,11 +193,11 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | SPORTS-06 | Own phase | Pending |
 | ECON-01 | Phase 3 | Pending |
 | ECON-02 | Phase 3 | Pending |
-| ECON-03 | Phase 3 | Pending |
-| ECON-04 | Phase 3 | Pending |
+| ECON-03 | Phase 3 | Complete |
+| ECON-04 | Phase 3 | Complete |
 | ECON-05 | Phase 3 | Complete |
 | ECON-06 | Phase 3 | Complete |
-| ECON-07 | Phase 3 | Pending |
+| ECON-07 | Phase 3 | Complete |
 | ECON-08 | Backlog (economy balance) | Pending |
 | WEATHER-01 | Phase 4 | Pending |
 | WEATHER-02 | Phase 4 | Pending |
@@ -246,7 +246,7 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
-- v1 requirements: 63 total (23 complete, 2 partial, 38 pending)
+- v1 requirements: 63 total (26 complete, 2 partial, 35 pending)
 - Mapped to phases: 63
 - Unmapped: 0 ✓
 
