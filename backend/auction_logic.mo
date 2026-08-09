@@ -45,6 +45,24 @@ module {
   private let DEFAULT_PENALTY_NUM : Nat = 200;
   private let DEFAULT_PENALTY_DEN : Nat = 100;
 
+  // ECON-03: runner-up trickle. The buyer takes 20% of the contract volume from
+  // the second-place bidder, at that bidder's own offer price. The 20% was
+  // already written down — in a comment on resolveContract that no code
+  // implemented — so this constant makes the documented number real rather than
+  // inventing a new one.
+  private let RUNNER_UP_VOLUME_NUM : Nat = 20;
+  private let RUNNER_UP_VOLUME_DEN : Nat = 100;
+
+  /// Volume the runner-up delivers: 20% of the contract requirement.
+  public func getRunnerUpVolumeKg(requiredVolumeKg: Nat) : Nat {
+    (requiredVolumeKg * RUNNER_UP_VOLUME_NUM) / RUNNER_UP_VOLUME_DEN
+  };
+
+  /// What the runner-up is paid: their volume at their own bid price.
+  public func getRunnerUpRevenue(requiredVolumeKg: Nat, runnerUpBidPLN: Nat) : Nat {
+    getRunnerUpVolumeKg(requiredVolumeKg) * runnerUpBidPLN
+  };
+
   // Prestige / Reputation hit per default event: 10% reduction (floor = 0)
   private let PRESTIGE_PENALTY_PCT : Nat = 10;
 
@@ -53,10 +71,6 @@ module {
   // floodUnits capped at 900 to preserve a 10% price floor.
   private let FLOOD_DENOM : Nat = 1000;
   private let FLOOD_FLOOR_UNITS : Nat = 900; // cap: max 90% degradation
-
-  // Partial volume trickle-down: runner-up gets 20% of remaining volume (reserved for future full trickle impl)
-  private let _RUNNER_UP_TRICKLE_NUM : Nat = 20;
-  private let _RUNNER_UP_TRICKLE_DEN : Nat = 100;
 
   // Industrial contract: price-insensitive — basePricePLN set at flat 3 PLN/kg
   private let INDUSTRIAL_BASE_PRICE : Nat = 3;
@@ -127,6 +141,8 @@ module {
       winnerPlayerId   = null;
       winnerBidPLN     = null;
       awardedSeason    = null;
+      runnerUpPlayerId = null;
+      runnerUpBidPLN   = null;
       isPreSeason      = true;
       lockedPricePLN   = ?locked;
       committedByPlayer= null;
@@ -201,6 +217,8 @@ module {
       winnerPlayerId   = null;
       winnerBidPLN     = null;
       awardedSeason    = null;
+      runnerUpPlayerId = null;
+      runnerUpBidPLN   = null;
       isPreSeason      = false;
       lockedPricePLN   = null;
       committedByPlayer= null;
@@ -419,31 +437,39 @@ module {
       case (null) {
         // No valid bids
         {
-          contractId    = contract.id;
-          winnerId      = null;
-          winnerScore   = 0;
-          winnerPricePLN= null;
-          revenueEarned = 0;
-          runnerUpId    = null;
+          contractId       = contract.id;
+          winnerId         = null;
+          winnerScore      = 0;
+          winnerPricePLN   = null;
+          revenueEarned    = 0;
+          runnerUpId       = null;
+          runnerUpPricePLN = null;
         }
       };
       case (?winner) {
         // Winner earns: offerPrice × requiredVolume
         let winRevenue = winner.bid.offerPricePLN * contract.requiredVolumeKg;
 
-        // Runner-up trickle: 20% of required volume at runner's price
+        // Runner-up trickle: 20% of required volume at the runner's own price.
+        // ECON-03 — the id was already carried here; the PRICE was not, which is
+        // why main.mo could not pay anything even if it had read the id.
         let runnerUpId : ?Text = switch (runnerOpt) {
           case (null) null;
           case (?r)   ?(r.bid.bidderId);
         };
+        let runnerUpPricePLN : ?Nat = switch (runnerOpt) {
+          case (null) null;
+          case (?r)   ?(r.bid.offerPricePLN);
+        };
 
         {
-          contractId     = contract.id;
-          winnerId       = ?(winner.bid.bidderId);
-          winnerScore    = winner.score;
-          winnerPricePLN = ?(winner.bid.offerPricePLN);
-          revenueEarned  = winRevenue;
-          runnerUpId     = runnerUpId;
+          contractId       = contract.id;
+          winnerId         = ?(winner.bid.bidderId);
+          winnerScore      = winner.score;
+          winnerPricePLN   = ?(winner.bid.offerPricePLN);
+          revenueEarned    = winRevenue;
+          runnerUpId       = runnerUpId;
+          runnerUpPricePLN = runnerUpPricePLN;
         }
       };
     }

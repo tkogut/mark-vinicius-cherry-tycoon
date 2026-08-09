@@ -81,10 +81,12 @@ export const idlFactory = ({ IDL }) => {
   });
   const AuctionContract = IDL.Record({
     'id' : IDL.Text,
+    'runnerUpPlayerId' : IDL.Opt(IDL.Text),
     'status' : ContractStatus,
     'committedByPlayer' : IDL.Opt(IDL.Text),
     'basePricePLN' : IDL.Nat,
     'awardedSeason' : IDL.Opt(IDL.Nat),
+    'runnerUpBidPLN' : IDL.Opt(IDL.Nat),
     'lockedPricePLN' : IDL.Opt(IDL.Nat),
     'isPreSeason' : IDL.Bool,
     'winnerPlayerId' : IDL.Opt(IDL.Text),

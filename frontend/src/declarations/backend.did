@@ -541,6 +541,8 @@ type AuctionContract =
    isPreSeason: bool;
    lockedPricePLN: opt nat;
    requiredVolumeKg: nat;
+   runnerUpBidPLN: opt nat;
+   runnerUpPlayerId: opt text;
    shortfallKg: opt nat;
    status: ContractStatus;
    winnerBidPLN: opt nat;

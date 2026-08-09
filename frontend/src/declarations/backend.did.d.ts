@@ -41,10 +41,12 @@ export type AIStrategyState = { 'Aggressive' : null } |
   { 'Neutral' : null };
 export interface AuctionContract {
   'id' : string,
+  'runnerUpPlayerId' : [] | [string],
   'status' : ContractStatus,
   'committedByPlayer' : [] | [string],
   'basePricePLN' : bigint,
   'awardedSeason' : [] | [bigint],
+  'runnerUpBidPLN' : [] | [bigint],
   'lockedPricePLN' : [] | [bigint],
   'isPreSeason' : boolean,
   'winnerPlayerId' : [] | [string],

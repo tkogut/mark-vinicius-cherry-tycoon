@@ -93,8 +93,13 @@ motoko() {
     echo "Track B (backend/main_mainnet.mo) — known broken, EOP-01:"
     check_track "$REPO_ROOT/backend/main_mainnet.mo"
     if [[ -n "$errors" ]]; then
-        printf '%s\n' "$errors" | head -5
-        echo "  ^ expected while EOP-01 is open; not counted as a failure"
+        # Always print the COUNT before the sample. This used to `head -5` with
+        # no total, which made a truncated list look complete — I then mistook a
+        # long-standing 6th error for one my own change had just introduced.
+        local count
+        count=$(printf '%s\n' "$errors" | grep -c "type error")
+        echo "  $count type error(s) — expected while EOP-01 is open, not counted as a failure"
+        printf '%s\n' "$errors" | grep -oE "main_mainnet\.mo:[0-9]+" | sort -u -t: -k2 -n | sed 's/^/    /'
     else
         echo "  UNEXPECTEDLY CLEAN — Track B compiles now. Update EOP-01."
     fi

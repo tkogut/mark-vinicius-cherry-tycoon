@@ -3216,8 +3216,41 @@ actor CherryTycoon {
                     };
                     case null {}; // Player winner handled in resolveSeasonAuctions
                 };
+
+                // ECON-03: the runner-up. `resolveContract` has always returned
+                // a `runnerUpId` and this function has always dropped it, so
+                // second place earned nothing — the buyer's overflow volume just
+                // vanished. An AI runner-up is credited here, exactly like an AI
+                // winner above; a PLAYER runner-up is recorded on the contract
+                // and collects in `resolveSeasonAuctions`, so their cash and the
+                // 20% of volume it costs them are accounted in one place.
+                switch (result.runnerUpId, result.runnerUpPricePLN) {
+                  case (?runnerId, ?runnerPrice) {
+                    switch (aiCompetitors.get(runnerId)) {
+                      case (?ai) {
+                        let trickleKg = AuctionLogic.getRunnerUpVolumeKg(c.requiredVolumeKg);
+                        let trickleRevenue = AuctionLogic.getRunnerUpRevenue(c.requiredVolumeKg, runnerPrice);
+                        let deliveredKg = if (ai.inventoryKg >= trickleKg) trickleKg else ai.inventoryKg;
+                        aiCompetitors.put(runnerId, { ai with
+                          totalRevenue = ai.totalRevenue + trickleRevenue;
+                          inventoryKg  = ai.inventoryKg - deliveredKg;
+                        });
+                      };
+                      case null {}; // player runner-up — recorded below, paid on collect
+                    };
+                  };
+                  case (_, _) {}; // no second bidder
+                };
+
               totalContractedKg += c.requiredVolumeKg;
-              { c with status = #Fulfilled; winnerPlayerId = ?winId; winnerBidPLN = result.winnerPricePLN; awardedSeason = ?season }
+              { c with
+                status           = #Fulfilled;
+                winnerPlayerId   = ?winId;
+                winnerBidPLN     = result.winnerPricePLN;
+                awardedSeason    = ?season;
+                runnerUpPlayerId = result.runnerUpId;
+                runnerUpBidPLN   = result.runnerUpPricePLN;
+              }
             };
             case null { c };
           }
@@ -3283,6 +3316,34 @@ actor CherryTycoon {
                 remOrganic := if (remOrganic >= vol) remOrganic - vol else 0;
               } else {
                 remCherries := if (remCherries >= vol) remCherries - vol else 0;
+              };
+          };
+
+          // ECON-03: runner-up trickle for this player. Same shape as the win
+          // above — cash in, volume out — so a partial sale can never pay for
+          // cherries the player does not hold. Deliberately NOT `else if`: a
+          // player can only be one of the two on a given contract, but writing
+          // it as a separate check keeps that from being an assumption.
+          if (
+            not c.isPreSeason and c.status == #Fulfilled
+            and c.runnerUpPlayerId == ?callerText
+            and c.awardedSeason == ?farm.seasonNumber
+          ) {
+              let isBio = switch(c.category) { case(#Bio) true; case(_) false };
+              let trickleKg = AuctionLogic.getRunnerUpVolumeKg(c.requiredVolumeKg);
+              let runnerPrice = switch(c.runnerUpBidPLN) { case(?p) p; case(null) 0 };
+
+              // Pay only for what can actually be delivered.
+              let available = if (isBio) remOrganic else remCherries;
+              let deliveredKg = if (available >= trickleKg) trickleKg else available;
+              let rev = deliveredKg * runnerPrice;
+
+              if (deliveredKg > 0) {
+                cashDelta += (rev : Int);
+                resolutionSummary #= " | 2nd place on " # c.id # " ("
+                  # Nat.toText(deliveredKg) # " kg, " # Nat.toText(rev) # " PLN)";
+
+                if (isBio) { remOrganic -= deliveredKg } else { remCherries -= deliveredKg };
               };
           };
         };

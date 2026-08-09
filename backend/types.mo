@@ -524,6 +524,17 @@ module {
     winnerBidPLN    : ?Nat;               // Winning offer price per kg
     awardedSeason   : ?Nat;               // Season number when awarded
 
+    // ECON-03: runner-up trickle-down. `AuctionLogic.resolveContract` has always
+    // computed a `runnerUpId` and main.mo has always thrown it away, so the
+    // second-place bidder received nothing — the buyer's overflow volume simply
+    // vanished. Recorded here rather than paid out at resolution time so the
+    // runner-up collects through the SAME path as the winner
+    // (`resolveSeasonAuctions`), where cash and the inventory it costs are
+    // accounted together. Additive: contracts persisted before this change
+    // deserialise with both fields null and are treated as having no runner-up.
+    runnerUpPlayerId : ?Text;             // 2nd-place bidder, set on award
+    runnerUpBidPLN   : ?Nat;              // their offer price per kg
+
     // Pre-Season Future fields (committed during #Planning phase)
     isPreSeason       : Bool;             // true = Pre-Season Future
     lockedPricePLN    : ?Nat;            // basePricePLN × (90–95) / 100 (security discount)
@@ -553,6 +564,7 @@ module {
     winnerPricePLN: ?Nat;
     revenueEarned: Nat;               // PLN credited to winner (price × volume)
     runnerUpId   : ?Text;             // 2nd-place bidder (partial volume trickle)
+    runnerUpPricePLN: ?Nat;           // ECON-03: their offer price, needed to pay them
   };
 
   // Result from resolvePreSeasonShortfall
