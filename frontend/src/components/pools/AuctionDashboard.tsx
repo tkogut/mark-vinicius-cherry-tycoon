@@ -6,6 +6,19 @@ import { AIBidderCard } from './AIBidderCard';
 import { BidModal } from './BidModal';
 import { PreSeasonFutureModal } from './PreSeasonFutureModal';
 import { ShortfallAlert } from './ShortfallAlert';
+import type { RivalStatus } from './RivalCard';
+
+/**
+ * ECON-07: rival status derived from `AIStrategyState`, the field the backend
+ * actually updates (competitor_logic.mo's strategy switch), instead of from a
+ * hardcoded id comparison.
+ */
+const STATUS_BY_STRATEGY: Record<string, RivalStatus> = {
+    Aggressive: 'outbidding',
+    Desperate: 'outbidding',
+    Passive: 'active',
+    Neutral: 'idle',
+};
 import { FloodFactorIndicator } from './FloodFactorIndicator';
 import { useAuth } from '@/hooks/useAuth';
 import './AuctionDashboard.css';
@@ -30,11 +43,11 @@ export const AuctionDashboard: React.FC = () => {
     const [showFutureModal, setShowFutureModal] = useState(false);
 
     // AI Capacity Constants (matching backend defaults)
-    const AI_CAPACITIES: Record<string, number> = {
-        'ai_marek_GL02': 45000,
-        'ai_kasia_NM01': 18000,
-        'ai_hans_OPCITY': 70000
-    };
+    // ECON-07: `AI_CAPACITIES` used to live here — a hardcoded per-id map
+    // (45000/18000/70000) shadowing `ai.productionCapacity`, which carries the
+    // same numbers from the backend. It happened to agree today and would have
+    // silently lied the moment the backend retuned a rival. Same defect class
+    // as ECON-06's `baseCapacity`. Read the field.
 
     const handleBidClick = (contractId: string) => {
         setSelectedContractId(contractId);
@@ -111,11 +124,16 @@ export const AuctionDashboard: React.FC = () => {
                     <h3 className="text-[#d4af37] text-xs uppercase tracking-widest font-bold mb-4 opacity-70">Market Rivals</h3>
 
                     {aiCompetitors && aiCompetitors.length > 0 ? (
-                        aiCompetitors.map((ai: any) => {
+                        aiCompetitors.map((ai) => {
                             const personality = Object.keys(ai.personality)[0];
                             const strategyState = Object.keys(ai.currentStrategy)[0];
                             const strategyLabel = strategyState; // Simplified for display
-                            const status = ai.id === 'ai_hans_OPCITY' ? 'outbidding' : (ai.id === 'ai_kasia_NM01' ? 'active' : 'idle');
+                            // ECON-07: status was keyed off the rival's ID, so Hans
+                            // was permanently "outbidding" and Marek permanently
+                            // "idle" no matter what either was doing. Derived from
+                            // `currentStrategy`, the field the backend actually
+                            // updates each season.
+                            const status = STATUS_BY_STRATEGY[strategyState] ?? 'idle';
 
                             return (
                                 <AIBidderCard
@@ -127,8 +145,8 @@ export const AuctionDashboard: React.FC = () => {
                                     reputation={Number(ai.reputation)}
                                     prestige={Number(ai.prestige)}
                                     inventory={Number(ai.inventoryKg)}
-                                    capacity={AI_CAPACITIES[ai.id] || 50000}
-                                    status={status as any}
+                                    capacity={Number(ai.productionCapacity)}
+                                    status={status}
                                 />
                             );
                         })

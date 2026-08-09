@@ -5,6 +5,17 @@
 // This is a PURE module — no actor, no stable storage, no caller-auth needed.
 // All AI decisions are deterministic (LCG seed-based) to keep cycle costs minimal.
 // Three archetypes: Marek (Głubczyce), Kasia (Namysłów), Hans (Opole)
+//
+// ECON-07 — NAMING IS CANONICAL HERE, and it is `Types.AIPersonality` that
+// decides: #Traditionalist / #Innovator / #Businessman. That enum drives real
+// behaviour (the strategy switch below), it is what the GDD specifies
+// (docs/game-design/economy/gdd-analysis.md), and it is part of the public
+// Candid interface. The display names used to drift from it — Kasia was
+// "The Eco-Visionary" while her personality was #Innovator, Hans was
+// "The Aggressor" while his was #Businessman — so the rival card showed the
+// player two different archetypes for the same farm at the same time. Flavour
+// text follows the enum, never the other way round; renaming the variant would
+// be a breaking contract change for zero gameplay benefit.
 
 import Nat "mo:base/Nat";
 import Int "mo:base/Int";
@@ -55,11 +66,11 @@ module {
   //   Mass producer, conventional farming, low risk, crashes wholesale volume.
   //   Hectares: 15 ha | Base: 45,000 kg | 90% wholesale
   //
-  // Kasia "The Eco-Visionary" — Namysłów, NM_01
+  // Kasia "The Innovator" — Namysłów, NM_01
   //   100% organic, retail prestige, premium pricing, lower raw volume.
   //   Hectares: 8 ha  | Base: 18,000 kg | 80% retail
   //
-  // Hans "The Aggressor" — Opole, OP_CITY
+  // Hans "The Businessman" — Opole, OP_CITY
   //   High-tech scaler, outbids export contracts, dominant wholesale presence.
   //   Hectares: 22 ha | Base: 70,000 kg | 95% wholesale
 
@@ -87,7 +98,7 @@ module {
 
   public let AI_KASIA : Types.AICompetitor = {
     id                = "ai_kasia_NM01";
-    name              = "Kasia \"The Eco-Visionary\"";
+    name              = "Kasia \"The Innovator\"";
     personality       = #Innovator;
     currentStrategy   = #Passive;
     totalArea         = 8.0;
@@ -105,7 +116,7 @@ module {
 
   public let AI_HANS : Types.AICompetitor = {
     id                = "ai_hans_OPCITY";
-    name              = "Hans \"The Aggressor\"";
+    name              = "Hans \"The Businessman\"";
     personality       = #Businessman;
     currentStrategy   = #Neutral;
     totalArea         = 22.0;

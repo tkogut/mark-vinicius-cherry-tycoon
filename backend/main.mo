@@ -130,11 +130,37 @@ actor CherryTycoon {
     
     let aiIter = HashMap.fromIter<Text, Types.AICompetitor>(Iter.fromArray(stableAICompetitors), 10, Text.equal, Text.hash);
     
+    let defaults = [CompetitorLogic.AI_MAREK, CompetitorLogic.AI_KASIA, CompetitorLogic.AI_HANS];
+
     // Only re-seed if we have no persistent state from previous version
     if (aiIter.size() == 0) {
-        let defaults = [CompetitorLogic.AI_MAREK, CompetitorLogic.AI_KASIA, CompetitorLogic.AI_HANS];
         for (d in defaults.vals()) {
             aiIter.put(d.id, d);
+        };
+    } else {
+        // ECON-07: refresh the AUTHORED fields on an existing canister.
+        //
+        // `name` and `personality` are authored constants, not simulation state,
+        // but they live inside a persisted record — so correcting the drift in
+        // competitor_logic.mo alone would only have taken effect on a brand-new
+        // canister. Every already-deployed one (Playground today, mainnet later)
+        // would keep showing "Kasia \"The Eco-Visionary\"" beside a personality
+        // of #Innovator forever. Verified: after redeploying with only the
+        // constants changed, the replica still returned the old names.
+        //
+        // Everything the simulation owns — inventoryKg, totalRevenue, prestige,
+        // reputation, currentStrategy, seasonsActive — is preserved untouched.
+        for (d in defaults.vals()) {
+            switch (aiIter.get(d.id)) {
+                case (?existing) {
+                    aiIter.put(d.id, { existing with
+                        name        = d.name;
+                        personality = d.personality;
+                        county      = d.county;
+                    });
+                };
+                case null { aiIter.put(d.id, d) }; // archetype added in a later version
+            };
         };
     };
     aiCompetitors := aiIter;
