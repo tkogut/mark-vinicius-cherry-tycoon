@@ -1,12 +1,19 @@
 ---
-gsd_state_version: '1.0'
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+current_phase: 3
+current_phase_name: Core Economic Lever Fixes
 status: planning
+stopped_at: Phase 3 context gathered
+last_updated: "2026-09-16T17:18:22.743Z"
+last_activity: 2026-08-07
+last_activity_desc: "deployed Phase 2 to Playground and audited the live build: UX-01 (sidebar header, on all 8 screens) fixed, plus two bugs invisible locally — UX-10 (30 emoji rendering as tofu without an emoji font) and UX-11 (13 places showing $ for a game priced in PLN). Lint ceiling 183 -> 182. Before that: Phase 2 (Sports Patron) shipped as an agreed vertical slice: 8 real clubs, real share purchases, SportsCenter rewired off two nonexistent fields; verified on a live replica across all 6 rejection paths plus a second identity. Before that: agent instruction layer rebuilt on open-mercato's patterns (Task Router, Always/Ask First/Never, LESSONS.md, one validate.sh gate, all guarded by agentDocs.test.ts); before that Phase 9 status reconciled against what actually shipped (UX-06/07/08, with the two gaps named rather than rounded up), and MAINT-01 + MAINT-02 fixed (real infrastructure wear, and repair priced off that wear so servicing is worth doing for every asset type) and AUTH-02 fixed (Atomic Auth guard on the restored-session path); lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard."
 progress:
-  total_phases: 10
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 30
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 0
 ---
 
 # Project State
@@ -30,6 +37,7 @@ Progress: [███░░░░░░░] 30%
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 9 (Phase 1: 1, Phase 1.1: 1, Phase 2: 1, Phase 9: 1 unplanned, Phase 10: 5)
 - Average duration: not tracked (work ran as a continuous session, not discrete timed plans)
 - Total execution time: not tracked
@@ -45,6 +53,7 @@ Progress: [███░░░░░░░] 30%
 | 10. Quality Infrastructure | 5/5 | Complete 2026-08-06 |
 
 **Recent Trend:**
+
 - Phase 10 delivered 5 stages in one session, each independently verified and committed
 - Two phases have now run out of order (10, then most of 9's orchard work). Phase 9's route — ad hoc, driven by the user reviewing live Playground screenshots each round — worked well for visual work and found bugs no test would have (workers inside canopies, paths on the wrong diagonal). It is a poor fit for the rest of Phase 9 (sidebar layout, stat idiom, placeholder boxes), which is why the remainder goes back through a plan.
 - Trend: infrastructure work is now unblocking gameplay work rather than trailing it
@@ -82,15 +91,18 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **Flagged defects, deliberately not fixed (all outside the scope they were found in):**
+
 - `ECON-PARITY-01`: `getInfrastructureModifier` in `game_logic.mo` folds `+=` (Tractor/Shaker/Sprayer/ColdStorage) and `*=` (GoldenHarvester) in one pass over the array, so the multiplier **depends on array order** (GH→Tractor 1.2525 vs Tractor→GH 1.2679). Changing it moves real payouts — an economy-balance decision. The frontend mirror reproduces the quirk faithfully so UI and payout agree while it stands.
 - `GEO-07`: two parcel-purchase methods coexist — `buyParcel` (used) and `purchaseParcel` (never called, and the one `lib/gddTemplate.ts` documents).
 
 **Backend / infrastructure:**
+
 - `backend/main_mainnet.mo` does not compile — pre-existing type errors (`AIStrategyState`, contracts, `baseCapacity`) unrelated to any recent change; this is the EOP-01 drift. **No test workflow may build Track B until EOP-01 is closed**, or it will be permanently red. Verified 2026-08-03 with a temporary local canister.
 - dfx version mismatch noted between local/playground (0.24.3) and what CI's mainnet deploy assumes — see `.planning/codebase/STACK.md`, not yet turned into a phase.
 - 108 of 697 tracked text files still have CRLF in HEAD. `.gitattributes` (added 2026-08-06) normalizes them as each is next staged — a trickle, not a mass rewrite, but expect inflated diff line counts on first touch of an affected file.
 
 **Resolved since the last STATE update** (kept briefly for continuity):
+
 - ~~No `npm test` script, no ESLint config, unused Playwright~~ → all three done (QUAL-01/02/03). Note the ESLint situation was *worse* than recorded: there was no config file at all, so `npm run lint` errored out rather than being a no-op.
 - ~~`useAuth.test.tsx` fails 5/6~~ → rewritten, 14 passing. A `QueryClientProvider` wrapper alone was insufficient: the assertions had also gone stale against `AuthProvider`'s auto-login bypass.
 - ~~`execution/tests/*.sh` (21 scripts) drifted~~ → measured properly: **23** scripts, **12** call removed methods (`advanceSeason` ×9, `getLeaderboard` ×2, `debugSetHansStorage` ×2) and **10** had CRLF. All CRLF fixed; the broken set is now pinned by a ratchet test so it cannot grow.
@@ -113,13 +125,14 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-08-07
-Stopped at: Phase 10 (Quality Infrastructure) complete against its success criteria — 4 stages, 5 commits (`e201e8e`, `3894c99`, `f3e367c`, `00fe339`, `4ddaab4`), all on `feature/gsd-migration`. Gates verified green: 324 unit tests / 3 skipped / 0 failed, 38 Playwright specs, lint 0 errors, typecheck, build. Nothing pushed to `master`.
+Last session: 2026-09-16T17:18:22.729Z
+Stopped at: Phase 3 context gathered
 
 Next step options:
+
 - `/gsd-plan-phase 2` (Football Clubs) — the intended next gameplay phase
 - Phase 3 (Economic Levers) — now the best-guarded area: `economyParity.test.ts` will catch formula drift the moment it happens
 - Reconcile Phase 9 bookkeeping (UX-06 already largely shipped) before planning it
 - Clear the remaining flagged defects above (`GEO-07` folds naturally into Phase 5; `ECON-PARITY-01` needs an economy-balance decision, not code fixes)
 
-Resume file: None
+Resume file: .planning/phases/03-core-economic-lever-fixes/03-CONTEXT.md
