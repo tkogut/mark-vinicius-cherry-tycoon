@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Trophy, TrendingUp, Users, MapPin, Loader2 } from "lucide-react";
 import { useCompetitors } from "@/hooks/useFarm";
+import type { AICompetitor } from "@/declarations/backend.did";
 
 
 interface Competitor {
@@ -12,7 +13,13 @@ interface Competitor {
     name: string;
     region: string;
     reputation: number;
-    marketShare: number; // Percentage
+    // Real canister-sourced production capacity in kg. `null` only for the
+    // player row — this component receives no real capacity figure for the
+    // player (only cash/reputation), so it is never invented (ECON-06).
+    capacityKg: number | null;
+    // 0-100, normalized against the largest AI row's capacityKg. Drives the
+    // <Progress> bar. Always 0 for the player row (no bar is rendered there).
+    capacityShare: number;
     specialty: string;
     isPlayer?: boolean;
 }
@@ -26,28 +33,45 @@ interface CompetitorsPanelProps {
 export const CompetitorsPanel: React.FC<CompetitorsPanelProps> = ({ playerCash, playerReputation = 0n, playerName = "You" }) => {
     const { data: rawCompetitors, isLoading } = useCompetitors();
 
-    const competitors: Competitor[] = (rawCompetitors || []).map((comp: any) => ({
-        id: comp.id,
-        name: comp.name,
-        region: comp.county,
-        reputation: Number(comp.reputation),
-        marketShare: Number(comp.baseCapacity) / 100, // mock calculation
-        specialty: comp.preferredSaleType,
-        isPlayer: false
-    }));
+    const aiCapacities: number[] = (rawCompetitors || []).map((comp: AICompetitor) => Number(comp.productionCapacity));
+    const maxCapacityKg = aiCapacities.reduce((max: number, kg: number) => Math.max(max, kg), 0);
 
-    // Add Player to competitors
+    const competitors: Competitor[] = (rawCompetitors || []).map((comp: AICompetitor) => {
+        const capacityKg = Number(comp.productionCapacity);
+        return {
+            id: comp.id,
+            name: comp.name,
+            region: comp.county,
+            reputation: Number(comp.reputation),
+            capacityKg,
+            capacityShare: maxCapacityKg === 0 ? 0 : (capacityKg / maxCapacityKg) * 100,
+            specialty: comp.preferredSaleType,
+            isPlayer: false,
+        };
+    });
+
+    // Add Player to competitors. No real capacity figure is available for the
+    // player here (only playerCash/playerReputation are passed in), so
+    // capacityKg stays null rather than being fabricated from cash.
     competitors.push({
         id: 'player',
         name: playerName,
         region: "Local",
         reputation: Number(playerReputation),
-        marketShare: Math.min(15, Number(playerCash) / 1000),
+        capacityKg: null,
+        capacityShare: 0,
         specialty: "Rising Star",
         isPlayer: true
     });
 
-    competitors.sort((a, b) => b.marketShare - a.marketShare);
+    // Ranked by reputation — real for both AI (comp.reputation) and the
+    // player (playerReputation) — since the player has no capacity figure to
+    // sort by.
+    competitors.sort((a, b) => b.reputation - a.reputation);
+
+    const totalCapacityKg = competitors
+        .filter((c) => !c.isPlayer)
+        .reduce((sum, c) => sum + (c.capacityKg ?? 0), 0);
 
 
     return (
@@ -99,10 +123,14 @@ export const CompetitorsPanel: React.FC<CompetitorsPanelProps> = ({ playerCash, 
 
                             <div className="flex-1 w-full space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-slate-400">Market Share</span>
-                                    <span className="font-mono font-bold text-slate-200">{comp.marketShare.toFixed(1)}%</span>
+                                    <span className="text-slate-400">Production Capacity</span>
+                                    <span className="font-mono font-bold text-slate-200">
+                                        {comp.capacityKg !== null ? `${comp.capacityKg.toLocaleString()} kg` : '—'}
+                                    </span>
                                 </div>
-                                <Progress value={Math.min(100, comp.marketShare)} className="h-2 bg-slate-800" indicatorClassName={comp.isPlayer ? 'bg-rose-500' : 'bg-slate-600'} />
+                                {comp.capacityKg !== null && (
+                                    <Progress value={Math.min(100, comp.capacityShare)} className="h-2 bg-slate-800" indicatorClassName={comp.isPlayer ? 'bg-rose-500' : 'bg-slate-600'} />
+                                )}
                             </div>
 
                             <div className="w-full md:w-32 flex justify-end">
@@ -136,7 +164,7 @@ export const CompetitorsPanel: React.FC<CompetitorsPanelProps> = ({ playerCash, 
                         <div className="text-2xl font-bold text-rose-400 flex items-center gap-2">
                             #{competitors.findIndex(c => c.isPlayer) + 1}
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">Of {competitors.length} regional farms</p>
+                        <p className="text-xs text-slate-500 mt-1">By reputation, of {competitors.length} regional farms</p>
                     </CardContent>
                 </Card>
                 <Card className="bg-slate-900 border-slate-800">
