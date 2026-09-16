@@ -54,9 +54,9 @@ module {
   private let FLOOD_DENOM : Nat = 1000;
   private let FLOOD_FLOOR_UNITS : Nat = 900; // cap: max 90% degradation
 
-  // Partial volume trickle-down: runner-up gets 20% of remaining volume (reserved for future full trickle impl)
-  private let _RUNNER_UP_TRICKLE_NUM : Nat = 20;
-  private let _RUNNER_UP_TRICKLE_DEN : Nat = 100;
+  // Partial volume trickle-down: runner-up gets 20% of required volume, at their own offer price
+  private let RUNNER_UP_TRICKLE_NUM : Nat = 20;
+  private let RUNNER_UP_TRICKLE_DEN : Nat = 100;
 
   // Industrial contract: price-insensitive — basePricePLN set at flat 3 PLN/kg
   private let INDUSTRIAL_BASE_PRICE : Nat = 3;
@@ -354,7 +354,7 @@ module {
   // Algorithm:
   //   1. Score every bid using calculateBidAttractiveness
   //   2. Sort — highest score wins (Winner-Take-All for required volume)
-  //   3. Runner-up gets trickle: 20% of remaining volume at their offer price
+  //   3. Runner-up gets trickle: 20% of required volume at their own offer price
   //   4. Return AuctionResult for each contract
   //
   // SEC: Array bounded by bids.size() — at most 4 bids (player + 3 AI) per contract.
@@ -419,31 +419,55 @@ module {
       case (null) {
         // No valid bids
         {
-          contractId    = contract.id;
-          winnerId      = null;
-          winnerScore   = 0;
-          winnerPricePLN= null;
-          revenueEarned = 0;
-          runnerUpId    = null;
+          contractId        = contract.id;
+          winnerId          = null;
+          winnerScore       = 0;
+          winnerPricePLN    = null;
+          revenueEarned     = 0;
+          runnerUpId        = null;
+          runnerUpVolumeKg  = 0;
+          runnerUpTricklePLN= 0;
         }
       };
       case (?winner) {
         // Winner earns: offerPrice × requiredVolume
+        // D-05: this formula is locked — additive trickle only, never a split.
         let winRevenue = winner.bid.offerPricePLN * contract.requiredVolumeKg;
 
-        // Runner-up trickle: 20% of required volume at runner's price
+        // Runner-up trickle: 20% of required volume, at the runner-up's own offer price.
+        // Guard the identity case explicitly — a corrupted bid list (duplicate bidderId)
+        // must never let the same bidder collect both the win and the trickle.
         let runnerUpId : ?Text = switch (runnerOpt) {
           case (null) null;
-          case (?r)   ?(r.bid.bidderId);
+          case (?r) {
+            if (r.bid.bidderId == winner.bid.bidderId) null else ?(r.bid.bidderId);
+          };
+        };
+
+        // Trickle volume floors first, then the payout is derived from that floored
+        // volume (not from a single combined product) so "N kg at P PLN/kg" always
+        // adds up to the returned payout — costs at most 1 kg of precision.
+        // Pure multiplication + one division by a non-zero literal constant: no
+        // subtraction anywhere in this arithmetic, so there is no Nat-underflow
+        // surface here and no Int.abs wrapper is needed.
+        let runnerUpVolumeKg : Nat = switch (runnerUpId) {
+          case (null) 0;
+          case (?_)   (contract.requiredVolumeKg * RUNNER_UP_TRICKLE_NUM) / RUNNER_UP_TRICKLE_DEN;
+        };
+        let runnerUpTricklePLN : Nat = switch (runnerOpt, runnerUpId) {
+          case (?r, ?_) runnerUpVolumeKg * r.bid.offerPricePLN;
+          case (_, _)   0;
         };
 
         {
-          contractId     = contract.id;
-          winnerId       = ?(winner.bid.bidderId);
-          winnerScore    = winner.score;
-          winnerPricePLN = ?(winner.bid.offerPricePLN);
-          revenueEarned  = winRevenue;
-          runnerUpId     = runnerUpId;
+          contractId        = contract.id;
+          winnerId          = ?(winner.bid.bidderId);
+          winnerScore       = winner.score;
+          winnerPricePLN    = ?(winner.bid.offerPricePLN);
+          revenueEarned     = winRevenue;
+          runnerUpId        = runnerUpId;
+          runnerUpVolumeKg  = runnerUpVolumeKg;
+          runnerUpTricklePLN= runnerUpTricklePLN;
         }
       };
     }

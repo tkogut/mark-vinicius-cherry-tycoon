@@ -553,6 +553,8 @@ module {
     winnerPricePLN: ?Nat;
     revenueEarned: Nat;               // PLN credited to winner (price × volume)
     runnerUpId   : ?Text;             // 2nd-place bidder (partial volume trickle)
+    runnerUpVolumeKg  : Nat;          // 20% of requiredVolumeKg, floored (0 if no runner-up)
+    runnerUpTricklePLN: Nat;          // runnerUpVolumeKg × runner-up's own offerPricePLN (0 if no runner-up)
   };
 
   // Result from resolvePreSeasonShortfall

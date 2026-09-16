@@ -3216,6 +3216,27 @@ actor CherryTycoon {
                     };
                     case null {}; // Player winner handled in resolveSeasonAuctions
                 };
+                // ECON-03: AI runner-up trickle-down (20% of required volume, at the
+                // runner-up's own offer price). Mirrors the winner branch's existing
+                // quirk of crediting revenue regardless of whether the bidder actually
+                // held the stock — kept for symmetry between the two branches, not
+                // independently re-decided here.
+                switch (result.runnerUpId) {
+                    case (?(runnerId)) {
+                        switch (aiCompetitors.get(runnerId)) {
+                            case (?runnerAi) {
+                                let runnerDelivered = if (runnerAi.inventoryKg >= result.runnerUpVolumeKg) result.runnerUpVolumeKg else runnerAi.inventoryKg;
+                                let runnerRemainder = if (runnerAi.inventoryKg >= runnerDelivered) runnerAi.inventoryKg - runnerDelivered else 0;
+                                aiCompetitors.put(runnerId, { runnerAi with
+                                    totalRevenue = runnerAi.totalRevenue + result.runnerUpTricklePLN;
+                                    inventoryKg = runnerRemainder;
+                                });
+                            };
+                            case null {}; // Player runner-up handled in plan 03-04 — not attempted here.
+                        };
+                    };
+                    case null {}; // No runner-up (fewer than 2 bidders) — nothing to credit.
+                };
               totalContractedKg += c.requiredVolumeKg;
               { c with status = #Fulfilled; winnerPlayerId = ?winId; winnerBidPLN = result.winnerPricePLN; awardedSeason = ?season }
             };
