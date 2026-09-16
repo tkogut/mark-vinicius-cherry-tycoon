@@ -3,6 +3,10 @@
 // produced `NaN%` "Market Share" for every AI competitor and never had a
 // test to catch it. This file pins the real field (`productionCapacity`),
 // the typed map (no `any`), and the honest player-row placeholder.
+//
+// It also pins the "Market Trend" tile's replacement: that tile hardcoded a
+// `+4.2%` literal with no data source at all — replaced with a real
+// "Regional Output" aggregate of the AI rows' production capacities.
 
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -89,5 +93,45 @@ describe('ECON-06: CompetitorsPanel reads real canister fields', () => {
 
         expect(screen.getByText('You')).toBeInTheDocument();
         expect(screen.getByText('—')).toBeInTheDocument();
+    });
+});
+
+describe('ECON-06: Regional Output tile replaces the fabricated Market Trend tile', () => {
+    it('sums the real AI production capacities into one toLocaleString()-formatted figure', () => {
+        mocks.useCompetitors.mockReturnValue({
+            data: [
+                makeCompetitor({ id: 'ai_marek', name: 'Marek', productionCapacity: 45_000n }),
+                makeCompetitor({ id: 'ai_kasia', name: 'Kasia', productionCapacity: 18_000n }),
+                makeCompetitor({ id: 'ai_hans', name: 'Hans', productionCapacity: 70_000n }),
+            ],
+            isLoading: false,
+        });
+
+        renderPanel();
+
+        expect(screen.getByText('133,000 kg')).toBeInTheDocument();
+    });
+
+    it('renders 0 kg and does not throw when there are zero competitors', () => {
+        mocks.useCompetitors.mockReturnValue({
+            data: [],
+            isLoading: false,
+        });
+
+        expect(() => renderPanel()).not.toThrow();
+        expect(screen.getByText('0 kg')).toBeInTheDocument();
+    });
+
+    it('the fabricated +4.2% literal never appears in rendered output', () => {
+        mocks.useCompetitors.mockReturnValue({
+            data: [
+                makeCompetitor({ id: 'ai_marek', name: 'Marek', productionCapacity: 45_000n }),
+            ],
+            isLoading: false,
+        });
+
+        const { container } = renderPanel();
+
+        expect(container.textContent).not.toContain('4.2%');
     });
 });
