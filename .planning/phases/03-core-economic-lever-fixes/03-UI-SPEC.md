@@ -107,19 +107,24 @@ The codebase currently has **two co-existing, internally-consistent local palett
 
 ## UI Considerations
 
-> Populated by the ui-phase UI-consideration probe (Step 9.5).
+> Populated by the ui-phase UI-consideration probe (Step 9.5), run against the compiled 8-category taxonomy over 3 elements: E1 (fertilizer-type picker, kinds `interactive-control`+`list-collection` — a small fixed enumerated choice list), E2 (season price row, kind `static-content` — the heuristic's initial `list-collection` hit on the word "row" was a false positive, corrected per the propose-then-confirm step), E3 (Regional Output tile, kind `static-content` — same correction for the word "card").
 
-Applicable state considerations resolved: **5 covered, 2 backstop, 0 unresolved**.
+Applicable state considerations resolved: **8 covered, 2 backstop, 3 dismissed, 0 unresolved**.
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
-| empty | Fertilizer-type list (interactive-control) | ✅ covered | Fixed local constant (2-3 options), never fetched, can never be empty |
-| loading | Fertilizer-type picker trigger (interactive-control) | ✅ covered | Trigger disables and the mutation's `isLoading` state prevents a second submit while `fertilize.mutate(...)` is in flight — mirrors the existing `disabled={isLoading}` pattern already used on `SellModal.tsx`'s Confirm Sale button |
-| error | Fertilizer-type picker (interactive-control) | ✅ covered | See Copywriting Contract → Error state row above |
-| overflow | Regional Output aggregate value (static-content, `CompetitorsPanel.tsx`) | ✅ covered | Format via `toLocaleString()` plus a fixed unit suffix, matching `SellModal.tsx`'s existing Total Revenue formatting convention; the tile already accommodates multi-digit numbers today (reputation, market share %) |
-| zero-one-many | Regional Output aggregate (derived from `competitor_logic.mo`'s fixed 3 archetypes) | ✅ covered | Always sums exactly 3 AI competitors' `productionCapacity` — the count is fixed in backend code, never zero, never dynamic |
-| long-text | Fertilizer-type labels + tradeoff captions (interactive-control) | 🧪 backstop | Type labels ≤ 24 characters, one-line tradeoff captions truncate with ellipsis rather than wrapping the dropdown width. Final label text is pending the ECON-01 economy-balance decision (`03-RESEARCH.md` Open Question 1), so this can only be visually verified once that decision locks — held out as a backstop, not asserted as already-true. |
-| long-text | Season name in the wired `SellModal.tsx` price row (static-content) | 🧪 backstop | The app is localized (`LanguageSwitcher.tsx` exists) and `UX-10`'s own audit already found DE/ES strings overflow fixed-width layout elsewhere in this app (the sidebar title bug). The season row's `({season})` suffix must not be assumed English-length — verify against the longest translated season-name string before sign-off, not just the English default. |
+| empty | Fertilizer-type list (E1) | ✅ covered | Fixed local constant (2-3 options), never fetched, can never be empty |
+| loading | Fertilizer-type picker trigger (E1) | ✅ covered | Trigger disables and the mutation's `isLoading` state prevents a second submit while `fertilize.mutate(...)` is in flight — mirrors the existing `disabled={isLoading}` pattern already used on `SellModal.tsx`'s Confirm Sale button |
+| error | Fertilizer-type picker (E1) | ✅ covered | See Copywriting Contract → Error state row above |
+| populated | Fertilizer-type picker (E1) | ✅ covered | Happy path is the only path: always renders exactly the fixed 2-3 items, each with a "Fertilize with {Type Name}" label + one-line tradeoff caption per the Copywriting Contract's locked shape — no low/high-volume variance to design for |
+| partial | Fertilizer-type picker (E1) | ⛔ dismissed | Item list is a fixed local constant (2-3 entries), never fetched/streamed; every item ships with its full label+caption at build time, so a partially-loaded row cannot occur |
+| overflow | Fertilizer-type picker tradeoff captions (E1) | ✅ covered | Same ellipsis-truncation mechanism as the long-text backstop below covers container overflow for the caption text — no separate overflow risk |
+| zero-one-many | Fertilizer-type picker (E1) | ⛔ dismissed | Item count is fixed at exactly 2-3 by the pending ECON-01 economy-balance decision (`03-RESEARCH.md` Open Question 1), never a runtime-variable 0/1/many collection; no singular/plural copy concern |
+| long-text | Fertilizer-type labels + tradeoff captions (E1) | 🧪 backstop | Type labels ≤ 24 characters, one-line tradeoff captions truncate with ellipsis rather than wrapping the dropdown width. Final label text is pending the ECON-01 economy-balance decision (`03-RESEARCH.md` Open Question 1), so this can only be visually verified once that decision locks — held out as a backstop, not asserted as already-true |
+| overflow | Season price row (E2, `SellModal.tsx`) | ✅ covered | The numeric multiplier/price value uses the app's existing bounded PLN currency formatting; the only variable-length content is the season name, covered by the long-text backstop below — no separate overflow risk |
+| long-text | Season name in the wired `SellModal.tsx` price row (E2) | 🧪 backstop | The app is localized (`LanguageSwitcher.tsx` exists) and `UX-10`'s own audit already found DE/ES strings overflow fixed-width layout elsewhere in this app (the sidebar title bug). The season row's `({season})` suffix must not be assumed English-length — verify against the longest translated season-name string before sign-off, not just the English default |
+| overflow | Regional Output aggregate value (E3, `CompetitorsPanel.tsx`) | ✅ covered | Format via `toLocaleString()` plus a fixed unit suffix, matching `SellModal.tsx`'s existing Total Revenue formatting convention; the tile already accommodates multi-digit numbers today (reputation, market share %) |
+| long-text | Regional Output tile label (E3) | ⛔ dismissed | The tile has one fixed English label ("Regional Output") and one `toLocaleString()`-formatted integer value — no translatable or variable-length string in this element, unlike the season-name case in E2 |
 
 ---
 
