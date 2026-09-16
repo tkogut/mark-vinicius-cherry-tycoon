@@ -18,13 +18,19 @@
 ## 2. Storage & Spoilage Logic
 Spoilage occurs at the transition from **#Autumn** to **#Winter**. The amount of cherries lost depends on the available infrastructure.
 
+> **Correction (ECON-05, 2026-09-16):** the table below matches the dead, now-deleted
+> `GameLogic.calculateSpoilageRate` — it was never the formula that ran. See
+> `docs/game-design/economy/spoilage-rates.md` for the live rates (15%/8%/2% base,
+> modulated by handling quality) actually applied by `StorageLogic.calculateSpoilage`.
+
 | Infrastructure | Spoilage Rate | Spoilage Armor (UI) |
 | :--- | :--- | :--- |
 | None | 100% | 0% |
 | **Warehouse** | 80% | 20% |
 | **Cold Storage** | 20% | 80% |
 
-> Cold Storage takes priority when both are present.
+> Cold Storage takes priority when both are present — this priority rule is the one
+> part of this table that does describe live behavior; only the percentages are wrong.
 
 ### Formula
 `spoiled_quantity = total_inventory × spoilage_rate`

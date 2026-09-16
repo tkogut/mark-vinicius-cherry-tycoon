@@ -46,7 +46,7 @@ The formulas actually used by `sellCherries` (`game_logic.mo:143-176`) are real:
 
 ## 5. Spoilage/risk — two contradictory systems, real weather risk
 
-- 🟡 **Two spoilage implementations exist.** `GameLogic.calculateSpoilageRate` (`game_logic.mo:46-65`) exactly matches the documented 100%/80%/20% table in `spoilage-rates.md` — but **it is dead code, never called anywhere**. What actually runs at season-end (`main.mo:1466-1480`) is `StorageLogic.calculateSpoilage`, a different formula entirely (15%/8%/2% base rates ÷ handling quality). **The documented spoilage system is fiction; the real one is undocumented anywhere.**
+- 🟡 **Two spoilage implementations exist.** `GameLogic.calculateSpoilageRate` (`game_logic.mo:46-65`) exactly matches the documented 100%/80%/20% table in `spoilage-rates.md` — but **it is dead code, never called anywhere**. What actually runs at season-end (`main.mo:1466-1480`) is `StorageLogic.calculateSpoilage`, a different formula entirely (15%/8%/2% base rates ÷ handling quality). **The documented spoilage system is fiction; the real one is undocumented anywhere.** — **Resolved (ECON-05, 2026-09-16):** the dead function is deleted and `docs/game-design/economy/spoilage-rates.md` now documents the real formula. This entry is kept as a snapshot of the state on 2026-07-29, per this file's own dating convention.
 - ✅ **Weather risk is real**: 8 weather states (Sunny/Rainy/Frost/Drought/Heatwave/Flood/PestOutbreak/DiseaseOutbreak), each with real probability tables, cutting yield and quality by up to 40%, mitigable by Sprayer infrastructure. Insurance (where reachable — see §7) pays out proportional to severity.
 
 ## 6. Player journey — the loop works, nothing teaches it
