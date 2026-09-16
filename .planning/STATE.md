@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 3
 current_phase_name: Core Economic Lever Fixes
-status: planning
-stopped_at: Phase 3 context gathered
-last_updated: "2026-09-16T17:18:22.743Z"
-last_activity: 2026-08-07
-last_activity_desc: "deployed Phase 2 to Playground and audited the live build: UX-01 (sidebar header, on all 8 screens) fixed, plus two bugs invisible locally — UX-10 (30 emoji rendering as tofu without an emoji font) and UX-11 (13 places showing $ for a game priced in PLN). Lint ceiling 183 -> 182. Before that: Phase 2 (Sports Patron) shipped as an agreed vertical slice: 8 real clubs, real share purchases, SportsCenter rewired off two nonexistent fields; verified on a live replica across all 6 rejection paths plus a second identity. Before that: agent instruction layer rebuilt on open-mercato's patterns (Task Router, Always/Ask First/Never, LESSONS.md, one validate.sh gate, all guarded by agentDocs.test.ts); before that Phase 9 status reconciled against what actually shipped (UX-06/07/08, with the two gaps named rather than rounded up), and MAINT-01 + MAINT-02 fixed (real infrastructure wear, and repair priced off that wear so servicing is worth doing for every asset type) and AUTH-02 fixed (Atomic Auth guard on the restored-session path); lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard."
+status: executing
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-09-16T20:40:07.158Z"
+last_activity: 2026-09-16
+last_activity_desc: Phase 3 execution started
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 3
-  completed_plans: 0
+  total_plans: 10
+  completed_plans: 1
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** Two pillars, one empire — a player can run the farm loop end-to-end (plant, tend, harvest, sell, compete in auctions and Cherry Festival) AND grow a football-club investment, with no dead levers, silently-broken features, or unexplained mechanics blocking either thread.
-**Current focus:** Phase 3 — Core Economic Lever Fixes (Phase 2 closed 2026-08-07 as an agreed vertical slice; the Sports Patron's orchard impact and league simulation are tracked as SPORTS-05/06, not silently dropped)
+**Current focus:** Phase 3 — Core Economic Lever Fixes
 
 ## Current Position
 
-Phase: 3 of 10 (Core Economic Lever Fixes)
-Plan: 0 of TBD in current phase
-Status: Ready to plan (Phase 9's row reconciled 2026-08-07 — it was reading "not started" while most of its orchard work had shipped)
-Last activity: 2026-08-07 — deployed Phase 2 to Playground and audited the live build: UX-01 (sidebar header, on all 8 screens) fixed, plus two bugs invisible locally — UX-10 (30 emoji rendering as tofu without an emoji font) and UX-11 (13 places showing $ for a game priced in PLN). Lint ceiling 183 -> 182. Before that: Phase 2 (Sports Patron) shipped as an agreed vertical slice: 8 real clubs, real share purchases, SportsCenter rewired off two nonexistent fields; verified on a live replica across all 6 rejection paths plus a second identity. Before that: agent instruction layer rebuilt on open-mercato's patterns (Task Router, Always/Ask First/Never, LESSONS.md, one validate.sh gate, all guarded by agentDocs.test.ts); before that Phase 9 status reconciled against what actually shipped (UX-06/07/08, with the two gaps named rather than rounded up), and MAINT-01 + MAINT-02 fixed (real infrastructure wear, and repair priced off that wear so servicing is worth doing for every asset type) and AUTH-02 fixed (Atomic Auth guard on the restored-session path); lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
+Phase: 3 (Core Economic Lever Fixes) — EXECUTING
+Plan: 2 of 7
+Status: Ready to execute
+Last activity: 2026-09-16 — Phase 3 execution started
 
-Progress: [███░░░░░░░] 30%
+Progress: [█░░░░░░░░░] 10%
 
 ## Performance Metrics
 
@@ -59,6 +59,11 @@ Progress: [███░░░░░░░] 30%
 - Trend: infrastructure work is now unblocking gameplay work rather than trailing it
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 3 P01 | 23min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -77,6 +82,7 @@ Recent decisions affecting current work:
 - **Agent instruction layer (2026-08-07):** adopted four patterns from open-mercato's `AGENTS.md` (github.com/open-mercato/open-mercato), narrowed to a solo project: a **Task Router** in `CLAUDE.md` mapping task → files to read; **Always / Ask First / Never** boundary labels replacing prose rules; `.planning/LESSONS.md` as a self-improvement loop (mistakes as rules, seeded from real corrections in this repo's history); and one ordered validation gate, `./validate.sh {fast|full|backend}`, replacing a sequence I reconstructed from memory each time. `agentDocs.test.ts` keeps the layer honest (every route resolves, byte budget, tiers match `package.json`) — verified by injecting a dead route. Explicitly **not** adopted: their PR label taxonomy and QA gates (need a team and a QA reviewer), multi-tenant scoping, monorepo package layout, DI/zod/CrudForm conventions, and the full deprecation protocol (no third-party consumers).
 
 - **Phase order deviation (2026-08-06):** Phase 10 ran before Phases 2–9. Justified in hindsight: its parity/contract layers found real defects inside Phase 3 and Phase 5 territory before those phases started.
+- [Phase ?]: ECON-06/07: CompetitorsPanel now reads real productionCapacity (typed AICompetitor, no any); AI archetype naming converged on backend's canonical Marek/Kasia/Hans across gddTemplate.ts, BidModal.tsx (verified, unchanged), and a new uiConventions.test.ts ratchet.
 
 ### Pending Todos
 
@@ -125,8 +131,8 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-09-16T17:18:22.729Z
-Stopped at: Phase 3 context gathered
+Last session: 2026-09-16T20:40:07.147Z
+Stopped at: Completed 03-01-PLAN.md
 
 Next step options:
 
@@ -135,4 +141,4 @@ Next step options:
 - Reconcile Phase 9 bookkeeping (UX-06 already largely shipped) before planning it
 - Clear the remaining flagged defects above (`GEO-07` folds naturally into Phase 5; `ECON-PARITY-01` needs an economy-balance decision, not code fixes)
 
-Resume file: .planning/phases/03-core-economic-lever-fixes/03-CONTEXT.md
+Resume file: None

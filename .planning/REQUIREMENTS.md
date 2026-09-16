@@ -38,8 +38,8 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 - [ ] **ECON-03**: Auction runner-up receives the trickle-down amount (already computed in `AuctionResult.runnerUpId`, never read in `main.mo`)
 - [ ] **ECON-04**: Player gains prestige on winning an Imperial Contract, matching the +5 AI competitors already receive (`main.mo:3166`)
 - [ ] **ECON-05**: Only one spoilage system exists in code (delete dead `GameLogic.calculateSpoilageRate`, keep real `StorageLogic.calculateSpoilage`, document what actually runs)
-- [ ] **ECON-06**: `CompetitorsPanel.tsx` reads the real `productionCapacity` field (not the nonexistent `baseCapacity`) and drops the hardcoded "+4.2%" market-trend tile
-- [ ] **ECON-07**: AI archetype names (Marek/Kasia/Hans) are consistent across code (`#Traditionalist`/`#Innovator`/`#Businessman`), UI display names, and docs — pick one canonical scheme
+- [x] **ECON-06**: `CompetitorsPanel.tsx` reads the real `productionCapacity` field (not the nonexistent `baseCapacity`) and drops the hardcoded "+4.2%" market-trend tile
+- [x] **ECON-07**: AI archetype names (Marek/Kasia/Hans) are consistent across code (`#Traditionalist`/`#Innovator`/`#Businessman`), UI display names, and docs — pick one canonical scheme
 
 ### Weather UI Consolidation (WEATHER) — narrowed after audit found most of this already built
 
@@ -97,6 +97,7 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
   2. **Golden Harvester ignored by the frontend.** The backend applies it *multiplicatively* (1.05^level); the TS mirror's switch had no `GoldenHarvester` case, so the game's flagship upgrade contributed nothing to the displayed estimate.
   3. **Multiplication order.** Motoko computes `(tons × size) × 1000`; the mirror did `(tons × 1000) × size`. f64 multiplication is not associative, and the backend truncates via `Float.toInt`, so the two could land either side of an integer boundary.
   Combined player-visible impact, measured on a realistic loadout (Głubczyce, clay, organic, 2.5 ha, full kit incl. Golden Harvester L3): the UI **under-reported yield by 19%** — 43,537 kg shown vs 53,743 kg actually paid out.
+
 - [ ] **QUAL-05b**: Close the parity loop against a *live* canister. `motokoReferenceYield()` in `economyParity.test.ts` is a hand-maintained transcription: it catches frontend drift immediately but cannot detect a change made on the Motoko side. A real oracle needs a `debugCalculateYield` query, because `GameLogic.calculateYieldPotential` is internal (only reachable via `main.mo`'s harvest path) — there is no method to generate a fixture from. Adding it is additive and has 7 existing `debug*` precedents, but it widens the canister's public interface, so it was deliberately left out of the test-infrastructure step.
 - [ ] **ECON-PARITY-01**: `getInfrastructureModifier` in `backend/game_logic.mo` folds additive terms (`modifier += …` for Tractor/Shaker/Sprayer/ColdStorage) and one multiplicative term (`modifier *= 1.05^level` for GoldenHarvester) in a single pass over the infrastructure array. Mixing `+=` and `*=` makes the result **depend on the array order** — the same equipment yields a different multiplier depending on purchase order (e.g. GH-then-Tractor gives 1.1025+0.15 = 1.2525, Tractor-then-GH gives 1.15×1.1025 = 1.2679). Found 2026-08-06; **flagged, not fixed** — changing it alters real payouts, which is an economy-balance decision, not a test fix. The frontend mirror reproduces the quirk faithfully (and a test pins that order-sensitivity) so the UI and the payout agree while it stands.
 - [x] **QUAL-07**: Phase-gate parity between the UI's `PHASE_ACTION_GATING` and the backend's `#SeasonalRestriction` guards. Done 2026-08-06 via `src/__tests__/phaseGateParity.test.ts`, which asserts the UI is **never more permissive** than `main.mo` (that direction produces an enabled button whose click fails) and enumerates the 12 places where it is deliberately stricter as UI guidance. **Found and fixed one real bug:** the UI enabled Marketplace purchases during the `Maintenance` phase, but `upgradeInfrastructure` (`main.mo:2118`) requires `#Investment` — so the PURCHASE button was live and the click failed with `#SeasonalRestriction`. Marketplace.tsx's own tooltip already read *"Purchases restricted to Investment phase"*, so the gating table contradicted both the canister and the UI's own copy. Also verified that `sellCherries` / `fertilizeParcel` / `buyParcel` have **no** backend phase guard, so the UI's permissiveness there is consistent.
@@ -195,8 +196,8 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-03 | Phase 3 | Pending |
 | ECON-04 | Phase 3 | Pending |
 | ECON-05 | Phase 3 | Pending |
-| ECON-06 | Phase 3 | Pending |
-| ECON-07 | Phase 3 | Pending |
+| ECON-06 | Phase 3 | Complete |
+| ECON-07 | Phase 3 | Complete |
 | WEATHER-01 | Phase 4 | Pending |
 | WEATHER-02 | Phase 4 | Pending |
 | WEATHER-03 | Phase 4 | Pending |
@@ -244,6 +245,7 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-PARITY-01 | Backlog (economy balance) | Pending |
 
 **Coverage:**
+
 - v1 requirements: 62 total (21 complete, 2 partial, 39 pending)
 - Mapped to phases: 62
 - Unmapped: 0 ✓
