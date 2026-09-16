@@ -317,7 +317,7 @@ Based on these factors, AI competitors make decisions about:
 **Strengths**: Consistent production, low operating costs, stable profits
 **Weaknesses**: Cannot compete on quality, loses market share to innovators, vulnerable to price crashes
 
-**Example Traditionalist - Jan Kowalski**:
+**Example Traditionalist - Marek**:
 - Starting parcels: 2.5 ha (gliniasta soil, medium fertility)
 - Season 1-5: Focuses on basic irrigation installation
 - Season 6-10: Slowly expands to 4.0 ha total
@@ -345,7 +345,7 @@ Based on these factors, AI competitors make decisions about:
 **Strengths**: High-quality yields, premium pricing, efficient operations, adapts to market
 **Weaknesses**: High upfront costs, slower expansion, vulnerable during conversion periods
 
-**Example Innovator - Anna Nowak**:
+**Example Innovator - Kasia**:
 - Starting parcels: 1.5 ha (gliniasta soil, high fertility)
 - Season 1-3: Invests 150,000 PLN in automation and greenhouse
 - Season 4-5: Begins organic conversion on 1.0 ha parcel
@@ -374,7 +374,7 @@ Based on these factors, AI competitors make decisions about:
 **Strengths**: Rapid growth, market dominance potential, flexible strategy
 **Weaknesses**: Overextended finances, vulnerable to market crashes, inconsistent quality
 
-**Example Businessman - Piotr Wiśniewski**:
+**Example Businessman - Hans**:
 - Starting parcels: 2.0 ha (mixed soil quality)
 - Season 1-2: Immediately purchases 2 additional parcels (4.0 ha total)
 - Season 3-5: Invests in premium infrastructure on best parcels only
@@ -395,7 +395,7 @@ AI competitors track and respond to:
 The top 3 AI competitors in each region are designated as **Named Rivals** with:
 - Full profile (name, personality, farm statistics)
 - Visible on leaderboard with detailed metrics
-- Special achievements for defeating rivals ("Rival Defeated: Jan Kowalski")
+- Special achievements for defeating rivals ("Rival Defeated: Marek")
 - Narrative flavor text based on personality and performance
 
 ## Ranking System

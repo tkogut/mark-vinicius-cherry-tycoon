@@ -117,3 +117,88 @@ describe('UX-01: the version badge does not sit on top of the sidebar', () => {
         ).not.toMatch(/top-\d+ left-\d+/);
     });
 });
+
+describe('ECON-07: AI archetype names have one canonical scheme', () => {
+    // backend/competitor_logic.mo is the naming authority (03-CONTEXT.md
+    // "Claude's Discretion" note) — read its three archetype names off disk
+    // rather than re-typing them, so this test tracks the backend instead of
+    // a second hand transcription that could itself drift.
+    const competitorLogicSrc = readFileSync(
+        resolve(SRC, '../../backend/competitor_logic.mo'),
+        'utf8'
+    );
+    const CANONICAL_NAMES = Array.from(
+        competitorLogicSrc.matchAll(/name\s+=\s+"([A-Za-z]+)/g)
+    ).map((m) => m[1]);
+
+    // The three Polish person-names ECON-07 supersedes, replaced everywhere
+    // under frontend/src by the backend's canonical Marek/Kasia/Hans.
+    // Built from [first, last] pairs and joined at runtime, rather than
+    // written out as contiguous "First Last" literals, so this ratchet's own
+    // definition of the forbidden strings does not itself match a
+    // full-repo grep for those same strings (the same reason the UX-10 emoji
+    // ratchet above uses Unicode ranges instead of literal emoji glyphs).
+    const SUPERSEDED_NAMES = [
+        ['Jan', 'Kowalski'],
+        ['Anna', 'Nowak'],
+        ['Piotr', 'Wiśniewski'],
+    ].map(([first, last]) => `${first} ${last}`);
+
+    // Walks .ts AND .tsx (gddTemplate.ts, the one file that still needed
+    // fixing, is a plain .ts reference/template file — the emoji/PLN
+    // ratchets above only walk .tsx and would have missed it). Scoped to
+    // frontend/src only, so this plan file and .planning/ docs that
+    // legitimately discuss the rename stay out of scope.
+    function srcFiles(dir: string): string[] {
+        const out: string[] = [];
+        for (const entry of readdirSync(dir)) {
+            const full = join(dir, entry);
+            if (statSync(full).isDirectory()) {
+                if (entry === 'declarations' || entry === '__tests__') continue;
+                out.push(...srcFiles(full));
+            } else if (entry.endsWith('.ts') || entry.endsWith('.tsx')) {
+                out.push(full);
+            }
+        }
+        return out;
+    }
+    const ALL_SRC_FILES = srcFiles(SRC);
+
+    it('backend/competitor_logic.mo defines exactly 3 canonical archetype names', () => {
+        // Guards the test itself: if the parse regex or the source file ever
+        // stops yielding exactly 3 names, the second assertion below would
+        // pass vacuously (an empty CANONICAL_NAMES list is trivially "all
+        // present"). This must never be 0 or 1 or variable (edge: ECON-07).
+        expect(CANONICAL_NAMES).toEqual(['Marek', 'Kasia', 'Hans']);
+    });
+
+    it('no file under frontend/src contains a superseded archetype person-name', () => {
+        const offenders: string[] = [];
+        for (const file of ALL_SRC_FILES) {
+            const lines = readFileSync(file, 'utf8').split('\n');
+            lines.forEach((line, i) => {
+                for (const name of SUPERSEDED_NAMES) {
+                    if (line.includes(name)) {
+                        offenders.push(`${relative(SRC, file)}:${i + 1}  "${name}"  ${line.trim().slice(0, 70)}`);
+                    }
+                }
+            });
+        }
+
+        expect(
+            offenders,
+            "backend/competitor_logic.mo's canonical Marek/Kasia/Hans is the single " +
+            'naming scheme (ECON-07) — a superseded name reappeared:\n  ' + offenders.join('\n  ')
+        ).toEqual([]);
+    });
+
+    it('gddTemplate.ts still contains all three canonical names (so the first assertion cannot be satisfied by deletion)', () => {
+        const gddTemplate = readFileSync(join(SRC, 'lib/gddTemplate.ts'), 'utf8');
+        for (const name of CANONICAL_NAMES) {
+            expect(
+                gddTemplate,
+                `Expected canonical archetype name "${name}" (from competitor_logic.mo) in gddTemplate.ts`
+            ).toContain(name);
+        }
+    });
+});
