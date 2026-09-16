@@ -89,10 +89,16 @@ Plans:
   5. Only one spoilage system exists in code, and it matches what's documented
   6. `CompetitorsPanel` reads real fields, no fabricated numbers
   7. AI archetype names (Marek/Kasia/Hans) are consistent across code, UI, and docs
-**Plans**: TBD
+**Plans**: 7 plans across 5 waves
 
 Plans:
-- [ ] 03-01: TBD (created by `/gsd-plan-phase 3`)
+- [ ] 03-01-PLAN.md — ECON-06/07: typed `productionCapacity` in CompetitorsPanel, real Regional Output tile, canonical archetype names + ratchet (wave 1)
+- [ ] 03-02-PLAN.md — ECON-05: delete dead `calculateSpoilageRate`, rewrite spoilage-rates.md against the live formula, one-implementation ratchet (wave 1)
+- [ ] 03-03-PLAN.md — ECON-03 (AI direction): compute the runner-up trickle, carry it on `AuctionResult`, credit an AI runner-up (wave 1)
+- [ ] 03-04-PLAN.md — ECON-03 (player direction) + ECON-04: player prestige +5 capped at 100, player runner-up payout behind a persistence decision gate (wave 2)
+- [ ] 03-05-PLAN.md — ECON-02: season sale multiplier in both price functions, TS mirror + parity block, honest `getMarketPrices`, SellModal season row (wave 3)
+- [ ] 03-06-PLAN.md — ECON-01 (backend): 3-type closed-set validation, persisted type behind a decision gate, +5% yield term, mirror + parity matrix (wave 4)
+- [ ] 03-07-PLAN.md — ECON-01 (UI): fertilizer-type picker on both fertilize entry points, organic warning, no hardcoded type literal (wave 5)
 
 #### Phase 4: Weather UI Consolidation
 **Goal**: Narrower than originally scoped — `WeatherEffects.tsx`/`WeatherEventModal.tsx` already cover all 8 real weather states; fix the dead/buggy `WeatherOverlay.tsx` layer and add a persistent indicator.
