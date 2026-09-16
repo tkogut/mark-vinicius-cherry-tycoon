@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Trophy, TrendingUp, Users, MapPin, Loader2 } from "lucide-react";
+import { Trophy, Factory, Users, MapPin, Loader2 } from "lucide-react";
 import { useCompetitors } from "@/hooks/useFarm";
 import type { AICompetitor } from "@/declarations/backend.did";
 
@@ -146,14 +146,14 @@ export const CompetitorsPanel: React.FC<CompetitorsPanelProps> = ({ playerCash, 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                 <Card className="bg-slate-900 border-slate-800">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-400">Market Trend</CardTitle>
+                        <CardTitle className="text-sm font-medium text-slate-400">Regional Output</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-emerald-400 flex items-center gap-2">
-                            <TrendingUp className="h-5 w-5" />
-                            +4.2%
+                        <div className="text-2xl font-bold text-slate-200 flex items-center gap-2">
+                            <Factory className="h-5 w-5" />
+                            {totalCapacityKg.toLocaleString()} kg
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">Demand increasing</p>
+                        <p className="text-xs text-slate-500 mt-1">Combined AI production capacity</p>
                     </CardContent>
                 </Card>
                 <Card className="bg-slate-900 border-slate-800">

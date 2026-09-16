@@ -78,7 +78,9 @@ describe('ECON-06: CompetitorsPanel reads real canister fields', () => {
         const { container } = renderPanel();
 
         expect(container.textContent).not.toMatch(/NaN/);
-        expect(screen.getByText('0 kg')).toBeInTheDocument();
+        // "0 kg" legitimately appears twice here: the row itself, and the
+        // Regional Output tile's aggregate (sum of one zero-capacity AI).
+        expect(screen.getAllByText('0 kg').length).toBeGreaterThanOrEqual(1);
     });
 
     it('the player row has no fabricated capacity figure and renders the em-dash placeholder', () => {
