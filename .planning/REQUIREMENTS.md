@@ -37,7 +37,7 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 - [ ] **ECON-02**: Season affects sale price (currently hardcoded `seasonMultiplier = 1.0`, `main.mo:2808-2819`)
 - [ ] **ECON-03**: Auction runner-up receives the trickle-down amount (already computed in `AuctionResult.runnerUpId`, never read in `main.mo`)
 - [ ] **ECON-04**: Player gains prestige on winning an Imperial Contract, matching the +5 AI competitors already receive (`main.mo:3166`)
-- [ ] **ECON-05**: Only one spoilage system exists in code (delete dead `GameLogic.calculateSpoilageRate`, keep real `StorageLogic.calculateSpoilage`, document what actually runs)
+- [x] **ECON-05**: Only one spoilage system exists in code (delete dead `GameLogic.calculateSpoilageRate`, keep real `StorageLogic.calculateSpoilage`, document what actually runs)
 - [x] **ECON-06**: `CompetitorsPanel.tsx` reads the real `productionCapacity` field (not the nonexistent `baseCapacity`) and drops the hardcoded "+4.2%" market-trend tile
 - [x] **ECON-07**: AI archetype names (Marek/Kasia/Hans) are consistent across code (`#Traditionalist`/`#Innovator`/`#Businessman`), UI display names, and docs — pick one canonical scheme
 
@@ -195,7 +195,7 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-02 | Phase 3 | Pending |
 | ECON-03 | Phase 3 | Pending |
 | ECON-04 | Phase 3 | Pending |
-| ECON-05 | Phase 3 | Pending |
+| ECON-05 | Phase 3 | Complete |
 | ECON-06 | Phase 3 | Complete |
 | ECON-07 | Phase 3 | Complete |
 | WEATHER-01 | Phase 4 | Pending |

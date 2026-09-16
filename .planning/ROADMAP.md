@@ -105,13 +105,13 @@ Plans:
   6. `CompetitorsPanel` reads real fields, no fabricated numbers
   7. AI archetype names (Marek/Kasia/Hans) are consistent across code, UI, and docs
 
-**Plans**: 1/7 plans executed
+**Plans**: 2/7 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 03-01-PLAN.md — ECON-06/07: typed `productionCapacity` in CompetitorsPanel, real Regional Output tile, canonical archetype names + ratchet (wave 1)
-- [ ] 03-02-PLAN.md — ECON-05: delete dead `calculateSpoilageRate`, rewrite spoilage-rates.md against the live formula, one-implementation ratchet (wave 1)
+- [x] 03-02-PLAN.md — ECON-05: delete dead `calculateSpoilageRate`, rewrite spoilage-rates.md against the live formula, one-implementation ratchet (wave 1)
 - [ ] 03-03-PLAN.md — ECON-03 (AI direction): compute the runner-up trickle, carry it on `AuctionResult`, credit an AI runner-up (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -320,7 +320,7 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 1. Enhanced Leaderboard & Rankings UI | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 1.1. Atomic Auth Fix | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 2. Football Clubs — Restore the Core Pillar | Playable Release — V1 Parity | 0/TBD | Not started | - |
-| 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 1/7 | In Progress|  |
+| 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 2/7 | In Progress|  |
 | 4. Weather UI Consolidation | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5. Regional Geography Rebuild | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5.1. Geography Map-Zoom UI | Playable Release — V1 Parity | 0/TBD | Not started | - |

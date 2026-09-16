@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 3
 current_phase_name: Core Economic Lever Fixes
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-09-16T20:40:07.158Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-09-16T20:57:19.198Z"
 last_activity: 2026-09-16
 last_activity_desc: Phase 3 execution started
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 3 (Core Economic Lever Fixes) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-09-16 — Phase 3 execution started
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [█░░░░░░░░░] 10%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 3 P01 | 23min | 3 tasks | 4 files |
+| Phase 3 P2 | 27min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,7 @@ Recent decisions affecting current work:
 
 - **Phase order deviation (2026-08-06):** Phase 10 ran before Phases 2–9. Justified in hindsight: its parity/contract layers found real defects inside Phase 3 and Phase 5 territory before those phases started.
 - [Phase ?]: ECON-06/07: CompetitorsPanel now reads real productionCapacity (typed AICompetitor, no any); AI archetype naming converged on backend's canonical Marek/Kasia/Hans across gddTemplate.ts, BidModal.tsx (verified, unchanged), and a new uiConventions.test.ts ratchet.
+- [Phase ?]: ECON-05: GameLogic.calculateSpoilageRate deleted (dead code, zero call sites); StorageLogic.calculateSpoilage is the sole spoilage system, verified on a live replica (12,400 -> 9,796 kg cherries at Autumn->Winter transition); spoilage-rates.md rewritten against it; a backendHygiene.test.ts ratchet pins exactly one calculateSpoilage* declaration exists.
 
 ### Pending Todos
 
@@ -131,8 +133,8 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-09-16T20:40:07.147Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-09-16T20:57:12.774Z
+Stopped at: Completed 03-02-PLAN.md
 
 Next step options:
 
