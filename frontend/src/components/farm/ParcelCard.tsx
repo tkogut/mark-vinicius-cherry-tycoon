@@ -29,14 +29,11 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ParcelDetailsPanel } from './ParcelDetailsPanel';
-import { calculateYieldBreakdown, FERTILIZER_TYPES } from '@/lib/gameLogic';
-import { FERTILIZER_TYPE_DISPLAY } from '@/lib/fertilizerTypes';
+import { calculateYieldBreakdown } from '@/lib/gameLogic';
+import { FertilizerTypeMenu } from './FertilizerTypeMenu';
 import { isActionAllowed, SeasonPhase, PHASE_LABELS } from '@/config/phaseConstants';
 import {
     DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -347,27 +344,11 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
-                        <DropdownMenuContent align="center" className="w-64 border-slate-800 bg-popover">
-                            {/* Uncontrolled radio group — this is a one-shot action
-                                list, not a persisted setting, so there is no
-                                "current" value to track between opens. */}
-                            <DropdownMenuRadioGroup>
-                                {FERTILIZER_TYPES.map((type) => (
-                                    <DropdownMenuRadioItem
-                                        key={type}
-                                        value={type}
-                                        disabled={isFertilizing}
-                                        onSelect={() => onAction('fertilize', parcel.id, type)}
-                                        className="flex-col items-start gap-0.5 cursor-pointer"
-                                    >
-                                        <span className="text-sm">Fertilize with {FERTILIZER_TYPE_DISPLAY[type].label}</span>
-                                        <span className="block max-w-full truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                            {FERTILIZER_TYPE_DISPLAY[type].caption}
-                                        </span>
-                                    </DropdownMenuRadioItem>
-                                ))}
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuContent>
+                        <FertilizerTypeMenu
+                            isOrganic={parcel.isOrganic}
+                            isPending={isFertilizing}
+                            onSelect={(type) => onAction('fertilize', parcel.id, type)}
+                        />
                     </DropdownMenu>
 
                     {/* Organic Conversion Button */}

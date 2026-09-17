@@ -9,13 +9,19 @@ import {
 } from 'lucide-react';
 import { drawGeometricBrassTree, drawGroundDecor, drawPathTile } from './geometricBrassTree';
 import { drawModernTractor, drawPrecisionSprayer, drawMechanicalShaker, drawBranchPruner, drawWorkerSturdyFacet, drawWorkerDynamicStride } from './orchardMachines';
+import { DropdownMenu, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { FertilizerTypeMenu } from './FertilizerTypeMenu';
+import { FertilizerType } from '@/lib/gameLogic';
 
 interface ImperialOrchardProps {
     parcels: any[];
     season: any;
     hiredLabor?: any;
     county?: 'Nyski' | 'Brzeski' | 'Opolski' | string;
-    onAction: (action: 'water' | 'prune' | 'fertilize' | 'harvest' | 'plant' | 'select' | 'organic', parcelId: string | null) => void;
+    // ECON-01 (plan 03-07): optional third parameter carries the picker's
+    // selection. parcelId stays nullable — some existing dispatch paths pass
+    // null (e.g. 'select' on background click).
+    onAction: (action: 'water' | 'prune' | 'fertilize' | 'harvest' | 'plant' | 'select' | 'organic', parcelId: string | null, fertilizerType?: string) => void;
     // hasHarvesters existed already (wired but never read); hasTractor/hasSprayer/hasPruner
     // are new — added 2026-08-03 alongside the Geometric Brass machine models (sketch 002).
     // All optional/undefined-safe so existing callers that only pass hasHarvesters keep working.
@@ -1010,6 +1016,18 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
         setSelectedParcel(null);
     };
 
+    // ECON-01 (plan 03-07): the fertilize radial entry opens a three-type
+    // picker instead of dispatching directly. Mirrors handleAction's own
+    // vibrate + dispatch + clear-selection shape exactly, so the selection
+    // clears once a type is chosen rather than when the menu opens.
+    const handleFertilizerSelect = (fertilizerType: FertilizerType) => {
+        if (!selectedParcel) return;
+        if (navigator.vibrate) navigator.vibrate(20);
+
+        onAction('fertilize', selectedParcel.parcel.id, fertilizerType);
+        setSelectedParcel(null);
+    };
+
     // Calculate sectorsCount based directly on the number of parcels
     const sectorsCount = displayParcels.length;
 
@@ -1617,11 +1635,15 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                         (selectedParcel.parcel.lastHarvest === BigInt(seasonNumber));
                                     const isDisabled = !action.phases.includes(seasonStyles.phase) || isAlreadyHarvested;
 
-                                    return (
+                                    // ECON-01 (plan 03-07): the fertilize entry's angle,
+                                    // color, icon, shadow and phases gating are all
+                                    // unchanged — only its click behavior changes,
+                                    // below, from "dispatch immediately" to "open
+                                    // the three-type picker".
+                                    const buttonEl = (
                                         <button
-                                            key={action.id}
                                             disabled={isDisabled}
-                                            onClick={() => handleAction(action.id)}
+                                            onClick={action.id === 'fertilize' ? undefined : () => handleAction(action.id)}
                                             className={cn(
                                                 "absolute flex items-center justify-center w-14 h-14 border-2 border-[var(--brass-primary)] rounded-full transition-all duration-300 group",
                                                 action.color,
@@ -1647,6 +1669,26 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                             </span>
                                         </button>
                                     );
+
+                                    if (action.id === 'fertilize') {
+                                        return (
+                                            <DropdownMenu key={action.id}>
+                                                <DropdownMenuTrigger asChild>{buttonEl}</DropdownMenuTrigger>
+                                                <FertilizerTypeMenu
+                                                    isOrganic={!!selectedParcel?.parcel?.isOrganic}
+                                                    // No pending flag threaded from App.tsx for this
+                                                    // entry point yet (out of this task's file list —
+                                                    // ImperialOrchard's caller isn't touched here);
+                                                    // the parcel-card entry point (Task 1) already
+                                                    // covers the loading-disable behavior.
+                                                    isPending={false}
+                                                    onSelect={handleFertilizerSelect}
+                                                />
+                                            </DropdownMenu>
+                                        );
+                                    }
+
+                                    return <React.Fragment key={action.id}>{buttonEl}</React.Fragment>;
                                 })}
 
                                 <button onClick={() => setSelectedParcel(null)} className="absolute -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-black/90 border border-[var(--ruby-harvest)] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-[0_0_20px_var(--ruby-harvest)] animate-in fade-in zoom-in duration-300 hover:bg-red-900 transition-colors pointer-events-auto">
