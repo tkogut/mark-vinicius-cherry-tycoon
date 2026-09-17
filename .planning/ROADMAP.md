@@ -142,11 +142,12 @@ Plans:
   3. Both fixes verified on a live replica with concrete before/after numbers, per CLAUDE.md's verification rule
   4. `backend/main_mainnet.mo` untouched (EOP-01, unrelated)
 
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 
-- [ ] 03.1-01: TBD (created by `/gsd-plan-phase 3.1`)
+- [ ] 03.1-01-PLAN.md — ECON-08: thread a running `remainingForPSF` accumulator through `resolveSeasonAuctions`, proven on a live replica (8,000 → 18,000 kg shortfall on CR-01's worked example) + transcription oracle and source drift guard
+- [ ] 03.1-02-PLAN.md — ECON-09: validate `volumeKg == contract.requiredVolumeKg` in `commitPreSeasonFuture` (signature unchanged, no Candid change), proven on a live replica + fee/guard-ordering oracle and `.did` arity pin
 
 #### Phase 4: Weather UI Consolidation
 
