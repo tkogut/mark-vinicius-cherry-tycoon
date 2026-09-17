@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Coins, TrendingUp, Truck, Store, MapPin, Calendar, Users, AlertTriangle, Leaf, Flame} from "lucide-react";
 import { useMarketPrices } from '@/hooks/useMarketPrices';
 import { useFarm } from '@/hooks/useFarm';
+import { getSeasonSaleMultiplier } from '@/lib/gameLogic';
 
 interface SellModalProps {
     isOpen: boolean;
@@ -85,16 +86,22 @@ export const SellModal: React.FC<SellModalProps> = ({
         let organicMod = 1.0;
         let volumePenalty = 1.0;
 
+        // ECON-02: real season multiplier, mirrored from the backend via
+        // gameLogic.ts (economyParity.test.ts pins this against
+        // GameLogic.getSeasonSaleMultiplier in game_logic.mo). Bound once so
+        // both branches below use the same value.
+        const seasonMod = getSeasonSaleMultiplier(farm.currentSeason);
+
         // Calculate exact price matching GameLogic.mo
         if (saleType === 'retail') {
             qualityBonus = 1.0 + (avgQuality / 100 * 0.3);
             organicMod = hasOrganicCertified ? 1.4 : 1.0;
-            finalUnitPrice = basePrice * marketSize * qualityBonus * organicMod * marketMult;
+            finalUnitPrice = basePrice * marketSize * qualityBonus * organicMod * marketMult * seasonMod;
         } else {
             const wholesaleMultiplier = 0.7;
             volumePenalty = amount > 10000 ? 1.05 : (amount > 5000 ? 1.02 : 1.0);
             qualityBonus = 1.0 + (avgQuality / 100 * 0.1);
-            finalUnitPrice = basePrice * wholesaleMultiplier * volumePenalty * qualityBonus * marketMult;
+            finalUnitPrice = basePrice * wholesaleMultiplier * volumePenalty * qualityBonus * marketMult * seasonMod;
         }
 
         // Ensure floor price 1 PLN/kg
@@ -103,7 +110,7 @@ export const SellModal: React.FC<SellModalProps> = ({
         return {
             base: basePrice,
             season: seasonKey,
-            seasonMod: 1.0, // deprecated inside modal component but kept for UI
+            seasonMod,
             regionName,
             population,
             popMod: marketSize,
