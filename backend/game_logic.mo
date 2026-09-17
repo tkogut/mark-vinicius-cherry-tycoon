@@ -150,12 +150,13 @@ module {
     finalPrice
   };
 
-  // Wholesale price: Base × 0.7 × VolumeDiscount × Saturation
+  // Wholesale price: Base × 0.7 × VolumeDiscount × Saturation × Season
   public func calculateWholesalePrice(
     basePrice: Nat,
     quantity: Nat,
     quality: Nat,
-    saturationMultiplier: Float // New: 0.8 to 1.0
+    saturationMultiplier: Float, // New: 0.8 to 1.0
+    seasonMultiplier: Float // ECON-02: same trailing-term convention as calculateRetailPrice; pre-existing volumeBonus thresholds untouched
   ) : Float {
     let wholesaleMultiplier = 0.7;
 
@@ -167,7 +168,7 @@ module {
     // Small quality bonus for wholesale
     let qualityBonus = 1.0 + (Float.fromInt(quality) / 100.0 * 0.1); // up to +10%
 
-    let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier;
+    let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier * seasonMultiplier;
     finalPrice
   };
 

@@ -1330,7 +1330,8 @@ actor CherryTycoon {
             stableSpotPrice,
             quantity,
             60, // average quality
-            saturationMult
+            saturationMult,
+            GameLogic.getSeasonSaleMultiplier(farm.currentSeason)
           );
           let totalFloatRevenue = basePrice * marketMult * Float.fromInt(quantity);
           let computedRevenue = Int.abs(Float.toInt(totalFloatRevenue));
@@ -2855,13 +2856,22 @@ actor CherryTycoon {
   };
 
   // Get current market prices
-  public query func getMarketPrices() : async GameResult<Types.MarketPrice, GameError> {
-    // Basic static prices for now, matching GDD
+  // ECON-02: caller-aware so seasonMultiplier can report the calling
+  // player's real season term (the same GameLogic.getSeasonSaleMultiplier
+  // sellCherries actually applies). shared query({ caller }) is
+  // Candid-identical to a bare query func -- the caller is implicit and the
+  // method still exports as a zero-argument query; proven by candidContract.test.ts
+  // staying green, not by assertion.
+  public shared query({ caller }) func getMarketPrices() : async GameResult<Types.MarketPrice, GameError> {
+    let seasonMult = switch (playerFarms.get(caller)) {
+      case (?farm) { GameLogic.getSeasonSaleMultiplier(farm.currentSeason) };
+      case null { 1.0 }; // Anonymous caller or no farm yet -- safe fallback, never traps
+    };
     let prices : Types.MarketPrice = {
       retailBasePrice = baseRetailPrice;
       wholesaleBasePrice = baseWholesalePrice;
       demandMultiplier = 1.0;
-      seasonMultiplier = 1.0; // TODO: Vary by season
+      seasonMultiplier = seasonMult;
       qualityBonus = 0.3;     // Max bonus
       organicPremium = 0.4;   // Max premium
     };

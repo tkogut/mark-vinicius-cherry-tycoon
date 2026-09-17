@@ -682,6 +682,29 @@ const REF_SEASONS: Record<string, Season> = {
     Winter: { Winter: null },
 };
 
+/**
+ * Transcription of game_logic.mo `calculateWholesalePrice`, with the ECON-02
+ * trailing `seasonMultiplier` parameter:
+ *
+ *   let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus
+ *     * qualityBonus * saturationMultiplier * seasonMultiplier;
+ *
+ * The pre-existing volume-bonus thresholds (quantity > 10_000 / > 5_000) are
+ * reproduced unchanged -- this plan adds no new threshold.
+ */
+function refWholesalePrice(
+    basePrice: number,
+    quantity: number,
+    quality: number,
+    saturationMultiplier: number,
+    seasonMultiplier: number,
+): number {
+    const wholesaleMultiplier = 0.7;
+    const volumeBonus = quantity > 10000 ? 1.05 : quantity > 5000 ? 1.02 : 1.0;
+    const qualityBonus = 1.0 + (quality / 100.0 * 0.1);
+    return basePrice * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier * seasonMultiplier;
+}
+
 describe('economy parity: season sale price (ECON-02)', () => {
     it.each([
         ['Spring', REF_SEASONS.Spring, 0.9],
@@ -703,5 +726,60 @@ describe('economy parity: season sale price (ECON-02)', () => {
         const autumnPrice = refRetailPrice(100, 0.8, 60, false, 1.0, getSeasonSaleMultiplier(REF_SEASONS.Autumn));
         const winterPrice = refRetailPrice(100, 0.8, 60, false, 1.0, getSeasonSaleMultiplier(REF_SEASONS.Winter));
         expect(winterPrice / autumnPrice).toBeCloseTo(0.75, 10);
+    });
+
+    // Full matrix: 4 seasons x 2 sale types, mirror vs transcription vs literal.
+    it.each([
+        ['Spring', REF_SEASONS.Spring, 0.9],
+        ['Summer', REF_SEASONS.Summer, 1.15],
+        ['Autumn', REF_SEASONS.Autumn, 1.0],
+        ['Winter', REF_SEASONS.Winter, 0.75],
+    ] as const)('%s: retail price carries the season term through the product', (_name, season, mult) => {
+        const seasonMult = getSeasonSaleMultiplier(season);
+        expect(seasonMult).toBeCloseTo(mult, 10);
+        const withSeason = refRetailPrice(100, 0.8, 60, false, 1.0, seasonMult);
+        const withoutSeason = refRetailPrice(100, 0.8, 60, false, 1.0, 1.0);
+        expect(withSeason / withoutSeason).toBeCloseTo(mult, 10);
+    });
+
+    it.each([
+        ['Spring', REF_SEASONS.Spring, 0.9],
+        ['Summer', REF_SEASONS.Summer, 1.15],
+        ['Autumn', REF_SEASONS.Autumn, 1.0],
+        ['Winter', REF_SEASONS.Winter, 0.75],
+    ] as const)('%s: wholesale price carries the season term through the product', (_name, season, mult) => {
+        const seasonMult = getSeasonSaleMultiplier(season);
+        expect(seasonMult).toBeCloseTo(mult, 10);
+        const withSeason = refWholesalePrice(15, 1000, 60, 1.0, seasonMult);
+        const withoutSeason = refWholesalePrice(15, 1000, 60, 1.0, 1.0);
+        expect(withSeason / withoutSeason).toBeCloseTo(mult, 10);
+    });
+
+    it('the pre-existing wholesale volume-bonus thresholds still fire at the same quantities, with and without a season multiplier', () => {
+        // quantity > 10_000 -> 1.05x, quantity > 5_000 -> 1.02x, else 1.0x.
+        // This plan adds no new threshold; the season term is one more
+        // multiplicand alongside volumeBonus, never a replacement for it.
+        const cases: Array<[string, number, number]> = [
+            ['at the >10_000 boundary', 10_001, 1.05],
+            ['just below the >10_000 boundary', 10_000, 1.02],
+            ['at the >5_000 boundary', 5_001, 1.02],
+            ['just below the >5_000 boundary', 5_000, 1.0],
+        ];
+
+        for (const [, quantity, expectedVolumeBonus] of cases) {
+            for (const season of Object.values(REF_SEASONS)) {
+                const seasonMult = getSeasonSaleMultiplier(season);
+                const withSeason = refWholesalePrice(15, quantity, 60, 1.0, seasonMult);
+                const neutral = refWholesalePrice(15, quantity, 60, 1.0, 1.0);
+                // The ratio between a seasoned and unseasoned price at the same
+                // quantity is exactly the season multiplier -- the volume bonus
+                // that produced expectedVolumeBonus cancels out of the ratio,
+                // proving the threshold fired identically in both cases.
+                expect(withSeason / neutral).toBeCloseTo(seasonMult, 10);
+                // Sanity: the volume bonus itself is unaffected by season.
+                const bare = refWholesalePrice(15, quantity, 0, 1.0, 1.0) / (15 * 0.7);
+                expect(bare).toBeCloseTo(expectedVolumeBonus, 10);
+            }
+        }
     });
 });
