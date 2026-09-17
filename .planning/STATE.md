@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 09
-current_phase_name: partially delivered out of plan — see Status
+current_phase: 3.1
+current_phase_name: INSERTED
 status: planning
 stopped_at: Completed 03-07-PLAN.md (Phase 3 complete, 7/7 plans)
-last_updated: "2026-09-17T14:43:10.542Z"
+last_updated: "2026-09-17T14:46:34.940Z"
 last_activity: 2026-09-17
-last_activity_desc: Phase 3 complete, transitioned to Phase 09
+last_activity_desc: Phase 3 complete (7/7, verified); code review found ECON-08/09 (pre-existing, unrelated) and user chose to fix now via inserted Phase 3.1 before continuing to Phase 4-10
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 1
   total_plans: 10
   completed_plans: 7
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 ## Current Position
 
-Phase: 09 — UX/UI Deep Overhaul 🟡 (partially delivered out of plan — see Status)
+Phase: 3.1 — Pre-Season Future Integrity Fixes (INSERTED)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-09-17 — Phase 3 complete, transitioned to Phase 09
+Last activity: 2026-09-17 — Phase 3 complete (7/7, verified); code review found ECON-08/09 (pre-existing, unrelated) and user chose to fix now via inserted Phase 3.1 before continuing to Phase 4-10
 
 Progress: [███████░░░] 70%
 
@@ -130,6 +130,10 @@ Recent decisions affecting current work:
 - ~~`MAINT-02` repair pricing made servicing a losing move~~ → **fixed 2026-08-07**. The flat 500/level fee could never pay back for 6 of the 8 priced asset types (the break-even is 0.8x spec upkeep per year, i.e. spec > 625 — so Tractor was negative too, correcting the figure first recorded). Repair now costs half the accumulated wear, which makes the trade identical for every asset type and independent of level; assets at spec cost nothing instead of a 500 fee for a no-op. Verified on a live replica (Sprayer 312 -> 240 for 36 PLN, second call free).
 - ~~`MAINT-01` Maintenance phase has no player action~~ → **fixed 2026-08-07**, but the premise was false: `inspectAndRepair` was a broken lever, not an unwired working method. It advertised "Degradation prevented." while no degradation existed, and really overwrote `maintenanceCost` with `level * 100` — a field that IS charged every season, so it was a permanent upkeep exploit (Shaker L1 1200 → 100). Now backed by real wear (`degradeMaintenance`, +10%/season, capped at 2x spec) with repair resetting to spec, wired to a UI card that states the actual numbers. Verified on a live replica.
 - ~~`AUTH-02` Atomic Auth violated on the restored-session path~~ → **fixed 2026-08-07**. Guard added; the `it.fails()` placeholder replaced by symmetric assertions across all three entry paths plus a `{network} × {alreadyAuthenticated}` matrix test. Verified by reverting the guard (2 tests fail, naming the combination). Severity was latent, not live: `createBackendActor` never actually returns null today.
+
+### Roadmap Evolution
+
+- Phase 3.1 inserted after Phase 3: Pre-Season Future Integrity Fixes (ECON-08, ECON-09) — found by Phase 3's code review, unrelated to ECON-01..07 (URGENT)
 
 ## Deferred Items
 

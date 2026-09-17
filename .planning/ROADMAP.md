@@ -130,6 +130,24 @@ Plans:
 
 - [x] 03-07-PLAN.md — ECON-01 (UI): fertilizer-type picker on both fertilize entry points, organic warning, no hardcoded type literal (wave 5)
 
+#### Phase 3.1: Pre-Season Future Integrity Fixes (INSERTED)
+
+**Goal**: Fix two exploitable, pre-existing bugs in the Pre-Season Future auction path — found incidentally by Phase 3's code review, confirmed via `git log -L` to predate Phase 3 and be unrelated to any of ECON-01..07. Both let a player systematically underpay relative to the auction system's intended economics.
+**Depends on**: Nothing (independent bug fixes in `backend/main.mo`'s Pre-Season Future code, not touched by Phase 3)
+**Requirements**: ECON-08, ECON-09
+**Success Criteria** (what must be TRUE):
+
+  1. `resolveSeasonAuctions` checks each of a player's committed Pre-Season Futures against the actually-remaining delivered pool at that point in resolution, not a stale pre-loop snapshot — a player holding multiple PSFs in one season can no longer evade shortfall/default penalty by that mechanism
+  2. `commitPreSeasonFuture` cannot be used to lock in a contract's full `requiredVolumeKg` obligation while paying a fee computed from a smaller, caller-supplied `volumeKg`
+  3. Both fixes verified on a live replica with concrete before/after numbers, per CLAUDE.md's verification rule
+  4. `backend/main_mainnet.mo` untouched (EOP-01, unrelated)
+
+**Plans**: TBD
+
+Plans:
+
+- [ ] 03.1-01: TBD (created by `/gsd-plan-phase 3.1`)
+
 #### Phase 4: Weather UI Consolidation
 
 **Goal**: Narrower than originally scoped — `WeatherEffects.tsx`/`WeatherEventModal.tsx` already cover all 8 real weather states; fix the dead/buggy `WeatherOverlay.tsx` layer and add a persistent indicator.
@@ -321,6 +339,7 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 1.1. Atomic Auth Fix | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 2. Football Clubs — Restore the Core Pillar | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 7/7 | Complete    | 2026-09-17 |
+| 3.1. Pre-Season Future Integrity Fixes (INSERTED) | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 4. Weather UI Consolidation | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5. Regional Geography Rebuild | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5.1. Geography Map-Zoom UI | Playable Release — V1 Parity | 0/TBD | Not started | - |
