@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 3.1
 current_phase_name: INSERTED
 status: executing
-stopped_at: Completed 03.1-01-PLAN.md (ECON-08 fixed; 03.1-02/ECON-09 remains)
-last_updated: "2026-09-17T15:22:23.907Z"
+stopped_at: Completed 03.1-02-PLAN.md (ECON-09 fixed; Phase 3.1 complete)
+last_updated: "2026-09-17T19:32:03.932Z"
 last_activity: 2026-09-17
-last_activity_desc: "03.1-01-PLAN.md complete (ECON-08 fixed and verified on a live replica: combined PSF shortfall moved from 8,000 to 18,000 kg on CR-01's worked example); 03.1-02 (ECON-09) remains"
+last_activity_desc: "03.1-02-PLAN.md complete (ECON-09 fixed and verified on a live replica: volumeKg=1/20000 rejected naming the required 10,000 kg, volumeKg=0 keeps its original zero-guard error, volumeKg=10000 still succeeds with a 5,000 PLN fee; zero Candid drift). Phase 3.1 (ECON-08 + ECON-09) complete."
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 12
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 3.1 — Pre-Season Future Integrity Fixes (INSERTED)
-Plan: 01 of 2 complete
-Status: In Progress
-Last activity: 2026-09-17 — 03.1-01-PLAN.md complete (ECON-08 fixed and verified on a live replica: combined PSF shortfall moved from 8,000 to 18,000 kg on CR-01's worked example); 03.1-02 (ECON-09) remains
+Plan: 2 of 2 complete
+Status: Complete
+Last activity: 2026-09-17 — 03.1-02-PLAN.md complete (ECON-09 fixed and verified on a live replica: volumeKg=1/20000 rejected naming the required 10,000 kg, volumeKg=0 keeps its original zero-guard error, volumeKg=10000 still succeeds with a 5,000 PLN fee; zero Candid drift). Phase 3.1 (ECON-08 + ECON-09) complete.
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [███████░░░] 67%
 | Phase 3 P6 | ~2h | 2 tasks | 6 files |
 | Phase 03 P07 | ~2h (continuation) | 3 tasks | 13 files |
 | Phase 3.1 P01 | 20min | 2 tasks | 2 files |
+| Phase 3.1 P02 | 35min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Fixed a real click-propagation bug in ImperialOrchard's radial fertilize picker (self-closed on open) found only via real-browser Playwright verification, not jsdom
 - [Phase ?]: Playwright's libnspr4.so environment gate on this machine is fixable without root (apt-get download + dpkg-deb -x + LD_LIBRARY_PATH); recorded in LESSONS.md, non-persistent across sessions
 - [Phase ?]: ECON-08 (03.1-01): threaded var remainingForPSF through resolveSeasonAuctions' PSF branch exactly per 03-REVIEW.md CR-01's proposed fix — verified live, combined shortfall moved from 8,000 to 18,000 kg on CR-01's worked example (Export 10,000kg + Industrial 20,000kg required, 12,000kg delivered).
+- [Phase ?]: ECON-09 (03.1-02): commitPreSeasonFuture now validates volumeKg == contract.requiredVolumeKg before any fee/state write (validation approach, not parameter removal, keeping Candid signature byte-identical); fee sourced from contract.requiredVolumeKg. Verified live: pre-fix Ok/fee 0 PLN exploit, post-fix all four volume cases (1/20000/0/10000) behave exactly as specified. Phase 3.1 (ECON-08 + ECON-09) now complete.
 
 ### Pending Todos
 
@@ -151,8 +153,8 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-09-17T15:22:23.891Z
-Stopped at: Completed 03.1-01-PLAN.md (ECON-08 fixed; 03.1-02/ECON-09 remains)
+Last session: 2026-09-17T19:32:03.917Z
+Stopped at: Completed 03.1-02-PLAN.md (ECON-09 fixed; Phase 3.1 complete)
 
 Next step options:
 
