@@ -3445,6 +3445,22 @@ actor CherryTycoon {
         // 2. Resolve Pre-Season Future shortfalls (after Imperial deductions)
         let totalDelivered = remCherries + remOrganic; // Available after Imperial contracts
 
+        // ECON-08 fix (03-REVIEW.md CR-01): a caller holding more than one
+        // committed PSF in the same resolution pass must have each
+        // contract's shortfall checked against what is ACTUALLY still left
+        // in the pool at that point in the iteration, not the pre-loop
+        // totalDelivered snapshot every contract used to re-read. Without
+        // this, e.g. Export (10,000 kg) + Industrial (20,000 kg) required
+        // with 12,000 kg delivered evaluated as shortfalls [0, 8_000] (sum
+        // 8_000) instead of the true [0, 18_000] (sum 18_000) —
+        // (10_000+20_000)-12_000. remainingForPSF starts at the same value
+        // totalDelivered already held and is guarded-decremented (never a
+        // bare Nat subtraction) after each contract's delivery is deducted,
+        // strictly inside the caller-guarded branch below so another
+        // player's contracts in the same array can never drain this
+        // caller's pool.
+        var remainingForPSF = totalDelivered;
+
         let finalContracts = Array.map<Types.AuctionContract, Types.AuctionContract>(
           stableAuctionContracts,
           func(c) {
@@ -3455,7 +3471,7 @@ actor CherryTycoon {
                 if (pid == callerText and c.isPreSeason and c.status == #Awarded) {
                   let shortfallResult = AuctionLogic.resolvePreSeasonShortfall(
                     c,
-                    totalDelivered,
+                    remainingForPSF,
                     stableSpotPrice,
                     farm.cash,
                     farm.reputation,
@@ -3472,7 +3488,7 @@ actor CherryTycoon {
                   };
 
                   // Deduct delivery from inventory
-                  let deliveredKg = if (totalDelivered >= c.requiredVolumeKg) c.requiredVolumeKg else totalDelivered;
+                  let deliveredKg = if (remainingForPSF >= c.requiredVolumeKg) c.requiredVolumeKg else remainingForPSF;
                   if (remCherries >= deliveredKg) {
                     remCherries -= deliveredKg;
                   } else {
@@ -3480,6 +3496,10 @@ actor CherryTycoon {
                     remCherries := 0;
                     remOrganic := if (remOrganic >= leftover) remOrganic - leftover else 0;
                   };
+                  // ECON-08: deplete the running pool by exactly what this
+                  // contract just consumed, guarded so it can never
+                  // underflow (floors at 0, never traps).
+                  remainingForPSF := if (remainingForPSF >= deliveredKg) remainingForPSF - deliveredKg else 0;
 
                   // IMPORTANT: Update status to prevent double-res
                   { c with status = if (shortfallResult.isDefault) #Defaulted else #Fulfilled; shortfallKg = ?shortfallResult.shortfallKg }
