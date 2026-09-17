@@ -565,12 +565,17 @@ describe('ECON-09: commitPreSeasonFuture volumeKg validation arithmetic and guar
         expect(refCalcCommitmentFee(10, 1)).toBe(1);
     });
 
-    it('the legitimate-path fee is identical whether sourced from volumeKg or from contract.requiredVolumeKg when the two are equal (regression anchor: 5,000 either way for Export)', () => {
-        const feeFromVolumeKg = refCalcCommitmentFee(refCalcLockedPrice(6), 10_000);
-        const feeFromRequiredVolumeKg = refCalcCommitmentFee(refCalcLockedPrice(6), 10_000);
-        expect(feeFromVolumeKg).toBe(5_000);
+    it('the fee uses requiredVolumeKg even when a caller-supplied volumeKg differs (post-fix: the guard rejects mismatches, but if it were bypassed the fee must still be sourced from requiredVolumeKg, not volumeKg)', () => {
+        const requiredVolumeKg = 10_000;
+        const maliciousVolumeKg = 1; // what the pre-fix exploit supplied
+        const lockedPricePLN = refCalcLockedPrice(6);
+
+        const feeFromRequiredVolumeKg = refCalcCommitmentFee(lockedPricePLN, requiredVolumeKg);
+        const feeFromMaliciousVolumeKg = refCalcCommitmentFee(lockedPricePLN, maliciousVolumeKg);
+
         expect(feeFromRequiredVolumeKg).toBe(5_000);
-        expect(feeFromVolumeKg).toBe(feeFromRequiredVolumeKg);
+        expect(feeFromMaliciousVolumeKg).toBe(0); // the exploit's own truncation
+        expect(feeFromRequiredVolumeKg).not.toBe(feeFromMaliciousVolumeKg);
     });
 
     it('volumeKg = 0 produces the zero-volume outcome, not the mismatch outcome — the pre-existing zero guard runs first and keeps its own error', () => {

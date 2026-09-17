@@ -3508,7 +3508,10 @@ actor CherryTycoon {
                   };
                   // ECON-08: deplete the running pool by exactly what this
                   // contract just consumed, guarded so it can never
-                  // underflow (floors at 0, never traps).
+                  // underflow (floors at 0, never traps). deliveredKg is
+                  // always min(remainingForPSF, c.requiredVolumeKg), so the
+                  // `else 0` arm is unreachable today — it is the structural
+                  // invariant guard, not dead code, if that coupling ever changes.
                   remainingForPSF := if (remainingForPSF >= deliveredKg) remainingForPSF - deliveredKg else 0;
 
                   // IMPORTANT: Update status to prevent double-res
