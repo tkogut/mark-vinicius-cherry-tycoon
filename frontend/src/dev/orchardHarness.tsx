@@ -20,6 +20,10 @@ const params = new URLSearchParams(window.location.search);
 const sectors = Math.max(1, Math.min(6, Number(params.get('sectors') ?? 2)));
 const seasonName = params.get('season') ?? 'Summer';
 const plantedTrees = Number(params.get('trees') ?? 140);
+// ECON-01 (plan 03-07) Task 3: lets the fertilizer-type picker's D-02 organic
+// warning be exercised through the radial-menu entry point in a real browser
+// (e.g. /harness.html?organic=true).
+const isOrganic = params.get('organic') === 'true';
 
 /** Mock parcel matching the shape ImperialOrchard reads (id/size/plantedTrees/soil). */
 const makeParcel = (i: number) => ({
@@ -30,6 +34,7 @@ const makeParcel = (i: number) => ({
     humidity: 0.45 + i * 0.1,
     fertility: 0.55 + i * 0.05,
     isHarvested: false,
+    isOrganic,
 });
 
 const parcels = Array.from({ length: sectors }, (_, i) => makeParcel(i));
@@ -37,7 +42,7 @@ const parcels = Array.from({ length: sectors }, (_, i) => makeParcel(i));
 const App = () => (
     <div style={{ width: '100vw', height: '100vh', background: '#140e0c' }}>
         <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 9999, font: '12px monospace', color: '#C9A84C' }}>
-            harness — sectors: {sectors} · season: {seasonName} · trees/parcel: {plantedTrees}
+            harness — sectors: {sectors} · season: {seasonName} · trees/parcel: {plantedTrees} · organic: {String(isOrganic)}
         </div>
         <ImperialOrchard
             parcels={parcels}

@@ -183,3 +183,104 @@ test.describe('interaction', () => {
         await expect(page.getByText('Harvest').first()).toBeVisible();
     });
 });
+
+// ECON-01 (plan 03-07) Task 3 — the fertilizer-type picker on the orchard's
+// radial-menu entry point, driven end-to-end in a real browser rather than
+// jsdom. This is the layer that caught a real bug during this task: the
+// fertilize button is a DOM descendant of the container that clears
+// `selectedParcel` on any click (`handleBackgroundClick`), so opening the
+// Radix dropdown without stopping propagation closed it again on the same
+// click. Fixed in ImperialOrchard.tsx; these specs guard the fix.
+//
+// `season: 'Spring'` maps to the 'Awakening' phase (getSeasonStyles), which
+// is one of fertilize's three allowed phases — 'Summer' (used by the
+// existing radial-menu test above) maps to 'Harvest', where fertilize is
+// disabled.
+test.describe('fertilizer-type picker (ECON-01, plan 03-07)', () => {
+    async function openPicker(page: Page, params: Record<string, string | number> = {}) {
+        await openOrchard(page, { sectors: 1, trees: 60, season: 'Spring', ...params });
+        await tiles(page).nth(12).click({ force: true });
+        await page.getByRole('button', { name: 'Fertilize' }).click({ force: true });
+        await expect(page.getByRole('menu')).toBeVisible();
+    }
+
+    test('opens with three labelled options, each with a one-line tradeoff caption', async ({ page }) => {
+        await openPicker(page);
+
+        const items = page.getByRole('menuitemradio');
+        await expect(items).toHaveCount(3);
+        await expect(page.getByText('Fertilize with Organic-Compatible')).toBeVisible();
+        await expect(page.getByText('Fertilize with Synthetic-Standard')).toBeVisible();
+        await expect(page.getByText('Fertilize with Synthetic-Intensive')).toBeVisible();
+        await expect(page.getByText('No yield bonus, safe on organic parcels')).toBeVisible();
+        await expect(page.getByText('Baseline yield, standard cost')).toBeVisible();
+        await expect(page.getByText('Five percent more yield, not organic-safe')).toBeVisible();
+    });
+
+    test('shows a non-blocking organic warning on Synthetic-Intensive when the parcel is organic', async ({ page }) => {
+        await openPicker(page, { organic: 'true' });
+
+        await expect(page.getByText(/not organic-safe for this parcel/i)).toBeVisible();
+        await expect(page.getByText('Five percent more yield, not organic-safe')).not.toBeVisible();
+
+        // Asserting only the warning text would pass a wrongly-blocked
+        // implementation — the item's enabled state is asserted directly.
+        const intensiveItem = page.getByRole('menuitemradio').filter({ hasText: 'Synthetic-Intensive' });
+        await expect(intensiveItem).not.toHaveAttribute('aria-disabled', 'true');
+        await intensiveItem.click();
+        // A click that reaches the item (not blocked by data-disabled) closes
+        // the menu — the disabled/greyed-out radial buttons elsewhere in this
+        // suite don't respond to clicks at all, so this is a real enabled-state
+        // signal, not just an ARIA attribute check.
+        await expect(page.getByRole('menu')).not.toBeVisible();
+    });
+
+    test('when the parcel is not organic, all three items show their normal captions', async ({ page }) => {
+        await openPicker(page, { organic: 'false' });
+
+        await expect(page.getByText('Five percent more yield, not organic-safe')).toBeVisible();
+        await expect(page.getByText(/not organic-safe for this parcel/i)).not.toBeVisible();
+    });
+
+    test('long-text backstop: labels fit on one line and captions truncate with ellipsis rather than wrap', async ({ page }) => {
+        // Organic case exercises the longest string in the set (the warning
+        // caption), per the UI contract's backstop item.
+        await openPicker(page, { organic: 'true' });
+
+        const items = page.getByRole('menuitemradio');
+        const count = await items.count();
+        expect(count).toBe(3);
+
+        for (let i = 0; i < count; i++) {
+            const measurements = await items.nth(i).evaluate((el) => {
+                const spans = el.querySelectorAll('span');
+                const labelEl = spans[1] as HTMLElement;
+                const captionEl = spans[2] as HTMLElement;
+                const captionStyle = getComputedStyle(captionEl);
+                return {
+                    label: labelEl.textContent,
+                    // A wrapped label would render taller than one line.
+                    labelLineCount: Math.round(
+                        labelEl.getBoundingClientRect().height / parseFloat(getComputedStyle(labelEl).lineHeight)
+                    ),
+                    caption: captionEl.textContent,
+                    captionScrollWidth: captionEl.scrollWidth,
+                    captionClientWidth: captionEl.clientWidth,
+                    captionWhiteSpace: captionStyle.whiteSpace,
+                    captionTextOverflow: captionStyle.textOverflow,
+                };
+            });
+
+            expect(measurements.labelLineCount, `label "${measurements.label}" wrapped`).toBe(1);
+            // Ellipsis truncation, not wrapping, is the mechanism — assert the
+            // CSS that makes that true rather than just eyeballing a screenshot.
+            expect(measurements.captionWhiteSpace).toBe('nowrap');
+            expect(measurements.captionTextOverflow).toBe('ellipsis');
+        }
+
+        // DropdownMenuContent has a fixed width (w-64) so a long caption cannot
+        // stretch it — confirmed by measurement, not assumed.
+        const contentBox = await page.getByRole('menu').boundingBox();
+        expect(contentBox?.width).toBeLessThan(260);
+    });
+});

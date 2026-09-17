@@ -1643,7 +1643,25 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                     const buttonEl = (
                                         <button
                                             disabled={isDisabled}
-                                            onClick={action.id === 'fertilize' ? undefined : () => handleAction(action.id)}
+                                            onClick={action.id === 'fertilize'
+                                                // Rule 1 fix (03-07 Task 3, caught on a real-browser run, not
+                                                // in jsdom): the fertilize button is a DOM descendant of the
+                                                // container that has `onClick={handleBackgroundClick}`
+                                                // (line ~1362). Every other radial action's `handleAction`
+                                                // dispatches AND clears `selectedParcel` synchronously, so
+                                                // that bubbled backdrop click was always a harmless no-op
+                                                // re-clear. Fertilize instead relies on Radix's
+                                                // `DropdownMenuTrigger` to open the picker and leave
+                                                // `selectedParcel` set so the menu stays anchored — without
+                                                // stopping propagation here, the same click event that opens
+                                                // the dropdown also bubbles to `handleBackgroundClick`,
+                                                // which unconditionally clears `selectedParcel` and unmounts
+                                                // the just-opened menu in the same tick. Only stop
+                                                // propagation, not the default: Radix's own open/close
+                                                // logic (and its portalled content's outside-click
+                                                // handling) must keep working unchanged.
+                                                ? (e: React.MouseEvent) => e.stopPropagation()
+                                                : () => handleAction(action.id)}
                                             className={cn(
                                                 "absolute flex items-center justify-center w-14 h-14 border-2 border-[var(--brass-primary)] rounded-full transition-all duration-300 group",
                                                 action.color,
