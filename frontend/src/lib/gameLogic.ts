@@ -1,4 +1,4 @@
-import { CherryParcel, Infrastructure, SoilType } from '@/declarations/backend.did';
+import { CherryParcel, Infrastructure, SoilType, Season } from '@/declarations/backend.did';
 
 /**
  * Frontend mirror of backend game_logic.mo yield calculations.
@@ -35,6 +35,20 @@ export const getSoilModifier = (soilType: SoilType): number => {
     if ('Clay' in soilType) return 0.9;
     if ('Sandy' in soilType) return 0.85;
     if ('Waterlogged' in soilType) return 0.6;
+    return 1.0;
+};
+
+// Season sale multiplier (ECON-02, D-03).
+//
+// Mirrors `GameLogic.getSeasonSaleMultiplier` in game_logic.mo. Consumed by
+// `SellModal.tsx`'s sale preview so the number the player reads before
+// confirming a sale is the same function `economyParity.test.ts` pins
+// against the Motoko transcription, not a fourth independent copy.
+export const getSeasonSaleMultiplier = (season: Season): number => {
+    if ('Spring' in season) return 0.9;
+    if ('Summer' in season) return 1.15;
+    if ('Autumn' in season) return 1.0;
+    if ('Winter' in season) return 0.75;
     return 1.0;
 };
 

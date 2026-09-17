@@ -1315,7 +1315,8 @@ actor CherryTycoon {
             if (farm.parcels.size() > 0) farm.parcels[0].region.marketSize else 0.8,
             avgQuality,
             hasOrganicCertified,
-            saturationMult
+            saturationMult,
+            GameLogic.getSeasonSaleMultiplier(farm.currentSeason)
           );
           
           // Calculate total float revenue to preserve precision across bulk sales

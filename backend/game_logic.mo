@@ -117,18 +117,36 @@ module {
   // PRICE CALCULATION (GDD Section 1.1)
   // ============================================================================
 
-  // Retail price: Base × MarketSize × Quality × Organic × Saturation
+  // Season sale multiplier (ECON-02, D-03).
+  //
+  // Anchored proportionally to the existing AI season-demand curve in
+  // competitor_logic.mo's `getSeasonDemand` (Spring 30_000 / Summer 80_000 /
+  // Autumn 50_000 / Winter 20_000, i.e. roughly 0.6x/1.6x/1.0x/0.4x of the
+  // Autumn baseline) but compressed to a gentler player-facing range so a
+  // single sale's swing stays a real lever without being punishing. Values
+  // locked by D-03: Spring 0.9, Summer 1.15, Autumn 1.0, Winter 0.75.
+  public func getSeasonSaleMultiplier(season: Types.Season) : Float {
+    switch (season) {
+      case (#Spring) { 0.9 };
+      case (#Summer) { 1.15 };
+      case (#Autumn) { 1.0 };
+      case (#Winter) { 0.75 };
+    }
+  };
+
+  // Retail price: Base × MarketSize × Quality × Organic × Saturation × Season
   public func calculateRetailPrice(
     basePrice: Nat,
     marketSize: Float,
     quality: Nat,
     isOrganic: Bool,
-    saturationMultiplier: Float // New: 0.5 (saturated) to 1.0 (empty)
+    saturationMultiplier: Float, // New: 0.5 (saturated) to 1.0 (empty)
+    seasonMultiplier: Float // ECON-02: position in the product is numerically irrelevant (D-04) — appended last
   ) : Float {
     let qualityBonus = 1.0 + (Float.fromInt(quality) / 100.0 * 0.3); // up to +30%
     let organicPremium = if (isOrganic) { 1.4 } else { 1.0 }; // +40% for organic
-    
-    let finalPrice = Float.fromInt(basePrice) * marketSize * qualityBonus * organicPremium * saturationMultiplier;
+
+    let finalPrice = Float.fromInt(basePrice) * marketSize * qualityBonus * organicPremium * saturationMultiplier * seasonMultiplier;
     finalPrice
   };
 
@@ -140,15 +158,15 @@ module {
     saturationMultiplier: Float // New: 0.8 to 1.0
   ) : Float {
     let wholesaleMultiplier = 0.7;
-    
+
     // Volume discount: larger quantities get slightly better price
     let volumeBonus = if (quantity > 10000) { 1.05 }
                       else if (quantity > 5000) { 1.02 }
                       else { 1.0 };
-    
+
     // Small quality bonus for wholesale
     let qualityBonus = 1.0 + (Float.fromInt(quality) / 100.0 * 0.1); // up to +10%
-    
+
     let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier;
     finalPrice
   };

@@ -24,7 +24,7 @@
 // change outside this step's scope.
 
 import { describe, it, expect } from 'vitest';
-import type { CherryParcel, Infrastructure } from '@/declarations/backend.did';
+import type { CherryParcel, Infrastructure, Season } from '@/declarations/backend.did';
 import {
     calculateYieldBreakdown,
     getInfraModifier,
@@ -34,6 +34,7 @@ import {
     getRepairCost,
     getUpkeepDrift,
     getClubSharePrice,
+    getSeasonSaleMultiplier,
     LEAGUE_LABELS,
 } from '@/lib/gameLogic';
 import { PARITY_CASES, makeParcel, makeInfra } from '@/test-utils/economyVectors';
@@ -627,5 +628,80 @@ describe('economy parity: known backend quirks are reproduced, not smoothed over
         expect(glubczyce / base).toBeCloseTo(1.10, 9);
         expect(opole / base).toBeCloseTo(1.08, 9);
         expect(namyslow / base).toBeCloseTo(1.05, 9);
+    });
+});
+
+// ============================================================================
+// ECON-02 — season sale price multiplier (D-03)
+// ============================================================================
+
+/**
+ * Transcription of game_logic.mo `getSeasonSaleMultiplier`:
+ *
+ *   public func getSeasonSaleMultiplier(season: Types.Season) : Float {
+ *     switch (season) {
+ *       case (#Spring) { 0.9 };
+ *       case (#Summer) { 1.15 };
+ *       case (#Autumn) { 1.0 };
+ *       case (#Winter) { 0.75 };
+ *     }
+ *   };
+ */
+function refSeasonSaleMultiplier(season: Season): number {
+    if ('Spring' in season) return 0.9;
+    if ('Summer' in season) return 1.15;
+    if ('Autumn' in season) return 1.0;
+    if ('Winter' in season) return 0.75;
+    throw new Error('unreachable season variant');
+}
+
+/**
+ * Transcription of game_logic.mo `calculateRetailPrice`, with the ECON-02
+ * trailing `seasonMultiplier` parameter:
+ *
+ *   let finalPrice = Float.fromInt(basePrice) * marketSize * qualityBonus
+ *     * organicPremium * saturationMultiplier * seasonMultiplier;
+ */
+function refRetailPrice(
+    basePrice: number,
+    marketSize: number,
+    quality: number,
+    isOrganic: boolean,
+    saturationMultiplier: number,
+    seasonMultiplier: number,
+): number {
+    const qualityBonus = 1.0 + (quality / 100.0 * 0.3);
+    const organicPremium = isOrganic ? 1.4 : 1.0;
+    return basePrice * marketSize * qualityBonus * organicPremium * saturationMultiplier * seasonMultiplier;
+}
+
+const REF_SEASONS: Record<string, Season> = {
+    Spring: { Spring: null },
+    Summer: { Summer: null },
+    Autumn: { Autumn: null },
+    Winter: { Winter: null },
+};
+
+describe('economy parity: season sale price (ECON-02)', () => {
+    it.each([
+        ['Spring', REF_SEASONS.Spring, 0.9],
+        ['Summer', REF_SEASONS.Summer, 1.15],
+        ['Autumn', REF_SEASONS.Autumn, 1.0],
+        ['Winter', REF_SEASONS.Winter, 0.75],
+    ] as const)('%s multiplier matches D-03 and the Motoko transcription', (_name, season, expected) => {
+        expect(getSeasonSaleMultiplier(season)).toBeCloseTo(expected, 10);
+        expect(getSeasonSaleMultiplier(season)).toBeCloseTo(refSeasonSaleMultiplier(season), 10);
+    });
+
+    it('Summer retail price is exactly 1.15x the Autumn price, all else equal', () => {
+        const autumnPrice = refRetailPrice(100, 0.8, 60, false, 1.0, getSeasonSaleMultiplier(REF_SEASONS.Autumn));
+        const summerPrice = refRetailPrice(100, 0.8, 60, false, 1.0, getSeasonSaleMultiplier(REF_SEASONS.Summer));
+        expect(summerPrice / autumnPrice).toBeCloseTo(1.15, 10);
+    });
+
+    it('Winter retail price is exactly 0.75x the Autumn price, all else equal', () => {
+        const autumnPrice = refRetailPrice(100, 0.8, 60, false, 1.0, getSeasonSaleMultiplier(REF_SEASONS.Autumn));
+        const winterPrice = refRetailPrice(100, 0.8, 60, false, 1.0, getSeasonSaleMultiplier(REF_SEASONS.Winter));
+        expect(winterPrice / autumnPrice).toBeCloseTo(0.75, 10);
     });
 });
