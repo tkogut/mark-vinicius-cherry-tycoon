@@ -105,7 +105,7 @@ Plans:
   6. `CompetitorsPanel` reads real fields, no fabricated numbers
   7. AI archetype names (Marek/Kasia/Hans) are consistent across code, UI, and docs
 
-**Plans**: 5/7 plans executed
+**Plans**: 6/7 plans executed
 
 Plans:
 **Wave 1**
@@ -124,7 +124,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 03-06-PLAN.md — ECON-01 (backend): 3-type closed-set validation, persisted type behind a decision gate, +5% yield term, mirror + parity matrix (wave 4)
+- [x] 03-06-PLAN.md — ECON-01 (backend): 3-type closed-set validation, persisted type behind a decision gate, +5% yield term, mirror + parity matrix (wave 4)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -320,7 +320,7 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 1. Enhanced Leaderboard & Rankings UI | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 1.1. Atomic Auth Fix | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 2. Football Clubs — Restore the Core Pillar | Playable Release — V1 Parity | 0/TBD | Not started | - |
-| 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 5/7 | In Progress|  |
+| 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 6/7 | In Progress|  |
 | 4. Weather UI Consolidation | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5. Regional Geography Rebuild | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5.1. Geography Map-Zoom UI | Playable Release — V1 Parity | 0/TBD | Not started | - |

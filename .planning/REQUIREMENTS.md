@@ -33,7 +33,7 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 
 ### Core Economic Lever Fixes (ECON)
 
-- [ ] **ECON-01**: Fertilizer type selection produces a measurably different outcome (currently `_fertilizerType` is accepted and ignored, `main.mo:858`)
+- [x] **ECON-01**: Fertilizer type selection produces a measurably different outcome (currently `_fertilizerType` is accepted and ignored, `main.mo:858`)
 - [x] **ECON-02**: Season affects sale price (currently hardcoded `seasonMultiplier = 1.0`, `main.mo:2808-2819`)
 - [x] **ECON-03**: Auction runner-up receives the trickle-down amount (already computed in `AuctionResult.runnerUpId`, never read in `main.mo`)
 - [x] **ECON-04**: Player gains prestige on winning an Imperial Contract, matching the +5 AI competitors already receive (`main.mo:3166`)
@@ -191,7 +191,7 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | SPORTS-04 | Phase 2 | Pending (Candid rename) |
 | SPORTS-05 | Backlog (economy) | Pending |
 | SPORTS-06 | Own phase | Pending |
-| ECON-01 | Phase 3 | Pending |
+| ECON-01 | Phase 3 | Complete |
 | ECON-02 | Phase 3 | Complete |
 | ECON-03 | Phase 3 | Complete |
 | ECON-04 | Phase 3 | Complete |
