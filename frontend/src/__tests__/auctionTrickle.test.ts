@@ -329,3 +329,107 @@ describe('ECON-03: auction runner-up trickle boundary cases', () => {
         }
     });
 });
+
+// ============================================================================
+// ECON-04 — Player reputation credit on Imperial Contract win
+// ============================================================================
+//
+// Transcribed from backend/main.mo `resolveSeasonAuctions` (Phase 3 plan
+// 03-04). Per D-06 (03-CONTEXT.md), a player win is a flat +5 to
+// PlayerFarm.reputation (0-100 scale), matching the AI-winner branch's
+// literal `prestige = ai.prestige + 5` — deliberately NOT rescaled to AI's
+// separate 0-1000 `prestige` field. Order is fixed: the existing shortfall
+// loss (floored at 0) is applied first, the flat win bonus second, and the
+// documented 0-100 ceiling is applied to the COMBINED result, never to the
+// gain alone.
+interface RefReputationInputs {
+    startingReputation: number;
+    contractWinsThisSeason: number;
+    prestigeLostThisSeason: number;
+}
+
+/**
+ * Motoko (resolveSeasonAuctions, accumulator-apply site):
+ *   let reputationAfterLoss : Nat =
+ *     if (prestigeDelta > farm.reputation) 0 else farm.reputation - prestigeDelta;
+ *   let newReputation : Nat = Nat.min(100, reputationAfterLoss + reputationGain);
+ * where `reputationGain` accumulates `+= 5` once per Imperial Contract win.
+ */
+function refApplyReputationDelta({
+    startingReputation,
+    contractWinsThisSeason,
+    prestigeLostThisSeason,
+}: RefReputationInputs): number {
+    const reputationGain = contractWinsThisSeason * 5;
+    const reputationAfterLoss =
+        prestigeLostThisSeason > startingReputation ? 0 : startingReputation - prestigeLostThisSeason;
+    return Math.min(100, reputationAfterLoss + reputationGain);
+}
+
+describe('ECON-04: player reputation credit', () => {
+    it('winning one Imperial Contract in a season ends that season with reputation exactly 5 higher, all else equal', () => {
+        const result = refApplyReputationDelta({
+            startingReputation: 40,
+            contractWinsThisSeason: 1,
+            prestigeLostThisSeason: 0,
+        });
+        expect(result).toBe(45);
+    });
+
+    it('winning two Imperial Contracts in one season gains 10', () => {
+        const result = refApplyReputationDelta({
+            startingReputation: 40,
+            contractWinsThisSeason: 2,
+            prestigeLostThisSeason: 0,
+        });
+        expect(result).toBe(50);
+    });
+
+    it('a player at reputation 98 who wins one contract ends at 100, not 103 (the documented 0-100 ceiling)', () => {
+        const result = refApplyReputationDelta({
+            startingReputation: 98,
+            contractWinsThisSeason: 1,
+            prestigeLostThisSeason: 0,
+        });
+        expect(result).toBe(100);
+    });
+
+    it('a player who both wins a contract (+5) and defaults on a pre-season future has the loss applied first, gain second, cap on the combined result', () => {
+        // startingReputation 97, loses 10 (floors at 0 per the existing guard,
+        // but 97 - 10 = 87 does not hit the floor), then gains 5 -> 92. Also
+        // exercises a case where loss-then-gain composition differs from
+        // gain-then-loss (97 + 5 = 102, capped to 100, then -10 = 90 would be
+        // the WRONG answer if order were reversed).
+        const result = refApplyReputationDelta({
+            startingReputation: 97,
+            contractWinsThisSeason: 1,
+            prestigeLostThisSeason: 10,
+        });
+        expect(result).toBe(92);
+    });
+
+    it('a player who wins no contract has their reputation unchanged by this code path', () => {
+        const result = refApplyReputationDelta({
+            startingReputation: 63,
+            contractWinsThisSeason: 0,
+            prestigeLostThisSeason: 0,
+        });
+        expect(result).toBe(63);
+    });
+
+    it('never produces a negative or out-of-0-100-range value (Nat-safety + documented range backstop)', () => {
+        const cases: RefReputationInputs[] = [
+            { startingReputation: 0, contractWinsThisSeason: 0, prestigeLostThisSeason: 0 },
+            { startingReputation: 0, contractWinsThisSeason: 0, prestigeLostThisSeason: 50 },
+            { startingReputation: 100, contractWinsThisSeason: 5, prestigeLostThisSeason: 0 },
+            { startingReputation: 3, contractWinsThisSeason: 0, prestigeLostThisSeason: 99 },
+        ];
+
+        for (const input of cases) {
+            const result = refApplyReputationDelta(input);
+            expect(Number.isNaN(result)).toBe(false);
+            expect(result).toBeGreaterThanOrEqual(0);
+            expect(result).toBeLessThanOrEqual(100);
+        }
+    });
+});
