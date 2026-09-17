@@ -3010,6 +3010,23 @@ actor CherryTycoon {
   stable var stableBids : [Types.Bid] = []; // [NEW] Buffer for closed-bid auctions
   stable var lastResolutionSeason : Nat = 0; // [NEW] Prevents double-resolution
 
+  // ECON-03 (player direction, plan 03-04, checkpoint option B): a player
+  // runner-up's trickle credit, recorded here rather than as a new field on
+  // Types.AuctionContract. `resolveSeasonAuctions` reads the caller's farm
+  // into a local snapshot *before* calling `_performGlobalAuctionResolution`
+  // and writes that snapshot back afterwards, so anything the global pass
+  // wrote onto the caller's own farm record would be silently overwritten —
+  // this side-table is read by the caller's own loop instead, after the
+  // snapshot is taken. Follows the same pattern as `stableClubOwnership`
+  // (Phase 2, SPORTS-01/02/03): adding this `stable var` is additive —
+  // existing canisters upgrade with an empty list and pay nothing extra,
+  // no existing record shape changes, no Candid change, no `dfx generate`.
+  // Entry shape: (contractId, runnerUpPrincipalText, tricklePLN). An entry
+  // is removed the moment it is paid (filtered out in the same write that
+  // persists `stableAuctionContracts` in `resolveSeasonAuctions`), so it can
+  // never be paid twice.
+  stable var stableRunnerUpCredits : [(Text, Text, Nat)] = [];
+
   // [QUERY] Get all Imperial Contracts available in the current Market phase.
   // Generates contracts lazily if none exist for the current season.
   // Accessible by any authenticated player (no mutation — query only).
@@ -3232,7 +3249,20 @@ actor CherryTycoon {
                                     inventoryKg = runnerRemainder;
                                 });
                             };
-                            case null {}; // Player runner-up handled in plan 03-04 — not attempted here.
+                            case null {
+                                // ECON-03 (player direction): the runner-up is not in
+                                // aiCompetitors, so it is a player. The winner/runner
+                                // identity case is already guarded upstream in
+                                // AuctionLogic.resolveContract (a bidderId collision
+                                // makes runnerUpId null before we ever get here), so no
+                                // second identity check is needed. Recorded in the
+                                // side-table; consumed exactly once by the runner-up's
+                                // own resolveSeasonAuctions call.
+                                stableRunnerUpCredits := Array.append<(Text, Text, Nat)>(
+                                    stableRunnerUpCredits,
+                                    [(c.id, runnerId, result.runnerUpTricklePLN)]
+                                );
+                            };
                         };
                     };
                     case null {}; // No runner-up (fewer than 2 bidders) — nothing to credit.
@@ -3317,6 +3347,24 @@ actor CherryTycoon {
           };
         };
 
+        // 1b. Collect runner-up trickle credits (ECON-03, player direction,
+        // checkpoint option B). Any side-table entry matching this caller's
+        // principal is paid into cashDelta here; the table is reassigned
+        // below (alongside stableAuctionContracts) to drop exactly the
+        // entries just paid, in the same write, so a second
+        // resolveSeasonAuctions call in this or any later season cannot pay
+        // the same credit twice. A player who won this same contract cannot
+        // also appear here — AuctionLogic.resolveContract already nulls out
+        // runnerUpId when the runner-up's bidderId equals the winner's.
+        var runnerUpTrickleGained : Nat = 0;
+        for ((cid, runnerPrincipalText, tricklePLN) in stableRunnerUpCredits.vals()) {
+          if (runnerPrincipalText == callerText) {
+            cashDelta += (tricklePLN : Int);
+            runnerUpTrickleGained += tricklePLN;
+            resolutionSummary #= " | 🥈 Runner-up trickle " # cid # " (" # Nat.toText(tricklePLN) # " PLN)";
+          };
+        };
+
         // 2. Resolve Pre-Season Future shortfalls (after Imperial deductions)
         let totalDelivered = remCherries + remOrganic; // Available after Imperial contracts
 
@@ -3365,6 +3413,14 @@ actor CherryTycoon {
           }
         );
         stableAuctionContracts := finalContracts;
+        // ECON-03 (player direction): drop exactly the runner-up credits just
+        // paid above, so they cannot be paid again on a later call. Written
+        // in the same block as stableAuctionContracts so both persisted
+        // writes for this call land together.
+        stableRunnerUpCredits := Array.filter<(Text, Text, Nat)>(
+          stableRunnerUpCredits,
+          func((_, runnerPrincipalText, _)) { runnerPrincipalText != callerText }
+        );
 
         // Apply net changes
         let newCash : Int = (farm.cash : Int) + cashDelta;
@@ -3396,10 +3452,14 @@ actor CherryTycoon {
         // the existing default-loss reporting, using the same Nat.toText
         // formatting already used for prestigeDelta above.
         let repGainSuffix = if (reputationGain > 0) " Rep +" # Nat.toText(reputationGain) # " pts." else "";
+        // ECON-03 (player direction): surface the runner-up trickle total the
+        // same way, alongside the per-contract lines already appended to
+        // resolutionSummary above.
+        let trickleSuffix = if (runnerUpTrickleGained > 0) " Trickle +" # Nat.toText(runnerUpTrickleGained) # " PLN." else "";
         let msg = if (defaultCount > 0) {
-          "⚠️ " # Nat.toText(defaultCount) # " defaulted! Rep -" # Nat.toText(prestigeDelta) # " pts. Cash: " # Int.toText(cashDelta) # " PLN." # repGainSuffix # resolutionSummary
+          "⚠️ " # Nat.toText(defaultCount) # " defaulted! Rep -" # Nat.toText(prestigeDelta) # " pts. Cash: " # Int.toText(cashDelta) # " PLN." # repGainSuffix # trickleSuffix # resolutionSummary
         } else {
-          "✅ All resolutions completed." # repGainSuffix # resolutionSummary
+          "✅ All resolutions completed." # repGainSuffix # trickleSuffix # resolutionSummary
         };
         #Ok(msg)
       };

@@ -22,8 +22,10 @@
 // limitation `economyParity.test.ts` already documents for its own oracle.
 //
 // The AI-runner-up direction verified here was also verified end-to-end on
-// a live replica in plan 03-03's Task 1 commit. The player-as-runner-up
-// direction is plan 03-04's scope — not exercised by this file.
+// a live replica in plan 03-03's Task 1 commit. Plan 03-04 completes the
+// player-as-runner-up direction (checkpoint option B: the
+// `stableRunnerUpCredits` side-table in backend/main.mo) and its own
+// describe block below, also replica-verified in that plan's Task 2 commit.
 
 import { describe, it, expect } from 'vitest';
 
@@ -431,5 +433,129 @@ describe('ECON-04: player reputation credit', () => {
             expect(result).toBeGreaterThanOrEqual(0);
             expect(result).toBeLessThanOrEqual(100);
         }
+    });
+});
+
+// ============================================================================
+// ECON-03 — Player runner-up direction (checkpoint option B: stableRunnerUpCredits)
+// ============================================================================
+//
+// Transcribed from backend/main.mo (Phase 3 plan 03-04, checkpoint option B).
+// `_performGlobalAuctionResolution`'s runner-up branch appends a
+// (contractId, runnerUpPrincipalText, tricklePLN) entry to the new
+// `stableRunnerUpCredits` side-table whenever `aiCompetitors.get(runnerId)`
+// misses (the runner-up is a player, not an AI) — the payout amount is
+// `result.runnerUpTricklePLN`, the same value the AI direction already
+// consumes, never recomputed. `resolveSeasonAuctions` then pays every entry
+// matching the caller's own principal text into cashDelta, and immediately
+// reassigns the table to drop exactly those entries (Array.filter), so a
+// credit can never be paid twice and one caller can never drain another's
+// credit.
+interface RefRunnerUpCredit {
+    contractId: string;
+    runnerUpPrincipalText: string;
+    tricklePLN: number;
+}
+
+/**
+ * Motoko (resolveSeasonAuctions step 1b, then the filter-reassign beside
+ * `stableAuctionContracts := finalContracts;`):
+ *   var runnerUpTrickleGained : Nat = 0;
+ *   for ((cid, runnerPrincipalText, tricklePLN) in stableRunnerUpCredits.vals()) {
+ *     if (runnerPrincipalText == callerText) {
+ *       cashDelta += (tricklePLN : Int);
+ *       runnerUpTrickleGained += tricklePLN;
+ *     };
+ *   };
+ *   ...
+ *   stableRunnerUpCredits := Array.filter<(Text, Text, Nat)>(
+ *     stableRunnerUpCredits,
+ *     func((_, runnerPrincipalText, _)) { runnerPrincipalText != callerText }
+ *   );
+ */
+function refResolveRunnerUpCredits(
+    credits: RefRunnerUpCredit[],
+    callerPrincipalText: string
+): { paidPLN: number; remainingCredits: RefRunnerUpCredit[] } {
+    let paidPLN = 0;
+    for (const c of credits) {
+        if (c.runnerUpPrincipalText === callerPrincipalText) {
+            paidPLN += c.tricklePLN;
+        }
+    }
+    const remainingCredits = credits.filter((c) => c.runnerUpPrincipalText !== callerPrincipalText);
+    return { paidPLN, remainingCredits };
+}
+
+describe('ECON-03: player runner-up direction (stableRunnerUpCredits, option B)', () => {
+    it('a player who comes second in a two-bidder contract is credited the identical trickle payout an AI runner-up would receive', () => {
+        // Reuse the exact same TWO_BID_CONTRACT/TWO_BIDS fixture and formula
+        // the AI direction is pinned against above: hans is the runner-up,
+        // tricklePLN = 21_000 (3_000 kg * hans's own offer of 7 PLN/kg).
+        // The credit is recorded with hans as a player, not an AI, and paid
+        // through the side-table using the SAME result.runnerUpTricklePLN —
+        // no second formula.
+        const result = refResolveContract(TWO_BID_CONTRACT, TWO_BIDS);
+        expect(result.runnerUpId).toBe('hans');
+        const credits: RefRunnerUpCredit[] = [
+            { contractId: 'imp_test', runnerUpPrincipalText: 'hans', tricklePLN: result.runnerUpTricklePLN },
+        ];
+
+        const { paidPLN, remainingCredits } = refResolveRunnerUpCredits(credits, 'hans');
+        expect(paidPLN).toBe(21_000);
+        expect(remainingCredits).toHaveLength(0);
+    });
+
+    it('fewer than two bidders creates no credit record; the payout loop finds nothing to pay, no error', () => {
+        const result = refResolveContract(ONE_BID_CONTRACT, ONE_BID);
+        expect(result.runnerUpId).toBeNull();
+
+        // No credit is ever appended for a null runnerUpId — the side-table
+        // simply has no entry for this contract at all.
+        const credits: RefRunnerUpCredit[] = [];
+        const { paidPLN, remainingCredits } = refResolveRunnerUpCredits(credits, 'solo');
+        expect(paidPLN).toBe(0);
+        expect(remainingCredits).toHaveLength(0);
+    });
+
+    it('calling resolveSeasonAuctions twice in the same season pays the trickle exactly once', () => {
+        const credits: RefRunnerUpCredit[] = [
+            { contractId: 'imp_test', runnerUpPrincipalText: 'hans', tricklePLN: 21_000 },
+        ];
+
+        const first = refResolveRunnerUpCredits(credits, 'hans');
+        expect(first.paidPLN).toBe(21_000);
+
+        // Second call reads the table AFTER the first call's filter-reassign
+        // already dropped hans's entry.
+        const second = refResolveRunnerUpCredits(first.remainingCredits, 'hans');
+        expect(second.paidPLN).toBe(0);
+    });
+
+    it('a bidder who wins a contract is never also paid its own runner-up trickle', () => {
+        // A corrupted-bid-list case (same bidderId submits two bids) is the
+        // one place resolveContract can produce a "winner == runner-up
+        // identity" collision. The upstream identity guard already nulls
+        // runnerUpId in that case, so the side-table never receives an entry
+        // for the winner at all — nothing for this test to filter out later.
+        const bids: RefBid[] = [bid('same', 5, 670), bid('same', 7, 792)];
+        const result = refResolveContract(TWO_BID_CONTRACT, bids);
+        expect(result.winnerId).toBe('same');
+        expect(result.runnerUpId).toBeNull();
+
+        const credits: RefRunnerUpCredit[] = [];
+        const { paidPLN } = refResolveRunnerUpCredits(credits, 'same');
+        expect(paidPLN).toBe(0);
+    });
+
+    it("a different player's runner-up credit is not payable by this caller", () => {
+        const credits: RefRunnerUpCredit[] = [
+            { contractId: 'imp_test', runnerUpPrincipalText: 'hans', tricklePLN: 21_000 },
+        ];
+
+        const { paidPLN, remainingCredits } = refResolveRunnerUpCredits(credits, 'marek');
+        expect(paidPLN).toBe(0);
+        // hans's credit is untouched — still there, still payable, only by hans.
+        expect(remainingCredits).toEqual(credits);
     });
 });
