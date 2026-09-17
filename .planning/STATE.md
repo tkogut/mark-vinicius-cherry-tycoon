@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 3
 current_phase_name: Core Economic Lever Fixes
-status: executing
-stopped_at: Completed 03-06-PLAN.md
-last_updated: "2026-09-17T10:50:39.931Z"
+status: verifying
+stopped_at: Completed 03-07-PLAN.md (Phase 3 complete, 7/7 plans)
+last_updated: "2026-09-17T14:09:41.726Z"
 last_activity: 2026-09-16
 last_activity_desc: Phase 3 execution started
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 10
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 Phase: 3 (Core Economic Lever Fixes) — EXECUTING
 Plan: 7 of 7
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-16 — Phase 3 execution started
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [██████░░░░] 60%
 | Phase 3 P4 | ~35min | 2 tasks | 2 files |
 | Phase 03 P05 | ~50min | 3 tasks | 5 files |
 | Phase 3 P6 | ~2h | 2 tasks | 6 files |
+| Phase 03 P07 | ~2h (continuation) | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,9 @@ Recent decisions affecting current work:
 - [Phase ?]: ECON-02: season sale multiplier (D-03: Spring 0.9/Summer 1.15/Autumn 1.0/Winter 0.75) wired into calculateRetailPrice, calculateWholesalePrice, getMarketPrices (now caller-aware), and SellModal.tsx's preview. Discovered backend/game_logic.mo is shared by both Track A and Track B (not per-track), adding 2 new compile errors to Track B's already-broken, CI-excluded state; folds into EOP-01.
 - [Phase ?]: Checkpoint 03-06: fertilizer-type persistence via new stable var side-table stableParcelFertilizerTypes (option B), matching plan 03-04's stableRunnerUpCredits precedent, over adding a field to the stable/Candid CherryParcel record (option A) or folding the effect into fertility (option C, already rejected by D-01).
 - [Phase ?]: ECON-01 complete: getFertilizerTypeModifier (SyntheticIntensive 1.05x, others 1.0x) validated server-side, persisted per parcel, and applied at harvest; verified on a live replica (8_640 kg standard vs 9_072 kg intensive, ratio exactly 1.05) including an upgrade-over-real-data proof.
+- [Phase ?]: ECON-01 fertilizer-type UI: final locked copy Organic-Compatible/Synthetic-Standard/Synthetic-Intensive; organic warning is a caption swap on the existing row, not a second confirm dialog (D-02)
+- [Phase ?]: Fixed a real click-propagation bug in ImperialOrchard's radial fertilize picker (self-closed on open) found only via real-browser Playwright verification, not jsdom
+- [Phase ?]: Playwright's libnspr4.so environment gate on this machine is fixable without root (apt-get download + dpkg-deb -x + LD_LIBRARY_PATH); recorded in LESSONS.md, non-persistent across sessions
 
 ### Pending Todos
 
@@ -141,8 +145,8 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-09-17T10:50:39.912Z
-Stopped at: Completed 03-06-PLAN.md
+Last session: 2026-09-17T14:09:41.715Z
+Stopped at: Completed 03-07-PLAN.md (Phase 3 complete, 7/7 plans)
 
 Next step options:
 
