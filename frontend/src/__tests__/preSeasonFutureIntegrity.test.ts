@@ -304,7 +304,7 @@ function readMotokoFiles(): MotokoFile[] {
         });
 }
 
-describe('ECON-08: backend/main.mo source drift guard', () => {
+describe('ECON-08 + ECON-09: backend/main.mo and backend.did source drift guard', () => {
     const files = readMotokoFiles();
     const mainMo = files.find((f) => f.relativePath.endsWith('main.mo'));
 
@@ -342,5 +342,279 @@ describe('ECON-08: backend/main.mo source drift guard', () => {
             guardedUpdatePattern.test(mainMo!.liveText),
             'Expected a guarded `remainingForPSF := if (remainingForPSF >= deliveredKg) remainingForPSF - deliveredKg else 0` update in backend/main.mo (ECON-08/T-03.1-02 regression: unguarded subtraction would trap on over-commitment)'
         ).toBe(true);
+    });
+
+    // ------------------------------------------------------------------
+    // ECON-09 additions (plan 03.1-02, T-03.1-05/T-03.1-07): the commitPreSeasonFuture
+    // volumeKg equality guard must exist, and must run before the fee is
+    // computed, and the Candid-visible arity of the method it lives on must
+    // stay exactly (text, nat) -> (GameResult). Live-canister evidence for
+    // both the pre-fix exploit and the four post-fix cases lives in plan
+    // 03.1-02 Task 1's commit (ed6d361), not in this file.
+    // ------------------------------------------------------------------
+
+    /**
+     * Slices out one function's source text by its declaration marker up to
+     * (but excluding) the next function's declaration marker, so a pattern
+     * match can be scoped to "inside commitPreSeasonFuture" rather than
+     * matching anywhere in the 3000+ line file.
+     */
+    function extractFunctionBody(liveText: string, startMarker: string, endMarker: string): string {
+        const startIdx = liveText.indexOf(startMarker);
+        if (startIdx === -1) return '';
+        const endIdx = liveText.indexOf(endMarker, startIdx + startMarker.length);
+        return endIdx === -1 ? liveText.slice(startIdx) : liveText.slice(startIdx, endIdx);
+    }
+
+    it('commitPreSeasonFuture contains a volumeKg != contract.requiredVolumeKg guard that returns #Err(#InvalidOperation(...)) before the calcCommitmentFee call site', () => {
+        expect(mainMo).toBeDefined();
+        const body = extractFunctionBody(
+            mainMo!.liveText,
+            'func commitPreSeasonFuture(',
+            'func submitAuctionBid('
+        );
+        expect(body.length, 'Expected to find commitPreSeasonFuture...submitAuctionBid span in backend/main.mo').toBeGreaterThan(0);
+
+        // Allows for the exact wording of the error message while still
+        // requiring the equality comparison and the #InvalidOperation variant.
+        const guardPattern = /volumeKg\s*!=\s*contract\.requiredVolumeKg[\s\S]{0,150}?#Err\(#InvalidOperation\(/;
+        const guardMatch = body.search(guardPattern);
+        const feeCallIndex = body.indexOf('calcCommitmentFee(lockedPrice, contract.requiredVolumeKg)');
+
+        expect(
+            guardMatch,
+            'Expected `volumeKg != contract.requiredVolumeKg` guarding a `#Err(#InvalidOperation(...))` inside commitPreSeasonFuture (ECON-09 regression: the equality guard was removed or weakened)'
+        ).toBeGreaterThan(-1);
+        expect(
+            feeCallIndex,
+            'Expected `AuctionLogic.calcCommitmentFee(lockedPrice, contract.requiredVolumeKg)` inside commitPreSeasonFuture (ECON-09 regression: the fee is no longer sourced from contract.requiredVolumeKg)'
+        ).toBeGreaterThan(-1);
+        expect(
+            guardMatch,
+            'Expected the volumeKg equality guard to run BEFORE calcCommitmentFee is called (ECON-09 regression: guard ordering moved, fee could be computed from an unvalidated volumeKg again)'
+        ).toBeLessThan(feeCallIndex);
+    });
+
+    it('frontend/src/declarations/backend.did still declares commitPreSeasonFuture with exactly two arguments (text, nat) returning GameResult', () => {
+        const didPath = resolve(REPO_ROOT, 'frontend/src/declarations/backend.did');
+        const didText = readFileSync(didPath, 'utf8');
+        const match = didText.match(/commitPreSeasonFuture\s*:\s*\(([^)]*)\)\s*->\s*\(([^)]*)\)/);
+
+        expect(match, 'Expected `commitPreSeasonFuture: (...) -> (...)` in frontend/src/declarations/backend.did').not.toBeNull();
+
+        const args = match![1].split(',').map((s) => s.trim()).filter(Boolean);
+        expect(
+            args,
+            'Expected commitPreSeasonFuture to take exactly (text, nat) — an accidental parameter add/remove is a Candid-breaking change this pin catches at test time instead of at deploy time'
+        ).toEqual(['text', 'nat']);
+        expect(match![2].trim()).toBe('GameResult');
+    });
+});
+
+// ============================================================================
+// ECON-09 — commitPreSeasonFuture's commitment fee decoupled from the actual
+// delivery obligation, transcribed from backend/main.mo (Phase 3.1 plan
+// 03.1-02, fixing CR-02 from
+// .planning/phases/03-core-economic-lever-fixes/03-REVIEW.md)
+// ============================================================================
+//
+// WHY THIS EXISTS
+// `volumeKg` used to flow into `AuctionLogic.calcCommitmentFee` completely
+// unchecked against `contract.requiredVolumeKg` — the fixed delivery
+// obligation the player is actually held to at resolution time. A direct
+// canister call with `volumeKg = 1` paid a fee that truncates to 0 PLN for
+// every realistic locked price (5-17 PLN/kg) while still locking in the full
+// requiredVolumeKg obligation and the discounted price — a free lock-in
+// exploit reachable by anyone who can call the canister directly (the
+// frontend happens to always pass the correct volume, but the frontend is
+// not a trust boundary).
+//
+// The fix adds an equality guard — `volumeKg != contract.requiredVolumeKg`
+// rejects the call with `#InvalidOperation` — that runs after the
+// pre-existing `volumeKg == 0` guard (which keeps its own message,
+// unchanged) and before `calcLockedPrice`/`calcCommitmentFee`/any write.
+// `calcCommitmentFee`'s second argument now reads `contract.requiredVolumeKg`
+// instead of the caller-supplied `volumeKg`, so the fee cannot be re-exposed
+// to caller control even if the guard is later loosened.
+//
+// HOW IT WORKS (and what it does NOT prove)
+// `refCommitPreSeasonFuture` below transcribes the guard ordering and fee
+// arithmetic line-by-line so a reviewer can diff the two by eye. This is a
+// transcription oracle, not a live-canister assertion — the live-replica
+// evidence (the pre-fix exploit reading and all four post-fix readings, off
+// a real `dfx deploy backend`) lives in plan 03.1-02's Task 1 commit
+// (ed6d361), not here. This file catches two different kinds of drift
+// instead: (1) the transcription's own arithmetic and guard-ordering
+// boundaries, pinned by the describe block below, and (2) drift between the
+// transcription and the actual Motoko/Candid source, pinned by the two new
+// tests added to the source drift guard block above.
+//
+// WHAT THIS DOES NOT COVER (deliberate, not forgotten)
+// No mirror is added to `frontend/src/lib/gameLogic.ts`. This is
+// resolution-time auction fee math the UI never quotes pre-commit (the
+// frontend reads the fee back from the `Ok` message string after the call
+// succeeds) — the same reasoning `preSeasonFutureIntegrity.test.ts`'s ECON-08
+// section already records for the PSF shortfall math.
+
+/**
+ * Motoko (auction_logic.mo):
+ *   private let PRE_SEASON_DISCOUNT_NUM : Nat = 93;
+ *   private let PRE_SEASON_DISCOUNT_DEN : Nat = 100;
+ *   public func calcLockedPrice(basePricePLN: Nat) : Nat {
+ *     (basePricePLN * PRE_SEASON_DISCOUNT_NUM) / PRE_SEASON_DISCOUNT_DEN
+ *   };
+ */
+function refCalcLockedPrice(basePricePLN: number): number {
+    return Math.floor((basePricePLN * 93) / 100);
+}
+
+/**
+ * Motoko (auction_logic.mo):
+ *   private let COMMITMENT_FEE_NUM : Nat = 10;
+ *   private let COMMITMENT_FEE_DEN : Nat = 100;
+ *   public func calcCommitmentFee(lockedPricePLN: Nat, requiredVolumeKg: Nat) : Nat {
+ *     (lockedPricePLN * requiredVolumeKg * COMMITMENT_FEE_NUM) / COMMITMENT_FEE_DEN
+ *   };
+ */
+function refCalcCommitmentFee(lockedPricePLN: number, volumeKg: number): number {
+    return Math.floor((lockedPricePLN * volumeKg * 10) / 100);
+}
+
+type RefCommitOutcome = 'zero' | 'mismatch' | 'ok';
+
+interface RefCommitResult {
+    outcome: RefCommitOutcome;
+    lockedPricePLN?: number;
+    feePLN?: number;
+}
+
+/**
+ * Motoko (main.mo, commitPreSeasonFuture, post ECON-09 fix):
+ *   if (volumeKg == 0) {
+ *     return #Err(#InvalidOperation("Volume commitment must be greater than zero."));
+ *   };
+ *   ... // contract lookup resolves `contract`
+ *   if (volumeKg != contract.requiredVolumeKg) {
+ *     return #Err(#InvalidOperation("volumeKg must equal the contract's required volume of " # Nat.toText(contract.requiredVolumeKg) # " kg"));
+ *   };
+ *   ... // #Bio organic check (not modelled here — orthogonal to volumeKg)
+ *   let lockedPrice : Nat = AuctionLogic.calcLockedPrice(contract.basePricePLN);
+ *   let fee : Nat = AuctionLogic.calcCommitmentFee(lockedPrice, contract.requiredVolumeKg);
+ *
+ * The zero guard runs first and keeps its own outcome/message — it is never
+ * shadowed by the equality guard, even though volumeKg=0 also satisfies
+ * "!= requiredVolumeKg" for every contract (requiredVolumeKg is always
+ * 5,000/10,000/20,000, never 0). The fee is deliberately computed from
+ * `requiredVolumeKg`, not `volumeKg` — by the time this function returns
+ * 'ok', the guard above has already proven the two are equal, but sourcing
+ * the fee from the contract keeps it that way even if the guard is loosened.
+ */
+function refCommitPreSeasonFuture(
+    basePricePLN: number,
+    requiredVolumeKg: number,
+    volumeKg: number
+): RefCommitResult {
+    if (volumeKg === 0) {
+        return { outcome: 'zero' };
+    }
+    if (volumeKg !== requiredVolumeKg) {
+        return { outcome: 'mismatch' };
+    }
+    const lockedPricePLN = refCalcLockedPrice(basePricePLN);
+    const feePLN = refCalcCommitmentFee(lockedPricePLN, requiredVolumeKg);
+    return { outcome: 'ok', lockedPricePLN, feePLN };
+}
+
+describe('ECON-09: commitPreSeasonFuture volumeKg validation arithmetic and guard ordering', () => {
+    it('Export PSF (base 6 -> locked 5) charges exactly 5,000 PLN for its 10,000 kg required volume', () => {
+        const result = refCommitPreSeasonFuture(6, 10_000, 10_000);
+        expect(result).toEqual({ outcome: 'ok', lockedPricePLN: 5, feePLN: 5_000 });
+    });
+
+    it('Bio PSF (base 9 -> locked 8) charges exactly 4,000 PLN for its 5,000 kg required volume', () => {
+        const result = refCommitPreSeasonFuture(9, 5_000, 5_000);
+        expect(result).toEqual({ outcome: 'ok', lockedPricePLN: 8, feePLN: 4_000 });
+    });
+
+    it('Industrial PSF (base 3 -> locked 2) charges exactly 4,000 PLN for its 20,000 kg required volume', () => {
+        const result = refCommitPreSeasonFuture(3, 20_000, 20_000);
+        expect(result).toEqual({ outcome: 'ok', lockedPricePLN: 2, feePLN: 4_000 });
+    });
+
+    // NOTE ON THE RANGE (deviation from the plan text, Rule 1 auto-fix): the
+    // plan/03-REVIEW.md CR-02 describe the exploit range as "every realistic
+    // locked price (5-17 PLN/kg)". That is only true up to lockedPricePLN=9 —
+    // the fee is floor(lockedPricePLN * 1 * 10 / 100) = floor(lockedPricePLN / 10),
+    // which is 0 for lockedPricePLN in 0..9 but becomes 1 (nonzero) starting
+    // at lockedPricePLN=10, disproving the literal "...17" upper bound. The
+    // game's three actual locked prices (Export 5, Bio 8, Industrial 2, all
+    // derived from the fixed base prices 6/9/3) sit inside the true 0..9
+    // zero-truncation window, so the exploit itself is real and unaffected —
+    // only the review's stated bound was imprecise. Both the true window and
+    // the boundary crossing are pinned below instead of the inaccurate range.
+    it('the exploit arithmetic: for every locked price the three PSF categories can actually produce (Export 5, Bio 8, Industrial 2), a volumeKg=1 fee truncates to 0', () => {
+        for (const lockedPricePLN of [5, 8, 2]) {
+            expect(refCalcCommitmentFee(lockedPricePLN, 1)).toBe(0);
+        }
+    });
+
+    it('the exploit arithmetic holds for the full 0..9 PLN/kg locked-price window (volumeKg=1 fee truncates to 0), and stops holding at 10 — the true bound, not the "5..17" figure in 03-REVIEW.md CR-02', () => {
+        for (let lockedPricePLN = 0; lockedPricePLN <= 9; lockedPricePLN++) {
+            expect(refCalcCommitmentFee(lockedPricePLN, 1)).toBe(0);
+        }
+        expect(refCalcCommitmentFee(10, 1)).toBe(1);
+    });
+
+    it('the legitimate-path fee is identical whether sourced from volumeKg or from contract.requiredVolumeKg when the two are equal (regression anchor: 5,000 either way for Export)', () => {
+        const feeFromVolumeKg = refCalcCommitmentFee(refCalcLockedPrice(6), 10_000);
+        const feeFromRequiredVolumeKg = refCalcCommitmentFee(refCalcLockedPrice(6), 10_000);
+        expect(feeFromVolumeKg).toBe(5_000);
+        expect(feeFromRequiredVolumeKg).toBe(5_000);
+        expect(feeFromVolumeKg).toBe(feeFromRequiredVolumeKg);
+    });
+
+    it('volumeKg = 0 produces the zero-volume outcome, not the mismatch outcome — the pre-existing zero guard runs first and keeps its own error', () => {
+        const result = refCommitPreSeasonFuture(6, 10_000, 0);
+        expect(result.outcome).toBe('zero');
+        expect(result.feePLN).toBeUndefined();
+    });
+
+    it.each([1, 9_999, 10_001, 20_000])(
+        'volumeKg = %i against a 10,000 kg Export PSF is rejected as a mismatch — no fee is computed and no state is mutated',
+        (volumeKg) => {
+            const result = refCommitPreSeasonFuture(6, 10_000, volumeKg);
+            expect(result.outcome).toBe('mismatch');
+            expect(result.feePLN).toBeUndefined();
+            expect(result.lockedPricePLN).toBeUndefined();
+        }
+    );
+
+    it('volumeKg = 20,000 against a 10,000 kg contract is rejected — the predicate is equality, not a lower bound (over-commitment is not accepted)', () => {
+        const result = refCommitPreSeasonFuture(6, 10_000, 20_000);
+        expect(result.outcome).toBe('mismatch');
+    });
+
+    it('volumeKg = 10,000 against a 10,000 kg Export PSF is accepted with a fee of exactly 5,000 PLN', () => {
+        const result = refCommitPreSeasonFuture(6, 10_000, 10_000);
+        expect(result).toEqual({ outcome: 'ok', lockedPricePLN: 5, feePLN: 5_000 });
+    });
+
+    it('Nat-safety backstop: across a matrix of (basePricePLN, requiredVolumeKg) inputs, an accepted fee is always an integer >= 0, never NaN', () => {
+        const cases: Array<{ basePricePLN: number; requiredVolumeKg: number }> = [
+            { basePricePLN: 6, requiredVolumeKg: 10_000 },
+            { basePricePLN: 9, requiredVolumeKg: 5_000 },
+            { basePricePLN: 3, requiredVolumeKg: 20_000 },
+            { basePricePLN: 0, requiredVolumeKg: 10_000 },
+            { basePricePLN: 100, requiredVolumeKg: 1 },
+            { basePricePLN: 1, requiredVolumeKg: 1 },
+        ];
+
+        for (const { basePricePLN, requiredVolumeKg } of cases) {
+            const result = refCommitPreSeasonFuture(basePricePLN, requiredVolumeKg, requiredVolumeKg);
+            expect(result.outcome).toBe('ok');
+            expect(Number.isNaN(result.feePLN)).toBe(false);
+            expect(Number.isInteger(result.feePLN)).toBe(true);
+            expect(result.feePLN as number).toBeGreaterThanOrEqual(0);
+        }
     });
 });
