@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 3
 current_phase_name: Core Economic Lever Fixes
 status: executing
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-09-17T09:23:43.816Z"
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-09-17T10:00:19.496Z"
 last_activity: 2026-09-16
 last_activity_desc: Phase 3 execution started
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 10
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 3 (Core Economic Lever Fixes) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
 Last activity: 2026-09-16 — Phase 3 execution started
 
-Progress: [████░░░░░░] 40%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [████░░░░░░] 40%
 | Phase 3 P01 | 23min | 3 tasks | 4 files |
 | Phase 3 P2 | 27min | 3 tasks | 6 files |
 | Phase 3 P4 | ~35min | 2 tasks | 2 files |
+| Phase 03 P05 | ~50min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,7 @@ Recent decisions affecting current work:
 - [Phase ?]: ECON-05: GameLogic.calculateSpoilageRate deleted (dead code, zero call sites); StorageLogic.calculateSpoilage is the sole spoilage system, verified on a live replica (12,400 -> 9,796 kg cherries at Autumn->Winter transition); spoilage-rates.md rewritten against it; a backendHygiene.test.ts ratchet pins exactly one calculateSpoilage* declaration exists.
 - [Phase ?]: Checkpoint 03-04: player runner-up trickle persisted via new stable var side-table stableRunnerUpCredits (option B), following the stableClubOwnership precedent, over adding fields to the stable/Candid AuctionContract record (option A) or re-reading the farm mid-method (option C).
 - [Phase ?]: ECON-03 (auction runner-up trickle) and ECON-04 (player reputation credit on contract win) are complete in both directions, verified on a live replica including an upgrade-over-real-data proof.
+- [Phase ?]: ECON-02: season sale multiplier (D-03: Spring 0.9/Summer 1.15/Autumn 1.0/Winter 0.75) wired into calculateRetailPrice, calculateWholesalePrice, getMarketPrices (now caller-aware), and SellModal.tsx's preview. Discovered backend/game_logic.mo is shared by both Track A and Track B (not per-track), adding 2 new compile errors to Track B's already-broken, CI-excluded state; folds into EOP-01.
 
 ### Pending Todos
 
@@ -136,8 +138,8 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-09-17T09:23:43.795Z
-Stopped at: Completed 03-04-PLAN.md
+Last session: 2026-09-17T10:00:19.476Z
+Stopped at: Completed 03-05-PLAN.md
 
 Next step options:
 

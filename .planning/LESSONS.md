@@ -136,6 +136,12 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** defensible, but it is a game-balance number, and the user had been asked about the MAINT-01 fork one step earlier. Deciding one and asking about the other is inconsistent.
 **Rule:** economy constants, difficulty, and pricing get a question with options, not a recommendation applied silently. See CLAUDE.md → Ask First.
 
+### A `head -N` sample in a script is not the full evidence
+
+**Was:** quoted "Track B's error count is now 6" in a commit message, reusing `validate.sh`'s Track-B report, which pipes `head -5` for readability.
+**Actually:** the full `moc --check` output (no `head`) had 8 lines, not 6 — the script's own truncation cut off the pre-existing `M0072 baseCapacity` error, and I repeated the truncated count as if it were the total.
+**Rule:** when a number is going into a commit message, re-run the underlying command *without* whatever truncation a convenience wrapper applies (`head`, `tail`, a summary line) and count from that. Same family as "re-derive a number before repeating it" below, but the trap here is trusting a tool's own display truncation rather than a manual back-of-envelope estimate.
+
 ### Re-derive a number before repeating it
 
 **Was:** reported that repair could never pay back for assets under 500/level upkeep, leaving Tractor (600) on the viable side.
