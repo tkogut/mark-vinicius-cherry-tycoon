@@ -4,7 +4,7 @@
 > **Purpose**: To guarantee that Mark Vinicius Cherry Tycoon remains a deterministic, mathematically sound simulation. Agents MUST NOT invent new scaling vectors or formulas without explicitly updating this rule first.
 
 ## 1. Yield Calculation Formula
-**Formula**: `Yield (kg) = Base × Soil × pH × Fertility × Infrastructure × Water × Organic × TreeAge`
+**Formula**: `Yield (kg) = Base × Soil × pH × Fertility × Infrastructure × Water × Organic × TreeAge × County × FertilizerType`
 - **Base**: Standard production per hectare (e.g., 20,000 kg).
 - **Modifiers**: All modifiers are multipliers (e.g., 1.1x for good pH, 0.8x for drought).
 - **County Multipliers (Opole DNA)**:
@@ -12,6 +12,7 @@
   - Opole: 1.08x
   - Namysłów: 1.05x
 - **Infrastructure Scaling**: Upgrades (like the Golden Harvester) MUST use a compounding multiplier (e.g., `1.05^Level`) rather than a linear additive (`+0.02x`) to maintain ROI balance against exponential upgrade costs.
+- **Fertilizer Type Multiplier (ECON-01, D-01, plan 03-06)**: `OrganicCompatible` and `SyntheticStandard` are yield-neutral (1.0x); only `SyntheticIntensive` carries an effect, +5% (1.05x). Appended last in the product, after `County`. Applied at harvest time from a persisted per-parcel side-table (`stableParcelFertilizerTypes` in `backend/main.mo`), not a field on the parcel record itself — see `docs/game-design/economy/price-formulas.md` for the full citation. Applying `SyntheticIntensive` to an organic parcel is permitted and does not change `isOrganic` (D-02).
 
 ---
 

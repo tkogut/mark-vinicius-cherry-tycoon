@@ -24,6 +24,8 @@
 // change outside this step's scope.
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { CherryParcel, Infrastructure, Season } from '@/declarations/backend.did';
 import {
     calculateYieldBreakdown,
@@ -36,9 +38,12 @@ import {
     getClubSharePrice,
     getSeasonSaleMultiplier,
     getFertilizerTypeModifier,
+    FERTILIZER_TYPES,
     LEAGUE_LABELS,
 } from '@/lib/gameLogic';
-import { PARITY_CASES, makeParcel, makeInfra } from '@/test-utils/economyVectors';
+import { PARITY_CASES, makeParcel, makeInfra, BONUS_COUNTIES, CONTROL_COUNTY } from '@/test-utils/economyVectors';
+
+const REPO_ROOT = resolve(__dirname, '../../..');
 
 // ============================================================================
 // REFERENCE IMPLEMENTATION — transcription of backend/game_logic.mo
@@ -842,5 +847,55 @@ describe('economy parity: fertilizer type (ECON-01)', () => {
         const withExplicitNeutral = calculateYieldBreakdown(parcel, [], null, null, 1.0);
         expect(withDefault.parcelYield).toBe(withExplicitNeutral.parcelYield);
         expect(withDefault.parcelYield).toBeCloseTo(motokoReferenceYield(parcel, [])!, 6);
+    });
+
+    // Matrix: every fertilizer type crossed with every bonus county (+ the
+    // control county) and both organic states, so the new term is proven to
+    // COMPOSE with `countyMod` and `organicMod` rather than only to exist in
+    // isolation. Ratio-based: dividing out the type-1.0 baseline for the same
+    // county/organic combination isolates exactly the fertilizer term.
+    describe('composes with county and organic modifiers', () => {
+        const counties = [...BONUS_COUNTIES, CONTROL_COUNTY];
+        const organicStates = [false, true];
+
+        it.each(
+            counties.flatMap((county) =>
+                organicStates.map((isOrganic) => [county, isOrganic] as const)
+            )
+        )('county %s, organic=%s: SyntheticIntensive is exactly 1.05x SyntheticStandard', (county, isOrganic) => {
+            const parcel = makeParcel({ county, isOrganic });
+            const standard = calculateYieldBreakdown(
+                parcel, [], null, null, getFertilizerTypeModifier('SyntheticStandard')
+            );
+            const intensive = calculateYieldBreakdown(
+                parcel, [], null, null, getFertilizerTypeModifier('SyntheticIntensive')
+            );
+            expect(intensive.parcelYield / standard.parcelYield).toBeCloseTo(1.05, 9);
+            // Sanity: OrganicCompatible is neutral, same as Standard, in every combination too.
+            const organicCompatible = calculateYieldBreakdown(
+                parcel, [], null, null, getFertilizerTypeModifier('OrganicCompatible')
+            );
+            expect(organicCompatible.parcelYield).toBeCloseTo(standard.parcelYield, 6);
+        });
+    });
+
+    // Ratchet (plan 03-07 dependency): the exported wire strings are exactly
+    // the three the Motoko guard accepts — reads `backend/main.mo` off disk
+    // so a picker importing FERTILIZER_TYPES can never drift from the
+    // backend's closed set silently.
+    describe('wire-string agreement with the backend closed set (plan 03-07 dependency)', () => {
+        it('every exported FERTILIZER_TYPES string appears in fertilizeParcel\'s guard in backend/main.mo', () => {
+            const mainMo = readFileSync(resolve(REPO_ROOT, 'backend/main.mo'), 'utf8');
+            // Isolate fertilizeParcel's body so a match elsewhere in the file
+            // (e.g. a comment) can't produce a false pass.
+            const fnStart = mainMo.indexOf('func fertilizeParcel(');
+            expect(fnStart).toBeGreaterThan(-1);
+            const guardWindow = mainMo.slice(fnStart, fnStart + 2000);
+
+            for (const type of FERTILIZER_TYPES) {
+                expect(guardWindow.includes(`"${type}"`)).toBe(true);
+            }
+            expect(FERTILIZER_TYPES.length).toBe(3);
+        });
     });
 });

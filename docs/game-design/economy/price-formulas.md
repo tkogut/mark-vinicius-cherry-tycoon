@@ -5,7 +5,7 @@
 ## Yield Formula
 
 ```
-Yield (kg) = Base × Soil × pH × Fertility × Infrastructure × Water × Organic × TreeAge
+Yield (kg) = Base × Soil × pH × Fertility × Infrastructure × Water × Organic × TreeAge × County × FertilizerType
 ```
 
 | Multiplier | Factor |
@@ -14,6 +14,33 @@ Yield (kg) = Base × Soil × pH × Fertility × Infrastructure × Water × Organ
 | Głubczyce county | ×1.10 |
 | Opole county | ×1.08 |
 | Namysłów county | ×1.05 |
+| Fertilizer type (ECON-01, D-01, plan 03-06) | `OrganicCompatible` ×1.0, `SyntheticStandard` ×1.0, `SyntheticIntensive` ×1.05 |
+
+### Fertilizer type (ECON-01, D-01)
+
+Three canonical wire strings — exact, case-sensitive, no hyphenation on the
+wire (hyphenated forms are display labels only, plan 03-07's picker):
+`OrganicCompatible`, `SyntheticStandard`, `SyntheticIntensive`. Only
+`SyntheticIntensive` carries a yield effect (+5%); the other two, and any
+value that doesn't match one of the three, are yield-neutral (1.0) — this
+includes a parcel that has never been fertilized. See
+`backend/game_logic.mo:88` (`getFertilizerTypeModifier`) and
+`backend/game_logic.mo:143` (the `fertilizerTypeMod` term, appended last in
+the product, after `countyMod`).
+
+The type applied to a parcel is validated server-side against the closed set
+in `backend/main.mo`'s `fertilizeParcel` (`backend/main.mo:905`) before any
+state is read or written, then persisted in a stable-var side-table —
+`stable var stableParcelFertilizerTypes : [(Text, Text)]`
+(`backend/main.mo:101`), keyed by parcel id — rather than as a new field on
+`CherryParcel`. The harvest path (`backend/main.mo:678`) looks the type up
+and converts it to a modifier via `getFertilizerTypeModifier`, defaulting to
+1.0 for a parcel with no entry.
+
+Applying `SyntheticIntensive` to an organic parcel is permitted and does
+**not** change `isOrganic` — fertilizer type and organic certification are
+independent axes (D-02); the fertilize path never reads, writes, or branches
+on `isOrganic`.
 
 ## Quality Score (0–100, capped at 100)
 
