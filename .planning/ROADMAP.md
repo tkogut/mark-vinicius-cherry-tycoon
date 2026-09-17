@@ -142,12 +142,12 @@ Plans:
   3. Both fixes verified on a live replica with concrete before/after numbers, per CLAUDE.md's verification rule
   4. `backend/main_mainnet.mo` untouched (EOP-01, unrelated)
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 03.1-01-PLAN.md — ECON-08: thread a running `remainingForPSF` accumulator through `resolveSeasonAuctions`, proven on a live replica (8,000 → 18,000 kg shortfall on CR-01's worked example) + transcription oracle and source drift guard
+- [x] 03.1-01-PLAN.md — ECON-08: thread a running `remainingForPSF` accumulator through `resolveSeasonAuctions`, proven on a live replica (8,000 → 18,000 kg shortfall on CR-01's worked example) + transcription oracle and source drift guard
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -348,7 +348,7 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 1.1. Atomic Auth Fix | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 2. Football Clubs — Restore the Core Pillar | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 7/7 | Complete    | 2026-09-17 |
-| 3.1. Pre-Season Future Integrity Fixes (INSERTED) | Playable Release — V1 Parity | 0/TBD | Not started | - |
+| 3.1. Pre-Season Future Integrity Fixes (INSERTED) | Playable Release — V1 Parity | 1/2 | In Progress|  |
 | 4. Weather UI Consolidation | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5. Regional Geography Rebuild | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5.1. Geography Map-Zoom UI | Playable Release — V1 Parity | 0/TBD | Not started | - |
