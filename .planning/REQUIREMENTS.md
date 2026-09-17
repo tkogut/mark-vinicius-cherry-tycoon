@@ -40,6 +40,10 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
 - [x] **ECON-05**: Only one spoilage system exists in code (delete dead `GameLogic.calculateSpoilageRate`, keep real `StorageLogic.calculateSpoilage`, document what actually runs)
 - [x] **ECON-06**: `CompetitorsPanel.tsx` reads the real `productionCapacity` field (not the nonexistent `baseCapacity`) and drops the hardcoded "+4.2%" market-trend tile
 - [x] **ECON-07**: AI archetype names (Marek/Kasia/Hans) are consistent across code (`#Traditionalist`/`#Innovator`/`#Businessman`), UI display names, and docs — pick one canonical scheme
+- [ ] **ECON-08 (new, found by Phase 3's code review, 2026-09-17)**: `resolveSeasonAuctions`'s Pre-Season Future resolution (`main.mo:3446-3491`) checks every one of a caller's committed PSF contracts against the same pre-loop `totalDelivered` snapshot instead of the actually-remaining pool after each contract's deduction. A player holding more than one PSF in a season (unrestricted today) evades a large fraction of the intended shortfall/default penalty — worked numeric example in `03-REVIEW.md` CR-01. Pre-existing, not introduced by Phase 3 (confirmed via `git log -L`); flagged rather than fixed because it needs its own scoped plan on a live economic code path, not a drive-by fix during phase closeout.
+- [ ] **ECON-09 (new, found by Phase 3's code review, 2026-09-17)**: `commitPreSeasonFuture` (`main.mo:3131-3205`) computes its 10% commitment fee from the caller-supplied `volumeKg` but never validates it against, or stores it into, `contract.requiredVolumeKg` — the actual delivery obligation used later at shortfall resolution. A direct canister call with `volumeKg=1` locks in the full contract at a near-zero fee (truncates to 0 PLN for realistic prices). Reachable independent of the frontend. Pre-existing, not introduced by Phase 3; see `03-REVIEW.md` CR-02 for the two candidate fixes (drop the param and fee off `requiredVolumeKg`, or validate `volumeKg == requiredVolumeKg`).
+- [ ] **ECON-10 (new, found by Phase 3's code review, 2026-09-17)**: `ParcelCard.tsx`'s yield display never reflects a parcel's actual applied fertilizer type — `calculateYieldBreakdown` is called with no `fertilizerTypeMod` argument (silently defaults to 1.0) because the type lives only in the backend's `stableParcelFertilizerTypes` side-table with no query exposing it. A `SyntheticIntensive`-fertilized parcel harvests ~4.76% more than the UI's own "Potential"/"Adjusted Yield" numbers promise — a live violation of CLAUDE.md's mirror rule, even though the TS↔Motoko formula transcription itself is correct and parity-tested. Needs a new query (e.g. `getParcelFertilizerType`) before ECON-01 can be considered fully mirrored, not just formula-correct.
+- [ ] **ECON-11 (new, found by Phase 3's code review, 2026-09-17)**: `docs/game-design/economy/price-formulas.md` and `math-consistency.md` — both self-declared "Single Source of Truth" and both edited in Phase 3 (commit `d05bd0e`) to add fertilizer-type rows — still state three stale Phase 8.0 auction constants that contradict `backend/auction_logic.mo` (prestige base 1000 vs actual 1500; commitment fee 5% vs actual 10%; default penalty 150% vs actual 200%). Already named once before in `docs/game-design/CURRENT-STATE-2026-07-29.md` and not corrected when these exact files were touched this phase. **Ask First per CLAUDE.md** — this is an economy-balance question (which side is correct), not a docs typo to silently resolve either direction.
 
 ### Weather UI Consolidation (WEATHER) — narrowed after audit found most of this already built
 
@@ -112,6 +116,7 @@ Requirements for reaching V1-parity playability. Each maps to a roadmap phase.
   - `.gitattributes` added (`*.sh text eol=lf` and friends) so a Windows checkout cannot reintroduce the CRLF failure.
   - **11 scripts call only existing methods** and are the porting candidates. Note "healthy" means the method names resolve — *not* that the scripts pass; their assertions are untyped Candid string-matching and were never re-verified.
 - [ ] **QUAL-09**: Port the 11 healthy legacy scripts to Vitest tests against an ephemeral dfx replica (the `backend_integration.test.ts` pattern: opt-in via `RUN_INTEGRATION`, typed actor, real assertions), then delete the originals and shrink `KNOWN_BROKEN`. PocketIC was evaluated for this and rejected for now — see `.planning/spikes/001-pocketic-for-backend-tests.md`.
+- [ ] **QUAL-11 (new, found by Phase 3's code review, 2026-09-17)**: `App.tsx` lazy-imports `FarmGrid` (and therefore `ParcelCard`) but never renders it anywhere — `ImperialOrchard` is the actual live farm view. Confirmed dead code by repo-wide grep. Plan 03-07 independently found and documented the same thing while wiring the fertilizer picker onto `ParcelCard` (a component no player can currently reach). Decide: delete `FarmGrid`/the dead import, or mount it somewhere and explain why two farm views coexist. Also fold in the minor, pre-existing `console.log`/`console.error`/`TODO` scaffolding in `App.tsx`'s `handleBuyParcel` (`03-REVIEW.md` IN-01) if touching this file for the above.
 - [x] **MAINT-01**: The `Maintenance` phase now has a real player action. Done 2026-08-07. **The premise was false**: `inspectAndRepair` was not "a working method the frontend forgot to call" — investigating before wiring it found the method was a broken lever:
   - It returned *"Degradation prevented."* while **no degradation existed anywhere in the backend** — `advancePhase` never touched infrastructure, nothing ever lowered a level, and the only reads of `maintenanceCost` were cost summations.
   - Its real effect was undocumented and sometimes harmful: it overwrote `maintenanceCost` with the arbitrary `level * 100`, and that field IS summed by `calculateFixedCosts` and charged every season (`_advanceSeasonInternal`, `(fixed + variable) / 4`). So a Shaker L1 went 1200 → 100 (a permanent 92% upkeep discount — effectively an exploit) while a Warehouse L3 went 250 → 300 (an increase), and per-type 1%/2% pricing was flattened.
@@ -198,6 +203,10 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | ECON-05 | Phase 3 | Complete |
 | ECON-06 | Phase 3 | Complete |
 | ECON-07 | Phase 3 | Complete |
+| ECON-08 | Backlog (found by Phase 3 code review) | Pending |
+| ECON-09 | Backlog (found by Phase 3 code review) | Pending |
+| ECON-10 | Backlog (found by Phase 3 code review) | Pending |
+| ECON-11 | Backlog (economy balance, Ask First) | Pending |
 | WEATHER-01 | Phase 4 | Pending |
 | WEATHER-02 | Phase 4 | Pending |
 | WEATHER-03 | Phase 4 | Pending |
@@ -238,6 +247,7 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 | QUAL-08 | Phase 10 | Complete |
 | QUAL-09 | Phase 10 | Pending |
 | QUAL-10 | Phase 10 | Pending |
+| QUAL-11 | Backlog (found by Phase 3 code review) | Pending |
 | AUTH-02 | Phase 10 | Complete |
 | MAINT-01 | Phase 10 | Complete |
 | MAINT-02 | Phase 10 | Complete |
@@ -246,10 +256,9 @@ Deferred to future release per GDD v3's "Future / Not Now" section. Tracked but 
 
 **Coverage:**
 
-- v1 requirements: 62 total (21 complete, 2 partial, 39 pending)
-- Mapped to phases: 62
-- Unmapped: 0 ✓
+- v1 requirements: 67 total (21 complete, 2 partial, 44 pending)
+- Mapped to phases: 62; unmapped (backlog, found post-hoc): 5 (ECON-08, ECON-09, ECON-10, ECON-11, QUAL-11 — all discovered by Phase 3's code review, 2026-09-17, not yet assigned to a phase)
 
 ---
 *Requirements defined: 2026-07-29*
-*Last updated: 2026-07-29 after GDD v3 reconciliation with `Mark_Vinicius_V1.md`*
+*Last updated: 2026-09-17 — added ECON-08..11 and QUAL-11, found by Phase 3's code review (`03-REVIEW.md`), per CLAUDE.md's "never paper over a known defect" rule*
