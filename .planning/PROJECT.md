@@ -25,13 +25,13 @@ Two pillars, one empire — a player can run the farm loop end-to-end (plant, te
 - ✓ Enhanced Leaderboard & Rankings UI (Phase 1, 2026-07-29) — own-rank surfacing via `getPlayerRank`, mobile-responsive rows
 - ✓ Atomic Auth invariant enforced in all code paths incl. `initTestMode()` (Phase 1.1, 2026-07-29)
 - ✓ Football Clubs restored as core pillar (Phase 2, 2026-08-07) — `getAvailableFootballClubs()`/`buyClubShares()` real, `SportsCenter.tsx` wired to the real Candid type
-- ✓ Core economic lever fixes (Phase 3, 2026-09-17): fertilizer type (ECON-01), season→price (ECON-02), auction runner-up trickle (ECON-03), player contract-win prestige (ECON-04), spoilage consolidation (ECON-05), `CompetitorsPanel` bug (ECON-06), AI naming (ECON-07) — all 7 verified against the live codebase (`03-VERIFICATION.md`), not just claimed. Phase 3's own code review incidentally found 2 pre-existing, unrelated critical bugs in the Pre-Season Future contract path (not introduced by this phase) — tracked as `ECON-08`/`ECON-09`, not silently fixed mid-phase; see Active.
+- ✓ Core economic lever fixes (Phase 3, 2026-09-17): fertilizer type (ECON-01), season→price (ECON-02), auction runner-up trickle (ECON-03), player contract-win prestige (ECON-04), spoilage consolidation (ECON-05), `CompetitorsPanel` bug (ECON-06), AI naming (ECON-07) — all 7 verified against the live codebase (`03-VERIFICATION.md`), not just claimed. Phase 3's own code review incidentally found 2 pre-existing, unrelated critical bugs in the Pre-Season Future contract path (not introduced by this phase) — tracked and fixed immediately after as Phase 3.1.
+- ✓ Pre-Season Future integrity fixes (Phase 3.1, INSERTED, 2026-09-17): `ECON-08` (shortfall double-counting across multiple committed futures in one season — `remainingForPSF` accumulator replaces a stale `totalDelivered` snapshot) and `ECON-09` (commitment fee decoupled from the actual delivery obligation — `volumeKg == contract.requiredVolumeKg` equality guard added, Candid signature unchanged). Both pre-existed Phase 3, found by its code review, not by any of ECON-01..07. 8/8 must-haves verified (`03.1-VERIFICATION.md`), both fixes proven on a live replica with exact before/after numbers.
 
 ### Active
 
 <!-- Current scope per GDD v3: restore football clubs as a core pillar, fix broken/dead levers, extend toward the fuller original vision. See .planning/ROADMAP.md Phases 2-10. -->
 
-- [ ] **New, found by Phase 3's code review (2026-09-17):** `ECON-08`/`ECON-09` — two exploitable Pre-Season Future contract bugs in `backend/main.mo` (shortfall double-counting across multiple committed futures; commitment fee decoupled from the actual delivery obligation). Pre-existing, unrelated to Phase 3's scope, fixes already specified in `03-REVIEW.md`. User requested a dedicated follow-up plan to fix these now, before moving to the next roadmap phase.
 - [ ] Weather UI consolidation (Phase 4): most already built, fix dead `WeatherOverlay.tsx` + add persistent indicator
 - [ ] Regional geography rebuild (Phase 5): scalable Poland data model per V1, fix always-optimal parcel stub
 - [ ] Cherry Festival (Phase 6): design + build — was part of the original concept, never built at all
@@ -74,4 +74,4 @@ Two pillars, one empire — a player can run the farm loop end-to-end (plant, te
 | Regional geography: design for full Poland scalability now, not just fix Opole | V1 §4 specifies the full data model up front with progressive region unlocks; a bigger-Opole-only patch would repeat the original narrowing mistake | — Pending (Phase 5) |
 
 ---
-*Last updated: 2026-09-17 after Phase 3 (Core Economic Lever Fixes) completion*
+*Last updated: 2026-09-17 after Phase 3.1 (Pre-Season Future Integrity Fixes) completion*
