@@ -145,9 +145,17 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 03.1-01-PLAN.md — ECON-08: thread a running `remainingForPSF` accumulator through `resolveSeasonAuctions`, proven on a live replica (8,000 → 18,000 kg shortfall on CR-01's worked example) + transcription oracle and source drift guard
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 03.1-02-PLAN.md — ECON-09: validate `volumeKg == contract.requiredVolumeKg` in `commitPreSeasonFuture` (signature unchanged, no Candid change), proven on a live replica + fee/guard-ordering oracle and `.did` arity pin
+
+**Cross-cutting constraints:**
+
+- Both fixes verified on a live replica (dfx deploy backend) with concrete before/after numbers quoted in the commit message, per CLAUDE.md's hard verification rule.
 
 #### Phase 4: Weather UI Consolidation
 
