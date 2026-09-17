@@ -168,9 +168,14 @@ export function useFarm() {
         },
         onError: (error: Error) => {
             console.error('[useFarm] Fertilize mutation error:', error);
+            // Title matches 03-UI-SPEC.md's locked Copywriting Contract exactly
+            // ("Fertilizing Failed"); body is the canister's own rejection reason
+            // (getErrorMessage above), not a generic message — a rejected
+            // fertilizer type must be distinguishable from a seasonal block
+            // (ECON-01, plan 03-07).
             toast({
                 variant: "destructive",
-                title: "Fertilization Failed",
+                title: "Fertilizing Failed",
                 description: error.message,
             });
         },

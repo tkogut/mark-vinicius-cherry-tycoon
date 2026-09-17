@@ -31,7 +31,7 @@ import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
 import { HiringModal } from "@/components/farm/HiringModal"
 import { useInstallPrompt } from "@/utils/pwa"
 import { useToast } from "@/components/ui/use-toast"
-import { calculateYieldBreakdown, getUpkeepDrift } from "@/lib/gameLogic"
+import { calculateYieldBreakdown, getUpkeepDrift, FERTILIZER_TYPES } from "@/lib/gameLogic"
 import { PhaseIndicator } from "@/components/season/PhaseIndicator"
 import { WeatherEventModal, WeatherEventType } from "@/components/season/WeatherEventModal"
 import { WeatherOverlay } from "@/components/season/WeatherOverlay"
@@ -216,7 +216,18 @@ function AppContent() {
         }
     };
 
-    const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string) => {
+    const handleParcelAction = (
+        action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune',
+        parcelId: string,
+        // ECON-01 (plan 03-07): the picker's selection. Defaulted to the
+        // standard synthetic wire string (sourced from the shared
+        // FERTILIZER_TYPES constant, never a literal) so a call site that
+        // predates the picker can't send an empty value. This default is a
+        // convenience only — the backend's closed-set guard in
+        // `fertilizeParcel` (plan 03-06) is the real authority on which
+        // strings are accepted; this UI must not become a second, weaker one.
+        fertilizerType: string = FERTILIZER_TYPES[1]
+    ) => {
         const gameAction = action === 'prune' ? 'prune' : action as GameAction;
 
         if (!isActionAllowed(currentPhase, gameAction)) {
@@ -241,7 +252,7 @@ function AppContent() {
                 onSuccess: () => boostHarvestVelocity(),
             });
         } else if (action === 'fertilize') {
-            fertilize.mutate({ parcelId, fertilizerType: "NPK" });
+            fertilize.mutate({ parcelId, fertilizerType });
         } else if (action === 'organic') {
             startOrganicConversion.mutate(parcelId);
         } else if (action === 'prune') {

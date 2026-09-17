@@ -29,21 +29,35 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ParcelDetailsPanel } from './ParcelDetailsPanel';
-import { calculateYieldBreakdown } from '@/lib/gameLogic';
+import { calculateYieldBreakdown, FERTILIZER_TYPES } from '@/lib/gameLogic';
+import { FERTILIZER_TYPE_DISPLAY } from '@/lib/fertilizerTypes';
 import { isActionAllowed, SeasonPhase, PHASE_LABELS } from '@/config/phaseConstants';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 
 interface ParcelCardProps {
     parcel: CherryParcel;
-    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string) => void;
+    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string, fertilizerType?: string) => void;
     currentSeason?: any; // Season type from backend
     infrastructure: Infrastructure[];
     currentPhase?: SeasonPhase | string;
     weather?: any; // [NEW] Current weather event
     labor?: any;   // [NEW] Current hired labor
+    // ECON-01 (plan 03-07): disables the fertilizer-type picker's trigger while
+    // the fertilize mutation is in flight, mirroring SellModal's Confirm Sale
+    // disabled-while-pending pattern. ParcelCard has no direct route to the
+    // mutation's own status, so this is threaded down from the host that owns
+    // `useFarm()`'s `fertilize` mutation.
+    isFertilizing?: boolean;
 }
 
-export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure, currentPhase, weather, labor }) => {
+export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure, currentPhase, weather, labor, isFertilizing }) => {
     const [showDetails, setShowDetails] = useState(false);
 
     // Normalize currentPhase
@@ -305,27 +319,56 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                         </Tooltip>
                     </TooltipProvider>
 
-                    {/* Fertilize Button */}
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className={cn("h-8 px-0 w-8", canFertilize ? "hover:bg-amber-900/30 hover:text-amber-400" : "opacity-30")}
-                                    disabled={!canFertilize}
-                                    onClick={() => onAction('fertilize', parcel.id)}
-                                >
-                                    <Sprout className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                {!isPlanted ? "Plant trees first" :
-                                    canFertilize ? "Fertilize Soil (Uses 1 Unit)" :
-                                        `Requires Growth or Pruning (CutAndPrune) phase`}
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
+                    {/* Fertilize Button — three-type picker (ECON-01, plan 03-07).
+                        The trigger is the SAME 32px h-8 px-0 w-8 button as every
+                        other parcel action, unresized (03-UI-SPEC.md Spacing
+                        Scale exception). Selecting an item fires immediately —
+                        no separate confirm step, matching water/prune/harvest. */}
+                    <DropdownMenu>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            aria-label="Fertilize Soil"
+                                            className={cn("h-8 px-0 w-8", canFertilize ? "hover:bg-amber-900/30 hover:text-amber-400" : "opacity-30")}
+                                            disabled={!canFertilize || isFertilizing}
+                                        >
+                                            <Sprout className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    {!isPlanted ? "Plant trees first" :
+                                        canFertilize ? "Fertilize Soil (Uses 1 Unit)" :
+                                            `Requires Growth or Pruning (CutAndPrune) phase`}
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                        <DropdownMenuContent align="center" className="w-64 border-slate-800 bg-popover">
+                            {/* Uncontrolled radio group — this is a one-shot action
+                                list, not a persisted setting, so there is no
+                                "current" value to track between opens. */}
+                            <DropdownMenuRadioGroup>
+                                {FERTILIZER_TYPES.map((type) => (
+                                    <DropdownMenuRadioItem
+                                        key={type}
+                                        value={type}
+                                        disabled={isFertilizing}
+                                        onSelect={() => onAction('fertilize', parcel.id, type)}
+                                        className="flex-col items-start gap-0.5 cursor-pointer"
+                                    >
+                                        <span className="text-sm">Fertilize with {FERTILIZER_TYPE_DISPLAY[type].label}</span>
+                                        <span className="block max-w-full truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                                            {FERTILIZER_TYPE_DISPLAY[type].caption}
+                                        </span>
+                                    </DropdownMenuRadioItem>
+                                ))}
+                            </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
                     {/* Organic Conversion Button */}
                     <TooltipProvider>

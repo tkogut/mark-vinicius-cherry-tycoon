@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface FarmGridProps {
     parcels: CherryParcel[];
-    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string) => void;
+    onAction: (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string, fertilizerType?: string) => void;
     onBuyParcel: () => void;
     loading?: boolean;
     currentSeason?: any; // Season type from backend
@@ -14,9 +14,12 @@ interface FarmGridProps {
     currentPhase?: 'Planning' | 'Hiring' | 'Procurement' | 'Investment' | 'Growth' | 'Harvest' | 'Market' | 'Storage' | 'CutAndPrune' | 'Maintenance';
     weather?: any;
     labor?: any;
+    // ECON-01 (plan 03-07): threaded through to ParcelCard's fertilizer-type
+    // picker trigger — see ParcelCard.tsx's isFertilizing doc comment.
+    isFertilizing?: boolean;
 }
 
-export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParcel, loading, currentSeason, infrastructure, currentPhase, weather, labor }) => {
+export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParcel, loading, currentSeason, infrastructure, currentPhase, weather, labor, isFertilizing }) => {
     if (loading) {
         return (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 animate-pulse">
@@ -76,6 +79,7 @@ export const FarmGrid: React.FC<FarmGridProps> = ({ parcels, onAction, onBuyParc
                         currentPhase={currentPhase}
                         weather={weather}
                         labor={labor}
+                        isFertilizing={isFertilizing}
                     />
                 ))}
 
