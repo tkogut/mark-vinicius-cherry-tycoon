@@ -35,6 +35,7 @@ import {
     getUpkeepDrift,
     getClubSharePrice,
     getSeasonSaleMultiplier,
+    getFertilizerTypeModifier,
     LEAGUE_LABELS,
 } from '@/lib/gameLogic';
 import { PARITY_CASES, makeParcel, makeInfra } from '@/test-utils/economyVectors';
@@ -147,9 +148,14 @@ function refCountyModifier(county: string): number {
  * last bits and flip the integer truncation below.
  *
  *   let totalYield = baseYield * soilMod * phMod * fertilityMod * infraMod
- *                    * waterMod * organicMod * ageModifier * countyMod;
+ *                    * waterMod * organicMod * ageModifier * countyMod
+ *                    * fertilizerTypeMod;
  *   let yieldPerHa = totalYield * parcel.size;
  *   ?Int.abs(Float.toInt(yieldPerHa * 1000.0))
+ *
+ * `fertilizerTypeMod` is omitted below (implicitly 1.0, the caller-supplied
+ * baseline used by every PARITY_CASES fixture) — it is pinned separately, in
+ * combination with a non-neutral value, by the ECON-01 block further down.
  */
 export function motokoReferenceYield(
     parcel: CherryParcel,
@@ -781,5 +787,60 @@ describe('economy parity: season sale price (ECON-02)', () => {
                 expect(bare).toBeCloseTo(expectedVolumeBonus, 10);
             }
         }
+    });
+});
+
+// ============================================================================
+// ECON-01 — fertilizer type yield modifier (D-01, plan 03-06)
+// ============================================================================
+
+/**
+ * Transcription of game_logic.mo `getFertilizerTypeModifier`:
+ *
+ *   public func getFertilizerTypeModifier(fertilizerType: Text) : Float {
+ *     switch (fertilizerType) {
+ *       case ("SyntheticIntensive") { 1.05 };
+ *       case ("SyntheticStandard") { 1.0 };
+ *       case ("OrganicCompatible") { 1.0 };
+ *       case (_) { 1.0 };
+ *     }
+ *   };
+ */
+function refFertilizerTypeModifier(fertilizerType: string): number {
+    switch (fertilizerType) {
+        case 'SyntheticIntensive': return 1.05;
+        case 'SyntheticStandard': return 1.0;
+        case 'OrganicCompatible': return 1.0;
+        default: return 1.0;
+    }
+}
+
+describe('economy parity: fertilizer type (ECON-01)', () => {
+    it.each([
+        ['OrganicCompatible', 1.0],
+        ['SyntheticStandard', 1.0],
+        ['SyntheticIntensive', 1.05],
+        ['junkFertilizerType', 1.0],
+    ] as const)('%s modifier matches D-01 and the Motoko transcription', (type, expected) => {
+        expect(getFertilizerTypeModifier(type)).toBeCloseTo(expected, 10);
+        expect(getFertilizerTypeModifier(type)).toBeCloseTo(refFertilizerTypeModifier(type), 10);
+    });
+
+    it('a Synthetic-Intensive-fed parcel yields exactly 1.05x a structurally identical Synthetic-Standard-fed parcel', () => {
+        const parcel = makeParcel();
+        const standard = calculateYieldBreakdown(parcel, [], null, null, getFertilizerTypeModifier('SyntheticStandard'));
+        const intensive = calculateYieldBreakdown(parcel, [], null, null, getFertilizerTypeModifier('SyntheticIntensive'));
+        expect(intensive.parcelYield / standard.parcelYield).toBeCloseTo(1.05, 9);
+    });
+
+    // Regression guard (must_haves): a never-fertilized parcel's yield is
+    // exactly what it was before this plan — fertilizerTypeMod defaults to
+    // 1.0, so this plan changes no existing payout.
+    it('an unfertilized parcel yields exactly its pre-plan value (fertilizerTypeMod defaults to 1.0)', () => {
+        const parcel = makeParcel();
+        const withDefault = calculateYieldBreakdown(parcel, []);
+        const withExplicitNeutral = calculateYieldBreakdown(parcel, [], null, null, 1.0);
+        expect(withDefault.parcelYield).toBe(withExplicitNeutral.parcelYield);
+        expect(withDefault.parcelYield).toBeCloseTo(motokoReferenceYield(parcel, [])!, 6);
     });
 });

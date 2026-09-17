@@ -88,6 +88,18 @@ actor CherryTycoon {
   stable var stableAdminAssigned : Bool = false;
   stable var stableTopPlayersCache : [Types.LeaderboardEntry] = [];
 
+  // ECON-01 (plan 03-06, checkpoint option B): the fertilizer type last
+  // applied to a parcel, persisted here rather than as a new field on
+  // Types.CherryParcel. Follows the same shipped precedent as
+  // `stableClubOwnership` (Phase 2) and `stableRunnerUpCredits` (plan 03-04):
+  // a brand-new `stable var` is additive — existing canisters upgrade with an
+  // empty list, and every existing parcel is treated as unfertilized (yield
+  // modifier 1.0) until the player fertilizes it again. No existing record
+  // shape changes, no Candid change, no `dfx generate`. Entry shape:
+  // (parcelId, fertilizerType). Upserted (replace-not-append) on each
+  // `fertilizeParcel` call so a parcel never carries more than one entry.
+  stable var stableParcelFertilizerTypes : [(Text, Text)] = [];
+
   system func preupgrade() {
     stablePlayerFarms := Iter.toArray(playerFarms.entries());
     stableSaturation := Iter.toArray(regionalMarketSaturation.entries());
@@ -658,10 +670,21 @@ actor CherryTycoon {
               return #Err(#SeasonalRestriction("Parcel already harvested this season"));
             };
 
+            // ECON-01 (plan 03-06): look up whichever fertilizer type was
+            // last applied to this parcel and convert it to a yield modifier.
+            // A parcel with no entry (never fertilized, or fertilized before
+            // this plan shipped) falls back to 1.0 — no change to existing
+            // payouts.
+            let fertilizerTypeMod = switch (_parcelFertilizerType(parcel.id)) {
+              case null { 1.0 };
+              case (?ft) { GameLogic.getFertilizerTypeModifier(ft) };
+            };
+
             // Calculate yield (returns null if trees are dead)
             let harvestedAmountOpt = GameLogic.calculateYieldPotential(
               parcel,
-              farm.infrastructure
+              farm.infrastructure,
+              fertilizerTypeMod
             );
 
             let baseHarvestedAmount = switch (harvestedAmountOpt) {
@@ -835,16 +858,54 @@ actor CherryTycoon {
     }
   };
 
+  // ECON-01 (plan 03-06): read/upsert helpers for `stableParcelFertilizerTypes`,
+  // following the same shape as `_clubOwner` / `_recordClubOwnership`.
+  private func _parcelFertilizerType(parcelId: Text) : ?Text {
+    switch (Array.find<(Text, Text)>(stableParcelFertilizerTypes, func((id, _)) { id == parcelId })) {
+      case (?(_, fertilizerType)) { ?fertilizerType };
+      case null { null };
+    }
+  };
+
+  private func _recordParcelFertilizerType(parcelId: Text, fertilizerType: Text) {
+    let existing = Array.find<(Text, Text)>(stableParcelFertilizerTypes, func((id, _)) { id == parcelId });
+    switch (existing) {
+      case (?_) {
+        stableParcelFertilizerTypes := Array.map<(Text, Text), (Text, Text)>(
+          stableParcelFertilizerTypes,
+          func((id, ft)) {
+            if (id == parcelId) { (id, fertilizerType) } else { (id, ft) }
+          }
+        );
+      };
+      case null {
+        stableParcelFertilizerTypes := Array.append<(Text, Text)>(
+          stableParcelFertilizerTypes, [(parcelId, fertilizerType)]
+        );
+      };
+    }
+  };
+
   // Fertilize a parcel
   public shared({ caller }) func fertilizeParcel(
     parcelId: Text,
-    _fertilizerType: Text
+    fertilizerType: Text
   ) : async GameResult<Text, GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
-        
+
+        // ECON-01 (plan 03-06, V5 input validation): closed-set guard, in the
+        // same shape as `purchaseSupplies`'s supply-type check. Placed before
+        // any state is read or written so a rejected call mutates nothing —
+        // exact, case-sensitive match against the three canonical wire
+        // strings; no normalization, since the frontend picker (plan 03-07)
+        // only ever sends one of these three exact values.
+        if (fertilizerType != "OrganicCompatible" and fertilizerType != "SyntheticStandard" and fertilizerType != "SyntheticIntensive") {
+          return #Err(#InvalidOperation("Invalid fertilizer type. Must be 'OrganicCompatible', 'SyntheticStandard', or 'SyntheticIntensive'"));
+        };
+
         // Check if has fertilizers
         if (farm.inventory.fertilizers == 0) {
           return #Err(#InvalidOperation("No fertilizers in inventory"));
@@ -855,8 +916,6 @@ actor CherryTycoon {
         if (farm.currentSeason != #Spring and farm.currentSeason != #Summer and farm.currentSeason != #Autumn and farm.currentSeason != #Winter) {
           return #Err(#SeasonalRestriction("Fertilization is only effective during active lifecycle phases. Current: " # debug_show(farm.currentSeason)));
         };
-        
-        // TODO: Future enhancement - use _fertilizerType quality parameter to influence productivity
 
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
@@ -918,10 +977,17 @@ actor CherryTycoon {
               parcels = updatedParcels;
               inventory = updatedInventory;
               cash = if (farm.cash >= totalCost) Int.abs((farm.cash : Int) - (totalCost : Int)) else 0;
-              statistics = { updatedStats with 
+              statistics = { updatedStats with
                 totalCosts = farm.statistics.totalCosts + totalCost;
               };
             };
+
+            // ECON-01 (plan 03-06): persist which type was applied, so
+            // `calculateYieldPotential` can see it at the next harvest.
+            // `parcel.isOrganic` is not read, written, or branched on here
+            // (D-02) — applying Synthetic-Intensive to an organic parcel is
+            // permitted and does not change organic status.
+            _recordParcelFertilizerType(parcelId, fertilizerType);
 
             playerFarms.put(caller, updatedFarm);
             #Ok("Parcel fertilized successfully")

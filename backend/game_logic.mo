@@ -72,12 +72,41 @@ module {
     modifier
   };
 
+  // Fertilizer-type yield modifier (ECON-01, D-01, plan 03-06).
+  //
+  // Only Synthetic-Intensive carries a yield effect (+5%); Organic-Compatible
+  // and Synthetic-Standard are yield-neutral, and so is any string that
+  // doesn't match one of the three canonical values (an unfertilized parcel,
+  // or one whose applied type was never persisted, falls into this branch).
+  // Wire strings are exact and case-sensitive — "OrganicCompatible",
+  // "SyntheticStandard", "SyntheticIntensive" — no hyphenation on the wire;
+  // hyphenated forms are display labels only (plan 03-07's picker). This
+  // function stays pure: it takes a Text and returns a Float, so
+  // `calculateYieldPotential` below can remain pure too and the actor
+  // (`main.mo`) is responsible for looking up which type was applied to a
+  // given parcel and passing the resulting modifier in.
+  public func getFertilizerTypeModifier(fertilizerType: Text) : Float {
+    switch (fertilizerType) {
+      case ("SyntheticIntensive") { 1.05 };
+      case ("SyntheticStandard") { 1.0 };
+      case ("OrganicCompatible") { 1.0 };
+      case (_) { 1.0 };
+    }
+  };
+
   // Main yield calculation: PP = Base × Soil × pH × Fertility × Infrastructure × TreeAge
   // Calculate yield potential based on parcel attributes
   // Calculate yield potential based on parcel attributes
+  //
+  // `fertilizerTypeMod` (ECON-01, D-01): the caller's own `getFertilizerTypeModifier`
+  // result for whichever fertilizer type was last applied to this parcel — this
+  // function has no way to look that up itself (it is pure, and the persisted
+  // type lives in `main.mo`'s stableParcelFertilizerTypes side-table, not on
+  // CherryParcel). Pass 1.0 for a parcel with no known applied type.
   public func calculateYieldPotential(
     parcel: CherryParcel,
-    infrastructure: [Infrastructure]
+    infrastructure: [Infrastructure],
+    fertilizerTypeMod: Float
   ) : ?Nat {
     let baseYield = 25.0; // Base yield (tons/ha) - Boosted for testing young trees
     let ageModifier = switch (getTreeAgeModifier(parcel.treeAge)) {
@@ -107,7 +136,11 @@ module {
       case (_) { 1.0 };              // no bonus for other counties
     };
     
-    let totalYield = baseYield * soilMod * phMod * fertilityMod * infraMod * waterMod * organicMod * ageModifier * countyMod;
+    // fertilizerTypeMod appended at the end of the chain, after countyMod —
+    // multiplication order is numerically load-bearing for TS/Motoko parity
+    // (see getInfraModifier's order-sensitivity note in the TS mirror); the
+    // TS mirror must append in this same position.
+    let totalYield = baseYield * soilMod * phMod * fertilityMod * infraMod * waterMod * organicMod * ageModifier * countyMod * fertilizerTypeMod;
     let yieldPerHa = totalYield * parcel.size;
     
     ?Int.abs(Float.toInt(yieldPerHa * 1000.0)) // convert tons to kg
@@ -597,7 +630,9 @@ module {
   ) : Nat {
     var totalHarvestCost : Nat = 0;
     for (parcel in parcels.vals()) {
-      let yieldOpt = calculateYieldPotential(parcel, infrastructure);
+      // Baseline 1.0: this cost estimate has no visibility into which
+      // fertilizer type (if any) was applied per parcel (ECON-01, plan 03-06).
+      let yieldOpt = calculateYieldPotential(parcel, infrastructure, 1.0);
       switch (yieldOpt) {
         case (?yield) {
           totalHarvestCost += yield * 2; // 2 PLN per kg labor cost

@@ -15,6 +15,7 @@ export interface YieldBreakdown {
     organicMod: number;
     ageMod: number;
     countyMod: number;
+    fertilizerTypeMod: number;
     totalYield: number; // kg per hectare
     parcelYield: number; // total kg for the parcel
 }
@@ -218,6 +219,21 @@ export const LEAGUE_LABELS: Record<string, string> = {
     Liga4: 'Klasa A',
 };
 
+// Fertilizer-type yield modifier (ECON-01, D-01, plan 03-06).
+//
+// Mirrors `GameLogic.getFertilizerTypeModifier` in game_logic.mo. Only
+// Synthetic-Intensive carries a yield effect (+5%); the other two canonical
+// types, and any unrecognized string, are yield-neutral. Wire strings are
+// exact and case-sensitive — no hyphenation on the wire; hyphenated forms are
+// display labels only (plan 03-07's picker).
+export const FERTILIZER_TYPES = ['OrganicCompatible', 'SyntheticStandard', 'SyntheticIntensive'] as const;
+export type FertilizerType = typeof FERTILIZER_TYPES[number];
+
+export const getFertilizerTypeModifier = (fertilizerType: string): number => {
+    if (fertilizerType === 'SyntheticIntensive') return 1.05;
+    return 1.0;
+};
+
 // County yield multiplier — Phase 5.1 "Opole DNA" (GDD §3.1).
 // Mirrors the `countyMod` switch inside game_logic.mo's calculateYieldPotential.
 export const getCountyModifier = (county: string): number => {
@@ -280,7 +296,8 @@ export const calculateYieldBreakdown = (
     parcel: CherryParcel,
     infrastructure: Infrastructure[] = [],
     weather: any = null,
-    labor: any = null
+    labor: any = null,
+    fertilizerTypeMod: number = 1.0
 ): YieldBreakdown & { adjustedYield: number; weatherMod: number; laborMod: number } => {
     const baseYield = 25.0; // tons/ha
     const soilMod = getSoilModifier(parcel.soilType);
@@ -292,8 +309,11 @@ export const calculateYieldBreakdown = (
     const ageMod = getAgeModifier(parcel.treeAge);
     const countyMod = getCountyModifier(parcel.region.county);
 
+    // fertilizerTypeMod appended at the end of the chain, after countyMod —
+    // same position as the Motoko `calculateYieldPotential`. Defaults to 1.0
+    // (unfertilized / unknown type), so every existing call site is unchanged.
     const totalYieldTons =
-        baseYield * soilMod * phMod * fertilityMod * infraMod * waterMod * organicMod * ageMod * countyMod;
+        baseYield * soilMod * phMod * fertilityMod * infraMod * waterMod * organicMod * ageMod * countyMod * fertilizerTypeMod;
 
     // Per-hectare kg, for display only.
     const totalYieldKg = totalYieldTons * 1000;
@@ -319,6 +339,7 @@ export const calculateYieldBreakdown = (
         organicMod,
         ageMod,
         countyMod,
+        fertilizerTypeMod,
         weatherMod,
         laborMod,
         totalYield: totalYieldKg,
