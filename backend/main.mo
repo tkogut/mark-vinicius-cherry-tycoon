@@ -3155,6 +3155,16 @@ actor CherryTycoon {
           case (?c) c;
         };
 
+        // SEC (ECON-09): volumeKg must equal the contract's fixed delivery
+        // obligation. Without this, a caller-supplied volumeKg disconnected
+        // from contract.requiredVolumeKg lets any direct canister call pay a
+        // commitment fee computed off an arbitrary (e.g. 1 kg) volume while
+        // still locking in the full requiredVolumeKg obligation and discounted
+        // price — the fee truncates to 0 PLN for every realistic locked price.
+        if (volumeKg != contract.requiredVolumeKg) {
+          return #Err(#InvalidOperation("volumeKg must equal the contract's required volume of " # Nat.toText(contract.requiredVolumeKg) # " kg"));
+        };
+
         // Bio contracts require organic stock
         switch (contract.category) {
           case (#Bio) {
@@ -3168,7 +3178,7 @@ actor CherryTycoon {
         };
 
         let lockedPrice : Nat = AuctionLogic.calcLockedPrice(contract.basePricePLN);
-        let fee : Nat = AuctionLogic.calcCommitmentFee(lockedPrice, volumeKg);
+        let fee : Nat = AuctionLogic.calcCommitmentFee(lockedPrice, contract.requiredVolumeKg);
 
         if (farm.cash < fee) {
           return #Err(#InsufficientFunds({ required = fee; available = farm.cash }));
