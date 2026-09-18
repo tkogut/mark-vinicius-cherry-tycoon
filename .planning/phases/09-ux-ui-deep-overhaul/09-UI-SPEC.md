@@ -1,10 +1,11 @@
 ---
 phase: 9
 slug: 09-ux-ui-deep-overhaul
-status: draft
+status: approved
 shadcn_initialized: true
 preset: "existing project install — style: new-york, baseColor: neutral, cssVariables: true, iconLibrary: lucide (frontend/components.json, not re-initialized this phase)"
 created: 2026-09-18
+reviewed_at: 2026-09-18
 ---
 
 # Phase 9 — UX/UI Deep Overhaul — UI Design Contract
@@ -196,7 +197,7 @@ North-edge tiles already project to a smaller `y` than interior/path tiles, so p
 
 ## UI Considerations
 
-Applicable state considerations resolved: 5 covered, 2 backstop, 1 unresolved.
+Applicable state considerations resolved: 6 covered, 2 backstop, 0 unresolved.
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
@@ -207,7 +208,7 @@ Applicable state considerations resolved: 5 covered, 2 backstop, 1 unresolved.
 | overflow | Metric Badge large numbers (cash into the millions late-game) | ✅ covered | `toLocaleString()` formatting already used app-wide (`MainDashboard.tsx`'s existing Treasury line); no truncation needed since the badge has no fixed pixel width constraint in the dock's flex layout |
 | long-text | Building name in Action Dock's selected-building heading | 🧪 backstop | All 4 building display names are short, known strings ("Warehouse", "Cold Storage", "Processing Facility", "Social Facilities") — no localization-length overflow test exists yet; flagged as a backstop for the checker/QA pass rather than assumed safe, since `de`/`es` locales have previously caused real overflow (UX-01's sidebar bug) |
 | overflow | Bar Meter label + value on narrow mobile widths (≤375px) | 🧪 backstop | The three-zone Action Dock layout has not been visually verified below 390px; `h-2` bars and 12px labels should fit, but this needs the same live-viewport verification discipline `.planning/LESSONS.md` demands for isometric/canvas work, not just a component unit test |
-| unresolved | BidModal "Morale" gauge's real-data mapping | ⚠ unresolved | No real backend field exists for "labor morale" anywhere in this codebase (confirmed by grep). The planner must pick a real substitute (e.g. average parcel fertility%) or drop to a 2-meter layout — this UI-SPEC deliberately does not fabricate a mapping to preserve a symmetric 3-meter layout, per D-12's "wire to real data" mandate |
+| resolved | BidModal "Morale" gauge's real-data mapping | ✅ covered | User decision (2026-09-18): no real backend field exists for "labor morale" (confirmed by grep), so the third meter is replaced with **average fertility across the player's owned parcels** — a real, already-computed value, keeps the symmetric 3-meter layout, and is thematically consistent (farm condition) |
 
 ---
 
@@ -215,7 +216,7 @@ Applicable state considerations resolved: 5 covered, 2 backstop, 1 unresolved.
 
 1. **`MainDashboard.tsx`'s `storagePercentage`/`organicPercentage` padding bug.** `Math.min(100, Math.max(0, (totalCherries / 50000) * 100)) + 15` and the analogous `+ 5` for organic — both add a flat, unexplained bonus on top of the real ratio *before* clamping to 100, meaning the displayed fill is never accurate even before considering the `EmeraldGauge`→Bar Meter migration. Not named in `09-CONTEXT.md`'s D-01..D-13 or `09-RESEARCH.md`'s Common Pitfalls. This UI-SPEC does not mandate a fix (it's a data-accuracy/logic question, not a visual-grammar one) but the planner should decide explicitly whether to carry the `+15`/`+5` forward into the new Bar Meter or strip it, rather than silently porting a bug into the new component.
 2. **Font token drift.** `docs/game-design/design-tokens.md` documents `Cinzel`/`Inter` as the app's fonts; neither is actually loaded. Noted in the Design System table above; not fixed this phase (out of D-00..D-13's scope, and adding a webfont has its own performance/FOUC considerations that deserve their own decision, not a drive-by fix).
-3. **`BidModal.tsx`'s "Morale" gauge has no real backend equivalent** — see UI Considerations' unresolved row above.
+3. ~~`BidModal.tsx`'s "Morale" gauge has no real backend equivalent~~ — **resolved 2026-09-18**: replaced with average parcel fertility, per user decision. See UI Considerations table above.
 
 ---
 
