@@ -1,19 +1,19 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
+milestone_name: Playable Release — V1 Parity
 current_phase: 09
-current_phase_name: partially delivered out of plan — see Status
-status: executing
-stopped_at: Phase 9 UI-SPEC approved
-last_updated: "2026-09-18T13:47:15.793Z"
-last_activity: 2026-09-17
-last_activity_desc: Phase 3.1 complete, transitioned to Phase 09
+current_phase_name: ux-ui-deep-overhaul
+status: planned
+stopped_at: Phase 9 fully planned and verified (09-02..09-10, 5 waves) — NOT YET EXECUTED
+last_updated: "2026-09-18T15:00:00.000Z"
+last_activity: 2026-09-18
+last_activity_desc: Phase 9 planning complete (discuss → research → UI-SPEC → plan → plan-check, all passed); execution paused before it started, by explicit user request, to resume on a different workstation
 progress:
-  total_phases: 5
-  completed_phases: 2
-  total_plans: 21
-  completed_plans: 9
+  total_phases: 13
+  completed_phases: 6
+  total_plans: 31
+  completed_plans: 20
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** Two pillars, one empire — a player can run the farm loop end-to-end (plant, tend, harvest, sell, compete in auctions and Cherry Festival) AND grow a football-club investment, with no dead levers, silently-broken features, or unexplained mechanics blocking either thread.
-**Current focus:** Phase 3 — Core Economic Lever Fixes
+**Current focus:** Phase 9 — UX/UI Deep Overhaul. **Fully planned, zero plans executed yet.** See "Session Continuity" below for the exact resume command — this is a clean stopping point, not a mid-execution interruption.
 
 ## Current Position
 
-Phase: 09 — UX/UI Deep Overhaul 🟡 (partially delivered out of plan — see Status)
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-09-17 — Phase 3.1 complete, transitioned to Phase 09
+Phase: 9 — UX/UI Deep Overhaul
+Plan: 0 of 9 new plans executed (09-02 through 09-10; `09-01` is a historical record of already-shipped Aug-2026 work, not part of this run)
+Status: **Planned and verified — ready to execute.** Nothing in this phase has been built yet; only planning artifacts exist (CONTEXT.md, RESEARCH.md, UI-SPEC.md, PATTERNS.md, VALIDATION.md, and the 9 PLAN.md files), all committed.
+Last activity: 2026-09-18 — Phase 9 plan-checker returned VERIFICATION PASSED (0 blockers, 2 non-blocking warnings, both already resolved). Execution paused here at the user's explicit request, to be picked up in a future session (possibly on a different machine) — NOT because of an error or an incomplete step.
 
-Progress: [████████░░] 75%
+Progress: [██████░░░░░░░] 6/13 phases complete (Phase 1, 1.1, 2, 3, 3.1, 10) — see the "By Phase" table below for exact status per phase.
 
 ## Performance Metrics
 
@@ -49,7 +49,7 @@ Progress: [████████░░] 75%
 | 1. Enhanced Leaderboard & Rankings UI | 1/1 | Complete 2026-07-29 |
 | 1.1. Atomic Auth Fix | 1/1 | Complete 2026-07-29 |
 | 2. Football Clubs — Restore the Core Pillar | 1/1 | Complete 2026-08-07 |
-| 9. UX/UI Deep Overhaul | 2/3 | Partial — UX-01/07/10/11 done, UX-06/08 partial, UX-02..05 open (2026-08-07) |
+| 9. UX/UI Deep Overhaul | 1/10 executed (09-01 only, Aug 2026) — 09-02..09-10 fully planned, 0 executed | Planned and verified 2026-09-18, ready to execute — NOT started |
 | 10. Quality Infrastructure | 5/5 | Complete 2026-08-06 |
 
 **Recent Trend:**
@@ -153,14 +153,25 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-09-18T11:01:48.482Z
-Stopped at: Phase 9 UI-SPEC approved
+Last session: 2026-09-18T15:00:00.000Z
+Stopped at: Phase 9 fully planned and plan-checker-verified (09-02..09-10, 5 waves). Execution paused **before Wave 1 started** — this is a deliberate, clean pause at the user's explicit request ("wstrzymujemy prace, być może po 22.9 agent na innej stacji roboczej będzie kontynuować prace"), possibly to be picked up by an agent on a different workstation. Nothing is broken, mid-task, or waiting on a decision — the only remaining action is to execute.
 
-Next step options:
+**The single next step (do this, not the list below):**
 
-- `/gsd-plan-phase 2` (Football Clubs) — the intended next gameplay phase
-- Phase 3 (Economic Levers) — now the best-guarded area: `economyParity.test.ts` will catch formula drift the moment it happens
-- Reconcile Phase 9 bookkeeping (UX-06 already largely shipped) before planning it
-- Clear the remaining flagged defects above (`GEO-07` folds naturally into Phase 5; `ECON-PARITY-01` needs an economy-balance decision, not code fixes)
+```
+/gsd-execute-phase 9
+```
 
-Resume file: .planning/phases/09-ux-ui-deep-overhaul/09-UI-SPEC.md
+This will run all 5 waves of plans `09-02` through `09-10` in order (`09-01` is historical — already executed in Aug 2026, do not re-run or re-read it as pending scope). No `--wave` filter is required; a resuming agent can add one (e.g. `/gsd-execute-phase 9 --wave 1`) only if it wants to pace execution against usage limits, as this session did.
+
+**Things a resuming agent should know before running it:**
+
+- Read `.planning/phases/09-ux-ui-deep-overhaul/09-CONTEXT.md` first — it has the full locked decision record (D-00 through D-13) that the plans assume as given; do not re-litigate these.
+- `.planning/phases/09-ux-ui-deep-overhaul/09-VALIDATION.md` frontmatter still says `status: draft` / `nyquist_compliant: false` / `wave_0_complete: false` — this is expected at this stage (validation strategy is written but Wave 0 test scaffolding hasn't run yet); it is not a sign of missing work.
+- Plan `09-04` contains one open judgment call, flagged but not yet decided: whether to strip an undocumented `+15`/`+5` display-padding value as a non-balance display fix. Confirm with the user before assuming either way if the plan doesn't force a choice.
+- **~53+ local commits are unpushed to `origin/master`.** Pushing was deliberately not authorized this session (an ambiguous "kontynuuj" was not treated as push consent for a high-stakes shared-repo action) — ask explicitly before pushing, don't infer consent from a resume instruction alone.
+- Every `game_logic.mo` change in this phase (UX-05's wholesale formula) must ship in the same commit as its `frontend/src/lib/gameLogic.ts` mirror plus an `economyParity.test.ts` extension, and be verified on a live replica with observed values in the commit message — per CLAUDE.md, this is non-negotiable even under time pressure to finish.
+
+Superseded/obsolete next-step options from an earlier stale version of this file (kept struck through so no one re-proposes them): ~~`/gsd-plan-phase 2` (Football Clubs)~~ — Phase 2 completed 2026-08-07. ~~Reconcile Phase 9 bookkeeping before planning it~~ — done; this planning pass is what produced 09-02..09-10.
+
+Resume file: `.planning/ROADMAP.md` → Phase 9 section (plan list) and `.planning/phases/09-ux-ui-deep-overhaul/09-CONTEXT.md` (decisions). `09-UI-SPEC.md` is approved and stable, not the active resume pointer.

@@ -37,8 +37,8 @@ Two pillars, one empire — a player can run the farm loop end-to-end (plant, te
 - [ ] Cherry Festival (Phase 6): design + build — was part of the original concept, never built at all
 - [ ] Crop Insurance UI (Phase 7): two working backends, zero frontend — pick one, build UI
 - [ ] Onboarding & phase-system teaching (Phase 8): biggest UX gap found in player-journey audit
-- [ ] UX/UI deep overhaul (Phase 9, needs scoping): current layout matches neither the lore aesthetic nor V1's own UI priorities
-- [ ] Quality infrastructure (Phase 10): no `npm test` script, no ESLint/Prettier config, Playwright unused, `useAuth.test.tsx` broken (missing `QueryClientProvider`)
+- [ ] UX/UI deep overhaul (Phase 9): `09-01` (tree canopy) shipped Aug 2026; remainder (`09-02`..`09-10`, 5 waves) fully planned and plan-checker-verified 2026-09-18, execution paused before Wave 1 by explicit user request — next action is `/gsd-execute-phase 9`, see `.planning/STATE.md` → Session Continuity
+- [x] Quality infrastructure (Phase 10, 2026-08-06): `npm test`/ESLint/Playwright all working, `useAuth.test.tsx` rewritten — see Validated
 - [ ] Re-verify `execution/tests/*.sh` against the current backend API one script at a time — `test_rankings.sh` and `e2e_backend.sh` confirmed calling removed methods (`getLeaderboard`, `advanceSeason`); 11/21 scripts have CRLF line endings
 
 ### Out of Scope

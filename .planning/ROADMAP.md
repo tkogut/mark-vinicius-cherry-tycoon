@@ -368,7 +368,7 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6
 |-------|-----------|-----------------|--------|-----------|
 | 1. Enhanced Leaderboard & Rankings UI | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 1.1. Atomic Auth Fix | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
-| 2. Football Clubs — Restore the Core Pillar | Playable Release — V1 Parity | 0/TBD | Not started | - |
+| 2. Football Clubs — Restore the Core Pillar | Playable Release — V1 Parity | 1/1 | Complete | 2026-08-07 |
 | 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 7/7 | Complete    | 2026-09-17 |
 | 3.1. Pre-Season Future Integrity Fixes (INSERTED) | Playable Release — V1 Parity | 2/2 | Complete    | 2026-09-17 |
 | 4. Weather UI Consolidation | Playable Release — V1 Parity | 0/TBD | Not started | - |
@@ -377,5 +377,5 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 6. Cherry Festival | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 7. Crop Insurance UI | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 8. Onboarding & Phase-System Teaching | Playable Release — V1 Parity | 0/TBD | Not started | - |
-| 9. UX/UI Deep Overhaul | Playable Release — V1 Parity | 0/TBD | Scoped (incl. sketch 001 winner), not started | - |
+| 9. UX/UI Deep Overhaul | Playable Release — V1 Parity | 1/10 (09-01 only) | Planned and plan-checker-verified 2026-09-18 (09-02..09-10, 5 waves) — execution paused before Wave 1, ready to run via `/gsd-execute-phase 9` | - |
 | 10. Quality Infrastructure | Playable Release — V1 Parity | 5/5 | Complete (success criteria met; QUAL-04/09/10 spun out as follow-ups) | 2026-08-06 |
