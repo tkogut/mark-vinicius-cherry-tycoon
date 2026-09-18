@@ -275,7 +275,7 @@ Plans:
   6. The existing `WorkerNPC` hire-gated system is ported to the isometric grid, walking the new path network
   7. Procedural machine visuals (tractor/shaker) appear when the player owns the corresponding infrastructure
 
-**Plans**: partially executed OUT OF PLAN — see the status block below before planning the remainder.
+**Plans**: 9 plans (`09-02` .. `09-10`, 5 waves) for the remainder, created 2026-09-18. Plus two historical entries below (`09-00` ad hoc, `09-01` the executed tree-canopy plan).
 
 **Status (recorded 2026-08-07, retroactively):** criteria 6 and 7 are met and criterion 2 is *mostly* met, delivered ad hoc across ~25 commits between 2026-07-30 and 2026-08-03 in response to live Playground screenshots rather than through `/gsd-plan-phase 9`. This row read "not started" the whole time. Recording it now, with the gaps named rather than rounded up:
 
@@ -290,7 +290,16 @@ Plans:
 Plans:
 
 - [x] 09-00: UX-06/07/08 delivered ad hoc from live screenshot review — `9be8318` (Geometric Brass canvas) → `4c3a111` (worker/machine ground-margin), plus `f804c72` (Branch Pruner end-to-end) and `f61ad9e` (Marketplace building sprites). ~25 commits, no plan file.
-- [ ] 09-01: TBD (created by `/gsd-plan-phase 9`) — the remainder listed above
+- [x] 09-01: UX-06 tree-canopy replacement — historical, already executed (`9be8318`). Not part of the 2026-09-18 planning run.
+- [ ] 09-02-PLAN.md (wave 1) — UX-05: real +15% ProcessingFacility wholesale bonus, backend formula + SellModal mirror + parity oracle + live-replica proof
+- [ ] 09-03-PLAN.md (wave 1) — UX-04: explicit guest/sign-in state in the sidebar's running-costs box, replacing the silent fabricated `0 PLN`
+- [ ] 09-04-PLAN.md (wave 1) — UX-03: Bar Meter / Metric Badge primitives, `MainDashboard` → Action Dock, D-11's dead dial and dead auction button, app-wide gauge ratchet
+- [ ] 09-05-PLAN.md (wave 2) — UX-02: always-on god-rays/pollen orchard overlay with a concrete degradation ladder; deletes the orphaned `GoldenHarvesterView`
+- [ ] 09-06-PLAN.md (wave 1) — UX-09: extract the building-sprite resolver to `lib/buildingSprites.ts` and pin every path to a real asset
+- [ ] 09-07-PLAN.md (wave 2) — UX-03 / D-12: BidModal's three fabricated gauges wired to real farm data; deletes `EmeraldGauge`
+- [ ] 09-08-PLAN.md (wave 3) — UX-08: `currentPhase` gating for the four procedural machines, with a 40-case truth table
+- [ ] 09-09-PLAN.md (wave 4) — UX-06/UX-09: building sprites in fixed N/NE-border slots, seasonal, correctly depth-ordered
+- [ ] 09-10-PLAN.md (wave 5) — UX-06/UX-09 / D-10: clicking a building switches the Action Dock into its building mode with a gated upgrade CTA
 
 #### Phase 10: Quality Infrastructure ✅ (success criteria met 2026-08-06)
 
