@@ -288,17 +288,30 @@ Plans:
 **Remaining for Phase 9**: UX-01, UX-02 (residual), UX-03, UX-04, UX-05, UX-06 (border zone), UX-08 (phase gating), UX-09 (place the building sprites in the orchard). Worth a real `/gsd-plan-phase 9` — the ad-hoc route worked for the orchard because the user was reviewing screenshots each round, which is not how the sidebar/stat-idiom work should go.
 
 Plans:
+**Wave 1**
 
 - [x] 09-00: UX-06/07/08 delivered ad hoc from live screenshot review — `9be8318` (Geometric Brass canvas) → `4c3a111` (worker/machine ground-margin), plus `f804c72` (Branch Pruner end-to-end) and `f61ad9e` (Marketplace building sprites). ~25 commits, no plan file.
 - [x] 09-01: UX-06 tree-canopy replacement — historical, already executed (`9be8318`). Not part of the 2026-09-18 planning run.
 - [ ] 09-02-PLAN.md (wave 1) — UX-05: real +15% ProcessingFacility wholesale bonus, backend formula + SellModal mirror + parity oracle + live-replica proof
 - [ ] 09-03-PLAN.md (wave 1) — UX-04: explicit guest/sign-in state in the sidebar's running-costs box, replacing the silent fabricated `0 PLN`
 - [ ] 09-04-PLAN.md (wave 1) — UX-03: Bar Meter / Metric Badge primitives, `MainDashboard` → Action Dock, D-11's dead dial and dead auction button, app-wide gauge ratchet
-- [ ] 09-05-PLAN.md (wave 2) — UX-02: always-on god-rays/pollen orchard overlay with a concrete degradation ladder; deletes the orphaned `GoldenHarvesterView`
 - [ ] 09-06-PLAN.md (wave 1) — UX-09: extract the building-sprite resolver to `lib/buildingSprites.ts` and pin every path to a real asset
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 09-05-PLAN.md (wave 2) — UX-02: always-on god-rays/pollen orchard overlay with a concrete degradation ladder; deletes the orphaned `GoldenHarvesterView`
 - [ ] 09-07-PLAN.md (wave 2) — UX-03 / D-12: BidModal's three fabricated gauges wired to real farm data; deletes `EmeraldGauge`
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 09-08-PLAN.md (wave 3) — UX-08: `currentPhase` gating for the four procedural machines, with a 40-case truth table
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 09-09-PLAN.md (wave 4) — UX-06/UX-09: building sprites in fixed N/NE-border slots, seasonal, correctly depth-ordered
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 09-10-PLAN.md (wave 5) — UX-06/UX-09 / D-10: clicking a building switches the Action Dock into its building mode with a gated upgrade CTA
 
 #### Phase 10: Quality Infrastructure ✅ (success criteria met 2026-08-06)
