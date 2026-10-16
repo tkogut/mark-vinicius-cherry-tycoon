@@ -159,3 +159,10 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Was:** reported that repair could never pay back for assets under 500/level upkeep, leaving Tractor (600) on the viable side.
 **Actually:** the naive "excess vs cost" comparison ignored that wear restarts after a repair. Under the real model (savings ≈ 0.8 × spec per year) Tractor was negative too — 6 of 8 types, not 5.
 **Rule:** if a figure is going into a requirement or a commit message, derive it once properly rather than reusing the back-of-envelope version that motivated the investigation. My own parity test caught this one.
+
+### A pixel assertion measured on one machine is a claim about that machine's font
+
+**Was:** the picker's e2e asserted "label on one line, menu under 260px", and passed on the machine it was written on.
+**Actually:** `system-ui` is a narrow font on macOS/Windows and DejaVu Sans on Linux. The 34-character label needed ~219px on Linux and ~197px was available, so it wrapped. CI and a Linux dev box both failed for 3 days and the nightly run went red every night; nobody looked because the failure looked environmental.
+**Rule:** when a layout test fails only off the author's OS, measure the real widths before calling it flaky (a throwaway spec that prints `getBoundingClientRect` is enough). Fix the component to have headroom for the widest common fallback font; do not loosen the test to the point it stops guarding.
+
