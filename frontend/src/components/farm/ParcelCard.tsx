@@ -52,9 +52,11 @@ interface ParcelCardProps {
     // mutation's own status, so this is threaded down from the host that owns
     // `useFarm()`'s `fertilize` mutation.
     isFertilizing?: boolean;
+    /** Current season number, to disable the picker for a parcel already fertilized this season. */
+    seasonNumber?: number;
 }
 
-export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure, currentPhase, weather, labor, isFertilizing }) => {
+export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, currentSeason, infrastructure, currentPhase, weather, labor, isFertilizing, seasonNumber }) => {
     const [showDetails, setShowDetails] = useState(false);
 
     // Normalize currentPhase
@@ -345,7 +347,8 @@ export const ParcelCard: React.FC<ParcelCardProps> = ({ parcel, onAction, curren
                             </Tooltip>
                         </TooltipProvider>
                         <FertilizerTypeMenu
-                            isOrganic={parcel.isOrganic}
+                            isOrganic={parcel.isOrganic || parcel.organicCertified}
+                            fertilizedThisSeason={seasonNumber !== undefined && parcel.lastFertilized === BigInt(seasonNumber)}
                             isPending={isFertilizing}
                             onSelect={(type) => onAction('fertilize', parcel.id, type)}
                         />

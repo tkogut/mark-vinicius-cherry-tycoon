@@ -1693,7 +1693,8 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                             <DropdownMenu key={action.id}>
                                                 <DropdownMenuTrigger asChild>{buttonEl}</DropdownMenuTrigger>
                                                 <FertilizerTypeMenu
-                                                    isOrganic={!!selectedParcel?.parcel?.isOrganic}
+                                                    isOrganic={!!(selectedParcel?.parcel?.isOrganic || selectedParcel?.parcel?.organicCertified)}
+                                                    fertilizedThisSeason={selectedParcel?.parcel?.lastFertilized === BigInt(seasonNumber)}
                                                     // No pending flag threaded from App.tsx for this
                                                     // entry point yet (out of this task's file list —
                                                     // ImperialOrchard's caller isn't touched here);

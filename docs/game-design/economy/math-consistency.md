@@ -12,7 +12,7 @@
   - Opole: 1.08x
   - Namysłów: 1.05x
 - **Infrastructure Scaling**: Upgrades (like the Golden Harvester) MUST use a compounding multiplier (e.g., `1.05^Level`) rather than a linear additive (`+0.02x`) to maintain ROI balance against exponential upgrade costs.
-- **Fertilizer Type Multiplier (ECON-01, D-01, plan 03-06)**: `OrganicCompatible` and `SyntheticStandard` are yield-neutral (1.0x); only `SyntheticIntensive` carries an effect, +5% (1.05x). Appended last in the product, after `County`. Applied at harvest time from a persisted per-parcel side-table (`stableParcelFertilizerTypes` in `backend/main.mo`), not a field on the parcel record itself — see `docs/game-design/economy/price-formulas.md` for the full citation. Applying `SyntheticIntensive` to an organic parcel is permitted and does not change `isOrganic` (D-02).
+- **Fertilizer Type Multiplier (ECON-01, D-01, plan 03-06)**: `OrganicCompatible` and `SyntheticStandard` are yield-neutral (1.0x); only `SyntheticIntensive` carries an effect, +5% (1.05x). Appended last in the product, after `County`. Applied at harvest time from a persisted per-parcel side-table (`stableParcelFertilizerTypes` in `backend/main.mo`), not a field on the parcel record itself — see `docs/game-design/economy/price-formulas.md` for the full citation. Synthetic types are refused on organic / certified parcels and each type has its own cash cost (500 / 800 / 650 PLN), one application per parcel per season (ECON-REBALANCE; supersedes D-02) — see `price-formulas.md`.
 
 ---
 

@@ -134,8 +134,8 @@ npm run dev            # Vite dev server
 npm run build          # tsc && vite build
 npm run lint           # ESLint, 0 errors + max 183 warnings (ratchet)
 npm run typecheck
-npm test               # vitest run — 529 tests (526 pass, 3 skipped), 15 files
-npm run test:e2e       # Playwright — 47 specs against the static harness
+npm test               # vitest run — 539 tests (536 pass, 3 skipped), 15 files
+npm run test:e2e       # Playwright — 49 specs against the static harness
 npx vitest run src/__tests__/economyParity.test.ts   # single file
 
 # Backend (from repo root)

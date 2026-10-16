@@ -34,25 +34,38 @@ test.describe('fertilizer-type picker (ECON-01, plan 03-07) — parcel card entr
         await expect(page.getByText('Fertilize with Organic-Compatible')).toBeVisible();
         await expect(page.getByText('Fertilize with Synthetic-Standard')).toBeVisible();
         await expect(page.getByText('Fertilize with Synthetic-Intensive')).toBeVisible();
-        await expect(page.getByText('No yield bonus, safe on organic parcels')).toBeVisible();
-        await expect(page.getByText('Baseline yield, standard cost')).toBeVisible();
-        await expect(page.getByText('Five percent more yield, not organic-safe')).toBeVisible();
+        await expect(page.getByText('No yield bonus, organic-safe')).toBeVisible();
+        await expect(page.getByText('Baseline yield')).toBeVisible();
+        await expect(page.getByText('+5% yield, not organic-safe')).toBeVisible();
     });
 
-    test('shows a non-blocking organic warning on Synthetic-Intensive when the parcel is organic', async ({ page }) => {
+    // ECON-REBALANCE: synthetic types are refused on organic parcels (reverses D-02's
+    // display-only warning), so they render disabled with the reason.
+    test('disables both synthetic types on an organic parcel and keeps Organic-Compatible enabled', async ({ page }) => {
         await openPicker(page, { organic: 'true' });
 
-        await expect(page.getByText(/not organic-safe for this parcel/i)).toBeVisible();
+        for (const name of ['Synthetic-Standard', 'Synthetic-Intensive']) {
+            const item = page.getByRole('menuitemradio').filter({ hasText: name });
+            await expect(item).toHaveAttribute('aria-disabled', 'true');
+            await expect(item).toContainText('Not allowed on organic parcels');
+        }
+        await expect(page.getByRole('menuitemradio').filter({ hasText: 'Organic-Compatible' }))
+            .not.toHaveAttribute('aria-disabled', 'true');
+    });
 
-        const intensiveItem = page.getByRole('menuitemradio').filter({ hasText: 'Synthetic-Intensive' });
-        await expect(intensiveItem).not.toHaveAttribute('aria-disabled', 'true');
+    test('shows each type\'s price', async ({ page }) => {
+        await openPicker(page);
+
+        await expect(page.getByRole('menuitemradio').filter({ hasText: 'Organic-Compatible' })).toContainText('650 PLN');
+        await expect(page.getByRole('menuitemradio').filter({ hasText: 'Synthetic-Standard' })).toContainText('500 PLN');
+        await expect(page.getByRole('menuitemradio').filter({ hasText: 'Synthetic-Intensive' })).toContainText('800 PLN');
     });
 
     test('when the parcel is not organic, all three items show their normal captions', async ({ page }) => {
         await openPicker(page, { organic: 'false' });
 
-        await expect(page.getByText('Five percent more yield, not organic-safe')).toBeVisible();
-        await expect(page.getByText(/not organic-safe for this parcel/i)).not.toBeVisible();
+        await expect(page.getByText('+5% yield, not organic-safe')).toBeVisible();
+        await expect(page.getByText('Not allowed on organic parcels')).toHaveCount(0);
     });
 
     test('long-text backstop: labels fit on one line and captions truncate with ellipsis rather than wrap', async ({ page }) => {

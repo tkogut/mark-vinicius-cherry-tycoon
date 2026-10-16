@@ -37,10 +37,25 @@ state is read or written, then persisted in a stable-var side-table —
 and converts it to a modifier via `getFertilizerTypeModifier`, defaulting to
 1.0 for a parcel with no entry.
 
-Applying `SyntheticIntensive` to an organic parcel is permitted and does
-**not** change `isOrganic` — fertilizer type and organic certification are
-independent axes (D-02); the fertilize path never reads, writes, or branches
-on `isOrganic`.
+**Cost and rules (ECON-REBALANCE, 2026-10-16).** Every application consumes one
+`inventory.fertilizers` unit whatever the type; the types differ in the cash
+charged, so Intensive's +5% yield is paid for instead of free.
+
+| Type | Labour | Operations | Total PLN | Yield | Allowed on |
+|---|---|---|---|---|---|
+| `SyntheticStandard` | 300 | 200 | 500 (the flat price before the rebalance) | x1.0 | conventional parcels |
+| `SyntheticIntensive` | 480 | 320 | 800 (+300, +60%) | x1.05 | conventional parcels |
+| `OrganicCompatible` | 390 | 260 | 650 | x1.0 | every parcel; the only type on organic ones |
+
+- Synthetic types are refused on a parcel that is `isOrganic` or `organicCertified`
+  (`Organic parcels accept only OrganicCompatible fertilizer`). This replaces D-02,
+  which kept Synthetic-Intensive selectable on organic parcels with a warning.
+- One application per parcel per season: a parcel whose `lastFertilized` equals the
+  current `seasonNumber` is refused (`This parcel was already fertilized this season`).
+- The fertilize path still does not change `isOrganic`; it only reads it to refuse.
+- Source: `GameLogic.getFertilizerCost` / `isSyntheticFertilizer` in
+  `backend/game_logic.mo`, mirrored by `FERTILIZER_COSTS` in `frontend/src/lib/gameLogic.ts`
+  and pinned in `economyParity.test.ts`.
 
 ## Quality Score (0–100, capped at 100)
 

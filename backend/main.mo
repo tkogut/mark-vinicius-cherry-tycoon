@@ -923,6 +923,20 @@ actor CherryTycoon {
           case null { return #Err(#NotFound("Parcel not found")) };
           case (?index) {
             let parcel = farm.parcels[index];
+
+            // ECON-REBALANCE: synthetic fertilizers are refused on organic or certified
+            // parcels (they were accepted, which let an organic grower fertilize chemically
+            // while keeping the organic price premium).
+            if (GameLogic.isSyntheticFertilizer(fertilizerType) and (parcel.isOrganic or parcel.organicCertified)) {
+              return #Err(#InvalidOperation("Organic parcels accept only OrganicCompatible fertilizer"));
+            };
+
+            // ECON-REBALANCE: one application per parcel per season. `lastFertilized` was
+            // written below but never read, so a parcel could be fertilized repeatedly in
+            // one turn and the cost of each type meant nothing.
+            if (parcel.lastFertilized == farm.seasonNumber) {
+              return #Err(#InvalidOperation("This parcel was already fertilized this season"));
+            };
             
             // Increase fertility slightly
             let newFertility = if (parcel.fertility + 0.1 > 1.0) { 1.0 } else { parcel.fertility + 0.1 };
@@ -948,8 +962,9 @@ actor CherryTycoon {
             };
 
             // Check for bankruptcy risk (Labor + Fertilizer)
-            let laborShare = 300;
-            let operationalShare = 200;
+            let fertilizerCost = GameLogic.getFertilizerCost(fertilizerType);
+            let laborShare = fertilizerCost.labor;
+            let operationalShare = fertilizerCost.operations;
             let totalCost = laborShare + operationalShare;
 
             switch (await checkBankruptcyRisk(farm, totalCost)) {
