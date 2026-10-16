@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFarm } from '@/hooks/useFarm';
 import { PlayerFarm, Season, SeasonPhase, WeatherEvent } from '@/declarations/backend.did';
-import { calculateYieldBreakdown } from '@/lib/gameLogic';
+import { calculateYieldBreakdown, getSpoilagePercent, applySpoilage } from '@/lib/gameLogic';
 import { useQueryClient } from '@tanstack/react-query';
 import { FARM_QUERY_KEY } from '@/hooks/useFarm';
 
@@ -235,6 +235,16 @@ export function useGuestFarm() {
                 f.seasonNumber += 1n;
             } else if (currentIndex >= 0 && currentIndex < phaseTypes.length - 1) {
                 const nextPhase = phaseTypes[currentIndex + 1];
+                // ECON-12: entering Winter rots conventional AND organic stock at the same
+                // rate (guest mode had no spoilage at all before this).
+                if ('Autumn' in f.currentSeason && seasonMap[nextPhase] === 'Winter') {
+                    const percent = getSpoilagePercent(f.infrastructure, f.hiredLabor);
+                    f.inventory = {
+                        ...f.inventory,
+                        cherries: applySpoilage(f.inventory.cherries, percent),
+                        organicCherries: applySpoilage(f.inventory.organicCherries, percent),
+                    };
+                }
                 f.currentPhase = { [nextPhase]: null } as any;
                 f.currentSeason = { [seasonMap[nextPhase]]: null } as any;
             }

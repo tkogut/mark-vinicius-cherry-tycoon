@@ -116,7 +116,7 @@ Recent decisions affecting current work:
 
 **Flagged defects, deliberately not fixed (all outside the scope they were found in):**
 
-- `ECON-PARITY-01`: `getInfrastructureModifier` in `game_logic.mo` folds `+=` (Tractor/Shaker/Sprayer/ColdStorage) and `*=` (GoldenHarvester) in one pass over the array, so the multiplier **depends on array order** (GH→Tractor 1.2525 vs Tractor→GH 1.2679). Changing it moves real payouts — an economy-balance decision. The frontend mirror reproduces the quirk faithfully so UI and payout agree while it stands.
+- ~~`ECON-PARITY-01` infrastructure modifier depended on array order~~ → **fixed 2026-10-16** (additive terms summed first, Golden Harvester multiplies last; replica: both purchase orders harvested 8 176 kg). Organic stock now spoils like conventional (`ECON-12`). Track B inherits the `game_logic.mo` change and cannot be verified until EOP-01.
 - `GEO-07`: two parcel-purchase methods coexist — `buyParcel` (used) and `purchaseParcel` (never called, and the one `lib/gddTemplate.ts` documents).
 
 **Backend / infrastructure:**

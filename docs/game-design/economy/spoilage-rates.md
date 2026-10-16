@@ -95,6 +95,14 @@ array, `baseRate` ends at `8`. With neither, it stays at the default `15`. This
 priority behavior is the one thing the old, now-deleted doc got right — just about
 the wrong function; it is preserved here because it still describes real behavior.
 
+## Organic stock (ECON-12)
+
+`inventory.organicCherries` is spoiled by the same `spoilageRate` as `inventory.cherries`
+(`spoiledOrganic = organicCherries * spoilageRate / 100`, same floor division). It used to be
+skipped by the block entirely, which gave an organic grower the 40% price premium and
+free storage. Observed on a local replica (no storage, Emergency labour, rate 21%):
+100 000 kg conventional -> 79 000 and 50 000 kg organic -> 39 500 entering Winter.
+
 ## Handling quality
 
 Source: `backend/hiring_logic.mo:47-55`, `getHandlingQuality(labor: ?LaborType)`.

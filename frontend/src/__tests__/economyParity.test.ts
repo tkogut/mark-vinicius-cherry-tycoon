@@ -40,6 +40,10 @@ import {
     getFertilizerTypeModifier,
     FERTILIZER_TYPES,
     LEAGUE_LABELS,
+    getHandlingQuality,
+    getSpoilageBaseRate,
+    getSpoilagePercent,
+    applySpoilage,
 } from '@/lib/gameLogic';
 import { PARITY_CASES, makeParcel, makeInfra, BONUS_COUNTIES, CONTROL_COUNTY } from '@/test-utils/economyVectors';
 
@@ -99,7 +103,9 @@ function refTreeAgeModifier(treeAge: bigint): number | null {
  * infrastructure array — see the order-sensitivity test at the bottom.
  */
 function refInfraModifier(infrastructure: Infrastructure[]): number {
-    let modifier = 1.0;
+    // ECON-PARITY-01: additive terms onto 1.0, then the GoldenHarvester multiplier last.
+    let additive = 1.0;
+    let multiplier = 1.0;
     for (const infra of infrastructure) {
         const type = Object.keys(infra.infraType)[0];
         const level = Number(infra.level);
@@ -107,17 +113,17 @@ function refInfraModifier(infrastructure: Infrastructure[]): number {
             case 'GoldenHarvester': {
                 let multi = 1.0;
                 for (let i = 1; i <= level; i++) multi *= 1.05;
-                modifier *= multi;
+                multiplier *= multi;
                 break;
             }
-            case 'Tractor': modifier += 0.05 * level; break;
-            case 'Shaker': modifier += 0.08 * level; break;
-            case 'Sprayer': modifier += 0.03 * level; break;
-            case 'ColdStorage': modifier += 0.02 * level; break;
+            case 'Tractor': additive += 0.05 * level; break;
+            case 'Shaker': additive += 0.08 * level; break;
+            case 'Sprayer': additive += 0.03 * level; break;
+            case 'ColdStorage': additive += 0.02 * level; break;
             default: break; // Motoko: case (_) { /* no yield effect */ }
         }
     }
-    return modifier;
+    return additive * multiplier;
 }
 
 /** Motoko: `if (waterLevel < 0.3) 0.7 else if (waterLevel > 0.8) 0.85 else 1.0`. */
@@ -605,23 +611,40 @@ describe('economy parity: club share price (SPORTS-02)', () => {
     });
 });
 
-describe('economy parity: known backend quirks are reproduced, not smoothed over', () => {
-    // Motoko folds `+=` (Tractor et al.) and `*=` (GoldenHarvester) in array
-    // order, so the same equipment in a different order gives a different
-    // multiplier. That is a latent backend issue (flagged as ECON-PARITY-01),
-    // but while it exists the mirror must reproduce it — otherwise the UI and
-    // the payout disagree for any player owning a Golden Harvester plus
-    // anything else.
-    it('is sensitive to infrastructure array order, exactly like the backend', () => {
+describe('economy parity: backend behaviours the mirror must reproduce', () => {
+    // ECON-PARITY-01 (fixed 2026-10-16): Motoko used to fold `+=` (Tractor et al.)
+    // and `*=` (GoldenHarvester) in array order, so the same equipment gave 1.2525
+    // or 1.2679 depending on purchase order. The additive terms are now summed
+    // first and the Golden Harvester multiplies the sum last.
+    it('is independent of infrastructure array order', () => {
         const gh = makeInfra({ GoldenHarvester: null }, 2);
         const tractor = makeInfra({ Tractor: null }, 3);
 
-        const ghFirst = getInfraModifier([gh, tractor]);   // (1.0 * 1.1025) + 0.15
-        const tractorFirst = getInfraModifier([tractor, gh]); // (1.0 + 0.15) * 1.1025
+        const ghFirst = getInfraModifier([gh, tractor]);
+        const tractorFirst = getInfraModifier([tractor, gh]);
 
-        expect(ghFirst).toBeCloseTo(refInfraModifier([gh, tractor]), 10);
-        expect(tractorFirst).toBeCloseTo(refInfraModifier([tractor, gh]), 10);
-        expect(ghFirst).not.toBeCloseTo(tractorFirst, 6);
+        expect(ghFirst).toBeCloseTo(tractorFirst, 12);
+        expect(ghFirst).toBeCloseTo((1.0 + 0.15) * 1.05 * 1.05, 12); // = 1.267875
+        expect(ghFirst).toBeCloseTo(refInfraModifier([gh, tractor]), 12);
+        expect(tractorFirst).toBeCloseTo(refInfraModifier([tractor, gh]), 12);
+    });
+
+    it('gives every permutation of a mixed fleet the same modifier', () => {
+        const fleet = [
+            makeInfra({ GoldenHarvester: null }, 3),
+            makeInfra({ Tractor: null }, 2),
+            makeInfra({ Shaker: null }, 1),
+            makeInfra({ Sprayer: null }, 4),
+            makeInfra({ ColdStorage: null }, 2),
+            makeInfra({ Warehouse: null }, 5),
+        ];
+        const permutations = (xs: Infrastructure[]): Infrastructure[][] =>
+            xs.length <= 1 ? [xs] : xs.flatMap((x, i) =>
+                permutations([...xs.slice(0, i), ...xs.slice(i + 1)]).map(rest => [x, ...rest]));
+        const expected = (1.0 + 0.10 + 0.08 + 0.12 + 0.04) * 1.05 ** 3;
+        for (const perm of permutations(fleet)) {
+            expect(getInfraModifier(perm)).toBeCloseTo(expected, 12);
+        }
     });
 
     it('treats trees older than 40 as dead (zero yield), like the backend', () => {
@@ -897,5 +920,50 @@ describe('economy parity: fertilizer type (ECON-01)', () => {
             }
             expect(FERTILIZER_TYPES.length).toBe(3);
         });
+    });
+});
+
+describe('economy parity: winter spoilage reaches organic stock (ECON-12)', () => {
+    // Transcription of the Autumn block in main.mo's season advance:
+    //   baseRate = 15; ColdStorage -> 2; Warehouse (only while baseRate > 5) -> 8
+    //   rate = StorageLogic.calculateSpoilage(baseRate, HiringLogic.getHandlingQuality(labor))
+    //        = baseRate * 100 / quality            (Nat division)
+    //   spoiledCherries = cherries * rate / 100
+    //   spoiledOrganic  = organicCherries * rate / 100      <- ECON-12
+    const rate = (infra: ReturnType<typeof makeInfra>[], labor: unknown) => getSpoilagePercent(infra, labor);
+    const cold = makeInfra({ ColdStorage: null }, 1);
+    const warehouse = makeInfra({ Warehouse: null }, 1);
+
+    it('reproduces the documented storage x labour table', () => {
+        expect(rate([], [])).toBe(21);                               // none, unhired (70)
+        expect(rate([], [{ Emergency: null }])).toBe(21);
+        expect(rate([], [{ Standard: null }])).toBe(15);
+        expect(rate([], [{ City: null }])).toBe(12);
+        expect(rate([warehouse], [{ Standard: null }])).toBe(8);
+        expect(rate([cold], [{ Emergency: null }])).toBe(2);
+        expect(rate([cold], [{ City: null }])).toBe(1);
+    });
+
+    it('Cold Storage beats a Warehouse in either array order', () => {
+        expect(getSpoilageBaseRate([cold, warehouse])).toBe(2);
+        expect(getSpoilageBaseRate([warehouse, cold])).toBe(2);
+    });
+
+    it('treats unhired labour as the worst case, not neutral', () => {
+        expect(getHandlingQuality([])).toBe(70);
+        expect(getHandlingQuality(undefined)).toBe(70);
+        expect(getHandlingQuality([{ City: null }])).toBe(120);
+    });
+
+    it('takes the same percentage from conventional and organic stock', () => {
+        const percent = rate([], []);
+        expect(applySpoilage(100_000n, percent)).toBe(79_000n);  // the figure seen on the replica for conventional
+        expect(applySpoilage(50_000n, percent)).toBe(39_500n);   // organic now loses the same 21%
+    });
+
+    it('uses integer division and never goes negative', () => {
+        expect(applySpoilage(99n, 21)).toBe(79n);   // 99 * 21 / 100 = 20 (truncated)
+        expect(applySpoilage(0n, 21)).toBe(0n);
+        expect(applySpoilage(5n, 100)).toBe(0n);
     });
 });

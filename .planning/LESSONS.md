@@ -159,3 +159,16 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Was:** reported that repair could never pay back for assets under 500/level upkeep, leaving Tractor (600) on the viable side.
 **Actually:** the naive "excess vs cost" comparison ignored that wear restarts after a repair. Under the real model (savings ≈ 0.8 × spec per year) Tractor was negative too — 6 of 8 types, not 5.
 **Rule:** if a figure is going into a requirement or a commit message, derive it once properly rather than reusing the back-of-envelope version that motivated the investigation. My own parity test caught this one.
+
+### `git fetch` before starting a phase: a clean local `master` is not the remote one
+
+**Was:** started Phase 3 from a local `master` last updated at PR #1, did seven levers over several sessions, then opened a PR.
+**Actually:** `origin/master` had moved 70 commits in parallel. Another workstation had built the same Phase 3 (different fertilizer taxonomy, a season price factor, its own runner-up credit table) and reused the IDs ECON-08/09 for other defects. The PR conflicted in a dozen files, so its PR workflows (Playwright, backend) never even started. Only the push-triggered unit run was green.
+**Rule:** `git fetch origin` and read `git log HEAD..origin/master` at the start of a session and before opening a PR. Check the requirement IDs you are about to use against `origin/master:.planning/REQUIREMENTS.md`. A PR whose checks are only the push-triggered ones is a red flag, not a green one.
+
+### Check the setup step succeeded before comparing two runs
+
+**Was:** to test that purchase order no longer matters, bought a Golden Harvester and a Tractor in both orders and compared the harvests.
+**Actually:** the Tractor purchase was refused (`BankruptcyRisk`) in both runs, and the weather differed between them. The numbers (7 937, 5 279) looked like a result and meant nothing.
+**Rule:** an experiment script prints the outcome of every setup call, and pins every input that is not the variable (here: weather forced Sunny/mitigated, only purchases that are affordable). Then compare.
+
