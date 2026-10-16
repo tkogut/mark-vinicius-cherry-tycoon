@@ -286,7 +286,7 @@ module {
       case (#Spring) { 30_000 };  // Pre-season, moderate demand
       case (#Summer) { 80_000 };  // Peak cherry demand
       case (#Autumn) { 50_000 };  // Post-harvest, preserves demand
-      case (#Winter) { 20_000 };  // Low demand, dormant market
+      case (#Winter) { 30_000 };  // Off-season clearance: AI supply is 0, so a lot of up to 10_000 kg sells at the 1.0 cap (was 20_000 -> 0.67)
     }
   };
 

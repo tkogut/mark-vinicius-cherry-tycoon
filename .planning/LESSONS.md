@@ -159,3 +159,28 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Was:** closed Phases 2 and 3's work, updated STATE.md and REQUIREMENTS.md each time, and left the ROADMAP.md Progress table reading "Not started". A fresh onboarding then reported two different positions.
 **Actually:** three files (ROADMAP table, STATE Session Continuity, onboarding SUMMARY) and the lint ceiling in CLAUDE.md (183) had all gone stale against the code (178 in `package.json`). Each was correct on the day it was written.
 **Rule:** when a phase or lever closes, update ROADMAP's Progress row in the same commit as STATE.md. For numbers that live in code (lint ceiling, test counts), point at the source rather than copying it.
+
+### A field that is written but never read is not a guard
+
+**Was:** the ECON-01 spec built a trade-off table on "6 seasons to the cap" because `fertilizeParcel` stores `lastFertilized`.
+**Actually:** nothing ever read it. A parcel could be fertilized to the cap three times in one turn, and the cheapest type dominated every other. The comment-free field looked like a cooldown.
+**Rule:** before relying on a limit, grep for a *read* of the field, not just a write. Then check the strategy table against the cheapest exploit, not the intended play.
+
+### A UI that always closes on click hides event bubbling
+
+**Was:** the orchard's radial menu closed after every action, so a click reaching `handleBackgroundClick` (which also closes it) was invisible.
+**Actually:** the first menu that should stay open (the fertilizer ring) vanished the instant it opened. Only a Playwright test noticed; typecheck, lint and 440 unit tests were green.
+**Rule:** the first time a component must stay open after a click, assert that it did. Stop propagation at the overlay root instead of in each button.
+
+### A spec's "the mirror lives in X" is a claim to grep
+
+**Was:** the ECON-02 brief said to sync with `gameLogic.ts`, "where winter demand is 30000".
+**Actually:** `gameLogic.ts` had no demand table at all; the only copy was a private one inside `SellModal.tsx`, with its own AI-supply approximations, outside `economyParity.test.ts`.
+**Rule:** find the duplicate by searching for the numbers (`20000`, `133000`), not by trusting which file a spec names.
+
+### Check the setup step succeeded before comparing two runs
+
+**Was:** to test that purchase order no longer matters, bought a Golden Harvester and a Tractor in both orders and compared the harvests.
+**Actually:** the Tractor purchase was refused (`BankruptcyRisk`) in both runs, and the weather differed between them. The numbers (7 937, 5 279) looked like a result and meant nothing.
+**Rule:** an experiment script prints the outcome of every setup call, and pins every input that is not the variable (here: weather forced Sunny/mitigated, only purchases that are affordable). Then compare.
+

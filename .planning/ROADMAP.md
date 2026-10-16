@@ -252,7 +252,7 @@ Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6
 | 1. Enhanced Leaderboard & Rankings UI | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 1.1. Atomic Auth Fix | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 2. Football Clubs — Restore the Core Pillar | Playable Release — V1 Parity | 1/1 | Complete as an agreed vertical slice (SPORTS-04/05/06 open) | 2026-08-07 |
-| 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 5/7 levers | In progress — ECON-03..07 done; ECON-01/02 await balance decisions | - |
+| 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 7/7 levers | Complete (ECON-01/02 decided 2026-10-16; ECON-08 and ECON-PARITY-01 fixed, ECON-09 closed by decision) | 2026-10-16 |
 | 4. Weather UI Consolidation | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5. Regional Geography Rebuild | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5.1. Geography Map-Zoom UI | Playable Release — V1 Parity | 0/TBD | Not started | - |

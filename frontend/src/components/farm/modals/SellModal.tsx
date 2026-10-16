@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Coins, TrendingUp, Truck, Store, MapPin, Calendar, Users, AlertTriangle, Leaf, Flame} from "lucide-react";
 import { useMarketPrices } from '@/hooks/useMarketPrices';
 import { useFarm } from '@/hooks/useFarm';
+import { SEASON_DEMAND_KG, AI_SUPPLY_ESTIMATE_KG, computeMarketMultiplier, type SeasonKey } from '@/lib/gameLogic';
 
 interface SellModalProps {
     isOpen: boolean;
@@ -51,12 +52,8 @@ export const SellModal: React.FC<SellModalProps> = ({
 
         // 1. Season Modifier (For AI Market Competition)
         const seasonKey = Object.keys(farm.currentSeason)[0]; // "Spring", "Summer", etc.
-        let seasonDemand = 20000;
-        let aiSupplyKg = 0;
-        if (seasonKey === 'Spring') { seasonDemand = 30000; aiSupplyKg = 0; }
-        if (seasonKey === 'Summer') { seasonDemand = 80000; aiSupplyKg = 133000; } // 45k+18k+70k = 133k base + 15% bonus = ~152k, but let's use 133k base for approx
-        if (seasonKey === 'Autumn') { seasonDemand = 50000; aiSupplyKg = 106400; } // 80% of 133k
-        if (seasonKey === 'Winter') { seasonDemand = 20000; aiSupplyKg = 0; }
+        const seasonDemand = SEASON_DEMAND_KG[seasonKey as SeasonKey] ?? SEASON_DEMAND_KG.Spring;
+        const aiSupplyKg = AI_SUPPLY_ESTIMATE_KG[seasonKey as SeasonKey] ?? 0;
 
         const popMod = 1.0;
         let regionName = "Unknown Region";
@@ -74,11 +71,8 @@ export const SellModal: React.FC<SellModalProps> = ({
             try { population = Number(region.population); } catch (e) { population = 50000; }
         }
 
-        // Shared Market Multiplier (Supply/Demand curve)
-        const GLOBAL_BASELINE_KG = 20000;
-        const totalSupply = amount + aiSupplyKg + GLOBAL_BASELINE_KG;
-        const rawMarketMult = seasonDemand / (totalSupply || 1);
-        const marketMult = Math.max(0.5, Math.min(1.0, rawMarketMult)); // Floor 0.5, Cap 1.0
+        // Shared Market Multiplier (Supply/Demand curve) — mirror in lib/gameLogic.ts
+        const marketMult = computeMarketMultiplier(amount, aiSupplyKg, seasonDemand);
 
         let finalUnitPrice = basePrice;
         let qualityBonus = 1.0;

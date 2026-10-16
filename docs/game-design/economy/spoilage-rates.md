@@ -71,14 +71,17 @@ cherries once a year — not everything, as the old 100% table claimed.
 The base-rate loop is written so Cold Storage wins over a Warehouse regardless
 of the order `infrastructure` happens to be in (the Warehouse branch is guarded
 by `baseRate > 5`). Worth stating explicitly because the *yield* multiplier in
-the same codebase is order-dependent — see `ECON-PARITY-01`.
+the same codebase used to be order-dependent (`ECON-PARITY-01`, fixed 2026-10-16).
 
 ### Not modelled
 
-Time in storage, cherry variety, organic vs conventional, and weather have
-**no** effect on spoilage. `inventory.organicCherries` is not touched by the
-spoilage block at all — only `cherries` rots. Rate depends solely on the two
-inputs above, and only once a year.
+Time in storage, cherry variety and weather have **no** effect on spoilage.
+Organic and conventional stock rot at the **same** rate (ECON-08, 2026-10-16:
+`inventory.organicCherries` used to be skipped, which gave organic growers the
+price premium and free storage). Rate depends solely on the two inputs above,
+and only once a year. Verified on a replica: 100 000 kg conventional -> 79 000
+and 50 000 kg organic -> 39 500 entering Winter with no storage and Emergency
+labour.
 
 ## Upgrade Cost Scaling
 

@@ -182,4 +182,22 @@ test.describe('interaction', () => {
         // The menu renders its actions as buttons with emoji + label.
         await expect(page.getByText('Harvest').first()).toBeVisible();
     });
+
+    // ECON-01: "Fertilize" no longer acts immediately — it opens a ring of the four
+    // fertilizer types, each showing its gain and its real price.
+    test('Fertilize opens the four fertilizer types with their prices, and Back returns', async ({ page }) => {
+        await openOrchard(page, { sectors: 1, trees: 60, season: 'Spring' });
+        await tiles(page).nth(12).click({ force: true });
+        await page.getByRole('button', { name: /Fertilize/ }).click();
+
+        for (const [type, price] of [['Basic', '200'], ['NPK', '500'], ['Premium', '800'], ['Organic', '650']]) {
+            const button = page.getByRole('button', { name: new RegExp(`^${type}`) });
+            await expect(button).toBeVisible();
+            await expect(button).toContainText(`${price} PLN`);
+        }
+
+        await page.getByRole('button', { name: 'Back' }).click();
+        await expect(page.getByRole('button', { name: /Fertilize/ })).toBeVisible();
+        await expect(page.getByRole('button', { name: /^NPK/ })).toHaveCount(0);
+    });
 });

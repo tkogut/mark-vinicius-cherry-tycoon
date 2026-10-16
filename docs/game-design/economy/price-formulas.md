@@ -10,7 +10,7 @@ Yield (kg) = Base × Soil × pH × Fertility × Infrastructure × Water × Organ
 
 | Multiplier | Factor |
 |---|---|
-| Infrastructure | Compounding `1.05^Level` (NOT linear) |
+| Infrastructure | Additive terms (Tractor +0.05, Shaker +0.08, Sprayer +0.03, ColdStorage +0.02 per level) are summed onto 1.0 first; Golden Harvester's compounding `1.05^Level` multiplies that sum last. Order-independent (ECON-PARITY-01) |
 | Głubczyce county | ×1.10 |
 | Opole county | ×1.08 |
 | Namysłów county | ×1.05 |
@@ -45,3 +45,25 @@ Future Price = basePrice × 93 / 100
 Buyback      = shortfallKg × spotPrice × 125 / 100
 Default Pen. = shortfallKg × lockedPrice × 150 / 100
 ```
+
+## Fertilizer Types (ECON-01)
+
+Each application consumes one `inventory.fertilizers` unit whatever the type; the types differ in cash (labour + operations) and fertility gained. Fertility is a direct multiplier on yield (start 0.7, cap 1.0).
+
+| Type | Fertility | Labour | Operations | Total PLN | Applications 0.70 -> 1.00 | Allowed on |
+|---|---|---|---|---|---|---|
+| `Basic` | +0.05 | 120 | 80 | 200 | 6 | conventional |
+| `NPK` | +0.10 | 300 | 200 | 500 | 3 | conventional |
+| `Premium` | +0.15 | 480 | 320 | 800 | 2 | conventional |
+| `Organic` | +0.10 | 390 | 260 | 650 | 3 | every parcel; the only type on organic (`isOrganic` or `organicCertified`) parcels |
+
+One application per parcel per season (`lastFertilized == seasonNumber` is refused). Applications at the cap are refused (tolerance 1e-9). Unknown type -> `Nieznany typ nawozu`.
+
+## Seasonal Market Multiplier (ECON-02)
+
+```
+marketMult = clamp( seasonDemand / (playerKg + aiSupplyKg + 20 000), 0.50, 1.00 )
+seasonDemand: Spring 30 000, Summer 80 000, Autumn 50 000, Winter 30 000
+```
+
+Applied in `sellCherries` on top of saturation, for both channels. AI supply is zero in Spring and Winter, so those seasons pay up to the 1.0 cap for small lots; in Summer and Autumn the three AIs supply roughly 80-173k kg and the multiplier sits at or near the 0.5 floor. `getMarketPrices().seasonMultiplier` reports this multiplier for a 10 000 kg lot in the caller's season, with AI entropy 0.

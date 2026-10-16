@@ -64,25 +64,31 @@ module {
   };
 
   // Infrastructure modifier
+  // ECON-PARITY-01: additive terms (Tractor / Shaker / Sprayer / ColdStorage) are
+  // summed onto 1.0 first; GoldenHarvester's compounding 1.05^level multiplies the
+  // finished sum last. This used to fold `+=` and `*=` in one pass over the array,
+  // so the same equipment gave 1.2525 or 1.2679 depending on purchase order.
+  // Mirrored by getInfraModifier in frontend/src/lib/gameLogic.ts.
   private func getInfrastructureModifier(infrastructure: [Infrastructure]) : Float {
-    var modifier : Float = 1.0;
-    
+    var additive : Float = 1.0;
+    var multiplier : Float = 1.0;
+
     for (infra in infrastructure.vals()) {
       switch (infra.infraType) {
         case (#GoldenHarvester) {
           var multi = 1.0;
           for (i in Iter.range(1, infra.level)) { multi *= 1.05 };
-          modifier *= multi;
+          multiplier *= multi;
         };
-        case (#Tractor) { modifier += 0.05 * Float.fromInt(infra.level) };
-        case (#Shaker) { modifier += 0.08 * Float.fromInt(infra.level) };
-        case (#Sprayer) { modifier += 0.03 * Float.fromInt(infra.level) };
-        case (#ColdStorage) { modifier += 0.02 * Float.fromInt(infra.level) };
+        case (#Tractor) { additive += 0.05 * Float.fromInt(infra.level) };
+        case (#Shaker) { additive += 0.08 * Float.fromInt(infra.level) };
+        case (#Sprayer) { additive += 0.03 * Float.fromInt(infra.level) };
+        case (#ColdStorage) { additive += 0.02 * Float.fromInt(infra.level) };
         case (_) { /* other infrastructure doesn't affect yield */ };
       };
     };
-    
-    modifier
+
+    additive * multiplier
   };
 
   // Main yield calculation: PP = Base × Soil × pH × Fertility × Infrastructure × TreeAge
@@ -313,6 +319,52 @@ module {
     };
     
     total
+  };
+
+  // ============================================================================
+  // FERTILIZER TYPES (ECON-01)
+  // ============================================================================
+  // Every application consumes exactly one `inventory.fertilizers` unit whatever
+  // the type; the types differ in the cash charged (labour + operations) and in
+  // the fertility gained. `chemical` types are refused on organic parcels —
+  // `Organic` is the only type allowed there (and is allowed everywhere).
+  //
+  //   type      gain   labour  ops   total   per +0.01
+  //   Basic     0.05   120     80    200     40  (cheapest per application)
+  //   NPK       0.10   300     200   500     50  (the pre-ECON-01 price, unchanged)
+  //   Premium   0.15   480     320   800     53  (fewest applications)
+  //   Organic   0.10   390     260   650     65
+  //
+  // Mirrored by FERTILIZER_TYPES in frontend/src/lib/gameLogic.ts.
+  public type FertilizerSpec = {
+    fertilityGain : Float;
+    laborCost : Nat;
+    operationalCost : Nat;
+    chemical : Bool;
+  };
+
+  public func getFertilizerSpec(fertilizerType : Text) : ?FertilizerSpec {
+    switch (fertilizerType) {
+      case ("Basic")   { ?{ fertilityGain = 0.05; laborCost = 120; operationalCost = 80;  chemical = true } };
+      case ("NPK")     { ?{ fertilityGain = 0.10; laborCost = 300; operationalCost = 200; chemical = true } };
+      case ("Premium") { ?{ fertilityGain = 0.15; laborCost = 480; operationalCost = 320; chemical = true } };
+      case ("Organic") { ?{ fertilityGain = 0.10; laborCost = 390; operationalCost = 260; chemical = false } };
+      case (_)         { null };
+    }
+  };
+
+  // Repeated float addition never lands exactly on 1.0 (0.7 + 3 x 0.1 is
+  // 0.9999999999999999), so "at the cap" needs a tolerance or a fourth
+  // application would be charged for nothing.
+  let FERTILITY_CAP : Float = 1.0;
+  let FERTILITY_EPSILON : Float = 0.000000001;
+
+  public func isFertilityMaxed(fertility : Float) : Bool {
+    fertility >= FERTILITY_CAP - FERTILITY_EPSILON
+  };
+
+  public func applyFertilizer(fertility : Float, gain : Float) : Float {
+    Float.min(FERTILITY_CAP, fertility + gain)
   };
 
   // Variable costs: fertilizers, fuel, labor

@@ -864,9 +864,14 @@ actor CherryTycoon {
   // Fertilize a parcel
   public shared({ caller }) func fertilizeParcel(
     parcelId: Text,
-    _fertilizerType: Text
+    fertilizerType: Text
   ) : async GameResult<Text, GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // ECON-01: the type is no longer decorative — price and gain come from GameLogic.getFertilizerSpec
+    let spec = switch (GameLogic.getFertilizerSpec(fertilizerType)) {
+      case null { return #Err(#InvalidOperation("Nieznany typ nawozu")) };
+      case (?s) { s };
+    };
     switch (playerFarms.get(caller)) {
       case null { return #Err(#NotFound("Player not found")) };
       case (?farm) {
@@ -882,17 +887,30 @@ actor CherryTycoon {
           return #Err(#SeasonalRestriction("Fertilization is only effective during active lifecycle phases. Current: " # debug_show(farm.currentSeason)));
         };
         
-        // TODO: Future enhancement - use _fertilizerType quality parameter to influence productivity
-
         let (_, indexOpt) = findParcelIndex(farm.parcels, parcelId);
 
         switch (indexOpt) {
           case null { return #Err(#NotFound("Parcel not found")) };
           case (?index) {
             let parcel = farm.parcels[index];
-            
-            // Increase fertility slightly
-            let newFertility = if (parcel.fertility + 0.1 > 1.0) { 1.0 } else { parcel.fertility + 0.1 };
+
+            // ECON-01: organic parcels accept only the certified organic fertilizer
+            if (spec.chemical and (parcel.isOrganic or parcel.organicCertified)) {
+              return #Err(#InvalidOperation("Parcele ekologiczne wymagają certyfikowanego nawozu Bio-Organic"));
+            };
+
+            // ECON-01: one application per parcel per season. `lastFertilized` was
+            // written here but never read, so the same parcel could be fertilized
+            // to the cap within a single turn and the type trade-offs meant nothing.
+            if (parcel.lastFertilized == farm.seasonNumber) {
+              return #Err(#InvalidOperation("Ta parcela została już nawożona w bieżącym sezonie"));
+            };
+
+            if (GameLogic.isFertilityMaxed(parcel.fertility)) {
+              return #Err(#InvalidOperation("Żyzność tej parceli jest już maksymalna"));
+            };
+
+            let newFertility = GameLogic.applyFertilizer(parcel.fertility, spec.fertilityGain);
             
             let updatedParcels = Array.tabulate<CherryParcel>(
               farm.parcels.size(),
@@ -915,8 +933,8 @@ actor CherryTycoon {
             };
 
             // Check for bankruptcy risk (Labor + Fertilizer)
-            let laborShare = 300;
-            let operationalShare = 200;
+            let laborShare = spec.laborCost;
+            let operationalShare = spec.operationalCost;
             let totalCost = laborShare + operationalShare;
 
             switch (await checkBankruptcyRisk(farm, totalCost)) {
@@ -1528,6 +1546,7 @@ actor CherryTycoon {
     // Spoilage Logic (Phase 4)
     // Check for Cold Storage / Warehouse to prevent rotting in Winter
     var spoiledCherries : Nat = 0;
+    var spoiledOrganic : Nat = 0;
     
     if (farm.currentSeason == #Autumn) {
        // Check for ColdStorage or Warehouse reducing base rate
@@ -1539,15 +1558,22 @@ actor CherryTycoon {
        let handlingQuality = HiringLogic.getHandlingQuality(farm.hiredLabor);
        let spoilageRate = StorageLogic.calculateSpoilage(baseRate, handlingQuality);
        spoiledCherries := (farm.inventory.cherries * spoilageRate) / 100;
+       // ECON-08: organic cherries rot at the same rate. They carry no preservatives,
+       // and exempting them gave the organic grower a 40% price premium AND free storage.
+       spoiledOrganic := (farm.inventory.organicCherries * spoilageRate) / 100;
     };
     
     let newCherries = if (farm.inventory.cherries >= spoiledCherries) {
        Int.abs((farm.inventory.cherries : Int) - (spoiledCherries : Int))
     } else { 0 };
+    let newOrganicCherries = if (farm.inventory.organicCherries >= spoiledOrganic) {
+       Int.abs((farm.inventory.organicCherries : Int) - (spoiledOrganic : Int))
+    } else { 0 };
     
     let updatedInventory = {
        farm.inventory with
        cherries = newCherries;
+       organicCherries = newOrganicCherries;
     };
 
     let _currentSeasonName = farm.currentSeason;
@@ -2880,13 +2906,26 @@ actor CherryTycoon {
   };
 
   // Get current market prices
-  public query func getMarketPrices() : async GameResult<Types.MarketPrice, GameError> {
-    // Basic static prices for now, matching GDD
+  public shared query({ caller }) func getMarketPrices() : async GameResult<Types.MarketPrice, GameError> {
+    // ECON-02: seasonMultiplier used to be a literal 1.0 while sellCherries already
+    // priced by season (CompetitorLogic.getSeasonDemand / computeMarketMultiplier).
+    // It now reports that same multiplier for a reference lot of 10_000 kg in the
+    // caller's current season (#Spring for a caller with no farm). The AI supply
+    // uses entropy 0, so this is a deterministic indication, not the exact quote:
+    // sellCherries mixes in Time.now().
+    let season : Types.Season = switch (playerFarms.get(caller)) {
+      case (?farm) { farm.currentSeason };
+      case null { #Spring };
+    };
+    let referenceLotKg : Nat = 10_000;
+    let aiSupplyKg = CompetitorLogic.getAITotalSupply(season, 0);
+    let baselineSeasonMult = CompetitorLogic.computeMarketMultiplier(
+      referenceLotKg, aiSupplyKg, CompetitorLogic.getSeasonDemand(season));
     let prices : Types.MarketPrice = {
       retailBasePrice = baseRetailPrice;
       wholesaleBasePrice = baseWholesalePrice;
       demandMultiplier = 1.0;
-      seasonMultiplier = 1.0; // TODO: Vary by season
+      seasonMultiplier = baselineSeasonMult;
       qualityBonus = 0.3;     // Max bonus
       organicPremium = 0.4;   // Max premium
     };

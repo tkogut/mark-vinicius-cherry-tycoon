@@ -9,13 +9,14 @@ import {
 } from 'lucide-react';
 import { drawGeometricBrassTree, drawGroundDecor, drawPathTile } from './geometricBrassTree';
 import { drawModernTractor, drawPrecisionSprayer, drawMechanicalShaker, drawBranchPruner, drawWorkerSturdyFacet, drawWorkerDynamicStride } from './orchardMachines';
+import { FERTILIZER_TYPES, FERTILIZER_ORDER, getFertilizerBlock, getFertilizerCost, type FertilizerType } from '@/lib/gameLogic';
 
 interface ImperialOrchardProps {
     parcels: any[];
     season: any;
     hiredLabor?: any;
     county?: 'Nyski' | 'Brzeski' | 'Opolski' | string;
-    onAction: (action: 'water' | 'prune' | 'fertilize' | 'harvest' | 'plant' | 'select' | 'organic', parcelId: string | null) => void;
+    onAction: (action: 'water' | 'prune' | 'fertilize' | 'harvest' | 'plant' | 'select' | 'organic', parcelId: string | null, fertilizerType?: string) => void;
     // hasHarvesters existed already (wired but never read); hasTractor/hasSprayer/hasPruner
     // are new — added 2026-08-03 alongside the Geometric Brass machine models (sketch 002).
     // All optional/undefined-safe so existing callers that only pass hasHarvesters keep working.
@@ -1002,11 +1003,27 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
         if (selectedEntity) setSelectedEntity(null);
     };
 
+    // ECON-01: choosing "Fertilize" opens a second ring of fertilizer types instead of acting.
+    const [fertilizerMenu, setFertilizerMenu] = useState(false);
+    useEffect(() => { setFertilizerMenu(false); }, [selectedParcel?.id]);
+
     const handleAction = (action: any) => {
         if (!selectedParcel) return;
         if (navigator.vibrate) navigator.vibrate(20);
 
+        if (action === 'fertilize') {
+            setFertilizerMenu(true);
+            return;
+        }
+
         onAction(action, selectedParcel.parcel.id);
+        setSelectedParcel(null);
+    };
+
+    const handleFertilize = (type: FertilizerType) => {
+        if (!selectedParcel) return;
+        if (navigator.vibrate) navigator.vibrate(20);
+        onAction('fertilize', selectedParcel.parcel.id, type);
         setSelectedParcel(null);
     };
 
@@ -1595,12 +1612,13 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                 {/* Radial Menu Overlay (HTML Space, mapped from screenX/screenY) */}
                 {selectedParcel && (
                     <div className="fixed inset-0 z-50 pointer-events-none">
-                        <div className="absolute w-0 h-0 pointer-events-auto" style={{ left: selectedParcel.screenX, top: selectedParcel.screenY }}>
+                        {/* stopPropagation: a click inside the ring must not reach handleBackgroundClick, or opening the fertilizer submenu would close the whole menu */}
+                        <div className="absolute w-0 h-0 pointer-events-auto" onClick={(e) => e.stopPropagation()} style={{ left: selectedParcel.screenX, top: selectedParcel.screenY }}>
                             <div className="relative">
                                 {/* Background Blur Circle */}
                                 <div className="absolute inset-0 -m-24 bg-black/60 backdrop-blur-md rounded-full animate-in zoom-in-50 duration-200 border border-[var(--brass-primary)]/30 shadow-[0_0_50px_rgba(0,0,0,0.8)]" />
 
-                                {[
+                                {!fertilizerMenu && [
                                     { id: 'water', Icon: Droplets, label: 'Irrigate', angle: -135, color: 'bg-blue-900', shadow: 'rgba(30,58,138,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
                                     { id: 'prune', Icon: Scissors, label: 'Prune', angle: -45, color: 'bg-slate-800', shadow: 'rgba(30,41,59,0.8)', phases: ['Dormancy', 'Decay'] },
                                     { id: 'fertilize', Icon: Leaf, label: 'Fertilize', angle: 135, color: 'bg-emerald-900', shadow: 'rgba(6,78,59,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
@@ -1649,7 +1667,34 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                     );
                                 })}
 
-                                <button onClick={() => setSelectedParcel(null)} className="absolute -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-black/90 border border-[var(--ruby-harvest)] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-[0_0_20px_var(--ruby-harvest)] animate-in fade-in zoom-in duration-300 hover:bg-red-900 transition-colors pointer-events-auto">
+                                {fertilizerMenu && FERTILIZER_ORDER.map((type, i) => {
+                                    const spec = FERTILIZER_TYPES[type];
+                                    const block = getFertilizerBlock(type, selectedParcel.parcel, seasonNumber);
+                                    const rad = ((-135 + i * 90) * Math.PI) / 180;
+                                    const radius = 82;
+                                    return (
+                                        <button
+                                            key={type}
+                                            disabled={block !== null}
+                                            title={block ?? `${type}: +${spec.fertilityGain.toFixed(2)} żyzności, ${getFertilizerCost(type)} PLN`}
+                                            onClick={() => handleFertilize(type)}
+                                            className={cn(
+                                                "absolute flex flex-col items-center justify-center w-[72px] h-[72px] border-2 border-[var(--brass-primary)] rounded-full bg-black/80 transition-all duration-300 font-mono leading-tight",
+                                                block !== null ? "opacity-30 grayscale pointer-events-none" : "hover:scale-110 animate-in zoom-in"
+                                            )}
+                                            style={{
+                                                transform: `translate(calc(-50% + ${Math.cos(rad) * radius}px), calc(-50% + ${Math.sin(rad) * radius}px))`,
+                                                animationDelay: `${i * 50}ms`
+                                            }}
+                                        >
+                                            <span className={cn("text-[11px] font-bold uppercase", type === 'Organic' ? "text-[var(--emerald-glow)]" : "text-[var(--brass-primary)]")}>{type}</span>
+                                            <span className="text-[10px] text-slate-200">+{spec.fertilityGain.toFixed(2)}</span>
+                                            <span className="text-[10px] text-slate-400">{block ?? `${getFertilizerCost(type)} PLN`}</span>
+                                        </button>
+                                    );
+                                })}
+
+                                <button onClick={() => fertilizerMenu ? setFertilizerMenu(false) : setSelectedParcel(null)} aria-label={fertilizerMenu ? 'Back' : 'Close'} className="absolute -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-black/90 border border-[var(--ruby-harvest)] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-[0_0_20px_var(--ruby-harvest)] animate-in fade-in zoom-in duration-300 hover:bg-red-900 transition-colors pointer-events-auto">
                                     <X className="h-5 w-5" strokeWidth={3} />
                                 </button>
                             </div>

@@ -35,6 +35,19 @@ import {
     getUpkeepDrift,
     getClubSharePrice,
     LEAGUE_LABELS,
+    FERTILIZER_TYPES,
+    FERTILIZER_ORDER,
+    getFertilizerCost,
+    getFertilizerBlock,
+    isFertilityMaxed,
+    applyFertilizer,
+    SEASON_DEMAND_KG,
+    AI_SUPPLY_ESTIMATE_KG,
+    computeMarketMultiplier,
+    getHandlingQuality,
+    getSpoilageBaseRate,
+    getSpoilagePercent,
+    applySpoilage,
 } from '@/lib/gameLogic';
 import { PARITY_CASES, makeParcel, makeInfra } from '@/test-utils/economyVectors';
 
@@ -92,7 +105,9 @@ function refTreeAgeModifier(treeAge: bigint): number | null {
  * infrastructure array — see the order-sensitivity test at the bottom.
  */
 function refInfraModifier(infrastructure: Infrastructure[]): number {
-    let modifier = 1.0;
+    // ECON-PARITY-01: additive terms onto 1.0, then the GoldenHarvester multiplier last.
+    let additive = 1.0;
+    let multiplier = 1.0;
     for (const infra of infrastructure) {
         const type = Object.keys(infra.infraType)[0];
         const level = Number(infra.level);
@@ -100,17 +115,17 @@ function refInfraModifier(infrastructure: Infrastructure[]): number {
             case 'GoldenHarvester': {
                 let multi = 1.0;
                 for (let i = 1; i <= level; i++) multi *= 1.05;
-                modifier *= multi;
+                multiplier *= multi;
                 break;
             }
-            case 'Tractor': modifier += 0.05 * level; break;
-            case 'Shaker': modifier += 0.08 * level; break;
-            case 'Sprayer': modifier += 0.03 * level; break;
-            case 'ColdStorage': modifier += 0.02 * level; break;
+            case 'Tractor': additive += 0.05 * level; break;
+            case 'Shaker': additive += 0.08 * level; break;
+            case 'Sprayer': additive += 0.03 * level; break;
+            case 'ColdStorage': additive += 0.02 * level; break;
             default: break; // Motoko: case (_) { /* no yield effect */ }
         }
     }
-    return modifier;
+    return additive * multiplier;
 }
 
 /** Motoko: `if (waterLevel < 0.3) 0.7 else if (waterLevel > 0.8) 0.85 else 1.0`. */
@@ -593,23 +608,40 @@ describe('economy parity: club share price (SPORTS-02)', () => {
     });
 });
 
-describe('economy parity: known backend quirks are reproduced, not smoothed over', () => {
-    // Motoko folds `+=` (Tractor et al.) and `*=` (GoldenHarvester) in array
-    // order, so the same equipment in a different order gives a different
-    // multiplier. That is a latent backend issue (flagged as ECON-PARITY-01),
-    // but while it exists the mirror must reproduce it — otherwise the UI and
-    // the payout disagree for any player owning a Golden Harvester plus
-    // anything else.
-    it('is sensitive to infrastructure array order, exactly like the backend', () => {
+describe('economy parity: backend behaviours the mirror must reproduce', () => {
+    // ECON-PARITY-01 (fixed 2026-10-16): Motoko used to fold `+=` (Tractor et al.)
+    // and `*=` (GoldenHarvester) in array order, so the same equipment gave 1.2525
+    // or 1.2679 depending on purchase order. The additive terms are now summed
+    // first and the Golden Harvester multiplies the sum last.
+    it('is independent of infrastructure array order', () => {
         const gh = makeInfra({ GoldenHarvester: null }, 2);
         const tractor = makeInfra({ Tractor: null }, 3);
 
-        const ghFirst = getInfraModifier([gh, tractor]);   // (1.0 * 1.1025) + 0.15
-        const tractorFirst = getInfraModifier([tractor, gh]); // (1.0 + 0.15) * 1.1025
+        const ghFirst = getInfraModifier([gh, tractor]);
+        const tractorFirst = getInfraModifier([tractor, gh]);
 
-        expect(ghFirst).toBeCloseTo(refInfraModifier([gh, tractor]), 10);
-        expect(tractorFirst).toBeCloseTo(refInfraModifier([tractor, gh]), 10);
-        expect(ghFirst).not.toBeCloseTo(tractorFirst, 6);
+        expect(ghFirst).toBeCloseTo(tractorFirst, 12);
+        expect(ghFirst).toBeCloseTo((1.0 + 0.15) * 1.05 * 1.05, 12); // = 1.267875
+        expect(ghFirst).toBeCloseTo(refInfraModifier([gh, tractor]), 12);
+        expect(tractorFirst).toBeCloseTo(refInfraModifier([tractor, gh]), 12);
+    });
+
+    it('gives every permutation of a mixed fleet the same modifier', () => {
+        const fleet = [
+            makeInfra({ GoldenHarvester: null }, 3),
+            makeInfra({ Tractor: null }, 2),
+            makeInfra({ Shaker: null }, 1),
+            makeInfra({ Sprayer: null }, 4),
+            makeInfra({ ColdStorage: null }, 2),
+            makeInfra({ Warehouse: null }, 5),
+        ];
+        const permutations = (xs: Infrastructure[]): Infrastructure[][] =>
+            xs.length <= 1 ? [xs] : xs.flatMap((x, i) =>
+                permutations([...xs.slice(0, i), ...xs.slice(i + 1)]).map(rest => [x, ...rest]));
+        const expected = (1.0 + 0.10 + 0.08 + 0.12 + 0.04) * 1.05 ** 3;
+        for (const perm of permutations(fleet)) {
+            expect(getInfraModifier(perm)).toBeCloseTo(expected, 12);
+        }
     });
 
     it('treats trees older than 40 as dead (zero yield), like the backend', () => {
@@ -627,5 +659,143 @@ describe('economy parity: known backend quirks are reproduced, not smoothed over
         expect(glubczyce / base).toBeCloseTo(1.10, 9);
         expect(opole / base).toBeCloseTo(1.08, 9);
         expect(namyslow / base).toBeCloseTo(1.05, 9);
+    });
+});
+
+describe('economy parity: fertilizer types (ECON-01)', () => {
+    // Transcription of GameLogic.getFertilizerSpec in backend/game_logic.mo:
+    //   "Basic"   -> gain 0.05, labour 120, ops 80,  chemical
+    //   "NPK"     -> gain 0.10, labour 300, ops 200, chemical   (the pre-ECON-01 price)
+    //   "Premium" -> gain 0.15, labour 480, ops 320, chemical
+    //   "Organic" -> gain 0.10, labour 390, ops 260, NOT chemical
+    const MOTOKO_TABLE = {
+        Basic:   { fertilityGain: 0.05, laborCost: 120, operationalCost: 80,  chemical: true },
+        NPK:     { fertilityGain: 0.10, laborCost: 300, operationalCost: 200, chemical: true },
+        Premium: { fertilityGain: 0.15, laborCost: 480, operationalCost: 320, chemical: true },
+        Organic: { fertilityGain: 0.10, laborCost: 390, operationalCost: 260, chemical: false },
+    } as const;
+
+    it('mirrors the Motoko table for every type', () => {
+        expect(FERTILIZER_TYPES).toEqual(MOTOKO_TABLE);
+        expect([...FERTILIZER_ORDER].sort()).toEqual(Object.keys(MOTOKO_TABLE).sort());
+        expect(FERTILIZER_ORDER).toEqual(['Basic', 'NPK', 'Premium', 'Organic']); // UI order
+    });
+
+    it('keeps NPK at the 500 PLN it cost before the type became a choice', () => {
+        expect(getFertilizerCost('NPK')).toBe(500);
+        expect(FERTILIZER_ORDER.map(getFertilizerCost)).toEqual([200, 500, 800, 650]);
+    });
+
+    const parcel = (over: Partial<Parameters<typeof getFertilizerBlock>[1]> = {}) => ({
+        isOrganic: false, organicCertified: false, fertility: 0.7, lastFertilized: 0n, ...over,
+    });
+
+    it('refuses chemical types on organic or certified parcels; Organic works everywhere', () => {
+        for (const type of ['Basic', 'NPK', 'Premium'] as const) {
+            expect(getFertilizerBlock(type, parcel({ isOrganic: true }), 3)).not.toBeNull();
+            expect(getFertilizerBlock(type, parcel({ organicCertified: true }), 3)).not.toBeNull();
+            expect(getFertilizerBlock(type, parcel(), 3)).toBeNull();
+        }
+        expect(getFertilizerBlock('Organic', parcel({ isOrganic: true }), 3)).toBeNull();
+        expect(getFertilizerBlock('Organic', parcel({ organicCertified: true }), 3)).toBeNull();
+        expect(getFertilizerBlock('Organic', parcel(), 3)).toBeNull();
+    });
+
+    it('allows one application per parcel per season', () => {
+        expect(getFertilizerBlock('NPK', parcel({ lastFertilized: 3n }), 3)).not.toBeNull();
+        expect(getFertilizerBlock('NPK', parcel({ lastFertilized: 2n }), 3)).toBeNull();
+    });
+
+    it('treats float-drifted fertility as maxed, so a fourth NPK is not charged for nothing', () => {
+        let f = 0.7;
+        for (let i = 0; i < 3; i++) f = applyFertilizer(f, 0.1);
+        expect(f).not.toBe(1.0);          // 0.9999999999999999 — the reason for the epsilon
+        expect(isFertilityMaxed(f)).toBe(true);
+        expect(getFertilizerBlock('NPK', parcel({ fertility: f }), 9)).not.toBeNull();
+        expect(isFertilityMaxed(0.95)).toBe(false);
+    });
+
+    it('caps fertility at 1.0 and needs 6 / 3 / 2 / 3 applications from the 0.7 start', () => {
+        const applications = (gain: number) => {
+            let f = 0.7, n = 0;
+            while (!isFertilityMaxed(f)) { f = applyFertilizer(f, gain); n++; }
+            return { n, f };
+        };
+        expect(FERTILIZER_ORDER.map(t => applications(FERTILIZER_TYPES[t].fertilityGain).n)).toEqual([6, 3, 2, 3]);
+        expect(applyFertilizer(0.95, 0.15)).toBe(1.0);
+    });
+});
+
+describe('economy parity: seasonal market multiplier (ECON-02)', () => {
+    // Transcription of CompetitorLogic.getSeasonDemand / computeMarketMultiplier
+    // in backend/competitor_logic.mo:
+    //   Spring 30_000, Summer 80_000, Autumn 50_000, Winter 30_000 (was 20_000)
+    //   multiplier = clamp(demand / (player + ai + 20_000), 0.50, 1.00)
+    it('pins the season demand table, including the ECON-02 winter change', () => {
+        expect(SEASON_DEMAND_KG).toEqual({ Spring: 30_000, Summer: 80_000, Autumn: 50_000, Winter: 30_000 });
+    });
+
+    it('winter now clears at the cap for a 10 000 kg lot (it was 0.67)', () => {
+        expect(computeMarketMultiplier(10_000, AI_SUPPLY_ESTIMATE_KG.Winter, SEASON_DEMAND_KG.Winter)).toBe(1.0);
+        expect(computeMarketMultiplier(10_000, 0, 20_000)).toBeCloseTo(0.6667, 4);
+    });
+
+    it('keeps the floor and cap', () => {
+        expect(computeMarketMultiplier(1, 0, 1_000_000)).toBe(1.0);
+        expect(computeMarketMultiplier(500_000, 0, 1)).toBe(0.5);
+    });
+
+    it('summer/autumn are depressed by AI supply, as on the canister', () => {
+        expect(AI_SUPPLY_ESTIMATE_KG.Summer).toBe(45_000 + 18_000 + 70_000);
+        expect(AI_SUPPLY_ESTIMATE_KG.Autumn).toBe(Math.round(AI_SUPPLY_ESTIMATE_KG.Summer * 0.8));
+        // 80 000 / (10 000 + 133 000 + 20 000) = 0.49 -> clamped up to the 0.5 floor
+        expect(computeMarketMultiplier(10_000, AI_SUPPLY_ESTIMATE_KG.Summer, SEASON_DEMAND_KG.Summer)).toBe(0.5);
+        expect(computeMarketMultiplier(0, AI_SUPPLY_ESTIMATE_KG.Summer, SEASON_DEMAND_KG.Summer)).toBeCloseTo(80_000 / 153_000, 9);
+        expect(computeMarketMultiplier(10_000, AI_SUPPLY_ESTIMATE_KG.Autumn, SEASON_DEMAND_KG.Autumn)).toBe(0.5);
+    });
+});
+
+describe('economy parity: winter spoilage reaches organic stock (ECON-08)', () => {
+    // Transcription of the Autumn block in main.mo's season advance:
+    //   baseRate = 15; ColdStorage -> 2; Warehouse (only while baseRate > 5) -> 8
+    //   rate = StorageLogic.calculateSpoilage(baseRate, HiringLogic.getHandlingQuality(labor))
+    //        = baseRate * 100 / quality            (Nat division)
+    //   spoiledCherries = cherries * rate / 100
+    //   spoiledOrganic  = organicCherries * rate / 100      <- ECON-08
+    const rate = (infra: ReturnType<typeof makeInfra>[], labor: unknown) => getSpoilagePercent(infra, labor);
+    const cold = makeInfra({ ColdStorage: null }, 1);
+    const warehouse = makeInfra({ Warehouse: null }, 1);
+
+    it('reproduces the documented storage x labour table', () => {
+        expect(rate([], [])).toBe(21);                               // none, unhired (70)
+        expect(rate([], [{ Emergency: null }])).toBe(21);
+        expect(rate([], [{ Standard: null }])).toBe(15);
+        expect(rate([], [{ City: null }])).toBe(12);
+        expect(rate([warehouse], [{ Standard: null }])).toBe(8);
+        expect(rate([cold], [{ Emergency: null }])).toBe(2);
+        expect(rate([cold], [{ City: null }])).toBe(1);
+    });
+
+    it('Cold Storage beats a Warehouse in either array order', () => {
+        expect(getSpoilageBaseRate([cold, warehouse])).toBe(2);
+        expect(getSpoilageBaseRate([warehouse, cold])).toBe(2);
+    });
+
+    it('treats unhired labour as the worst case, not neutral', () => {
+        expect(getHandlingQuality([])).toBe(70);
+        expect(getHandlingQuality(undefined)).toBe(70);
+        expect(getHandlingQuality([{ City: null }])).toBe(120);
+    });
+
+    it('takes the same percentage from conventional and organic stock', () => {
+        const percent = rate([], []);
+        expect(applySpoilage(100_000n, percent)).toBe(79_000n);  // the figure seen on the replica for conventional
+        expect(applySpoilage(50_000n, percent)).toBe(39_500n);   // organic now loses the same 21%
+    });
+
+    it('uses integer division and never goes negative', () => {
+        expect(applySpoilage(99n, 21)).toBe(79n);   // 99 * 21 / 100 = 20 (truncated)
+        expect(applySpoilage(0n, 21)).toBe(0n);
+        expect(applySpoilage(5n, 100)).toBe(0n);
     });
 });

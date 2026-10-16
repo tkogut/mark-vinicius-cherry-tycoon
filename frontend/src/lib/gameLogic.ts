@@ -48,35 +48,32 @@ export const getPhModifier = (pH: number): number => {
 
 // Infrastructure modifier.
 //
-// Mirrors `getInfrastructureModifier` in game_logic.mo, including its
-// asymmetry: every term is ADDITIVE except GoldenHarvester, which is
-// MULTIPLICATIVE (1.05^level). Because the backend folds `+=` and `*=` in
-// array iteration order, the result is order-sensitive — so this must iterate
-// in the same order rather than, say, summing additive terms first.
-// See ECON-PARITY-01 for the underlying backend issue.
+// Mirrors `getInfrastructureModifier` in game_logic.mo (ECON-PARITY-01): the
+// additive terms (Tractor, Shaker, Sprayer, ColdStorage) are summed onto 1.0
+// first, then the finished sum is multiplied by GoldenHarvester's compounding
+// 1.05^level. The result does not depend on array order.
 export const getInfraModifier = (infrastructure: Infrastructure[]): number => {
-    let modifier = 1.0;
+    let additive = 1.0;
+    let multiplier = 1.0;
     infrastructure.forEach(infra => {
         const type = Object.keys(infra.infraType)[0];
         const level = Number(infra.level);
 
         switch (type) {
             case 'GoldenHarvester': {
-                // Motoko: `var multi = 1.0; for (i in Iter.range(1, level)) { multi *= 1.05 }; modifier *= multi;`
-                // Reproduced as a loop (not Math.pow) to match the backend's
-                // floating-point accumulation bit for bit.
+                // Loop, not Math.pow, to match the backend's floating-point accumulation.
                 let multi = 1.0;
                 for (let i = 1; i <= level; i++) multi *= 1.05;
-                modifier *= multi;
+                multiplier *= multi;
                 break;
             }
-            case 'Tractor': modifier += 0.05 * level; break;
-            case 'Shaker': modifier += 0.08 * level; break;
-            case 'Sprayer': modifier += 0.03 * level; break;
-            case 'ColdStorage': modifier += 0.02 * level; break;
+            case 'Tractor': additive += 0.05 * level; break;
+            case 'Shaker': additive += 0.08 * level; break;
+            case 'Sprayer': additive += 0.03 * level; break;
+            case 'ColdStorage': additive += 0.02 * level; break;
         }
     });
-    return modifier;
+    return additive * multiplier;
 };
 
 // ── Infrastructure upkeep & wear (MAINT-01) ─────────────────────────────────
@@ -311,4 +308,131 @@ export const calculateYieldBreakdown = (
         parcelYield,
         adjustedYield
     };
+};
+
+// ---------------------------------------------------------------------------
+// ECON-01 — fertilizer types. Mirrors GameLogic.getFertilizerSpec /
+// isFertilityMaxed / applyFertilizer in backend/game_logic.mo; pinned by
+// economyParity.test.ts. Every application consumes one inventory unit whatever
+// the type — the types differ in cash (labour + operations) and fertility gained.
+// ---------------------------------------------------------------------------
+
+export type FertilizerType = 'Basic' | 'NPK' | 'Premium' | 'Organic';
+
+export interface FertilizerSpec {
+    fertilityGain: number;
+    laborCost: number;
+    operationalCost: number;
+    /** Chemical types are refused on organic parcels; `Organic` is allowed everywhere. */
+    chemical: boolean;
+}
+
+export const FERTILIZER_TYPES: Record<FertilizerType, FertilizerSpec> = {
+    Basic:   { fertilityGain: 0.05, laborCost: 120, operationalCost: 80,  chemical: true },
+    NPK:     { fertilityGain: 0.10, laborCost: 300, operationalCost: 200, chemical: true },
+    Premium: { fertilityGain: 0.15, laborCost: 480, operationalCost: 320, chemical: true },
+    Organic: { fertilityGain: 0.10, laborCost: 390, operationalCost: 260, chemical: false },
+};
+
+export const FERTILIZER_ORDER: FertilizerType[] = ['Basic', 'NPK', 'Premium', 'Organic'];
+
+export const getFertilizerCost = (type: FertilizerType): number =>
+    FERTILIZER_TYPES[type].laborCost + FERTILIZER_TYPES[type].operationalCost;
+
+// Repeated float addition never lands exactly on 1.0 (0.7 + 3 x 0.1 === 0.9999999999999999).
+const FERTILITY_CAP = 1.0;
+const FERTILITY_EPSILON = 1e-9;
+
+export const isFertilityMaxed = (fertility: number): boolean =>
+    fertility >= FERTILITY_CAP - FERTILITY_EPSILON;
+
+export const applyFertilizer = (fertility: number, gain: number): number =>
+    Math.min(FERTILITY_CAP, fertility + gain);
+
+/** Why this fertilizer cannot be applied to this parcel now, or null when it can. */
+export const getFertilizerBlock = (
+    type: FertilizerType,
+    parcel: { isOrganic: boolean; organicCertified: boolean; fertility: number; lastFertilized: bigint },
+    seasonNumber: number,
+): string | null => {
+    if (FERTILIZER_TYPES[type].chemical && (parcel.isOrganic || parcel.organicCertified)) {
+        return 'Niedozwolone w uprawie Bio';
+    }
+    if (parcel.lastFertilized === BigInt(seasonNumber)) return 'Już nawożona w tym sezonie';
+    if (isFertilityMaxed(parcel.fertility)) return 'Żyzność maksymalna';
+    return null;
+};
+
+// ---------------------------------------------------------------------------
+// ECON-02 — shared-market price multiplier by season. Mirrors
+// CompetitorLogic.getSeasonDemand / computeMarketMultiplier in
+// backend/competitor_logic.mo (previously a private copy inside SellModal.tsx).
+//
+// AI supply is NOT mirrored exactly: the backend draws it from Time.now(), so a
+// quote on the canister varies between calls. AI_SUPPLY_ESTIMATE_KG is a fixed
+// approximation (Summer = sum of the three AI capacities, Autumn = 80% of that)
+// used only to preview the price.
+// ---------------------------------------------------------------------------
+
+export type SeasonKey = 'Spring' | 'Summer' | 'Autumn' | 'Winter';
+
+export const SEASON_DEMAND_KG: Record<SeasonKey, number> = {
+    Spring: 30_000,
+    Summer: 80_000,
+    Autumn: 50_000,
+    Winter: 30_000, // ECON-02: was 20_000
+};
+
+export const AI_SUPPLY_ESTIMATE_KG: Record<SeasonKey, number> = {
+    Spring: 0,
+    Summer: 133_000,
+    Autumn: 106_400,
+    Winter: 0,
+};
+
+export const GLOBAL_BASELINE_KG = 20_000;
+export const PRICE_FLOOR_MULT = 0.5;
+
+export const computeMarketMultiplier = (playerSupplyKg: number, aiTotalKg: number, seasonDemandKg: number): number => {
+    const raw = seasonDemandKg / (playerSupplyKg + aiTotalKg + GLOBAL_BASELINE_KG);
+    return Math.max(PRICE_FLOOR_MULT, Math.min(1.0, raw));
+};
+
+// ---------------------------------------------------------------------------
+// Winter spoilage (ECON-05 documented it, ECON-08 extends it to organic stock).
+// Mirrors the block in main.mo's season advance, StorageLogic.calculateSpoilage
+// and HiringLogic.getHandlingQuality. It fires once a year, entering Winter, and
+// hits conventional AND organic cherries at the same rate.
+// docs/game-design/economy/spoilage-rates.md has the table.
+// ---------------------------------------------------------------------------
+
+/** HiringLogic.getHandlingQuality — unhired defaults to the worst case (70), not neutral. */
+const HANDLING_QUALITY: Record<string, number> = { Village: 80, Standard: 100, City: 120, Emergency: 70 };
+
+/** `labor` is the Candid opt: `[]` or `[{ Standard: null }]` (also accepts the bare variant). */
+export const getHandlingQuality = (labor: unknown): number => {
+    const variant = Array.isArray(labor) ? labor[0] : labor;
+    const key = variant && typeof variant === 'object' ? Object.keys(variant)[0] : undefined;
+    return (key && HANDLING_QUALITY[key]) || 70;
+};
+
+/** Best storage owned: Cold Storage 2%, Warehouse 8%, none 15% — independent of array order. */
+export const getSpoilageBaseRate = (infrastructure: Infrastructure[]): number => {
+    let baseRate = 15;
+    for (const infra of infrastructure) {
+        const type = Object.keys(infra.infraType)[0];
+        if (type === 'ColdStorage') baseRate = 2;
+        else if (type === 'Warehouse' && baseRate > 5) baseRate = 8;
+    }
+    return baseRate;
+};
+
+/** StorageLogic.calculateSpoilage: `baseRate * 100 / handlingQuality`, integer division. */
+export const getSpoilagePercent = (infrastructure: Infrastructure[], labor: unknown): number =>
+    Math.floor((getSpoilageBaseRate(infrastructure) * 100) / getHandlingQuality(labor));
+
+/** Motoko: `spoiled = kg * rate / 100` (Nat division); stock never goes below zero. */
+export const applySpoilage = (kg: bigint, percent: number): bigint => {
+    const spoiled = (kg * BigInt(percent)) / 100n;
+    return kg >= spoiled ? kg - spoiled : 0n;
 };

@@ -21,7 +21,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 3 of 10 (Core Economic Lever Fixes)
-Plan: 5 of 7 levers fixed (ECON-03, 04, 05, 06, 07) — ECON-01/02 remain, both balance numbers needing a decision
+Plan: 7 of 7 levers fixed (ECON-01..07), plus the three flagged follow-ups: ECON-08 and ECON-PARITY-01 fixed, ECON-09 closed by decision
 Status: Ready to plan (Phase 9's row reconciled 2026-08-07 — it was reading "not started" while most of its orchard work had shipped)
 Last activity: 2026-08-08 — merged 95 commits to `master` via PR #1 (first CI run of Playwright, which caught `validate.sh` committed non-executable), then started Phase 3: ECON-06 (NaN% market share, root cause an `any` in the hook) and ECON-05 (dead spoilage system deleted, doc rewritten after the replica proved my first draft wrong). Before that: deployed Phase 2 to Playground and audited the live build: UX-01 (sidebar header, on all 8 screens) fixed, plus two bugs invisible locally — UX-10 (30 emoji rendering as tofu without an emoji font) and UX-11 (13 places showing $ for a game priced in PLN). Lint ceiling 183 -> 182. Before that: Phase 2 (Sports Patron) shipped as an agreed vertical slice: 8 real clubs, real share purchases, SportsCenter rewired off two nonexistent fields; verified on a live replica across all 6 rejection paths plus a second identity. Before that: agent instruction layer rebuilt on open-mercato's patterns (Task Router, Always/Ask First/Never, LESSONS.md, one validate.sh gate, all guarded by agentDocs.test.ts); before that Phase 9 status reconciled against what actually shipped (UX-06/07/08, with the two gaps named rather than rounded up), and MAINT-01 + MAINT-02 fixed (real infrastructure wear, and repair priced off that wear so servicing is worth doing for every asset type) and AUTH-02 fixed (Atomic Auth guard on the restored-session path); lint ceiling tightened 185 -> 183. Before that: Phase 10 (Quality Infrastructure) executed out of order, in 4 sequenced stages. All 3 original success criteria met. Full test pyramid in place: 324 unit tests + 38 Playwright E2E specs, 3 CI workflows, TS↔Motoko economy parity enforcement, Candid drift guard.
 
@@ -82,7 +82,7 @@ Recent decisions affecting current work:
 ### Blockers/Concerns
 
 **Flagged defects, deliberately not fixed (all outside the scope they were found in):**
-- `ECON-PARITY-01`: `getInfrastructureModifier` in `game_logic.mo` folds `+=` (Tractor/Shaker/Sprayer/ColdStorage) and `*=` (GoldenHarvester) in one pass over the array, so the multiplier **depends on array order** (GH→Tractor 1.2525 vs Tractor→GH 1.2679). Changing it moves real payouts — an economy-balance decision. The frontend mirror reproduces the quirk faithfully so UI and payout agree while it stands.
+- ~~`ECON-PARITY-01` infrastructure modifier depended on array order~~ → **fixed 2026-10-16** (additive terms summed first, Golden Harvester multiplies last; replica: both purchase orders harvested 8 176 kg). Track B inherits it through the shared `game_logic.mo` and cannot be verified until EOP-01.
 - `GEO-07`: two parcel-purchase methods coexist — `buyParcel` (used) and `purchaseParcel` (never called, and the one `lib/gddTemplate.ts` documents).
 
 **Backend / infrastructure:**
@@ -113,13 +113,12 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-10-16 (onboarding re-sync; documentation only)
-Stopped at: Phase 3 at 5 of 7 levers on `feature/phase-3-econ-levers` (HEAD `91ffd79`, tree clean). ECON-03/04/05/06/07 done and verified on a replica; ECON-01/02 wait on balance decisions.
+Last session: 2026-10-16
+Stopped at: Phase 3 levers 7 of 7, plus ECON-08 and ECON-PARITY-01, on `feature/phase-3-econ-levers`, uncommitted at the time of writing (see git log). ECON-01 (four fertilizer types, one application per parcel per season, organic parcels take only Organic) and ECON-02 (honest `getMarketPrices` multiplier, winter demand 30 000) verified on a local replica; `./validate.sh full` green (declarations clean, Candid unchanged).
 
 Next step options:
-- Present balance options for ECON-01 (fertilizer type) and ECON-02 (seasonal sale price) — Ask First, user decides — then close Phase 3
-- Optionally decide ECON-08 and `ECON-PARITY-01` in the same sitting (both flagged balance defects)
-- `./validate.sh full`, then PR the branch to `master` (a push to `master` auto-deploys Playground)
-- After that: Phase 4 (Weather UI), the rest of Phase 9 (UX-08 phase gating is cheap), or the EOP-01 / mainnet decision
+- Open the PR to `master` (a push to `master` auto-deploys Playground)
+- ECON-08, ECON-09 and `ECON-PARITY-01` are decided: 08 and PARITY-01 fixed, 09 closed with no change
+- Phase 4 (Weather UI), the rest of Phase 9 (UX-08 phase gating is cheap), or the EOP-01 / mainnet decision
 
 Resume file: None

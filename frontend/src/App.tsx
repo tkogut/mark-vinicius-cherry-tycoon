@@ -217,7 +217,7 @@ function AppContent() {
         }
     };
 
-    const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string) => {
+    const handleParcelAction = (action: 'plant' | 'water' | 'fertilize' | 'harvest' | 'organic' | 'prune', parcelId: string, fertilizerType?: string) => {
         const gameAction = action === 'prune' ? 'prune' : action as GameAction;
 
         if (!isActionAllowed(currentPhase, gameAction)) {
@@ -242,7 +242,7 @@ function AppContent() {
                 onSuccess: () => boostHarvestVelocity(),
             });
         } else if (action === 'fertilize') {
-            fertilize.mutate({ parcelId, fertilizerType: "NPK" });
+            fertilize.mutate({ parcelId, fertilizerType: fertilizerType ?? "NPK" });
         } else if (action === 'organic') {
             startOrganicConversion.mutate(parcelId);
         } else if (action === 'prune') {

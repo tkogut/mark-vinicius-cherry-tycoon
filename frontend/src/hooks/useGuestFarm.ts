@@ -2,7 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFarm } from '@/hooks/useFarm';
 import { PlayerFarm, Season, SeasonPhase, WeatherEvent } from '@/declarations/backend.did';
-import { calculateYieldBreakdown } from '@/lib/gameLogic';
+import {
+    calculateYieldBreakdown,
+    FERTILIZER_TYPES,
+    getFertilizerBlock,
+    getFertilizerCost,
+    applyFertilizer,
+    getSpoilagePercent,
+    applySpoilage,
+    type FertilizerType,
+} from '@/lib/gameLogic';
 import { useQueryClient } from '@tanstack/react-query';
 import { FARM_QUERY_KEY } from '@/hooks/useFarm';
 
@@ -178,17 +187,34 @@ export function useGuestFarm() {
         return "Watered";
     }, [mutateLocal]);
 
-    const mockFertilizeParcel = useCallback(async ({ parcelId }: { parcelId: string }) => {
-        mutateLocal(f => {
-            const pIdx = f.parcels.findIndex(p => p.id === parcelId);
-            if (pIdx >= 0 && f.inventory.fertilizers > 0n) {
-                f.parcels[pIdx].fertility = Math.min(1.0, f.parcels[pIdx].fertility + 0.1);
-                f.inventory.fertilizers -= 1n;
-            }
-            return f;
-        });
+    // ECON-01: same rules as the canister's fertilizeParcel (unknown type, organic
+    // parcels take only "Organic", one application per parcel per season, cap).
+    // Validated against `localFarm` BEFORE mutateLocal: an error thrown inside a
+    // setState updater escapes into React's render, not into this promise, so the
+    // player would get a crashed screen instead of a rejected action. (The older
+    // mocks below still throw inside the updater — see GUEST-01 in REQUIREMENTS.md.)
+    const mockFertilizeParcel = useCallback(async ({ parcelId, fertilizerType }: { parcelId: string; fertilizerType: string }) => {
+        if (!(fertilizerType in FERTILIZER_TYPES)) throw new Error("Nieznany typ nawozu");
+        const type = fertilizerType as FertilizerType;
+        const current = localFarm?.parcels.find(p => p.id === parcelId);
+        if (!localFarm || !current) throw new Error("Parcel not found");
+        if (localFarm.inventory.fertilizers <= 0n) throw new Error("No fertilizers in inventory");
+        const block = getFertilizerBlock(type, current, Number(localFarm.seasonNumber));
+        if (block) throw new Error(block);
+
+        const cost = BigInt(getFertilizerCost(type));
+        mutateLocal(f => ({
+            ...f,
+            parcels: f.parcels.map(p => p.id !== parcelId ? p : {
+                ...p,
+                fertility: applyFertilizer(p.fertility, FERTILIZER_TYPES[type].fertilityGain),
+                lastFertilized: f.seasonNumber,
+            }),
+            inventory: { ...f.inventory, fertilizers: f.inventory.fertilizers - 1n },
+            cash: f.cash >= cost ? f.cash - cost : 0n,
+        }));
         return "Fertilized";
-    }, [mutateLocal]);
+    }, [localFarm, mutateLocal]);
 
     const mockHarvestCherries = useCallback(async (parcelId: string) => {
         let harvestedAmount = 0n;
@@ -235,6 +261,16 @@ export function useGuestFarm() {
                 f.seasonNumber += 1n;
             } else if (currentIndex >= 0 && currentIndex < phaseTypes.length - 1) {
                 const nextPhase = phaseTypes[currentIndex + 1];
+                // ECON-08: entering Winter rots conventional AND organic stock at the same
+                // rate (guest mode had no spoilage at all before this).
+                if ('Autumn' in f.currentSeason && seasonMap[nextPhase] === 'Winter') {
+                    const percent = getSpoilagePercent(f.infrastructure, f.hiredLabor);
+                    f.inventory = {
+                        ...f.inventory,
+                        cherries: applySpoilage(f.inventory.cherries, percent),
+                        organicCherries: applySpoilage(f.inventory.organicCherries, percent),
+                    };
+                }
                 f.currentPhase = { [nextPhase]: null } as any;
                 f.currentSeason = { [seasonMap[nextPhase]]: null } as any;
             }
