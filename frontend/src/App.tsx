@@ -48,6 +48,7 @@ import { SOUNDS } from '@/config/sounds';
 import { isActionAllowed, GameAction, SeasonPhase, PHASE_DESCRIPTIONS } from "@/config/phaseConstants";
 import { cn } from "@/lib/utils"
 import { mapBackendWeather } from "@/utils/weatherUtils";
+import { buildLabel, buildDetail } from "@/lib/buildInfo"
 
 
 function AppContent() {
@@ -887,13 +888,21 @@ function AppContent() {
             {/* PWA Install Button (Conditional) */}
             <InstallPrompt />
 
-            {/* VERSION TAG: verification hook for "which build is actually live".
+            {/* BUILD BADGE: verification hook for "which build is actually live".
                 Moved off top-left (UX-01) — it sat exactly on top of the sidebar
                 logo and covered the second line of the wrapped title on every
-                screen. Bottom-right is the one corner nothing else occupies. */}
-            <div className="fixed bottom-3 right-3 z-50 pointer-events-none">
-                <span className="text-[10px] font-mono text-emerald-500/50 bg-black/40 px-2 py-1 rounded-md border border-emerald-500/20 backdrop-blur-sm">
-                    v3.8
+                screen. Bottom-right is the one corner nothing else occupies.
+
+                Reads injected constants, never a literal. It used to say "v3.8",
+                a number nothing produced and nothing incremented, while
+                package.json read 0.0.0 and the repo had no tags. The SHA is the
+                part that earns its place: a semver cannot distinguish four
+                deploys of the same version in one afternoon, and not being able
+                to tell them apart is what turned a stale Playground canister
+                into an hour of chasing a build-cache bug that did not exist. */}
+            <div className="fixed bottom-3 right-3 z-50" title={buildDetail()}>
+                <span className="text-[10px] font-mono text-emerald-500/50 bg-black/40 px-2 py-1 rounded-md border border-emerald-500/20 backdrop-blur-sm select-all">
+                    {buildLabel()}
                 </span>
             </div>
         </div>
