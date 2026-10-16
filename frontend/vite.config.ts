@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
+import { execSync } from 'child_process';
 
 const network = process.env["DFX_NETWORK"] || process.env["VITE_DFX_NETWORK"] || "local";
 const isDev = network !== "ic";
@@ -55,6 +56,65 @@ const canisterEnvDefinitions = CANISTER_NAMES.reduce((acc, name) => {
 
 console.log("Environment definitions:", canisterEnvDefinitions);
 
+// ── Build identity ──────────────────────────────────────────────────────────
+// The version badge used to be the literal string "v3.8" in App.tsx. Nothing
+// produced that number, nothing incremented it, and it appeared nowhere else in
+// the repo — package.json still read 0.0.0 and there were no git tags at all.
+//
+// Worse, a semver alone cannot answer the question the badge exists to answer.
+// On 2026-08-07 the same version shipped four times in one afternoon; screenshots
+// of a stale Playground canister were read as "the fix did not deploy", and the
+// investigation that followed went through bundle diffing before finding the
+// real cause. A visible commit SHA settles that in two seconds.
+//
+// So the badge carries both: `version · sha`, where the version is the milestone
+// marker from package.json and the SHA is what is actually running.
+
+const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'));
+
+/** Short commit SHA. Falls back rather than failing a build outside a checkout. */
+function buildSha(): string {
+    // CI provides it directly; actions/checkout defaults to a depth-1 clone, which
+    // still resolves HEAD, but reading the env var avoids depending on that.
+    const fromCi = process.env["GITHUB_SHA"];
+    if (fromCi) return fromCi.slice(0, 7);
+    try {
+        return execSync('git rev-parse --short=7 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+            .toString().trim();
+    } catch {
+        return 'nogit';
+    }
+}
+
+/**
+ * COMMIT time, not build time — deliberately.
+ *
+ * Wall-clock `new Date()` would change on every run, so the bundle hash would
+ * change too and every deploy would re-upload an identical main chunk. Commit
+ * time makes the build reproducible: the same commit always produces the same
+ * bytes. It also answers the more useful question — when the code was written,
+ * not when CI happened to run it.
+ */
+function commitTime(): string {
+    const utc = (d: Date) => d.toISOString().replace(/\.\d+Z$/, 'Z');
+    try {
+        // %cI is ISO-8601 with the committer's local offset; normalise to UTC so
+        // the badge means the same thing regardless of who built it.
+        const raw = execSync('git log -1 --format=%cI', { stdio: ['ignore', 'pipe', 'ignore'] })
+            .toString().trim();
+        const parsed = new Date(raw);
+        return Number.isNaN(parsed.getTime()) ? utc(new Date()) : utc(parsed);
+    } catch {
+        return utc(new Date());
+    }
+}
+
+const buildIdentity = {
+    version: String(pkg.version ?? '0.0.0'),
+    sha: buildSha(),
+    builtAt: commitTime(),
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
     base: './',
@@ -70,6 +130,9 @@ export default defineConfig({
         "process.env.DFX_NETWORK": JSON.stringify(process.env["DFX_NETWORK"]),
         "process.env.NODE_ENV": JSON.stringify(isDev ? "development" : "production"),
         "import.meta.env.VITE_DFX_NETWORK": JSON.stringify(process.env["DFX_NETWORK"] || "local"),
+        __BUILD_VERSION__: JSON.stringify(buildIdentity.version),
+        __BUILD_SHA__: JSON.stringify(buildIdentity.sha),
+        __BUILD_TIME__: JSON.stringify(buildIdentity.builtAt),
     },
     server: {
         port: 5173,

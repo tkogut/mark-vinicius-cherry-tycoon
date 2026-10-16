@@ -105,6 +105,21 @@ Changing these breaks something outside this repo or destroys data. Treated as *
 | Economy formula constants | Ask (balance decision) | `economyParity.test.ts`, 120 cases |
 | `InfrastructureType` variants | Additive only; adding one touches 5 files | `economyParity.test.ts` iterates all types |
 
+## Releasing
+
+One version, one source: `frontend/package.json` → `version`. Everything else is derived.
+
+| | |
+|---|---|
+| **Build badge** | `<version> · <sha>`, injected by `vite.config.ts` (`__BUILD_VERSION__` / `__BUILD_SHA__` / `__BUILD_TIME__`). Never write a version literal in the UI — `uiConventions.test.ts` fails the build. |
+| **Bump when** | A roadmap milestone closes. Not per commit, not per deploy — that is what the SHA is for. |
+| **Tag on bump** | `git tag v<version> && git push --tags`, in the same commit that changes `package.json`. A release process that never tags is not a release process. |
+| **`0.x` means** | V1 Parity has not shipped. First `1.0.0` is the milestone completing, nothing else. |
+
+Every push to `master` auto-deploys Playground, and Playground canister IDs are
+**per-deploy** — read the ID from that run's log, never reuse a previous URL
+(`.planning/LESSONS.md`).
+
 ## Dual entrypoint — hard constraint
 
 `backend/main.mo` is Track A (local / dfx / Playground). `backend/main_mainnet.mo` is Track B (mainnet). They are separate on purpose; see the `Never` rules above and `docs/game-design/backend/track-separation.md`.
