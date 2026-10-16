@@ -245,19 +245,19 @@ Plans:
 **Execution Order:**
 Phases execute in numeric order: 1 → 1.1 → 2 → 3 → 4 → 5 → 5.1 → 6 → 7 → 8 → 9 → 10. Phases 2–8 are largely independent of each other and can be reordered/parallelized if useful, except 5.1 which depends on 5 (and ideally 9); Phase 9 (UX overhaul) is intentionally sequenced late so it redesigns stable functionality; Phase 10 (quality infra) has no gameplay dependency and can move anywhere.
 
-**Deviation from that order (2026-08-06):** Phase 10 was executed early, at the user's request, before Phases 2–9. This turned out well beyond its own goal: the parity and contract layers it built immediately found real defects in Phase 3's and Phase 5's territory (the missing county-bonus/Golden-Harvester yield terms, the two rival parcel-purchase methods) that a gameplay-first order would have shipped first and discovered later. Phases 3 and 5 now start with automated parity enforcement already guarding the formulas they are about to change. Also note Phase 9's UX-06 work (sketch 001/002 → `ImperialOrchard.tsx`, `orchardMachines.ts`, Marketplace building sprites) was largely delivered ad hoc during the same stretch of sessions and is **not** yet reflected in this table's Phase 9 row.
+**Deviation from that order (2026-08-06):** Phase 10 was executed early, at the user's request, before Phases 2–9. This turned out well beyond its own goal: the parity and contract layers it built immediately found real defects in Phase 3's and Phase 5's territory (the missing county-bonus/Golden-Harvester yield terms, the two rival parcel-purchase methods) that a gameplay-first order would have shipped first and discovered later. Phases 3 and 5 now start with automated parity enforcement already guarding the formulas they are about to change. Also note Phase 9's UX-06 work (sketch 001/002 → `ImperialOrchard.tsx`, `orchardMachines.ts`, Marketplace building sprites) was largely delivered ad hoc during the same stretch of sessions and is now reflected in this table's Phase 9 row (reconciled 2026-10-16).
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|-----------------|--------|-----------|
 | 1. Enhanced Leaderboard & Rankings UI | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
 | 1.1. Atomic Auth Fix | Playable Release — V1 Parity | 1/1 | Complete | 2026-07-29 |
-| 2. Football Clubs — Restore the Core Pillar | Playable Release — V1 Parity | 0/TBD | Not started | - |
-| 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 0/TBD | Not started | - |
+| 2. Football Clubs — Restore the Core Pillar | Playable Release — V1 Parity | 1/1 | Complete as an agreed vertical slice (SPORTS-04/05/06 open) | 2026-08-07 |
+| 3. Core Economic Lever Fixes | Playable Release — V1 Parity | 5/7 levers | In progress — ECON-03..07 done; ECON-01/02 await balance decisions | - |
 | 4. Weather UI Consolidation | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5. Regional Geography Rebuild | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 5.1. Geography Map-Zoom UI | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 6. Cherry Festival | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 7. Crop Insurance UI | Playable Release — V1 Parity | 0/TBD | Not started | - |
 | 8. Onboarding & Phase-System Teaching | Playable Release — V1 Parity | 0/TBD | Not started | - |
-| 9. UX/UI Deep Overhaul | Playable Release — V1 Parity | 0/TBD | Scoped (incl. sketch 001 winner), not started | - |
+| 9. UX/UI Deep Overhaul | Playable Release — V1 Parity | 2/3 | Partial — UX-01/07/10/11 done, UX-06/08 partial, UX-02..05 open (see STATE.md) | - |
 | 10. Quality Infrastructure | Playable Release — V1 Parity | 5/5 | Complete (success criteria met; QUAL-04/09/10 spun out as follow-ups) | 2026-08-06 |

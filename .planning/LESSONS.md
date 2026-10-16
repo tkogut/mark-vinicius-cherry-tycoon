@@ -153,3 +153,9 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Was:** reported that repair could never pay back for assets under 500/level upkeep, leaving Tractor (600) on the viable side.
 **Actually:** the naive "excess vs cost" comparison ignored that wear restarts after a repair. Under the real model (savings ≈ 0.8 × spec per year) Tractor was negative too — 6 of 8 types, not 5.
 **Rule:** if a figure is going into a requirement or a commit message, derive it once properly rather than reusing the back-of-envelope version that motivated the investigation. My own parity test caught this one.
+
+### A status table is a second copy of the truth, and it drifts
+
+**Was:** closed Phases 2 and 3's work, updated STATE.md and REQUIREMENTS.md each time, and left the ROADMAP.md Progress table reading "Not started". A fresh onboarding then reported two different positions.
+**Actually:** three files (ROADMAP table, STATE Session Continuity, onboarding SUMMARY) and the lint ceiling in CLAUDE.md (183) had all gone stale against the code (178 in `package.json`). Each was correct on the day it was written.
+**Rule:** when a phase or lever closes, update ROADMAP's Progress row in the same commit as STATE.md. For numbers that live in code (lint ceiling, test counts), point at the source rather than copying it.

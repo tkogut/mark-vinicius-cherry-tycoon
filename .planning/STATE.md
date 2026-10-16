@@ -113,13 +113,13 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-08-07
-Stopped at: Phase 10 (Quality Infrastructure) complete against its success criteria — 4 stages, 5 commits (`e201e8e`, `3894c99`, `f3e367c`, `00fe339`, `4ddaab4`), all on `feature/gsd-migration`. Gates verified green: 324 unit tests / 3 skipped / 0 failed, 38 Playwright specs, lint 0 errors, typecheck, build. Nothing pushed to `master`.
+Last session: 2026-10-16 (onboarding re-sync; documentation only)
+Stopped at: Phase 3 at 5 of 7 levers on `feature/phase-3-econ-levers` (HEAD `91ffd79`, tree clean). ECON-03/04/05/06/07 done and verified on a replica; ECON-01/02 wait on balance decisions.
 
 Next step options:
-- `/gsd-plan-phase 2` (Football Clubs) — the intended next gameplay phase
-- Phase 3 (Economic Levers) — now the best-guarded area: `economyParity.test.ts` will catch formula drift the moment it happens
-- Reconcile Phase 9 bookkeeping (UX-06 already largely shipped) before planning it
-- Clear the remaining flagged defects above (`GEO-07` folds naturally into Phase 5; `ECON-PARITY-01` needs an economy-balance decision, not code fixes)
+- Present balance options for ECON-01 (fertilizer type) and ECON-02 (seasonal sale price) — Ask First, user decides — then close Phase 3
+- Optionally decide ECON-08 and `ECON-PARITY-01` in the same sitting (both flagged balance defects)
+- `./validate.sh full`, then PR the branch to `master` (a push to `master` auto-deploys Playground)
+- After that: Phase 4 (Weather UI), the rest of Phase 9 (UX-08 phase gating is cheap), or the EOP-01 / mainnet decision
 
 Resume file: None
