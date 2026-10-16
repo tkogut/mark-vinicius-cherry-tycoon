@@ -63,35 +63,32 @@ export const getPhModifier = (pH: number): number => {
 
 // Infrastructure modifier.
 //
-// Mirrors `getInfrastructureModifier` in game_logic.mo, including its
-// asymmetry: every term is ADDITIVE except GoldenHarvester, which is
-// MULTIPLICATIVE (1.05^level). Because the backend folds `+=` and `*=` in
-// array iteration order, the result is order-sensitive — so this must iterate
-// in the same order rather than, say, summing additive terms first.
-// See ECON-PARITY-01 for the underlying backend issue.
+// Mirrors `getInfrastructureModifier` in game_logic.mo (ECON-PARITY-01): the
+// additive terms (Tractor, Shaker, Sprayer, ColdStorage) are summed onto 1.0
+// first, then the finished sum is multiplied by GoldenHarvester's compounding
+// 1.05^level. The result does not depend on array order.
 export const getInfraModifier = (infrastructure: Infrastructure[]): number => {
-    let modifier = 1.0;
+    let additive = 1.0;
+    let multiplier = 1.0;
     infrastructure.forEach(infra => {
         const type = Object.keys(infra.infraType)[0];
         const level = Number(infra.level);
 
         switch (type) {
             case 'GoldenHarvester': {
-                // Motoko: `var multi = 1.0; for (i in Iter.range(1, level)) { multi *= 1.05 }; modifier *= multi;`
-                // Reproduced as a loop (not Math.pow) to match the backend's
-                // floating-point accumulation bit for bit.
+                // Loop, not Math.pow, to match the backend's floating-point accumulation.
                 let multi = 1.0;
                 for (let i = 1; i <= level; i++) multi *= 1.05;
-                modifier *= multi;
+                multiplier *= multi;
                 break;
             }
-            case 'Tractor': modifier += 0.05 * level; break;
-            case 'Shaker': modifier += 0.08 * level; break;
-            case 'Sprayer': modifier += 0.03 * level; break;
-            case 'ColdStorage': modifier += 0.02 * level; break;
+            case 'Tractor': additive += 0.05 * level; break;
+            case 'Shaker': additive += 0.08 * level; break;
+            case 'Sprayer': additive += 0.03 * level; break;
+            case 'ColdStorage': additive += 0.02 * level; break;
         }
     });
-    return modifier;
+    return additive * multiplier;
 };
 
 // ── Infrastructure upkeep & wear (MAINT-01) ─────────────────────────────────
@@ -346,4 +343,43 @@ export const calculateYieldBreakdown = (
         parcelYield,
         adjustedYield
     };
+};
+
+// ---------------------------------------------------------------------------
+// Winter spoilage (ECON-05 documented it, ECON-12 extends it to organic stock).
+// Mirrors the block in main.mo's season advance, StorageLogic.calculateSpoilage
+// and HiringLogic.getHandlingQuality. It fires once a year, entering Winter, and
+// hits conventional AND organic cherries at the same rate.
+// docs/game-design/economy/spoilage-rates.md has the table.
+// ---------------------------------------------------------------------------
+
+/** HiringLogic.getHandlingQuality — unhired defaults to the worst case (70), not neutral. */
+const HANDLING_QUALITY: Record<string, number> = { Village: 80, Standard: 100, City: 120, Emergency: 70 };
+
+/** `labor` is the Candid opt: `[]` or `[{ Standard: null }]` (also accepts the bare variant). */
+export const getHandlingQuality = (labor: unknown): number => {
+    const variant = Array.isArray(labor) ? labor[0] : labor;
+    const key = variant && typeof variant === 'object' ? Object.keys(variant)[0] : undefined;
+    return (key && HANDLING_QUALITY[key]) || 70;
+};
+
+/** Best storage owned: Cold Storage 2%, Warehouse 8%, none 15% — independent of array order. */
+export const getSpoilageBaseRate = (infrastructure: Infrastructure[]): number => {
+    let baseRate = 15;
+    for (const infra of infrastructure) {
+        const type = Object.keys(infra.infraType)[0];
+        if (type === 'ColdStorage') baseRate = 2;
+        else if (type === 'Warehouse' && baseRate > 5) baseRate = 8;
+    }
+    return baseRate;
+};
+
+/** StorageLogic.calculateSpoilage: `baseRate * 100 / handlingQuality`, integer division. */
+export const getSpoilagePercent = (infrastructure: Infrastructure[], labor: unknown): number =>
+    Math.floor((getSpoilageBaseRate(infrastructure) * 100) / getHandlingQuality(labor));
+
+/** Motoko: `spoiled = kg * rate / 100` (Nat division); stock never goes below zero. */
+export const applySpoilage = (kg: bigint, percent: number): bigint => {
+    const spoiled = (kg * BigInt(percent)) / 100n;
+    return kg >= spoiled ? kg - spoiled : 0n;
 };

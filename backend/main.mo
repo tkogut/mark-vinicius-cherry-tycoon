@@ -1570,6 +1570,7 @@ actor CherryTycoon {
     // Spoilage Logic (Phase 4)
     // Check for Cold Storage / Warehouse to prevent rotting in Winter
     var spoiledCherries : Nat = 0;
+    var spoiledOrganic : Nat = 0;
     
     if (farm.currentSeason == #Autumn) {
        // Check for ColdStorage or Warehouse reducing base rate
@@ -1581,15 +1582,22 @@ actor CherryTycoon {
        let handlingQuality = HiringLogic.getHandlingQuality(farm.hiredLabor);
        let spoilageRate = StorageLogic.calculateSpoilage(baseRate, handlingQuality);
        spoiledCherries := (farm.inventory.cherries * spoilageRate) / 100;
+       // ECON-12: organic cherries rot at the same rate. They carry no preservatives,
+       // and exempting them gave the organic grower a 40% price premium AND free storage.
+       spoiledOrganic := (farm.inventory.organicCherries * spoilageRate) / 100;
     };
     
     let newCherries = if (farm.inventory.cherries >= spoiledCherries) {
        Int.abs((farm.inventory.cherries : Int) - (spoiledCherries : Int))
     } else { 0 };
+    let newOrganicCherries = if (farm.inventory.organicCherries >= spoiledOrganic) {
+       Int.abs((farm.inventory.organicCherries : Int) - (spoiledOrganic : Int))
+    } else { 0 };
     
     let updatedInventory = {
        farm.inventory with
        cherries = newCherries;
+       organicCherries = newOrganicCherries;
     };
 
     let _currentSeasonName = farm.currentSeason;

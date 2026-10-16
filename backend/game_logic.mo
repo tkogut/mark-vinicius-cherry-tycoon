@@ -51,25 +51,31 @@ module {
   };
 
   // Infrastructure modifier
+  // ECON-PARITY-01: additive terms (Tractor / Shaker / Sprayer / ColdStorage) are
+  // summed onto 1.0 first; GoldenHarvester's compounding 1.05^level multiplies the
+  // finished sum last. This used to fold `+=` and `*=` in one pass over the array,
+  // so the same equipment gave 1.2525 or 1.2679 depending on purchase order.
+  // Mirrored by getInfraModifier in frontend/src/lib/gameLogic.ts.
   private func getInfrastructureModifier(infrastructure: [Infrastructure]) : Float {
-    var modifier : Float = 1.0;
-    
+    var additive : Float = 1.0;
+    var multiplier : Float = 1.0;
+
     for (infra in infrastructure.vals()) {
       switch (infra.infraType) {
         case (#GoldenHarvester) {
           var multi = 1.0;
           for (i in Iter.range(1, infra.level)) { multi *= 1.05 };
-          modifier *= multi;
+          multiplier *= multi;
         };
-        case (#Tractor) { modifier += 0.05 * Float.fromInt(infra.level) };
-        case (#Shaker) { modifier += 0.08 * Float.fromInt(infra.level) };
-        case (#Sprayer) { modifier += 0.03 * Float.fromInt(infra.level) };
-        case (#ColdStorage) { modifier += 0.02 * Float.fromInt(infra.level) };
+        case (#Tractor) { additive += 0.05 * Float.fromInt(infra.level) };
+        case (#Shaker) { additive += 0.08 * Float.fromInt(infra.level) };
+        case (#Sprayer) { additive += 0.03 * Float.fromInt(infra.level) };
+        case (#ColdStorage) { additive += 0.02 * Float.fromInt(infra.level) };
         case (_) { /* other infrastructure doesn't affect yield */ };
       };
     };
-    
-    modifier
+
+    additive * multiplier
   };
 
   // Fertilizer-type yield modifier (ECON-01, D-01, plan 03-06).

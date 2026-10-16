@@ -10,7 +10,7 @@ Yield (kg) = Base × Soil × pH × Fertility × Infrastructure × Water × Organ
 
 | Multiplier | Factor |
 |---|---|
-| Infrastructure | Compounding `1.05^Level` (NOT linear) |
+| Infrastructure | Additive terms (Tractor +0.05, Shaker +0.08, Sprayer +0.03, ColdStorage +0.02 per level) are summed onto 1.0 first; Golden Harvester's compounding `1.05^Level` multiplies that sum last. Order-independent (ECON-PARITY-01) |
 | Głubczyce county | ×1.10 |
 | Opole county | ×1.08 |
 | Namysłów county | ×1.05 |
