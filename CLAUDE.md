@@ -115,6 +115,7 @@ One version, one source: `frontend/package.json` → `version`. Everything else 
 | **Bump when** | A roadmap milestone closes. Not per commit, not per deploy — that is what the SHA is for. |
 | **Tag on bump** | `git tag v<version> && git push --tags`, in the same commit that changes `package.json`. A release process that never tags is not a release process. |
 | **`0.x` means** | V1 Parity has not shipped. First `1.0.0` is the milestone completing, nothing else. |
+| **CHANGELOG.md** | Only gets an entry when a tag is cut. Day-to-day record is commit messages + `.planning/ROADMAP.md`; do not maintain a third copy. |
 
 Every push to `master` auto-deploys Playground, and Playground canister IDs are
 **per-deploy** — read the ID from that run's log, never reuse a previous URL
