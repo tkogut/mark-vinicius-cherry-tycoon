@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createAuthWrapper } from '@/test-utils/providers';
-import { FERTILIZER_TYPES } from '@/lib/gameLogic';
+import { FERTILIZER_TYPES, FERTILIZER_BLOCK_ORGANIC, FERTILIZER_BLOCK_SEASON } from '@/lib/gameLogic';
 import { FERTILIZER_TYPE_DISPLAY } from '@/lib/fertilizerTypes';
 import { CherryParcel } from '@/declarations/backend.did';
 
@@ -146,22 +146,65 @@ describe('ECON-01: fertilizer-type picker (ParcelCard entry point, Task 1)', () 
         expect(trigger).not.toBeDisabled();
     });
 
-    it('when the parcel is organic, shows a non-blocking warning on Synthetic-Intensive and the item stays enabled', async () => {
+    // ECON-REBALANCE reverses D-02: synthetic types are refused on organic parcels,
+    // so the picker disables them (the backend refuses the same call).
+    it.each([
+        ['isOrganic', { isOrganic: true }],
+        ['organicCertified', { organicCertified: true }],
+    ])('when the parcel is %s, both synthetic items are disabled with a reason and Organic stays enabled', async (_name, flags) => {
         const user = userEvent.setup();
-        renderParcelCard({ parcel: { isOrganic: true } as Partial<CherryParcel> });
+        const { onAction } = renderParcelCard({ parcel: flags as Partial<CherryParcel> });
 
         await user.click(screen.getByRole('button', { name: /fertilize soil/i }));
 
-        // Asserting only the warning text would pass a wrongly-blocked
-        // implementation — the item's enabled state is asserted directly.
-        expect(screen.getByText(/not organic-safe for this parcel/i)).toBeInTheDocument();
-        expect(screen.queryByText(FERTILIZER_TYPE_DISPLAY.SyntheticIntensive.caption)).not.toBeInTheDocument();
+        const items = screen.getAllByRole('menuitemradio');
+        const byName = (name: string) => items.find((el) => el.textContent?.includes(name))!;
+        for (const name of ['Synthetic-Standard', 'Synthetic-Intensive']) {
+            expect(byName(name)).toHaveAttribute('aria-disabled', 'true');
+            expect(byName(name)).toHaveTextContent(FERTILIZER_BLOCK_ORGANIC);
+        }
+        expect(byName('Organic-Compatible')).not.toHaveAttribute('aria-disabled', 'true');
+
+        await user.click(byName('Synthetic-Intensive'));
+        expect(onAction).not.toHaveBeenCalled();
+    });
+
+    it('shows each type\'s price next to its caption, from the shared cost table', async () => {
+        const user = userEvent.setup();
+        renderParcelCard();
+
+        await user.click(screen.getByRole('button', { name: /fertilize soil/i }));
 
         const items = screen.getAllByRole('menuitemradio');
-        const intensiveItem = items.find((el) => el.textContent?.includes('Synthetic-Intensive'));
-        expect(intensiveItem).toBeDefined();
-        expect(intensiveItem).not.toHaveAttribute('aria-disabled', 'true');
-        expect(intensiveItem).not.toHaveAttribute('data-disabled');
+        const text = (name: string) => items.find((el) => el.textContent?.includes(name))!.textContent;
+        expect(text('Organic-Compatible')).toContain('650 PLN');
+        expect(text('Synthetic-Standard')).toContain('500 PLN');
+        expect(text('Synthetic-Intensive')).toContain('800 PLN');
+    });
+
+    it('disables every item for a parcel already fertilized this season', async () => {
+        const user = userEvent.setup();
+        renderParcelCard({ seasonNumber: 3, parcel: { lastFertilized: 3n } as Partial<CherryParcel> });
+
+        await user.click(screen.getByRole('button', { name: /fertilize soil/i }));
+
+        const items = screen.getAllByRole('menuitemradio');
+        expect(items).toHaveLength(3);
+        for (const el of items) {
+            expect(el).toHaveAttribute('aria-disabled', 'true');
+            expect(el).toHaveTextContent(FERTILIZER_BLOCK_SEASON);
+        }
+    });
+
+    it('re-enables the items in the next season', async () => {
+        const user = userEvent.setup();
+        renderParcelCard({ seasonNumber: 4, parcel: { lastFertilized: 3n } as Partial<CherryParcel> });
+
+        await user.click(screen.getByRole('button', { name: /fertilize soil/i }));
+
+        for (const el of screen.getAllByRole('menuitemradio')) {
+            expect(el).not.toHaveAttribute('aria-disabled', 'true');
+        }
     });
 
     it('when the parcel is not organic, all three items show their normal captions', async () => {
@@ -173,7 +216,7 @@ describe('ECON-01: fertilizer-type picker (ParcelCard entry point, Task 1)', () 
         for (const type of FERTILIZER_TYPES) {
             expect(screen.getByText(FERTILIZER_TYPE_DISPLAY[type].caption)).toBeInTheDocument();
         }
-        expect(screen.queryByText(/not organic-safe for this parcel/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(FERTILIZER_BLOCK_ORGANIC)).not.toBeInTheDocument();
     });
 });
 
@@ -217,15 +260,18 @@ describe('ECON-01: shared FertilizerTypeMenu component consumed by both entry po
         expect(screen.getByText(FERTILIZER_TYPE_DISPLAY.SyntheticIntensive.caption)).toBeInTheDocument();
     });
 
-    it('shows the destructive-styled warning for Synthetic-Intensive when isOrganic is true, item stays enabled', () => {
+    it('when isOrganic is true, disables both synthetic items with a destructive-styled reason', () => {
         renderMenu(true);
 
-        const warning = screen.getByText(/not organic-safe for this parcel/i);
-        expect(warning).toBeInTheDocument();
-        expect(warning.className).toMatch(/text-rose-400/);
+        const reasons = screen.getAllByText(FERTILIZER_BLOCK_ORGANIC);
+        expect(reasons).toHaveLength(2);
+        for (const reason of reasons) expect(reason.parentElement?.className).toMatch(/text-rose-400/); // the colour lives on the caption wrapper
 
         const items = screen.getAllByRole('menuitemradio');
-        const intensiveItem = items.find((el) => el.textContent?.includes('Synthetic-Intensive'));
-        expect(intensiveItem).not.toHaveAttribute('data-disabled');
+        const organicItem = items.find((el) => el.textContent?.includes('Organic-Compatible'));
+        expect(organicItem).not.toHaveAttribute('data-disabled');
+        for (const name of ['Synthetic-Standard', 'Synthetic-Intensive']) {
+            expect(items.find((el) => el.textContent?.includes(name))).toHaveAttribute('data-disabled');
+        }
     });
 });

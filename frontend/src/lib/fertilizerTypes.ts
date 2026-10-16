@@ -12,7 +12,8 @@ import { FERTILIZER_TYPES, FertilizerType } from '@/lib/gameLogic';
 export interface FertilizerTypeDisplay {
     /** "Fertilize with {Type Name}" pattern uses this as {Type Name}. */
     label: string;
-    /** One-line tradeoff caption, sentence case. Truncates with ellipsis
+    /** One-line tradeoff caption, sentence case, shown after the price
+     *  ("800 PLN · +5% yield, not organic-safe"). Truncates with ellipsis
      *  rather than widening the dropdown (UI-SPEC long-text backstop). */
     caption: string;
 }
@@ -22,15 +23,15 @@ export interface FertilizerTypeDisplay {
 export const FERTILIZER_TYPE_DISPLAY: Record<FertilizerType, FertilizerTypeDisplay> = {
     OrganicCompatible: {
         label: 'Organic-Compatible',
-        caption: 'No yield bonus, safe on organic parcels',
+        caption: 'No yield bonus, organic-safe',
     },
     SyntheticStandard: {
         label: 'Synthetic-Standard',
-        caption: 'Baseline yield, standard cost',
+        caption: 'Baseline yield',
     },
     SyntheticIntensive: {
         label: 'Synthetic-Intensive',
-        caption: 'Five percent more yield, not organic-safe',
+        caption: '+5% yield, not organic-safe',
     },
 };
 

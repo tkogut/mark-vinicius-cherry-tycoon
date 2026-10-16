@@ -212,34 +212,43 @@ test.describe('fertilizer-type picker (ECON-01, plan 03-07)', () => {
         await expect(page.getByText('Fertilize with Organic-Compatible')).toBeVisible();
         await expect(page.getByText('Fertilize with Synthetic-Standard')).toBeVisible();
         await expect(page.getByText('Fertilize with Synthetic-Intensive')).toBeVisible();
-        await expect(page.getByText('No yield bonus, safe on organic parcels')).toBeVisible();
-        await expect(page.getByText('Baseline yield, standard cost')).toBeVisible();
-        await expect(page.getByText('Five percent more yield, not organic-safe')).toBeVisible();
+        await expect(page.getByText('No yield bonus, organic-safe')).toBeVisible();
+        await expect(page.getByText('Baseline yield')).toBeVisible();
+        await expect(page.getByText('+5% yield, not organic-safe')).toBeVisible();
     });
 
-    test('shows a non-blocking organic warning on Synthetic-Intensive when the parcel is organic', async ({ page }) => {
+    // ECON-REBALANCE: synthetic types are refused on organic parcels (reverses D-02's
+    // display-only warning), so they render disabled with the reason.
+    test('disables both synthetic types on an organic parcel and keeps Organic-Compatible enabled', async ({ page }) => {
         await openPicker(page, { organic: 'true' });
 
-        await expect(page.getByText(/not organic-safe for this parcel/i)).toBeVisible();
-        await expect(page.getByText('Five percent more yield, not organic-safe')).not.toBeVisible();
+        for (const name of ['Synthetic-Standard', 'Synthetic-Intensive']) {
+            const item = page.getByRole('menuitemradio').filter({ hasText: name });
+            await expect(item).toHaveAttribute('aria-disabled', 'true');
+            await expect(item).toContainText('Not allowed on organic parcels');
+        }
 
-        // Asserting only the warning text would pass a wrongly-blocked
-        // implementation — the item's enabled state is asserted directly.
-        const intensiveItem = page.getByRole('menuitemradio').filter({ hasText: 'Synthetic-Intensive' });
-        await expect(intensiveItem).not.toHaveAttribute('aria-disabled', 'true');
-        await intensiveItem.click();
-        // A click that reaches the item (not blocked by data-disabled) closes
-        // the menu — the disabled/greyed-out radial buttons elsewhere in this
-        // suite don't respond to clicks at all, so this is a real enabled-state
-        // signal, not just an ARIA attribute check.
+        // An enabled item is clickable and closes the menu; asserting only the ARIA
+        // attribute would pass a picker that merely looked right.
+        const organicItem = page.getByRole('menuitemradio').filter({ hasText: 'Organic-Compatible' });
+        await expect(organicItem).not.toHaveAttribute('aria-disabled', 'true');
+        await organicItem.click();
         await expect(page.getByRole('menu')).not.toBeVisible();
+    });
+
+    test('shows each type\'s price', async ({ page }) => {
+        await openPicker(page);
+
+        await expect(page.getByRole('menuitemradio').filter({ hasText: 'Organic-Compatible' })).toContainText('650 PLN');
+        await expect(page.getByRole('menuitemradio').filter({ hasText: 'Synthetic-Standard' })).toContainText('500 PLN');
+        await expect(page.getByRole('menuitemradio').filter({ hasText: 'Synthetic-Intensive' })).toContainText('800 PLN');
     });
 
     test('when the parcel is not organic, all three items show their normal captions', async ({ page }) => {
         await openPicker(page, { organic: 'false' });
 
-        await expect(page.getByText('Five percent more yield, not organic-safe')).toBeVisible();
-        await expect(page.getByText(/not organic-safe for this parcel/i)).not.toBeVisible();
+        await expect(page.getByText('+5% yield, not organic-safe')).toBeVisible();
+        await expect(page.getByText('Not allowed on organic parcels')).toHaveCount(0);
     });
 
     test('long-text backstop: labels fit on one line and captions truncate with ellipsis rather than wrap', async ({ page }) => {

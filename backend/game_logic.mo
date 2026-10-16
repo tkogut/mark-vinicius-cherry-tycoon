@@ -100,6 +100,30 @@ module {
     }
   };
 
+  // Fertilizer cost and organic rule (ECON-REBALANCE). Every application still
+  // consumes exactly one `inventory.fertilizers` unit; the types differ in the
+  // cash charged (labour + operations), so the +5% of SyntheticIntensive is paid
+  // for instead of free:
+  //
+  //   type                 labour  ops   total
+  //   SyntheticStandard    300     200   500   (the flat price before ECON-REBALANCE)
+  //   SyntheticIntensive   480     320   800   (+300 PLN, +60%, for +5% yield)
+  //   OrganicCompatible    390     260   650
+  //
+  // Synthetic types are refused on organic / certified parcels (see main.mo).
+  // Mirrored by FERTILIZER_COSTS in frontend/src/lib/gameLogic.ts.
+  public func isSyntheticFertilizer(fertilizerType: Text) : Bool {
+    fertilizerType == "SyntheticStandard" or fertilizerType == "SyntheticIntensive"
+  };
+
+  public func getFertilizerCost(fertilizerType: Text) : { labor: Nat; operations: Nat } {
+    switch (fertilizerType) {
+      case ("SyntheticIntensive") { { labor = 480; operations = 320 } };
+      case ("OrganicCompatible") { { labor = 390; operations = 260 } };
+      case (_) { { labor = 300; operations = 200 } }; // SyntheticStandard; unknown strings are rejected before this is read
+    }
+  };
+
   // Main yield calculation: PP = Base × Soil × pH × Fertility × Infrastructure × TreeAge
   // Calculate yield potential based on parcel attributes
   // Calculate yield potential based on parcel attributes

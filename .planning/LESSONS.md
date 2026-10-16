@@ -180,3 +180,9 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** `system-ui` is a narrow font on macOS/Windows and DejaVu Sans on Linux. The 34-character label needed ~219px on Linux and ~197px was available, so it wrapped. CI and a Linux dev box both failed for 3 days and the nightly run went red every night; nobody looked because the failure looked environmental.
 **Rule:** when a layout test fails only off the author's OS, measure the real widths before calling it flaky (a throwaway spec that prints `getBoundingClientRect` is enough). Fix the component to have headroom for the widest common fallback font; do not loosen the test to the point it stops guarding.
 
+### Reversing a locked decision means finding every place that encodes it
+
+**Was:** ECON-REBALANCE reversed plan 03-07's D-02 ("Synthetic-Intensive is never blocked on organic parcels, only warned"). The backend change was ten lines.
+**Actually:** D-02 was written into the picker's props comment, two unit tests, two e2e specs, a caption ("standard cost") that stopped being true, and two economy docs. Only the two unit tests failed on their own; the e2e specs would have kept passing against a stale harness assumption, and the docs would have kept stating the old rule.
+**Rule:** when a decision ID is overridden, grep for the ID and for its user-visible copy, change them in the same PR, and say in the PR which locked decision was reversed and on whose instruction.
+

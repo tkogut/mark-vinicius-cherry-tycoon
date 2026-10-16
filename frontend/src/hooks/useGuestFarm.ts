@@ -2,7 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFarm } from '@/hooks/useFarm';
 import { PlayerFarm, Season, SeasonPhase, WeatherEvent } from '@/declarations/backend.did';
-import { calculateYieldBreakdown, getSpoilagePercent, applySpoilage } from '@/lib/gameLogic';
+import {
+    calculateYieldBreakdown,
+    getSpoilagePercent,
+    applySpoilage,
+    FERTILIZER_TYPES,
+    getFertilizerBlock,
+    getFertilizerCost,
+    type FertilizerType,
+} from '@/lib/gameLogic';
 import { useQueryClient } from '@tanstack/react-query';
 import { FARM_QUERY_KEY } from '@/hooks/useFarm';
 
@@ -178,17 +186,38 @@ export function useGuestFarm() {
         return "Watered";
     }, [mutateLocal]);
 
-    const mockFertilizeParcel = useCallback(async ({ parcelId }: { parcelId: string }) => {
-        mutateLocal(f => {
-            const pIdx = f.parcels.findIndex(p => p.id === parcelId);
-            if (pIdx >= 0 && f.inventory.fertilizers > 0n) {
-                f.parcels[pIdx].fertility = Math.min(1.0, f.parcels[pIdx].fertility + 0.1);
-                f.inventory.fertilizers -= 1n;
-            }
-            return f;
+    // ECON-REBALANCE: the canister's rules — unknown type refused, synthetic types
+    // refused on organic / certified parcels, one application per parcel per
+    // season, and the per-type cash cost. (The yield effect of the type is not
+    // simulated in guest mode; only fertility moves, as before.)
+    // Validated against `localFarm` BEFORE mutateLocal: an error thrown inside a
+    // setState updater escapes into React's render, not into this promise, so the
+    // player would get a crashed screen instead of a rejected action.
+    const mockFertilizeParcel = useCallback(async ({ parcelId, fertilizerType }: { parcelId: string; fertilizerType: string }) => {
+        if (!(FERTILIZER_TYPES as readonly string[]).includes(fertilizerType)) throw new Error("Invalid fertilizer type");
+        const type = fertilizerType as FertilizerType;
+        const current = localFarm?.parcels.find(p => p.id === parcelId);
+        if (!localFarm || !current) throw new Error("Parcel not found");
+        if (localFarm.inventory.fertilizers <= 0n) throw new Error("No fertilizers in inventory");
+        const block = getFertilizerBlock(type, {
+            organic: current.isOrganic || current.organicCertified,
+            fertilizedThisSeason: current.lastFertilized === localFarm.seasonNumber,
         });
+        if (block) throw new Error(block);
+
+        const cost = BigInt(getFertilizerCost(type));
+        mutateLocal(f => ({
+            ...f,
+            parcels: f.parcels.map(p => p.id !== parcelId ? p : {
+                ...p,
+                fertility: Math.min(1.0, p.fertility + 0.1),
+                lastFertilized: f.seasonNumber,
+            }),
+            inventory: { ...f.inventory, fertilizers: f.inventory.fertilizers - 1n },
+            cash: f.cash >= cost ? f.cash - cost : 0n,
+        }));
         return "Fertilized";
-    }, [mutateLocal]);
+    }, [localFarm, mutateLocal]);
 
     const mockHarvestCherries = useCallback(async (parcelId: string) => {
         let harvestedAmount = 0n;

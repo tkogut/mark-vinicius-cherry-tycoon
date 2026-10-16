@@ -4,15 +4,18 @@ import {
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
-import { FERTILIZER_TYPES, FertilizerType } from '@/lib/gameLogic';
+import { FERTILIZER_TYPES, FertilizerType, getFertilizerBlock, getFertilizerCost } from '@/lib/gameLogic';
 import { FERTILIZER_TYPE_DISPLAY } from '@/lib/fertilizerTypes';
 import { cn } from '@/lib/utils';
 
 interface FertilizerTypeMenuProps {
-    /** Read for caption selection only (D-02) — never used to block the
-     *  Synthetic-Intensive item or to mutate anything. The backend does not
-     *  touch `isOrganic` on fertilize (plan 03-06) and neither does this. */
+    /** True for an `isOrganic` OR `organicCertified` parcel. Synthetic items are
+     *  disabled there (ECON-REBALANCE; it replaces D-02's display-only warning).
+     *  The backend refuses the same call, so this only saves the player a click. */
     isOrganic: boolean;
+    /** True when `parcel.lastFertilized` is the current season: every item is
+     *  disabled (one application per parcel per season). */
+    fertilizedThisSeason?: boolean;
     /** Disables every item while the host's fertilize mutation is in flight. */
     isPending?: boolean;
     onSelect: (fertilizerType: FertilizerType) => void;
@@ -35,6 +38,7 @@ interface FertilizerTypeMenuProps {
  */
 export const FertilizerTypeMenu: React.FC<FertilizerTypeMenuProps> = ({
     isOrganic,
+    fertilizedThisSeason,
     isPending,
     onSelect,
     align = 'center',
@@ -48,22 +52,19 @@ export const FertilizerTypeMenu: React.FC<FertilizerTypeMenuProps> = ({
         <DropdownMenuContent align={align} className={cn('w-72 border-slate-800 bg-popover', className)}>
             <DropdownMenuRadioGroup>
                 {FERTILIZER_TYPES.map((type) => {
-                    // D-02: applying Synthetic-Intensive to an already-organic
-                    // parcel is never blocked or auto-flipped — the backend
-                    // applies the yield effect as normal (plan 03-06) and
-                    // `isOrganic` is not mutated by this action at all. This
-                    // warning is display-only, shown on the row BEFORE the
-                    // click that applies it — which is how D-02's "warn before
-                    // the player confirms" is satisfied without violating
-                    // 03-UI-SPEC.md's single-click-fires rule (no separate
-                    // confirm step exists anywhere else in this picker). Do
-                    // not "fix" this into a confirmation dialog.
-                    const showOrganicWarning = isOrganic && type === 'SyntheticIntensive';
+                    // ECON-REBALANCE: a refused item is disabled and says why in place of
+                    // its caption; the price stays visible. This reverses D-02, which
+                    // kept Synthetic-Intensive selectable on organic parcels with a
+                    // warning — the backend now refuses that call.
+                    const block = getFertilizerBlock(type, {
+                        organic: isOrganic,
+                        fertilizedThisSeason: !!fertilizedThisSeason,
+                    });
                     return (
                         <DropdownMenuRadioItem
                             key={type}
                             value={type}
-                            disabled={isPending}
+                            disabled={isPending || block !== null}
                             onSelect={() => onSelect(type)}
                             className="flex-col items-start gap-0.5 cursor-pointer"
                         >
@@ -71,12 +72,12 @@ export const FertilizerTypeMenu: React.FC<FertilizerTypeMenuProps> = ({
                             <span
                                 className={cn(
                                     'block max-w-full truncate text-[10px] font-semibold uppercase tracking-wide',
-                                    showOrganicWarning ? 'text-rose-400' : 'text-slate-400'
+                                    block !== null ? 'text-rose-400' : 'text-slate-400'
                                 )}
                             >
-                                {showOrganicWarning
-                                    ? 'Warning: not organic-safe for this parcel'
-                                    : FERTILIZER_TYPE_DISPLAY[type].caption}
+                                <span className="text-slate-200">{getFertilizerCost(type)} PLN</span>
+                                {' · '}
+                                <span>{block ?? FERTILIZER_TYPE_DISPLAY[type].caption}</span>
                             </span>
                         </DropdownMenuRadioItem>
                     );

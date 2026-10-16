@@ -231,6 +231,41 @@ export const getFertilizerTypeModifier = (fertilizerType: string): number => {
     return 1.0;
 };
 
+// Fertilizer cost and organic rule (ECON-REBALANCE). Mirrors
+// `GameLogic.getFertilizerCost` / `isSyntheticFertilizer` in game_logic.mo and
+// the two guards in main.mo's `fertilizeParcel`. Every application consumes one
+// inventory unit whatever the type; the types differ in cash, so Intensive's
+// +5% yield is paid for (500 -> 800 PLN) instead of free.
+export const FERTILIZER_COSTS: Record<FertilizerType, { laborCost: number; operationalCost: number }> = {
+    OrganicCompatible: { laborCost: 390, operationalCost: 260 },  // 650
+    SyntheticStandard: { laborCost: 300, operationalCost: 200 },  // 500 (the pre-ECON-REBALANCE flat price)
+    SyntheticIntensive: { laborCost: 480, operationalCost: 320 }, // 800
+};
+
+export const getFertilizerCost = (type: FertilizerType): number =>
+    FERTILIZER_COSTS[type].laborCost + FERTILIZER_COSTS[type].operationalCost;
+
+export const isSyntheticFertilizer = (type: string): boolean =>
+    type === 'SyntheticStandard' || type === 'SyntheticIntensive';
+
+export const FERTILIZER_BLOCK_ORGANIC = 'Not allowed on organic parcels';
+export const FERTILIZER_BLOCK_SEASON = 'Already fertilized this season';
+
+/**
+ * Why this fertilizer cannot be applied right now, or null when it can. The
+ * backend is the authority (it returns the same two refusals); this lets the
+ * picker disable the item instead of letting the player click into an error.
+ * `organic` means `isOrganic || organicCertified`.
+ */
+export const getFertilizerBlock = (
+    type: FertilizerType,
+    ctx: { organic: boolean; fertilizedThisSeason: boolean },
+): string | null => {
+    if (isSyntheticFertilizer(type) && ctx.organic) return FERTILIZER_BLOCK_ORGANIC;
+    if (ctx.fertilizedThisSeason) return FERTILIZER_BLOCK_SEASON;
+    return null;
+};
+
 // County yield multiplier — Phase 5.1 "Opole DNA" (GDD §3.1).
 // Mirrors the `countyMod` switch inside game_logic.mo's calculateYieldPotential.
 export const getCountyModifier = (county: string): number => {

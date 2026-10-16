@@ -39,6 +39,12 @@ import {
     getSeasonSaleMultiplier,
     getFertilizerTypeModifier,
     FERTILIZER_TYPES,
+    FERTILIZER_COSTS,
+    getFertilizerCost,
+    isSyntheticFertilizer,
+    getFertilizerBlock,
+    FERTILIZER_BLOCK_ORGANIC,
+    FERTILIZER_BLOCK_SEASON,
     LEAGUE_LABELS,
     getHandlingQuality,
     getSpoilageBaseRate,
@@ -965,5 +971,66 @@ describe('economy parity: winter spoilage reaches organic stock (ECON-12)', () =
         expect(applySpoilage(99n, 21)).toBe(79n);   // 99 * 21 / 100 = 20 (truncated)
         expect(applySpoilage(0n, 21)).toBe(0n);
         expect(applySpoilage(5n, 100)).toBe(0n);
+    });
+});
+
+describe('economy parity: fertilizer cost and organic rule (ECON-REBALANCE)', () => {
+    // Transcription of GameLogic.getFertilizerCost / isSyntheticFertilizer in
+    // backend/game_logic.mo, and of the two guards in main.mo's fertilizeParcel:
+    //   "SyntheticIntensive" -> labour 480, operations 320   (800)
+    //   "OrganicCompatible"  -> labour 390, operations 260   (650)
+    //   _ (SyntheticStandard) -> labour 300, operations 200  (500, the old flat price)
+    //   refused: synthetic on (isOrganic or organicCertified)
+    //   refused: parcel.lastFertilized == farm.seasonNumber
+    const MOTOKO = {
+        SyntheticIntensive: { laborCost: 480, operationalCost: 320 },
+        OrganicCompatible: { laborCost: 390, operationalCost: 260 },
+        SyntheticStandard: { laborCost: 300, operationalCost: 200 },
+    } as const;
+
+    it('mirrors the Motoko cost table for every type', () => {
+        expect(FERTILIZER_COSTS).toEqual(MOTOKO);
+        expect([...FERTILIZER_TYPES].sort()).toEqual(Object.keys(MOTOKO).sort());
+    });
+
+    it('keeps SyntheticStandard at the 500 PLN every type cost before the rebalance', () => {
+        expect(getFertilizerCost('SyntheticStandard')).toBe(500);
+        expect(getFertilizerCost('OrganicCompatible')).toBe(650);
+        expect(getFertilizerCost('SyntheticIntensive')).toBe(800);
+    });
+
+    it('makes Intensive pay for its +5% yield: +300 PLN, +60%, never the same price as Standard', () => {
+        expect(getFertilizerTypeModifier('SyntheticIntensive')).toBe(1.05);
+        const premium = getFertilizerCost('SyntheticIntensive') - getFertilizerCost('SyntheticStandard');
+        expect(premium).toBe(300);
+        expect(premium / getFertilizerCost('SyntheticStandard')).toBeCloseTo(0.6, 10);
+        // The dominant-strategy regression this guards: a bonus type must not be free.
+        for (const type of FERTILIZER_TYPES) {
+            if (getFertilizerTypeModifier(type) > 1.0) {
+                expect(getFertilizerCost(type)).toBeGreaterThan(getFertilizerCost('SyntheticStandard'));
+            }
+        }
+    });
+
+    it('treats exactly SyntheticStandard and SyntheticIntensive as synthetic', () => {
+        expect(isSyntheticFertilizer('SyntheticStandard')).toBe(true);
+        expect(isSyntheticFertilizer('SyntheticIntensive')).toBe(true);
+        expect(isSyntheticFertilizer('OrganicCompatible')).toBe(false);
+        expect(isSyntheticFertilizer('syntheticstandard')).toBe(false); // wire strings are case-sensitive
+    });
+
+    it('refuses synthetic types on organic parcels, allows OrganicCompatible everywhere', () => {
+        for (const type of FERTILIZER_TYPES) {
+            const synthetic = isSyntheticFertilizer(type);
+            expect(getFertilizerBlock(type, { organic: true, fertilizedThisSeason: false }))
+                .toBe(synthetic ? FERTILIZER_BLOCK_ORGANIC : null);
+            expect(getFertilizerBlock(type, { organic: false, fertilizedThisSeason: false })).toBeNull();
+        }
+    });
+
+    it('refuses every type once the parcel has been fertilized this season', () => {
+        for (const type of FERTILIZER_TYPES) {
+            expect(getFertilizerBlock(type, { organic: false, fertilizedThisSeason: true })).toBe(FERTILIZER_BLOCK_SEASON);
+        }
     });
 });
