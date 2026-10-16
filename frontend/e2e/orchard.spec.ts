@@ -281,6 +281,8 @@ test.describe('fertilizer-type picker (ECON-01, plan 03-07)', () => {
         // DropdownMenuContent has a fixed width (w-64) so a long caption cannot
         // stretch it — confirmed by measurement, not assumed.
         const contentBox = await page.getByRole('menu').boundingBox();
-        expect(contentBox?.width).toBeLessThan(260);
+        // Still a growth guard, not a size spec: w-72 is 288px outer (QUAL-12 widened it from 256
+        // so the 14px label fits on one line in wide fallback fonts).
+        expect(contentBox?.width).toBeLessThan(300);
     });
 });

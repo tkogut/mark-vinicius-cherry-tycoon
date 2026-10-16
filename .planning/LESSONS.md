@@ -172,3 +172,11 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** the Tractor purchase was refused (`BankruptcyRisk`) in both runs, and the weather differed between them. The numbers (7 937, 5 279) looked like a result and meant nothing.
 **Rule:** an experiment script prints the outcome of every setup call, and pins every input that is not the variable (here: weather forced Sunny/mitigated, only purchases that are affordable). Then compare.
 
+
+
+### A pixel assertion measured on one machine is a claim about that machine's font
+
+**Was:** the picker's e2e asserted "label on one line, menu under 260px", and passed on the machine it was written on.
+**Actually:** `system-ui` is a narrow font on macOS/Windows and DejaVu Sans on Linux. The 34-character label needed ~219px on Linux and ~197px was available, so it wrapped. CI and a Linux dev box both failed for 3 days and the nightly run went red every night; nobody looked because the failure looked environmental.
+**Rule:** when a layout test fails only off the author's OS, measure the real widths before calling it flaky (a throwaway spec that prints `getBoundingClientRect` is enough). Fix the component to have headroom for the widest common fallback font; do not loosen the test to the point it stops guarding.
+

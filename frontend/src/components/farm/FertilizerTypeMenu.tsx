@@ -40,8 +40,12 @@ export const FertilizerTypeMenu: React.FC<FertilizerTypeMenuProps> = ({
     align = 'center',
     className,
 }) => {
+    // w-72, not w-64 (QUAL-12): the locked copy "Fertilize with Synthetic-Intensive" is
+    // 217-221px at the 14px Body size in DejaVu Sans (the Linux / CI fallback for
+    // system-ui), but only ~197px was left after the radio indicator's padding, so
+    // the label wrapped to two lines. 288px leaves ~240px for the label.
     return (
-        <DropdownMenuContent align={align} className={cn('w-64 border-slate-800 bg-popover', className)}>
+        <DropdownMenuContent align={align} className={cn('w-72 border-slate-800 bg-popover', className)}>
             <DropdownMenuRadioGroup>
                 {FERTILIZER_TYPES.map((type) => {
                     // D-02: applying Synthetic-Intensive to an already-organic
