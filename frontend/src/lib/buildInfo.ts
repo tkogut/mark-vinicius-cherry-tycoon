@@ -25,7 +25,9 @@ export const BUILD: BuildInfo = {
     version: __BUILD_VERSION__,
     sha: __BUILD_SHA__,
     builtAt: __BUILD_TIME__,
-    network: import.meta.env.VITE_DFX_NETWORK ?? 'local',
+    // Injected, not `import.meta.env.VITE_DFX_NETWORK`: vite.config.ts overrides that value
+    // to "local" on every deploy that sets only VITE_DFX_NETWORK (DEPLOY-01).
+    network: __BUILD_NETWORK__,
 };
 
 /** What the badge shows: `0.9.0 · a14352e`. */
