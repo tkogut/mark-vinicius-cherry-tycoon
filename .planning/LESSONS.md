@@ -186,3 +186,8 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** D-02 was written into the picker's props comment, two unit tests, two e2e specs, a caption ("standard cost") that stopped being true, and two economy docs. Only the two unit tests failed on their own; the e2e specs would have kept passing against a stale harness assumption, and the docs would have kept stating the old rule.
 **Rule:** when a decision ID is overridden, grep for the ID and for its user-visible copy, change them in the same PR, and say in the PR which locked decision was reversed and on whose instruction.
 
+### A number quoted in a second file is a number that will be wrong
+
+**Was:** CLAUDE.md quoted the lint ceiling (183), the parity-case count (120), the requirement count (57) and the test counts, and called two bugs "dead code" and "inconsistent" that had been fixed.
+**Actually:** `package.json` enforced 182, the parity file had 59 table cases among 176 tests, `REQUIREMENTS.md` had 69 entries, and the spoilage function the router called dead code no longer existed. Each figure was right the day it was written; the file is read in full every session, so the stale ones were believed.
+**Rule:** in CLAUDE.md point at the source (`--max-warnings` in `package.json`, the traceability table) instead of copying the number. When a requirement closes, grep CLAUDE.md for its ID: the Task Router names bugs by ID and goes stale the moment they are fixed. Test counts are the one exception worth keeping, and must be re-measured whenever tests are added.
