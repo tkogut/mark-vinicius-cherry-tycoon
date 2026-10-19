@@ -113,10 +113,8 @@ const buildIdentity = {
     version: String(pkg.version ?? '0.0.0'),
     sha: buildSha(),
     builtAt: commitTime(),
-    // Same resolution as the `network` constant at the top of this file. It must NOT be
-    // read back from `import.meta.env.VITE_DFX_NETWORK`: the `define` block below forces
-    // that to `process.env.DFX_NETWORK || "local"`, and the deploy workflows set only
-    // VITE_DFX_NETWORK, so on Playground it evaluates to "local" (see DEPLOY-01).
+    // Same resolution as the `network` constant at the top of this file (and, since DEPLOY-01,
+    // as `import.meta.env.VITE_DFX_NETWORK` in the `define` block below).
     network: process.env["DFX_NETWORK"] || process.env["VITE_DFX_NETWORK"] || "local",
 };
 
@@ -134,7 +132,12 @@ export default defineConfig({
         ...canisterEnvDefinitions,
         "process.env.DFX_NETWORK": JSON.stringify(process.env["DFX_NETWORK"]),
         "process.env.NODE_ENV": JSON.stringify(isDev ? "development" : "production"),
-        "import.meta.env.VITE_DFX_NETWORK": JSON.stringify(process.env["DFX_NETWORK"] || "local"),
+        // DEPLOY-01: resolved like the `network` constant at the top of this file. This used to
+        // read only `process.env["DFX_NETWORK"]`, but both deploy workflows set only
+        // VITE_DFX_NETWORK (`playground` / `ic`), so every deployed build believed it was on
+        // "local": the app took the local agent path on Playground, and a mainnet build would
+        // have taken the auto-login bypass.
+        "import.meta.env.VITE_DFX_NETWORK": JSON.stringify(network),
         __BUILD_VERSION__: JSON.stringify(buildIdentity.version),
         __BUILD_SHA__: JSON.stringify(buildIdentity.sha),
         __BUILD_TIME__: JSON.stringify(buildIdentity.builtAt),
