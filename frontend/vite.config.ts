@@ -150,8 +150,13 @@ export default defineConfig({
         fs: {
             allow: ["."],
         },
-        proxy: {
-            // Proxy API requests to the local replica
+        // Proxy API requests to the local replica. Playwright starts the dev server with E2E=1
+        // (playwright.config.ts): the harness specs run with no replica, so the proxy only
+        // produced one "http proxy error ... ECONNREFUSED 127.0.0.1:8000" per request in the CI
+        // log (19 per run), which reads like a failure and is not one. Vite registers its own
+        // error handler after `configure`, so the noise cannot be filtered there; omitting the
+        // proxy is the clean way. Normal `npm run dev` keeps it.
+        proxy: process.env["E2E"] ? undefined : {
             "/api": {
                 target: "http://127.0.0.1:8000",
                 changeOrigin: true,

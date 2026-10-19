@@ -35,6 +35,26 @@ async function openOrchard(page: Page, params: Record<string, string | number> =
 }
 
 const tiles = (page: Page) => page.locator('canvas[width="96"][height="48"]');
+
+/**
+ * Open the radial menu by clicking a tile, and retry until the menu is really there.
+ *
+ * `locator.click` on a tile canvas flaked in CI-mode runs (retries on, 1 worker): in 2 of 5 full
+ * runs one picker spec failed with "Element is not visible" on `nth(12)`, even straight after
+ * `expect(tile).toBeVisible()` had passed. The orchard re-renders its tile canvases shortly
+ * after mount, so the element Playwright resolved was replaced between the check and the click.
+ * This clicks the tile's CURRENT centre by coordinates (what `force` did anyway; the canvases
+ * sit under overlays) and repeats until the ring's Irrigate button shows. A repeat click on a
+ * tile whose ring is already open just re-selects the same parcel.
+ */
+async function openRingOnTile(page: Page, index = 12) {
+    await expect(async () => {
+        const box = await tiles(page).nth(index).boundingBox();
+        expect(box, `tile ${index} has no layout box yet`).not.toBeNull();
+        await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+        await expect(page.getByRole('button', { name: 'Irrigate', exact: true })).toBeVisible({ timeout: 1500 });
+    }).toPass({ timeout: 15_000 });
+}
 const trees = (page: Page) => page.locator('canvas[width="110"][height="120"]');
 const workers = (page: Page) => page.locator('canvas[width="120"][height="200"]');
 
@@ -179,7 +199,7 @@ test.describe('inter-sector bridges', () => {
 test.describe('interaction', () => {
     test('clicking a tile opens the radial action menu', async ({ page }) => {
         await openOrchard(page, { sectors: 1, trees: 60, season: 'Summer' });
-        await tiles(page).nth(12).click({ force: true });
+        await openRingOnTile(page);
         // The menu renders its actions as buttons with emoji + label.
         await expect(page.getByText('Harvest').first()).toBeVisible();
     });
@@ -199,8 +219,8 @@ test.describe('interaction', () => {
 test.describe('fertilizer-type picker (ECON-01, plan 03-07)', () => {
     async function openPicker(page: Page, params: Record<string, string | number> = {}) {
         await openOrchard(page, { sectors: 1, trees: 60, season: 'Spring', ...params });
-        await tiles(page).nth(12).click({ force: true });
-        await page.getByRole('button', { name: 'Fertilize' }).click({ force: true });
+        await openRingOnTile(page);
+        await page.getByRole('button', { name: 'Fertilize' }).click();
         await expect(page.getByRole('menu')).toBeVisible();
     }
 
@@ -314,7 +334,7 @@ test.describe('radial menu gates on the game phase (UX-12)', () => {
 
     async function openRing(page: Page, params: Record<string, string | number>) {
         await openOrchard(page, { sectors: 1, trees: 60, ...params });
-        await tiles(page).nth(12).click({ force: true });
+        await openRingOnTile(page);
         await expect(page.getByRole('button', { name: 'Irrigate', exact: true })).toBeVisible();
     }
 

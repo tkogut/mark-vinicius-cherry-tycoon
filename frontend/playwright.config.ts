@@ -52,6 +52,8 @@ export default defineConfig({
         // running here.
         url: `${BASE_URL}/harness.html`,
         reuseExistingServer: !process.env.CI,
+        // No replica in these specs; see the proxy comment in vite.config.ts.
+        env: { E2E: '1' },
         timeout: 120_000,
         stdout: 'ignore',
         stderr: 'pipe',

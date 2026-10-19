@@ -16,7 +16,7 @@ import { loadConfigFromFile } from 'vite';
 import { resolve } from 'node:path';
 
 const CONFIG = resolve(__dirname, '../../vite.config.ts');
-const KEYS = ['DFX_NETWORK', 'VITE_DFX_NETWORK'] as const;
+const KEYS = ['DFX_NETWORK', 'VITE_DFX_NETWORK', 'E2E'] as const;
 const saved: Record<string, string | undefined> = {};
 for (const k of KEYS) saved[k] = process.env[k];
 
@@ -49,5 +49,25 @@ describe('the network a build is defined for (DEPLOY-01)', () => {
         const { app, badge } = await definedNetworks(env);
         expect(app, 'import.meta.env.VITE_DFX_NETWORK as the app reads it').toBe(JSON.stringify(expected));
         expect(badge, 'the badge must agree with the app').toBe(JSON.stringify(expected));
+    });
+});
+
+describe('the dev-server proxy to the local replica', () => {
+    // Playwright starts the dev server with E2E=1 and no replica, where the proxy only logged
+    // 19 "ECONNREFUSED 127.0.0.1:8000" lines per run. A normal `npm run dev` must keep it.
+    async function proxyFor(env: Partial<Record<(typeof KEYS)[number], string>>) {
+        for (const k of KEYS) delete process.env[k];
+        Object.assign(process.env, env);
+        const loaded = await loadConfigFromFile({ command: 'serve', mode: 'development' }, CONFIG);
+        return loaded?.config.server?.proxy as Record<string, { target?: string }> | undefined;
+    }
+
+    it('is on for a normal dev server and points at the local replica', async () => {
+        const proxy = await proxyFor({});
+        expect(proxy?.['/api']?.target).toBe('http://127.0.0.1:8000');
+    });
+
+    it('is off when Playwright sets E2E=1', async () => {
+        expect(await proxyFor({ E2E: '1' })).toBeUndefined();
     });
 });

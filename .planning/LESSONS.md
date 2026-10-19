@@ -162,9 +162,9 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 
 ### `git fetch` before starting a phase: a clean local `master` is not the remote one
 
-**Was:** started Phase 3 from a local `master` last updated at PR #1, did seven levers over several sessions, then opened a PR.
-**Actually:** `origin/master` had moved 70 commits in parallel. Another workstation had built the same Phase 3 (different fertilizer taxonomy, a season price factor, its own runner-up credit table) and reused the IDs ECON-08/09 for other defects. The PR conflicted in a dozen files, so its PR workflows (Playwright, backend) never even started. Only the push-triggered unit run was green.
-**Rule:** `git fetch origin` and read `git log HEAD..origin/master` at the start of a session and before opening a PR. Check the requirement IDs you are about to use against `origin/master:.planning/REQUIREMENTS.md`. A PR whose checks are only the push-triggered ones is a red flag, not a green one.
+**Was:** started Phase 3 from a local `master` last updated at PR #1 and worked several sessions before opening a PR.
+**Actually:** `origin/master` had moved 70 commits: another workstation had built the same Phase 3 (different fertilizer taxonomy, season factor, runner-up table) and reused IDs ECON-08/09. The PR conflicted in a dozen files, so its PR workflows never started; only the push-triggered unit run was green.
+**Rule:** `git fetch origin` and read `git log HEAD..origin/master` at session start and before a PR. Check requirement IDs against `origin/master:.planning/REQUIREMENTS.md`. A PR whose only checks are push-triggered is a red flag.
 
 ### Check the setup step succeeded before comparing two runs
 
@@ -188,9 +188,9 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 
 ### A number quoted in a second file is a number that will be wrong
 
-**Was:** CLAUDE.md quoted the lint ceiling (183), the parity-case count (120), the requirement count (57) and the test counts, and called two bugs "dead code" and "inconsistent" that had been fixed.
-**Actually:** `package.json` enforced 182, the parity file had 59 table cases among 176 tests, `REQUIREMENTS.md` had 69 entries, and the spoilage function the router called dead code no longer existed. Each figure was right the day it was written; the file is read in full every session, so the stale ones were believed.
-**Rule:** in CLAUDE.md point at the source (`--max-warnings` in `package.json`, the traceability table) instead of copying the number. When a requirement closes, grep CLAUDE.md for its ID: the Task Router names bugs by ID and goes stale the moment they are fixed. Test counts are the one exception worth keeping, and must be re-measured whenever tests are added.
+**Was:** CLAUDE.md quoted the lint ceiling (183), parity-case count (120), requirement count (57), and called fixed bugs "dead code" and "inconsistent".
+**Actually:** `package.json` enforced 182, the parity file had 59 table cases, `REQUIREMENTS.md` had 69 entries, and the "dead" function no longer existed. Each figure was right when written; the file is read in full every session, so stale ones were believed.
+**Rule:** point at the source (`--max-warnings`, the traceability table) instead of copying a number. When a requirement closes, grep CLAUDE.md for its ID. Test counts are the one exception worth keeping; re-measure them when tests are added.
 
 ### Check an injected value in the bundle CI built, not the one you built
 
@@ -206,7 +206,13 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 
 ### Check the deployed build inside its lease, and read the deploy time from the log
 
-**Was:** after merging PR #11 I waited for the deploy run to show "completed" in GitHub, then opened Playground to check the fix.
-**Actually:** GitHub Actions was degraded (githubstatus.com listed an incident). The run showed "queued" for 19 minutes while the job had in fact run at 16:08-16:10; it only flipped to "completed" at 16:27. By the time I opened the page, over 20 minutes after the deploy, the backend answered "contains no Wasm module" and the frontend answered 503: Playground canisters are leases. The user had to point out the lease. A first visit to the same canister ID had also left a service worker cache, so the badge showed the previous build's SHA until a hard reload.
-**Rule:** take the deploy time from the timestamps in the run's log, not from the run's status. Check Playground right after the deploy, and expect it to be gone after roughly 20 minutes. If the URL was visited before, hard-reload and confirm the badge SHA equals the commit under test *before* judging anything else. To redeploy for a check, `gh workflow run deploy-playground.yml --ref master`, then poll the frontend URL for HTTP 200 instead of the run status.
+**Was:** waited for the deploy run to show "completed", then opened Playground.
+**Actually:** during a GitHub Actions incident the run showed "queued" for 19 minutes while the job had run at 16:08-16:10. By the time I looked the backend said "contains no Wasm module" and the frontend returned 503: Playground canisters are leases. A cached service worker also showed the previous build's SHA until a hard reload.
+**Rule:** take the deploy time from the log's timestamps, not the run status. Check right after the deploy; expect it gone after about 20 minutes. Hard-reload and match the badge SHA to the commit before judging anything. To redeploy for a check: `gh workflow run deploy-playground.yml --ref <branch>`, then poll the frontend URL for HTTP 200.
+
+### Measure a flake in the configuration CI runs, and a passing wait does not prove the element survives
+
+**Was:** a picker spec failed once in a local full run; repeating the picker specs alone (450+ runs, up to 32 CPU-spinners) never reproduced it.
+**Actually:** the full suite with `CI=1` (retries 2, 1 worker) reproduced it in 2 of 5 runs, hidden as a green run with a "flaky" entry: `Element is not visible` on a click right after `toBeVisible()` passed, because the orchard re-renders its tile canvases after mount. A first fix that only added the visibility wait changed nothing.
+**Rule:** reproduce with the full suite in the CI configuration and count "flaky", not only failures. Do not click an element a render can replace; click by coordinates and retry until the effect is visible. Judge the fix by run counts (10 of 10 clean vs 2 of 5) and say it is not a proof.
 
