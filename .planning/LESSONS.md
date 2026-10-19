@@ -191,3 +191,10 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Was:** CLAUDE.md quoted the lint ceiling (183), the parity-case count (120), the requirement count (57) and the test counts, and called two bugs "dead code" and "inconsistent" that had been fixed.
 **Actually:** `package.json` enforced 182, the parity file had 59 table cases among 176 tests, `REQUIREMENTS.md` had 69 entries, and the spoilage function the router called dead code no longer existed. Each figure was right the day it was written; the file is read in full every session, so the stale ones were believed.
 **Rule:** in CLAUDE.md point at the source (`--max-warnings` in `package.json`, the traceability table) instead of copying the number. When a requirement closes, grep CLAUDE.md for its ID: the Task Router names bugs by ID and goes stale the moment they are fixed. Test counts are the one exception worth keeping, and must be re-measured whenever tests are added.
+
+### Check an injected value in the bundle CI built, not the one you built
+
+**Was:** the build badge read its network from `import.meta.env.VITE_DFX_NETWORK`. Locally it showed `local`, which was correct, so the feature looked finished and passed review and CI.
+**Actually:** on Playground it also said `local`. `vite.config.ts` overrides that variable in `define` using only `DFX_NETWORK`, and the workflow sets only `VITE_DFX_NETWORK`. The first time anyone looked at the deployed bundle was three PRs later, and it was the same defect that makes the whole app believe it is on `local` (DEPLOY-01).
+**Rule:** for anything injected at build time, build once with the exact env the deploy workflow sets (`VITE_DFX_NETWORK=playground`, `=ic`, none) and grep the output for each. A value that is right with no env and wrong with the CI env is the case to test.
+

@@ -113,6 +113,11 @@ const buildIdentity = {
     version: String(pkg.version ?? '0.0.0'),
     sha: buildSha(),
     builtAt: commitTime(),
+    // Same resolution as the `network` constant at the top of this file. It must NOT be
+    // read back from `import.meta.env.VITE_DFX_NETWORK`: the `define` block below forces
+    // that to `process.env.DFX_NETWORK || "local"`, and the deploy workflows set only
+    // VITE_DFX_NETWORK, so on Playground it evaluates to "local" (see DEPLOY-01).
+    network: process.env["DFX_NETWORK"] || process.env["VITE_DFX_NETWORK"] || "local",
 };
 
 // https://vitejs.dev/config/
@@ -133,6 +138,7 @@ export default defineConfig({
         __BUILD_VERSION__: JSON.stringify(buildIdentity.version),
         __BUILD_SHA__: JSON.stringify(buildIdentity.sha),
         __BUILD_TIME__: JSON.stringify(buildIdentity.builtAt),
+        __BUILD_NETWORK__: JSON.stringify(buildIdentity.network),
     },
     server: {
         port: 5173,

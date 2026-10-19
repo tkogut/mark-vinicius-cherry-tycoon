@@ -172,9 +172,26 @@ describe('build identity: the version is injected, never written by hand', () =>
 
     it('vite.config injects all three build constants', () => {
         const config = readFileSync(join(SRC, '../vite.config.ts'), 'utf8');
-        for (const name of ['__BUILD_VERSION__', '__BUILD_SHA__', '__BUILD_TIME__']) {
+        for (const name of ['__BUILD_VERSION__', '__BUILD_SHA__', '__BUILD_TIME__', '__BUILD_NETWORK__']) {
             expect(config, `${name} is not defined in vite.config.ts`).toContain(name);
         }
+    });
+
+    it('the badge network honours VITE_DFX_NETWORK, which is all the deploy workflows set', () => {
+        // The Playground badge said "local" because the network was read back from
+        // `import.meta.env.VITE_DFX_NETWORK`, which vite.config.ts forces to
+        // `process.env.DFX_NETWORK || "local"`. Found on the deployed bundle, not locally.
+        const config = readFileSync(join(SRC, '../vite.config.ts'), 'utf8');
+        const identity = config.slice(config.indexOf('const buildIdentity'));
+        expect(identity.slice(0, 900), 'the build identity must resolve the network from VITE_DFX_NETWORK too')
+            .toMatch(/network:[^\n]*VITE_DFX_NETWORK/);
+
+        const info = readFileSync(join(SRC, 'lib/buildInfo.ts'), 'utf8');
+        expect(info, 'buildInfo must read the injected constant').toContain('network: __BUILD_NETWORK__');
+        expect(
+            withoutComments(info),
+            'reading import.meta.env.VITE_DFX_NETWORK here brings the "local" bug back'
+        ).not.toMatch(/network:[^\n]*import\.meta\.env/);
     });
 });
 
