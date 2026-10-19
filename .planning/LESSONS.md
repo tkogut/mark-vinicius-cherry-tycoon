@@ -203,3 +203,10 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Was:** the radial menu enabled its buttons from a per-action `phases` list, and `App.tsx` refused the same actions through `isActionAllowed`. The e2e specs opened the menu and checked a few buttons, in a season chosen to make them enabled.
 **Actually:** the two gates used different vocabularies (visual season phase vs game phase). Plant and Organic could never be enabled, and Fertilize was offered in phases the game refused. All green until someone clicked through the deployed build.
 **Rule:** derive a UI gate from the one table the rest of the code uses, and write the test as a loop over that table (every phase x every action), not as a handful of hand-picked cases. A spec that picks its own fixture to make a button work cannot find a button that never works.
+
+### Check the deployed build inside its lease, and read the deploy time from the log
+
+**Was:** after merging PR #11 I waited for the deploy run to show "completed" in GitHub, then opened Playground to check the fix.
+**Actually:** GitHub Actions was degraded (githubstatus.com listed an incident). The run showed "queued" for 19 minutes while the job had in fact run at 16:08-16:10; it only flipped to "completed" at 16:27. By the time I opened the page, over 20 minutes after the deploy, the backend answered "contains no Wasm module" and the frontend answered 503: Playground canisters are leases. The user had to point out the lease. A first visit to the same canister ID had also left a service worker cache, so the badge showed the previous build's SHA until a hard reload.
+**Rule:** take the deploy time from the timestamps in the run's log, not from the run's status. Check Playground right after the deploy, and expect it to be gone after roughly 20 minutes. If the URL was visited before, hard-reload and confirm the badge SHA equals the commit under test *before* judging anything else. To redeploy for a check, `gh workflow run deploy-playground.yml --ref master`, then poll the frontend URL for HTTP 200 instead of the run status.
+
