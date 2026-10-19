@@ -1,134 +1,79 @@
 # Changelog
 
-All notable changes to Mark Vinicius Cherry Tycoon will be documented in this file.
+This file records **releases**: an entry appears when a tag is cut, and at no
+other time. The day-to-day record lives where it cannot drift from the work:
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+- **Commit messages**: reasoning, verification, and what was deliberately *not*
+  fixed. `git log` is the changelog.
+- **`.planning/ROADMAP.md` and `.planning/REQUIREMENTS.md`**: phase and
+  requirement status, with the evidence attached.
 
-## [Unreleased]
+Versioning rules (when to bump, when to tag, what `0.x` means) are in
+`CLAUDE.md` -> Releasing. Earlier content of this file (February 2026,
+headed `[Unreleased]`) described a type system that has since been rewritten;
+it is in git history.
 
-### Added - Backend Core (2026-02-07)
+## [0.9.0] - 2026-10-16
 
-#### Type System (`backend/types.mo`)
-- Complete type definitions for all game entities
-- Geographic system (16 Polish provinces, counties, communes)
-- Parcel system with soil properties (type, pH, fertility, permeability, humidity)
-- Infrastructure types (social facilities, warehouse, cold storage, tractors, etc.)
-- Economic types (inventory, statistics, transactions)
-- Weather and season system
-- Sports management types (football clubs, leagues)
-- AI competitor personalities (Traditionalist, Innovator, Businessman)
+The first tagged release. `0.x` means V1 Parity has not shipped: the farm loop
+and the football-club thread both work end to end, but Phases 4-8 (weather UI,
+regional geography, Cherry Festival, crop insurance, onboarding) and most of
+Phase 9 (UX/UI overhaul) are still open.
 
-#### Game Logic (`backend/game_logic.mo`)
-- Yield calculation based on GDD formula: `Base × Soil × pH × Fertility × Infrastructure × Water × Organic`
-- Retail pricing: `Base × MarketSize × Quality × Organic` (+40% organic premium)
-- Wholesale pricing: `Base × 0.7 × VolumeDiscount`
-- Fixed costs calculation (infrastructure maintenance, administration)
-- Variable costs calculation (fertilizers, labor, fuel, organic certification)
-- Quality score calculation (0-100 based on soil, water, infrastructure, tree age)
-- Organic conversion mechanics (2-season requirement)
-- Weather impact on yields
-- Experience and leveling system
+### Changed - payouts and prices a player will notice
+- **Fertilizer** is a real choice and costs differ by type: `SyntheticStandard`
+  500 PLN, `SyntheticIntensive` 800 PLN (+5% yield), `OrganicCompatible` 650 PLN.
+  One application per parcel per season. Synthetic types are refused on organic
+  or certified parcels. (ECON-01, ECON-REBALANCE)
+- **Season affects the sale price**, and `getMarketPrices` reports the real
+  seasonal term instead of a constant 1.0. (ECON-02)
+- **Organic cherries spoil** at the same rate as conventional ones entering
+  Winter; they used to be exempt. Guest mode now spoils both stocks. (ECON-12)
+- **Infrastructure yield no longer depends on purchase order**: additive bonuses
+  are summed first and the Golden Harvester multiplies last. A Golden Harvester
+  bought before another yield asset now yields more (GH L2 + Tractor L3:
+  1.2525 -> 1.267875). (ECON-PARITY-01)
+- **Maintenance and repair are real**: infrastructure upkeep drifts upward each
+  season and repair is priced off the accumulated wear, so servicing is worth
+  doing for every asset type. (MAINT-01, MAINT-02)
+- **Auctions**: the runner-up is paid instead of discarded, and the player earns
+  reputation for winning an Imperial Contract. Pre-Season Future contracts can no
+  longer evade shortfall checks or lock in a full contract for a token fee.
+  (ECON-03, ECON-04, ECON-08, ECON-09)
 
-#### Main Canister (`backend/main.mo`)
-- Player management:
-  - `initializePlayer()` - Create new player with starter farm (0.5ha, 50 trees, 50,000 PLN)
-  - `getPlayerFarm()` - Retrieve player farm data
-  - `getPlayerStats()` - Get player statistics
-- Parcel operations:
-  - `harvestCherries()` - Harvest from parcel (calculates yield, updates inventory, adds XP)
-  - `waterParcel()` - Increase water level (costs 200 PLN)
-  - `fertilizeParcel()` - Increase fertility (uses fertilizer from inventory)
-  - `plantTrees()` - Plant new trees (50 PLN per tree)
-- Economic system:
-  - `sellCherries()` - Sell cherries (retail or wholesale)
-  - `getCashBalance()` - Get current cash
-  - `getInventory()` - Get inventory (cherries, fertilizers, pesticides)
-- Game progression:
-  - `advanceSeason()` - Progress to next season (calculates costs, ages trees, depletes water)
-  - `upgradeInfrastructure()` - Purchase infrastructure upgrades
-- Stable storage for canister upgrades (preupgrade/postupgrade hooks)
+### Added
+- **Football clubs (Sports Patron, vertical slice)**: eight real clubs in the
+  lower Opolskie pyramid, real share purchases, and a rewired Sports Center.
+  Owning a club costs cash but does not yet change the orchard. (SPORTS-01..03)
+- **Leaderboard**: a "Your Standing" card and a mobile layout. (LEAD-02, LEAD-03)
+- **Build identity**: the badge shows `<version> · <sha>` (hover: network and
+  commit time), replacing a hand-written "v3.8" that nothing produced.
+- Orchard: workers on the isometric grid; fertilizer-type picker on the radial
+  menu. (UX-07, ECON-01)
 
-### Added - Enhanced Game Features (2026-02-07)
+### Fixed
+- Atomic Auth: `isAuthenticated` is set only after the actor is ready, on every
+  entry path including the restored session. (AUTH-01, AUTH-02)
+- Competitors panel showed `NaN%` market share and invented figures; it now
+  computes from real capacity. AI archetype names are consistent. (ECON-06, ECON-07)
+- One spoilage system in code, documented against what actually runs. (ECON-05)
+- Sidebar header layout on all screens; emoji icons rendering as tofu without an
+  emoji font; `$` shown for a game priced in PLN. (UX-01, UX-10, UX-11)
+- Fertilizer-picker labels wrapped to two lines in wide fallback fonts, which had
+  kept the E2E check red in CI. (QUAL-12)
 
-#### Enhanced Features
-- **Tree Age Modifier** (`backend/game_logic.mo`):
-  - Realistic 0-40 year tree lifecycle
-  - Year 0: No harvest (newly planted)
-  - Year 1-2: Reduced yield (33%, 66%)
-  - Year 3-40: Peak production (100%)
-  - Year 40+: Trees die (must replant)
-- **Organic/Regular Cherry Separation** (`backend/types.mo`):
-  - Separate inventory tracking for organic vs regular cherries
-  - Proper pricing differentiation (+40% organic premium)
-  - Harvest function updated to track certification status
-- **Purchase Parcel** (`backend/main.mo`):
-  - `purchaseParcel()` - Buy new land (60,000 PLN per hectare)
-  - Dynamic parcel generation with random properties
-  - Timestamp-based unique parcel IDs
-- **Organic Conversion** (`backend/main.mo`):
-  - `startOrganicConversion()` - Begin 2-season certification process
-  - Tracks conversion progress per parcel
-  - Automatic certification after 2 seasons
-- **Tree Density Limits**:
-  - Maximum 400 trees per hectare (realistic standard)
-  - Validation in `plantTrees()` function
-  - Prevents unrealistic over-planting
-- **Helper Utilities**:
-  - `findParcelIndex()` - Efficient parcel lookup
-  - Random property generators (soil, pH, fertility)
+### Quality infrastructure
+- `npm test`, an ESLint ratchet (errors 0, warnings only go down), Playwright
+  specs against the dev harnesses, TS <-> Motoko economy parity tests, a Candid
+  drift guard, one ordered gate (`./validate.sh fast|full|backend`), and CI
+  workflows for unit, E2E and a backend smoke test. (QUAL-01..08)
 
+### Known gaps
+- **Mainnet is not deployable**: `backend/main_mainnet.mo` does not compile and
+  the mainnet workflow targets a canister that is not in `dfx.json`. (EOP-01)
+- Not started: Phases 4-8. Open in Phase 9: UX-02..06, 08, 09.
+- Sports Patron has no orchard impact and no league simulation yet. (SPORTS-04..06)
+- Parcel yield display ignores the applied fertilizer type; two economy docs carry
+  stale auction constants. (ECON-10, ECON-11)
 
-#### Project Configuration
-- `dfx.json` - ICP project configuration
-- `test-backend.ps1` - Comprehensive PowerShell test script (20 tests: 10 original + 10 enhanced features)
-- `README.md` - Complete project documentation
-
-### Technical Details
-
-**Starting Conditions:**
-- Cash: 50,000 PLN
-- Parcel: 0.5 hectares in Opole Province
-- Trees: 50 cherry trees (5 years old)
-- Soil: Sandy-clay (optimal), pH 6.5, fertility 0.7
-- Inventory: 10 fertilizers, 5 pesticides
-
-**Game Balance:**
-- Tree planting: 50 PLN per tree (max 400 per hectare)
-- Parcel purchase: 60,000 PLN per hectare
-- Watering: 200 PLN per action
-- Infrastructure: 10,000 PLN base cost
-- Seasonal costs: ~5,000-15,000 PLN depending on farm size
-- Cherry prices: 10-15 PLN/kg (wholesale), 15-25 PLN/kg (retail)
-- Organic premium: +40% price, -20% yield
-- Tree lifecycle: 0-40 years (peak at 3-40, die after 40)
-
-**Progression:**
-- XP from harvesting: 1 XP per 100kg
-- XP from planting: 2 XP per tree
-- XP from selling: 1 XP per 1,000 PLN
-- XP from upgrades: 50 XP per upgrade
-- Level formula: sqrt(XP / 100)
-
-### Changed
-- Replaced placeholder GDD storage backend with complete game implementation
-- Updated authorization system to use existing access control
-
-### Removed
-- Old `GameDesignPlan` and `GameDesignDocument` storage (moved to frontend-only)
-
-## [0.0.0] - 2026-02-07
-
-### Initial State
-- Frontend structure with React + TypeScript + Tailwind
-- Basic authorization system
-- GDD editor interface (frontend)
-- Project documentation (GDD, dev reports, specifications)
-
----
-
-**Next Steps:**
-1. Test backend locally with `test-backend.ps1`
-2. Implement frontend game dashboard
-3. Add Internet Identity authentication
-4. Integrate frontend with backend canister
+[0.9.0]: https://github.com/tkogut/mark-vinicius-cherry-tycoon/tree/v0.9.0
