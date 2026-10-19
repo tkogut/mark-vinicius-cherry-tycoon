@@ -16,6 +16,7 @@
 // resolution: tiles 96x48, trees 110x120, workers 120x200, machines 200x200.
 
 import { test, expect, type Page } from '@playwright/test';
+import { PHASE_ACTION_GATING, type GameAction, type SeasonPhase } from '../src/config/phaseConstants';
 
 const TILES_PER_SECTOR = 25; // SECTOR_SIZE 5 x 5
 
@@ -192,10 +193,9 @@ test.describe('interaction', () => {
 // Radix dropdown without stopping propagation closed it again on the same
 // click. Fixed in ImperialOrchard.tsx; these specs guard the fix.
 //
-// `season: 'Spring'` maps to the 'Awakening' phase (getSeasonStyles), which
-// is one of fertilize's three allowed phases — 'Summer' (used by the
-// existing radial-menu test above) maps to 'Harvest', where fertilize is
-// disabled.
+// The radial menu gates on the GAME phase (UX-12), not on the season's visual
+// phase. The harness defaults to game phase 'Growth', where fertilize is allowed;
+// `season` only drives the visuals.
 test.describe('fertilizer-type picker (ECON-01, plan 03-07)', () => {
     async function openPicker(page: Page, params: Record<string, string | number> = {}) {
         await openOrchard(page, { sectors: 1, trees: 60, season: 'Spring', ...params });
@@ -293,5 +293,55 @@ test.describe('fertilizer-type picker (ECON-01, plan 03-07)', () => {
         // Still a growth guard, not a size spec: w-72 is 288px outer (QUAL-12 widened it from 256
         // so the 14px label fits on one line in wide fallback fonts).
         expect(contentBox?.width).toBeLessThan(300);
+    });
+});
+
+// UX-12 — the radial menu gates its buttons on the GAME phase, through the same
+// `isActionAllowed` table App.tsx uses before it dispatches. It used to compare a per-action
+// list with the season's VISUAL phase (Dormancy/Awakening/Bloom/Harvest/Decay), found on the
+// deployed Playground build: Plant and Organic (['Investment']) never enabled, and Fertilize was
+// enabled in game phase Hiring, where App.tsx then refused it with "Action Restricted".
+test.describe('radial menu gates on the game phase (UX-12)', () => {
+    const RING: Array<[label: string, action: GameAction]> = [
+        ['Irrigate', 'water'],
+        ['Prune', 'prune'],
+        ['Fertilize', 'fertilize'],
+        ['Harvest', 'harvest'],
+        ['Plant', 'plant'],
+        ['Organic', 'organic'],
+    ];
+    const PHASES = Object.keys(PHASE_ACTION_GATING) as SeasonPhase[];
+
+    async function openRing(page: Page, params: Record<string, string | number>) {
+        await openOrchard(page, { sectors: 1, trees: 60, ...params });
+        await tiles(page).nth(12).click({ force: true });
+        await expect(page.getByRole('button', { name: 'Irrigate', exact: true })).toBeVisible();
+    }
+
+    for (const phase of PHASES) {
+        test(`every ring button matches PHASE_ACTION_GATING in game phase ${phase}`, async ({ page }) => {
+            await openRing(page, { season: 'Spring', phase });
+            for (const [label, action] of RING) {
+                const button = page.getByRole('button', { name: label, exact: true });
+                if (PHASE_ACTION_GATING[phase].includes(action)) {
+                    await expect(button, `${label} should be enabled in ${phase}`).toBeEnabled();
+                } else {
+                    await expect(button, `${label} should be disabled in ${phase}`).toBeDisabled();
+                }
+            }
+        });
+    }
+
+    test('Plant and Organic enable in Investment whatever the season looks like', async ({ page }) => {
+        for (const season of ['Spring', 'Summer', 'Autumn', 'Winter']) {
+            await openRing(page, { season, phase: 'Investment' });
+            await expect(page.getByRole('button', { name: 'Plant', exact: true }), `Plant in ${season}`).toBeEnabled();
+            await expect(page.getByRole('button', { name: 'Organic', exact: true }), `Organic in ${season}`).toBeEnabled();
+        }
+    });
+
+    test('Fertilize is disabled in Hiring even though the season looks like Awakening', async ({ page }) => {
+        await openRing(page, { season: 'Spring', phase: 'Hiring' });
+        await expect(page.getByRole('button', { name: 'Fertilize', exact: true })).toBeDisabled();
     });
 });

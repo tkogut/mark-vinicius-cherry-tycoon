@@ -20,6 +20,9 @@ const params = new URLSearchParams(window.location.search);
 const sectors = Math.max(1, Math.min(6, Number(params.get('sectors') ?? 2)));
 const seasonName = params.get('season') ?? 'Summer';
 const plantedTrees = Number(params.get('trees') ?? 140);
+// The GAME phase the radial menu gates on (UX-12). Independent of `season`, which only drives the
+// visuals. Default Growth: water and fertilize allowed, as the older specs assumed.
+const gamePhase = params.get('phase') ?? 'Growth';
 // ECON-01 (plan 03-07) Task 3: lets the fertilizer-type picker's D-02 organic
 // warning be exercised through the radial-menu entry point in a real browser
 // (e.g. /harness.html?organic=true).
@@ -42,7 +45,7 @@ const parcels = Array.from({ length: sectors }, (_, i) => makeParcel(i));
 const App = () => (
     <div style={{ width: '100vw', height: '100vh', background: '#140e0c' }}>
         <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 9999, font: '12px monospace', color: '#C9A84C' }}>
-            harness — sectors: {sectors} · season: {seasonName} · trees/parcel: {plantedTrees} · organic: {String(isOrganic)}
+            harness — sectors: {sectors} · season: {seasonName} · trees/parcel: {plantedTrees} · organic: {String(isOrganic)} · phase: {gamePhase}
         </div>
         <ImperialOrchard
             parcels={parcels}
@@ -54,6 +57,7 @@ const App = () => (
             totalCherries={2400}
             maxCapacity={10000}
             seasonNumber={3}
+            currentPhase={gamePhase}
         />
     </div>
 );

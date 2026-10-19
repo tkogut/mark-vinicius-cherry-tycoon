@@ -198,3 +198,8 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** on Playground it also said `local`. `vite.config.ts` overrides that variable in `define` using only `DFX_NETWORK`, and the workflow sets only `VITE_DFX_NETWORK`. The first time anyone looked at the deployed bundle was three PRs later, and it was the same defect that makes the whole app believe it is on `local` (DEPLOY-01).
 **Rule:** for anything injected at build time, build once with the exact env the deploy workflow sets (`VITE_DFX_NETWORK=playground`, `=ic`, none) and grep the output for each. A value that is right with no env and wrong with the CI env is the case to test.
 
+### When two gates guard one rule, test them against the same table
+
+**Was:** the radial menu enabled its buttons from a per-action `phases` list, and `App.tsx` refused the same actions through `isActionAllowed`. The e2e specs opened the menu and checked a few buttons, in a season chosen to make them enabled.
+**Actually:** the two gates used different vocabularies (visual season phase vs game phase). Plant and Organic could never be enabled, and Fertilize was offered in phases the game refused. All green until someone clicked through the deployed build.
+**Rule:** derive a UI gate from the one table the rest of the code uses, and write the test as a loop over that table (every phase x every action), not as a handful of hand-picked cases. A spec that picks its own fixture to make a button work cannot find a button that never works.

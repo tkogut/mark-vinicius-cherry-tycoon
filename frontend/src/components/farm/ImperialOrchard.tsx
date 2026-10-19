@@ -12,6 +12,7 @@ import { drawModernTractor, drawPrecisionSprayer, drawMechanicalShaker, drawBran
 import { DropdownMenu, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { FertilizerTypeMenu } from './FertilizerTypeMenu';
 import { FertilizerType } from '@/lib/gameLogic';
+import { isActionAllowed, type GameAction, type SeasonPhase } from '@/config/phaseConstants';
 
 interface ImperialOrchardProps {
     parcels: any[];
@@ -29,6 +30,13 @@ interface ImperialOrchardProps {
     totalCherries?: number;
     maxCapacity?: number;
     seasonNumber?: number;
+    /**
+     * The GAME phase (Hiring ... Planning) the radial menu gates its buttons on, through the
+     * same `isActionAllowed` that `App.tsx` uses before it dispatches (UX-12). Required, not
+     * optional: an absent phase would have to mean either "everything enabled" (more permissive
+     * than the game) or "nothing enabled", and both are silent wrong answers.
+     */
+    currentPhase: SeasonPhase | string;
 }
 
 // --- Isometric Projection Calibrator (2D Algebraic) constants ---
@@ -970,7 +978,7 @@ const advanceNpc = (prev: NpcState, cfg: NpcConfig): NpcState => {
             const snapped = { ...prev, r: wp.r, c: wp.c, route: rest };
             return rest.length === 0 ? arrive(snapped) : snapped;};
 
-export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, season, hiredLabor, county = 'Opolski', onAction, automationConfig, totalCherries = 0, maxCapacity = 10000, seasonNumber = 1 }) => {
+export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, season, hiredLabor, county = 'Opolski', onAction, automationConfig, totalCherries = 0, maxCapacity = 10000, seasonNumber = 1, currentPhase }) => {
 
     // Safety fallback for empty parcels during initialization
     const displayParcels = parcels && parcels.length > 0 ? parcels : [{ id: 'empty-1', plantedTrees: 0, quality: 0 }];
@@ -1619,12 +1627,12 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
                                 <div className="absolute inset-0 -m-24 bg-black/60 backdrop-blur-md rounded-full animate-in zoom-in-50 duration-200 border border-[var(--brass-primary)]/30 shadow-[0_0_50px_rgba(0,0,0,0.8)]" />
 
                                 {[
-                                    { id: 'water', Icon: Droplets, label: 'Irrigate', angle: -135, color: 'bg-blue-900', shadow: 'rgba(30,58,138,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
-                                    { id: 'prune', Icon: Scissors, label: 'Prune', angle: -45, color: 'bg-slate-800', shadow: 'rgba(30,41,59,0.8)', phases: ['Dormancy', 'Decay'] },
-                                    { id: 'fertilize', Icon: Leaf, label: 'Fertilize', angle: 135, color: 'bg-emerald-900', shadow: 'rgba(6,78,59,0.8)', phases: ['Awakening', 'Bloom', 'Decay'] },
-                                    { id: 'harvest', Icon: Cherry, label: 'Harvest', angle: 45, color: 'bg-rose-900', shadow: 'rgba(136,19,55,0.8)', phases: ['Harvest'] },
-                                    { id: 'plant', Icon: Sprout, label: 'Plant', angle: 180, color: 'bg-emerald-700', shadow: 'rgba(4,120,87,0.8)', phases: ['Investment'] },
-                                    { id: 'organic', Icon: ScrollText, label: 'Organic', angle: 0, color: 'bg-green-800', shadow: 'rgba(22,101,52,0.8)', phases: ['Investment'] }
+                                    { id: 'water', Icon: Droplets, label: 'Irrigate', angle: -135, color: 'bg-blue-900', shadow: 'rgba(30,58,138,0.8)' },
+                                    { id: 'prune', Icon: Scissors, label: 'Prune', angle: -45, color: 'bg-slate-800', shadow: 'rgba(30,41,59,0.8)' },
+                                    { id: 'fertilize', Icon: Leaf, label: 'Fertilize', angle: 135, color: 'bg-emerald-900', shadow: 'rgba(6,78,59,0.8)' },
+                                    { id: 'harvest', Icon: Cherry, label: 'Harvest', angle: 45, color: 'bg-rose-900', shadow: 'rgba(136,19,55,0.8)' },
+                                    { id: 'plant', Icon: Sprout, label: 'Plant', angle: 180, color: 'bg-emerald-700', shadow: 'rgba(4,120,87,0.8)' },
+                                    { id: 'organic', Icon: ScrollText, label: 'Organic', angle: 0, color: 'bg-green-800', shadow: 'rgba(22,101,52,0.8)' }
                                 ].map((action, i) => {
                                     const rad = (action.angle * Math.PI) / 180;
                                     const radius = 70;
@@ -1633,7 +1641,12 @@ export const ImperialOrchard: React.FC<ImperialOrchardProps> = ({ parcels, seaso
 
                                     const isAlreadyHarvested = action.id === 'harvest' &&
                                         (selectedParcel.parcel.lastHarvest === BigInt(seasonNumber));
-                                    const isDisabled = !action.phases.includes(seasonStyles.phase) || isAlreadyHarvested;
+                                    // UX-12: gate on the GAME phase via isActionAllowed (the table App.tsx and
+                                    // phaseGateParity.test.ts already use). This used to compare a per-action
+                                    // `phases` list with `seasonStyles.phase`, a VISUAL phase (Dormancy/Awakening/
+                                    // Bloom/Harvest/Decay), so Plant and Organic (['Investment']) never enabled
+                                    // and Fertilize was offered in phases the game refuses.
+                                    const isDisabled = !isActionAllowed(currentPhase, action.id as GameAction) || isAlreadyHarvested;
 
                                     // ECON-01 (plan 03-07): the fertilize entry's angle,
                                     // color, icon, shadow and phases gating are all

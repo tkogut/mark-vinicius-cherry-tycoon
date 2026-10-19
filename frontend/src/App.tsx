@@ -797,6 +797,7 @@ function AppContent() {
                                             totalCherries={stats.totalCherries}
                                             maxCapacity={maxCapacity}
                                             seasonNumber={stats.seasonNumber}
+                                            currentPhase={currentPhase}
                                         />
                                     </div>
 
