@@ -28,7 +28,12 @@ on:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    # Pinned, not `ubuntu-latest`: by 2026-10-23 `ubuntu-latest` resolved to
+    # ubuntu-26.04, which Playwright 1.60 cannot install chromium on ("Playwright
+    # does not support chromium on ubuntu26.04-x64"). The last green run
+    # (2026-10-19) was on ubuntu-24.04. Playwright 1.61 added 26.04 support, so
+    # the pin can go once @playwright/test is bumped (separate change).
+    runs-on: ubuntu-24.04
     name: Playwright (harnesses)
     timeout-minutes: 20
     defaults:
