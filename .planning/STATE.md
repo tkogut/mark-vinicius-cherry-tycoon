@@ -5,10 +5,10 @@ milestone_name: Playable Release — V1 Parity
 current_phase: 09
 current_phase_name: ux-ui-deep-overhaul
 status: planned
-stopped_at: Phase 9 fully planned and verified (09-02..09-10, 5 waves) — NOT YET EXECUTED
-last_updated: "2026-09-18T15:00:00.000Z"
-last_activity: 2026-09-18
-last_activity_desc: Phase 9 planning complete (discuss → research → UI-SPEC → plan → plan-check, all passed); execution paused before it started, by explicit user request, to resume on a different workstation
+stopped_at: Phase 9 re-checked against master and re-sequenced (docs PR 0 in review) — NO PLAN EXECUTED YET
+last_updated: "2026-10-23T12:00:00.000Z"
+last_activity: 2026-10-23
+last_activity_desc: Independent readiness review of 09-02..09-10 against current master; open questions decided by delegation; plan text amended in PR 0; execution order changed to one PR per plan
 progress:
   total_phases: 13
   completed_phases: 6
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-29)
 
 **Core value:** Two pillars, one empire — a player can run the farm loop end-to-end (plant, tend, harvest, sell, compete in auctions and Cherry Festival) AND grow a football-club investment, with no dead levers, silently-broken features, or unexplained mechanics blocking either thread.
-**Current focus:** Phase 9 — UX/UI Deep Overhaul. **Fully planned, zero plans executed yet.** See "Session Continuity" below for the exact resume command — this is a clean stopping point, not a mid-execution interruption.
+**Current focus:** Phase 9 — UX/UI Deep Overhaul. **Planned, re-checked against master on 2026-10-23, zero plans executed yet.** See "Session Continuity" below for the sequence — do NOT run `/gsd-execute-phase 9` as one unattended run.
 
 ## Current Position
 
 Phase: 9 — UX/UI Deep Overhaul
 Plan: 0 of 9 new plans executed (09-02 through 09-10; `09-01` is a historical record of already-shipped Aug-2026 work, not part of this run)
-Status: **Planned and verified — ready to execute.** Nothing in this phase has been built yet; only planning artifacts exist (CONTEXT.md, RESEARCH.md, UI-SPEC.md, PATTERNS.md, VALIDATION.md, and the 9 PLAN.md files), all committed.
-Last activity: 2026-09-18 — Phase 9 plan-checker returned VERIFICATION PASSED (0 blockers, 2 non-blocking warnings, both already resolved). Execution paused here at the user's explicit request, to be picked up in a future session (possibly on a different machine) — NOT because of an error or an incomplete step.
+Status: **Planned, verified on 2026-09-18, and re-checked on 2026-10-23.** Nothing in this phase has been built; only planning artifacts exist. The 2026-10-23 review found that four plans (09-02, 09-04/09-07, 09-08, 09-10) had picked up defects since they were written, and 09-09 needs a smaller update; PR 0 amends the plan text before any code runs.
+Last activity: 2026-10-23 — independent readiness review against master; decisions Q1–Q4 taken (see Session Continuity); execution re-sequenced to one PR per plan.
 
 Progress: [██████░░░░░░░] 6/13 phases complete (Phase 1, 1.1, 2, 3, 3.1, 10) — see the "By Phase" table below for exact status per phase.
 
@@ -153,25 +153,42 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-09-18T15:00:00.000Z
-Stopped at: Phase 9 fully planned and plan-checker-verified (09-02..09-10, 5 waves). Execution paused **before Wave 1 started** — this is a deliberate, clean pause at the user's explicit request ("wstrzymujemy prace, być może po 22.9 agent na innej stacji roboczej będzie kontynuować prace"), possibly to be picked up by an agent on a different workstation. Nothing is broken, mid-task, or waiting on a decision — the only remaining action is to execute.
+Last session: 2026-10-23
+Stopped at: Phase 9 re-checked and re-sequenced. PR 0 (this docs change) is open for review. **No plan has been executed.**
 
-**The single next step (do this, not the list below):**
+**Do not run `/gsd-execute-phase 9` as one unattended run.** Execute the items below one at a time, each on its own branch from a freshly fetched master, each ending in a PR that **the user merges** (every merge to master auto-deploys Playground; no standing merge permission has been given).
 
-```
-/gsd-execute-phase 9
-```
+### What landed on master since the plans were written (2026-09-18)
+`UX-12` (the orchard radial menu gates on the game phase; `ImperialOrchard` takes a required `currentPhase` prop; the harness takes `?phase=`, default `Growth`), `ECON-REBALANCE` (fertilizer cost/limit/organic rule), `ECON-12` (organic cherries spoil), `ECON-PARITY-01` (order-independent infrastructure modifier), `DEPLOY-01` (a deployed build knows its network), `QUAL-12/13/14` (e2e hardening: picker label width, tile-click flake, proxy noise), the build badge `<version> · <sha>`, tag `v0.9.0` and a CHANGELOG entry. The earlier "~53 unpushed commits" warning is obsolete: master equals origin/master.
 
-This will run all 5 waves of plans `09-02` through `09-10` in order (`09-01` is historical — already executed in Aug 2026, do not re-run or re-read it as pending scope). No `--wave` filter is required; a resuming agent can add one (e.g. `/gsd-execute-phase 9 --wave 1`) only if it wants to pace execution against usage limits, as this session did.
+### Decisions taken on 2026-10-23
+The user delegated these to an independent Opus review in their own words ("zdecydował za mnie"); they are recorded here so the trail stays honest.
+- **Storage gauges (09-04):** strip the undocumented `+15` / `+5`; Reserves becomes a Bar Meter on real warehouse capacity, `maxStorageCapacity(level) = (level + 1) * 10000` (the figure the orchard silo already uses), summing conventional and organic stock; **Organic becomes a kg Metric Badge** (organic stock has no capacity anywhere in the model, so a meter would mislead). `maxStorageCapacity` moves from 09-07 into 09-04; 09-07 consumes it.
+- **ProcessingFacility (09-02):** the **+15% wholesale bonus stays**, exactly as D-05 locked it (no number changes). Known balance note, not a defect: payback is roughly 13–20 game years at 100,000 PLN + about 1,000 PLN upkeep per year, and the bonus is worthless to retail sellers. To see ~5 years the bonus would need to be roughly +45–60%, which is a different design for the user to decide.
+- **Shared formula (09-02):** add a pure `calculateWholesalePrice` to `frontend/src/lib/gameLogic.ts` (same arguments as the Motoko function, including `hasProcessingFacility`); `SellModal` and `economyParity.test.ts` import it. SellModal's other differences from the backend (real average quality vs the backend's hardcoded 60; no saturation multiplier) are recorded as known defects, not fixed there.
+- **Delivery:** one PR per plan for 09-02, 09-04, 09-09, 09-10; 09-03 pairs with 09-06 and 09-05 with 09-07. Every PR that changes rendered UI gets a pre-merge Playground check from its branch: `gh workflow run deploy-playground.yml --ref <branch>`, deploy time and canister ID from **that run's log**, hard-reload, badge SHA must match, a checklist written in advance. 09-02's backend behaviour is proven on a local replica only. **The user merges every PR.**
 
-**Things a resuming agent should know before running it:**
+### Sequence
+| # | Branch | Contents | Stop |
+|---|---|---|---|
+| 0 | `docs/phase9-replan` | this file + amended plan text for 09-02, 09-04, 09-07, 09-08, 09-09, 09-10 | user merges |
+| 1 | 09-02 | +15% wholesale, shared `calculateWholesalePrice`, replica proof | user merges |
+| 2 | 09-03 + 09-06 | running-costs states; sprite resolver | **09-03 human checkpoint**, then user merges |
+| 3 | 09-04 | Action Dock, Bar Meter / Metric Badge, `maxStorageCapacity` | user merges |
+| 4 | 09-07 | bid-modal meters, `EmeraldGauge` deleted | user merges |
+| 5 | 09-05 | orchard lighting, particle layer | user merges |
+| 6 | 09-08 | machine phases | user merges |
+| 7 | 09-09 | building slots | user merges |
+| 8 | 09-10 | building mode in the dock | user merges |
+| 9 | `docs/phase9-close` | verification and bookkeeping; no version bump (v1.0 is not closing) | user merges |
 
-- Read `.planning/phases/09-ux-ui-deep-overhaul/09-CONTEXT.md` first — it has the full locked decision record (D-00 through D-13) that the plans assume as given; do not re-litigate these.
-- `.planning/phases/09-ux-ui-deep-overhaul/09-VALIDATION.md` frontmatter still says `status: draft` / `nyquist_compliant: false` / `wave_0_complete: false` — this is expected at this stage (validation strategy is written but Wave 0 test scaffolding hasn't run yet); it is not a sign of missing work.
-- Plan `09-04` contains one open judgment call, flagged but not yet decided: whether to strip an undocumented `+15`/`+5` display-padding value as a non-balance display fix. Confirm with the user before assuming either way if the plan doesn't force a choice.
-- **~53+ local commits are unpushed to `origin/master`.** Pushing was deliberately not authorized this session (an ambiguous "kontynuuj" was not treated as push consent for a high-stakes shared-repo action) — ask explicitly before pushing, don't infer consent from a resume instruction alone.
-- Every `game_logic.mo` change in this phase (UX-05's wholesale formula) must ship in the same commit as its `frontend/src/lib/gameLogic.ts` mirror plus an `economyParity.test.ts` extension, and be verified on a live replica with observed values in the commit message — per CLAUDE.md, this is non-negotiable even under time pressure to finish.
+Order differs from the plans' waves on purpose: 09-02 first and alone (the only backend and Ask First item); 09-03 leaves wave 1 (its blocking checkpoint would stall a parallel wave); 09-07 before 09-05; 09-06 ships with 09-03 because only 09-09 needs it.
 
-Superseded/obsolete next-step options from an earlier stale version of this file (kept struck through so no one re-proposes them): ~~`/gsd-plan-phase 2` (Football Clubs)~~ — Phase 2 completed 2026-08-07. ~~Reconcile Phase 9 bookkeeping before planning it~~ — done; this planning pass is what produced 09-02..09-10.
+### Things a resuming agent should know
+- Read `.planning/phases/09-ux-ui-deep-overhaul/09-CONTEXT.md` first (decisions D-00 through D-13); do not re-litigate them.
+- `09-VALIDATION.md` frontmatter still says `status: draft` / `nyquist_compliant: false` / `wave_0_complete: false`; expected until Wave 0 test scaffolding runs.
+- Every `game_logic.mo` change (09-02) ships in the same commit as its `gameLogic.ts` mirror plus an `economyParity.test.ts` extension, verified on a live replica with observed values in the commit message. 09-02 also leaves `main_mainnet.mo` (Track B) one more compile error behind; recorded under EOP-01.
+- Playground canisters are ~20 minute leases and run status can lag during a GitHub incident: take the deploy time from the log, check right after the deploy, hard-reload before judging (`.planning/LESSONS.md`).
+- New e2e specs that click orchard tiles must use `openRingOnTile` (QUAL-13) and be judged by full `CI=1` runs counting "flaky" entries.
 
-Resume file: `.planning/ROADMAP.md` → Phase 9 section (plan list) and `.planning/phases/09-ux-ui-deep-overhaul/09-CONTEXT.md` (decisions). `09-UI-SPEC.md` is approved and stable, not the active resume pointer.
+Resume file: this section, then `.planning/ROADMAP.md` → Phase 9 and `09-CONTEXT.md`.
