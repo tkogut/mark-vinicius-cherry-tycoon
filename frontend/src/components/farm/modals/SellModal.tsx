@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Coins, TrendingUp, Truck, Store, MapPin, Calendar, Users, AlertTriangle, Leaf, Flame} from "lucide-react";
 import { useMarketPrices } from '@/hooks/useMarketPrices';
 import { useFarm } from '@/hooks/useFarm';
-import { getSeasonSaleMultiplier, calculateWholesalePrice } from '@/lib/gameLogic';
+import { getSeasonSaleMultiplier, calculateWholesalePrice, calculateAverageQualityScore } from '@/lib/gameLogic';
 
 interface SellModalProps {
     isOpen: boolean;
@@ -70,7 +70,9 @@ export const SellModal: React.FC<SellModalProps> = ({
             const region = farm.parcels[0].region;
             regionName = region.commune;
             marketSize = Number(region.marketSize) || 0.8;
-            avgQuality = farm.parcels.reduce((acc, p) => acc + Number(p.quality), 0) / farm.parcels.length;
+            // ECON-13: the same quality measure the canister prices wholesale and retail on
+            // (it used to average the parcels' stored `quality` field, a different number).
+            avgQuality = calculateAverageQualityScore(farm.parcels, farm.infrastructure);
             hasOrganicCertified = farm.parcels.some(p => p.organicCertified);
             try { population = Number(region.population); } catch (e) { population = 50000; }
         }
@@ -302,7 +304,7 @@ export const SellModal: React.FC<SellModalProps> = ({
                                         {pricingFactors?.finalUnitPrice.toFixed(2)} <span className="text-sm font-normal text-slate-400">PLN</span>
                                     </div>
                                     <div className="text-xs text-emerald-500/80 mt-1 flex items-center">
-                                        Live Market Rate
+                                        Estimate: excludes regional market saturation
                                     </div>
                                 </div>
 
