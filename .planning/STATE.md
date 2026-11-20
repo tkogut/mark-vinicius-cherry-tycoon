@@ -5,10 +5,10 @@ milestone_name: Playable Release — V1 Parity
 current_phase: 09
 current_phase_name: ux-ui-deep-overhaul
 status: planned
-stopped_at: Phase 9 re-checked against master and re-sequenced (docs PR 0 in review) — NO PLAN EXECUTED YET
-last_updated: "2026-10-23T12:00:00.000Z"
-last_activity: 2026-10-23
-last_activity_desc: Independent readiness review of 09-02..09-10 against current master; open questions decided by delegation; plan text amended in PR 0; execution order changed to one PR per plan
+stopped_at: Phase 9 re-sequenced, PR 0 (#15) merged 2026-11-07 — NO PLAN EXECUTED YET; next is 09-02
+last_updated: "2026-11-20T00:00:00.000Z"
+last_activity: 2026-11-20
+last_activity_desc: PR 0 (#15), the second-brain docs (#16, #18) and the e2e runner pin (#17) merged; owner confirmed the +15% wholesale bonus for 09-02; STATE refreshed
 progress:
   total_phases: 13
   completed_phases: 6
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 
 Phase: 9 — UX/UI Deep Overhaul
 Plan: 0 of 9 new plans executed (09-02 through 09-10; `09-01` is a historical record of already-shipped Aug-2026 work, not part of this run)
-Status: **Planned, verified on 2026-09-18, and re-checked on 2026-10-23.** Nothing in this phase has been built; only planning artifacts exist. The 2026-10-23 review found that four plans (09-02, 09-04/09-07, 09-08, 09-10) had picked up defects since they were written, and 09-09 needs a smaller update; PR 0 amends the plan text before any code runs.
+Status: **Planned, verified on 2026-09-18, and re-checked on 2026-10-23.** Nothing in this phase has been built; only planning artifacts exist. The 2026-10-23 review found that four plans (09-02, 09-04/09-07, 09-08, 09-10) had picked up defects since they were written, and 09-09 needs a smaller update; PR 0 (#15, merged 2026-11-07) amended the plan text before any code runs.
 Last activity: 2026-10-23 — independent readiness review against master; decisions Q1–Q4 taken (see Session Continuity); execution re-sequenced to one PR per plan.
 
 Progress: [██████░░░░░░░] 6/13 phases complete (Phase 1, 1.1, 2, 3, 3.1, 10) — see the "By Phase" table below for exact status per phase.
@@ -112,6 +112,8 @@ Recent decisions affecting current work:
 - Phase 9 remainder (reconciled 2026-08-07, was "roadmap says not started"): **UX-08's phase gating** — machines are gated on ownership but not on `currentPhase`, so an owned Shaker drives around in Winter (no `currentPhase` check exists anywhere in the machine path). **UX-06's buildable border zone** — never built; no building renders in the orchard at all. **UX-09 (new)** — place the raster building sprites, which currently exist only in the Marketplace. Plus UX-01..05, the untouched half of Phase 9 that came from the 2026-07-29 screenshot audit.
 - Mainnet deploy is broken at the config level (found 2026-08-07, no decision yet): `deploy-mainnet.yml:43` deploys a canister named `backend_mainnet`, which **is not in `dfx.json`** (only `backend`, `frontend`, `internet_identity`). It would fail on the first deploy step. That is also why `main_mainnet.mo` compiling was never noticed — nothing builds it. Re-checked today with `moc --check`: `duplicate field name activeInsurance` (line 261) plus contract type errors (1591). Track B is dead twice over. Not silently breaking CI (manual `workflow_dispatch`, never run), but it is the state of the mainnet path. Folds into EOP-01.
 
+- **LESSONS.md has no room (24,446 of 24,576 bytes, the budget `agentDocs.test.ts` enforces).** Four lessons from the 2026-11-07 session are waiting for space: a `head -N` sample read as the whole output (broken twice, once with a wrong claim about `moc`), a wrong skill path guess, "one precedent" claimed for what is a convention (many `Backlog (...)` rows in REQUIREMENTS), and not checking `gh pr list` before asking where to merge. How to make room (archive older lessons out of the file, rather than raising the budget) is the owner's call.
+
 ### Blockers/Concerns
 
 **Flagged defects, deliberately not fixed (all outside the scope they were found in):**
@@ -123,6 +125,7 @@ Recent decisions affecting current work:
 
 - `backend/main_mainnet.mo` does not compile — pre-existing type errors (`AIStrategyState`, contracts, `baseCapacity`) unrelated to any recent change; this is the EOP-01 drift. **No test workflow may build Track B until EOP-01 is closed**, or it will be permanently red. Verified 2026-08-03 with a temporary local canister.
 - dfx version mismatch noted between local/playground (0.24.3) and what CI's mainnet deploy assumes — see `.planning/codebase/STACK.md`, not yet turned into a phase.
+- **dfx 0.30.2 is not a drop-in bump (measured 2026-11-20, nothing changed in the repo).** Its bundled moc is 0.16.3; `moc --check backend/main.mo` gives 9 errors (`M0219`, "implicitly transient", at `main.mo` lines 55, 78-81, 158, 163, 171, 2983) where moc 0.13.4 (dfx 0.24.3) gives 0 errors and 5 warnings. Enhanced orthogonal persistence is the default in 0.16.3 per `moc --help`; its effect on stable memory is **not verified**. `validate.sh:72` picks `base` with `head -1` (the 0.24.3 directory today) and would mismatch a newer moc. The dfx version is written in `.dfxversion`, three workflows and about fifteen docs. dfx 0.32.0 deprecates dfx. **Not scheduled; the owner decides** (it is the same decision as moving to icp-cli/mops). Until then `.dfxversion` stays 0.24.3.
 - 108 of 697 tracked text files still have CRLF in HEAD. `.gitattributes` (added 2026-08-06) normalizes them as each is next staged — a trickle, not a mass rewrite, but expect inflated diff line counts on first touch of an affected file.
 
 **Resolved since the last STATE update** (kept briefly for continuity):
@@ -153,13 +156,22 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-10-23
-Stopped at: Phase 9 re-checked and re-sequenced. PR 0 (this docs change) is open for review. **No plan has been executed.**
+Last session: 2026-11-20
+Stopped at: Phase 9 re-checked and re-sequenced. PR 0 merged as #15 on 2026-11-07. **No plan has been executed.** Next: item 1, plan 09-02.
 
 **Do not run `/gsd-execute-phase 9` as one unattended run.** Execute the items below one at a time, each on its own branch from a freshly fetched master, each ending in a PR that **the user merges** (every merge to master auto-deploys Playground; no standing merge permission has been given).
 
 ### What landed on master since the plans were written (2026-09-18)
 `UX-12` (the orchard radial menu gates on the game phase; `ImperialOrchard` takes a required `currentPhase` prop; the harness takes `?phase=`, default `Growth`), `ECON-REBALANCE` (fertilizer cost/limit/organic rule), `ECON-12` (organic cherries spoil), `ECON-PARITY-01` (order-independent infrastructure modifier), `DEPLOY-01` (a deployed build knows its network), `QUAL-12/13/14` (e2e hardening: picker label width, tile-click flake, proxy noise), the build badge `<version> · <sha>`, tag `v0.9.0` and a CHANGELOG entry. The earlier "~53 unpushed commits" warning is obsolete: master equals origin/master.
+
+### What landed on master since 2026-10-23
+- **#15** (2026-11-07): PR 0, the amended Phase 9 plans and the 2026-10-23 STATE.
+- **#17**: the e2e job is pinned to `ubuntu-24.04`. `ubuntu-latest` had become `ubuntu-26.04`, which Playwright 1.60 cannot install chromium on (support arrived in 1.61); the nightly run was red from at least 2026-11-01 and is green again (checked 2026-11-20). Bumping `@playwright/test` to >= 1.61 and dropping the pin is open and not scheduled.
+- **#16, #18**: the owner's second-brain digests (`docs/second-brain/`, the `os-publish-knowledge` skill in `.claude/skills/`) and the CLAUDE.md rules for them. `.claude/skills/` now exists in the repo.
+
+### Decisions taken on 2026-11-20
+- **09-02:** the owner confirmed the **+15% ProcessingFacility wholesale bonus**, in answer to a direct question ("Tak"). This replaces the indirect trail (D-05 in `09-CONTEXT.md`, and the 2026-10-23 decision taken by delegation); no balance number changes.
+- Not a decision, a check: on 2026-11-20 a local replica on dfx 0.24.3 was started, pinged and `dfx deploy backend` succeeded from a clean `master` worktree, so the 09-02 replica proof can be reproduced on the current toolchain. The dfx question stays open (see Blockers/Concerns).
 
 ### Decisions taken on 2026-10-23
 The user delegated these to an independent Opus review in their own words ("zdecydował za mnie"); they are recorded here so the trail stays honest.
@@ -171,7 +183,7 @@ The user delegated these to an independent Opus review in their own words ("zdec
 ### Sequence
 | # | Branch | Contents | Stop |
 |---|---|---|---|
-| 0 | `docs/phase9-replan` | this file + amended plan text for 09-02, 09-04, 09-07, 09-08, 09-09, 09-10 | user merges |
+| 0 | `docs/phase9-replan` | this file + amended plan text for 09-02, 09-04, 09-07, 09-08, 09-09, 09-10 | **done, #15 merged 2026-11-07** |
 | 1 | 09-02 | +15% wholesale, shared `calculateWholesalePrice`, replica proof | user merges |
 | 2 | 09-03 + 09-06 | running-costs states; sprite resolver | **09-03 human checkpoint**, then user merges |
 | 3 | 09-04 | Action Dock, Bar Meter / Metric Badge, `maxStorageCapacity` | user merges |
