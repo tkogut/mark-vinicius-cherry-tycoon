@@ -1380,15 +1380,18 @@ actor CherryTycoon {
         };
 
         // Calculate price based on sale type, saturation, and AI market competition
+        // ECON-13: one quality measure for both channels. Wholesale used to be priced as if
+        // every farm scored a hardcoded 60; it now uses the same average as retail, and the
+        // Sell modal's preview computes it with the gameLogic.ts mirror of calculateQualityScore.
+        var totalQuality = 0;
+        for (p in farm.parcels.vals()) {
+          totalQuality += GameLogic.calculateQualityScore(p, farm.infrastructure);
+        };
+        let avgQuality = if (farm.parcels.size() > 0) {
+          totalQuality / farm.parcels.size()
+        } else { 50 };
+
         let revenue = if (saleType == "retail") {
-          // Calculate average quality score across all parcels
-          var totalQuality = 0;
-          for (p in farm.parcels.vals()) {
-            totalQuality += GameLogic.calculateQualityScore(p, farm.infrastructure);
-          };
-          let avgQuality = if (farm.parcels.size() > 0) {
-            totalQuality / farm.parcels.size()
-          } else { 50 };
           
           // Apply AI market multiplier on top of saturation
           let basePrice = GameLogic.calculateRetailPrice(
@@ -1416,7 +1419,7 @@ actor CherryTycoon {
           let basePrice = GameLogic.calculateWholesalePrice(
             stableSpotPrice,
             quantity,
-            60, // average quality
+            avgQuality, // ECON-13: was a hardcoded 60
             saturationMult,
             GameLogic.getSeasonSaleMultiplier(farm.currentSeason),
             hasProcessingFacility

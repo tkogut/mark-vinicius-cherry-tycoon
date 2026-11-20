@@ -171,6 +171,7 @@ Stopped at: Phase 9 re-checked and re-sequenced. PR 0 merged as #15 on 2026-11-0
 
 ### Decisions taken on 2026-11-20
 - **09-02:** the owner confirmed the **+15% ProcessingFacility wholesale bonus**, in answer to a direct question ("Tak"). This replaces the indirect trail (D-05 in `09-CONTEXT.md`, and the 2026-10-23 decision taken by delegation); no balance number changes.
+- **ECON-13 (decided by delegation, binding at the owner's word):** wholesale uses the real average quality instead of the hardcoded 60; the Sell preview is labelled an estimate excluding regional saturation; an exact canister quote (`quoteSale`) is ECON-14, after Phase 9. Rationale given: no real players, small effect (-5.7% to +3.8%), no Candid change now.
 - Not a decision, a check: on 2026-11-20 a local replica on dfx 0.24.3 was started, pinged and `dfx deploy backend` succeeded from a clean `master` worktree, so the 09-02 replica proof can be reproduced on the current toolchain. The dfx question stays open (see Blockers/Concerns).
 
 ### Decisions taken on 2026-10-23

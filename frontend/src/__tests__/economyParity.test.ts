@@ -38,6 +38,8 @@ import {
     getClubSharePrice,
     getSeasonSaleMultiplier,
     calculateWholesalePrice,
+    calculateQualityScore,
+    calculateAverageQualityScore,
     getFertilizerTypeModifier,
     FERTILIZER_TYPES,
     FERTILIZER_COSTS,
@@ -52,7 +54,7 @@ import {
     getSpoilagePercent,
     applySpoilage,
 } from '@/lib/gameLogic';
-import { PARITY_CASES, makeParcel, makeInfra, BONUS_COUNTIES, CONTROL_COUNTY } from '@/test-utils/economyVectors';
+import { PARITY_CASES, makeParcel, makeInfra, BONUS_COUNTIES, CONTROL_COUNTY, ALL_SOIL_TYPES } from '@/test-utils/economyVectors';
 
 const REPO_ROOT = resolve(__dirname, '../../..');
 
@@ -887,6 +889,103 @@ describe('economy parity: processing facility wholesale bonus (UX-05)', () => {
             }
         }
         expect(compared).toBe(7 * 4 * 3 * 4 * 2);
+    });
+});
+
+// ============================================================================
+// ECON-13 -- the sale quality term (decision of 2026-11-20, taken by delegation)
+// ============================================================================
+
+/**
+ * Independent transcription of game_logic.mo `calculateQualityScore`:
+ *
+ *   var score = 50.0;
+ *   score += soil * 10; score += ph * 10; score += fertility * 10;
+ *   if (waterLevel >= 0.4 and waterLevel <= 0.7) score += 10;
+ *   Sprayer +5/lvl, ColdStorage +3/lvl, Shaker -2/lvl, Pruner +4/lvl;
+ *   if (treeAge >= 7 and treeAge <= 15) score += 10;
+ *   final = min(score, 100);  Int.abs(Float.toInt(final))
+ *
+ * `Float.toInt` truncates and `Int.abs` drops the sign, so a (rare) negative
+ * score comes back positive; the transcription keeps that behaviour on purpose.
+ */
+function refQualityScore(parcel: CherryParcel, infra: Infrastructure[]): number {
+    let score = 50.0;
+    score += refSoilModifier(parcel.soilType) * 10.0;
+    score += refPhModifier(parcel.pH) * 10.0;
+    score += parcel.fertility * 10.0;
+    if (parcel.waterLevel >= 0.4 && parcel.waterLevel <= 0.7) score += 10.0;
+    for (const i of infra) {
+        const lvl = Number(i.level);
+        if ('Sprayer' in i.infraType) score += 5.0 * lvl;
+        else if ('ColdStorage' in i.infraType) score += 3.0 * lvl;
+        else if ('Shaker' in i.infraType) score -= 2.0 * lvl;
+        else if ('Pruner' in i.infraType) score += 4.0 * lvl;
+    }
+    const age = Number(parcel.treeAge);
+    if (age >= 7 && age <= 15) score += 10.0;
+    const finalScore = score > 100.0 ? 100.0 : score;
+    return Math.abs(Math.trunc(finalScore));
+}
+
+describe('economy parity: sale quality score (ECON-13)', () => {
+    const INFRA_SETS: Array<[string, Infrastructure[]]> = [
+        ['none', []],
+        ['Sprayer 1', [makeInfra({ Sprayer: null }, 1)]],
+        ['Sprayer 2 + ColdStorage 3', [makeInfra({ Sprayer: null }, 2), makeInfra({ ColdStorage: null }, 3)]],
+        ['Shaker 4', [makeInfra({ Shaker: null }, 4)]],
+        ['Pruner 2 + Shaker 3', [makeInfra({ Pruner: null }, 2), makeInfra({ Shaker: null }, 3)]],
+        ['Warehouse 2 (no quality term)', [makeInfra({ Warehouse: null }, 2)]],
+        ['Shaker 40 (drives the raw score negative)', [makeInfra({ Shaker: null }, 40)]],
+    ];
+
+    it('gameLogic.ts calculateQualityScore equals the Motoko transcription over a grid', () => {
+        let compared = 0;
+        for (const soilType of ALL_SOIL_TYPES) {
+            for (const pH of [5.0, 5.5, 5.9, 6.0, 6.5, 7.0, 7.2, 7.5, 8.0]) {
+                for (const fertility of [0, 0.5, 1.0]) {
+                    for (const waterLevel of [0.3, 0.4, 0.55, 0.7, 0.8]) {
+                        for (const treeAge of [0n, 6n, 7n, 10n, 15n, 16n]) {
+                            for (const [, infra] of INFRA_SETS) {
+                                const parcel = makeParcel({ soilType, pH, fertility, waterLevel, treeAge });
+                                expect(calculateQualityScore(parcel, infra)).toBe(refQualityScore(parcel, infra));
+                                compared++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        expect(compared).toBe(4 * 9 * 3 * 5 * 6 * 7);
+    });
+
+    it('the score is capped at 100 and is not a constant 60', () => {
+        const best = makeParcel({ fertility: 1.0, treeAge: 10n });
+        expect(calculateQualityScore(best, [makeInfra({ Sprayer: null }, 3)])).toBe(100);
+        // The default fixture scores 50 + 10 + 10 + 10 + 10 + 10 = 100 before infrastructure; the
+        // point of ECON-13 is that wholesale no longer pays as if every farm scored 60.
+        expect(calculateQualityScore(makeParcel({ fertility: 0, treeAge: 0n, waterLevel: 0.1 }), [])).not.toBe(60);
+    });
+
+    it('a negative raw score comes back as a positive number (Int.abs of the truncation), as in the canister', () => {
+        const parcel = makeParcel({ soilType: { Waterlogged: null }, pH: 5.0, fertility: 0, waterLevel: 0.1, treeAge: 0n });
+        const raw = calculateQualityScore(parcel, [makeInfra({ Shaker: null }, 40)]);
+        expect(raw).toBeGreaterThan(0);
+        expect(raw).toBe(refQualityScore(parcel, [makeInfra({ Shaker: null }, 40)]));
+    });
+
+    it('the average is integer division of the summed scores, and 50 for a player with no parcels', () => {
+        expect(calculateAverageQualityScore([], [])).toBe(50);
+        const p1 = makeParcel({ fertility: 0.5 });
+        const p2 = makeParcel({ fertility: 0.9, soilType: { Clay: null } });
+        const expected = Math.floor((refQualityScore(p1, []) + refQualityScore(p2, [])) / 2);
+        expect(calculateAverageQualityScore([p1, p2], [])).toBe(expected);
+    });
+
+    it('wholesale price moves with quality: x1.00 at 0, x1.06 at the old hardcoded 60, x1.10 at 100', () => {
+        const at = (q: number) => refWholesalePrice(10, 1000, q, 1.0, 1.0, false);
+        expect(at(60) / at(0)).toBeCloseTo(1.06, 10);
+        expect(at(100) / at(60)).toBeCloseTo(1.10 / 1.06, 10);
     });
 });
 

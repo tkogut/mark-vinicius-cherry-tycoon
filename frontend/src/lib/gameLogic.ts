@@ -53,6 +53,39 @@ export const getSeasonSaleMultiplier = (season: Season): number => {
     return 1.0;
 };
 
+// Mirrors `GameLogic.calculateQualityScore` in game_logic.mo (ECON-13). The sale
+// price uses this score, for wholesale and retail alike, so the Sell modal's
+// preview reads the same measure the canister pays on (it used to average the
+// parcels' stored `quality` field, a different number). `Float.toInt` truncates
+// and `Int.abs` drops the sign: a raw score below zero (very heavy Shaker use)
+// therefore comes back positive in the canister, and here.
+export const calculateQualityScore = (parcel: CherryParcel, infrastructure: Infrastructure[]): number => {
+    let score = 50.0;
+    score += getSoilModifier(parcel.soilType) * 10.0;
+    score += getPhModifier(parcel.pH) * 10.0;
+    score += parcel.fertility * 10.0;
+    if (parcel.waterLevel >= 0.4 && parcel.waterLevel <= 0.7) score += 10.0;
+    for (const infra of infrastructure) {
+        const level = Number(infra.level);
+        if ('Sprayer' in infra.infraType) score += 5.0 * level;
+        else if ('ColdStorage' in infra.infraType) score += 3.0 * level;
+        else if ('Shaker' in infra.infraType) score -= 2.0 * level;
+        else if ('Pruner' in infra.infraType) score += 4.0 * level;
+    }
+    const age = Number(parcel.treeAge);
+    if (age >= 7 && age <= 15) score += 10.0;
+    const finalScore = score > 100.0 ? 100.0 : score;
+    return Math.abs(Math.trunc(finalScore));
+};
+
+// The average the canister computes before pricing a sale: the summed scores
+// divided as natural numbers (floor), and 50 when the player has no parcels.
+export const calculateAverageQualityScore = (parcels: CherryParcel[], infrastructure: Infrastructure[]): number => {
+    if (parcels.length === 0) return 50;
+    const total = parcels.reduce((acc, p) => acc + calculateQualityScore(p, infrastructure), 0);
+    return Math.floor(total / parcels.length);
+};
+
 // Mirrors `GameLogic.calculateWholesalePrice` in game_logic.mo (UX-05, D-05):
 // same arguments in the same order, same arithmetic, including the trailing
 // +15% for an owner of #ProcessingFacility. `SellModal.tsx` calls this for its
