@@ -123,7 +123,7 @@ Recent decisions affecting current work:
 
 **Backend / infrastructure:**
 
-- `backend/main_mainnet.mo` does not compile — pre-existing type errors (`AIStrategyState`, contracts, `baseCapacity`) unrelated to any recent change; this is the EOP-01 drift. **No test workflow may build Track B until EOP-01 is closed**, or it will be permanently red. Verified 2026-08-03 with a temporary local canister.
+- `backend/main_mainnet.mo` does not compile — pre-existing type errors (`AIStrategyState`, contracts, `baseCapacity`) unrelated to any recent change; this is the EOP-01 drift. **No test workflow may build Track B until EOP-01 is closed**, or it will be permanently red. Verified 2026-08-03 with a temporary local canister. 2026-11-20: 9 type errors; plan 09-02 (UX-05) widens the existing arity error at `main_mainnet.mo:1194` (4 arguments passed since ECON-02, 6 now expected) without adding one.
 - dfx version mismatch noted between local/playground (0.24.3) and what CI's mainnet deploy assumes — see `.planning/codebase/STACK.md`, not yet turned into a phase.
 - **dfx 0.30.2 is not a drop-in bump (measured 2026-11-20, nothing changed in the repo).** Its bundled moc is 0.16.3; `moc --check backend/main.mo` gives 9 errors (`M0219`, "implicitly transient", at `main.mo` lines 55, 78-81, 158, 163, 171, 2983) where moc 0.13.4 (dfx 0.24.3) gives 0 errors and 5 warnings. Enhanced orthogonal persistence is the default in 0.16.3 per `moc --help`; its effect on stable memory is **not verified**. `validate.sh:72` picks `base` with `head -1` (the 0.24.3 directory today) and would mismatch a newer moc. The dfx version is written in `.dfxversion`, three workflows and about fifteen docs. dfx 0.32.0 deprecates dfx. **Not scheduled; the owner decides** (it is the same decision as moving to icp-cli/mops). Until then `.dfxversion` stays 0.24.3.
 - 108 of 697 tracked text files still have CRLF in HEAD. `.gitattributes` (added 2026-08-06) normalizes them as each is next staged — a trickle, not a mass rewrite, but expect inflated diff line counts on first touch of an affected file.
@@ -184,7 +184,7 @@ The user delegated these to an independent Opus review in their own words ("zdec
 | # | Branch | Contents | Stop |
 |---|---|---|---|
 | 0 | `docs/phase9-replan` | this file + amended plan text for 09-02, 09-04, 09-07, 09-08, 09-09, 09-10 | **done, #15 merged 2026-11-07** |
-| 1 | 09-02 | +15% wholesale, shared `calculateWholesalePrice`, replica proof | user merges |
+| 1 | 09-02 | +15% wholesale, shared `calculateWholesalePrice`, replica proof | **built 2026-11-20, awaiting the user's merge** |
 | 2 | 09-03 + 09-06 | running-costs states; sprite resolver | **09-03 human checkpoint**, then user merges |
 | 3 | 09-04 | Action Dock, Bar Meter / Metric Badge, `maxStorageCapacity` | user merges |
 | 4 | 09-07 | bid-modal meters, `EmeraldGauge` deleted | user merges |
