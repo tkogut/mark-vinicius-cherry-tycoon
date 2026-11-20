@@ -37,6 +37,7 @@ import {
     getUpkeepDrift,
     getClubSharePrice,
     getSeasonSaleMultiplier,
+    calculateWholesalePrice,
     getFertilizerTypeModifier,
     FERTILIZER_TYPES,
     FERTILIZER_COSTS,
@@ -724,13 +725,15 @@ const REF_SEASONS: Record<string, Season> = {
 
 /**
  * Transcription of game_logic.mo `calculateWholesalePrice`, with the ECON-02
- * trailing `seasonMultiplier` parameter:
+ * trailing `seasonMultiplier` parameter and the UX-05 trailing
+ * `hasProcessingFacility` parameter:
  *
+ *   let processingBonus = if (hasProcessingFacility) { 1.15 } else { 1.0 };
  *   let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus
- *     * qualityBonus * saturationMultiplier * seasonMultiplier;
+ *     * qualityBonus * saturationMultiplier * seasonMultiplier * processingBonus;
  *
  * The pre-existing volume-bonus thresholds (quantity > 10_000 / > 5_000) are
- * reproduced unchanged -- this plan adds no new threshold.
+ * reproduced unchanged -- no plan has added a threshold.
  */
 function refWholesalePrice(
     basePrice: number,
@@ -738,11 +741,13 @@ function refWholesalePrice(
     quality: number,
     saturationMultiplier: number,
     seasonMultiplier: number,
+    hasProcessingFacility: boolean,
 ): number {
     const wholesaleMultiplier = 0.7;
     const volumeBonus = quantity > 10000 ? 1.05 : quantity > 5000 ? 1.02 : 1.0;
     const qualityBonus = 1.0 + (quality / 100.0 * 0.1);
-    return basePrice * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier * seasonMultiplier;
+    const processingBonus = hasProcessingFacility ? 1.15 : 1.0;
+    return basePrice * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier * seasonMultiplier * processingBonus;
 }
 
 describe('economy parity: season sale price (ECON-02)', () => {
@@ -790,8 +795,8 @@ describe('economy parity: season sale price (ECON-02)', () => {
     ] as const)('%s: wholesale price carries the season term through the product', (_name, season, mult) => {
         const seasonMult = getSeasonSaleMultiplier(season);
         expect(seasonMult).toBeCloseTo(mult, 10);
-        const withSeason = refWholesalePrice(15, 1000, 60, 1.0, seasonMult);
-        const withoutSeason = refWholesalePrice(15, 1000, 60, 1.0, 1.0);
+        const withSeason = refWholesalePrice(15, 1000, 60, 1.0, seasonMult, false);
+        const withoutSeason = refWholesalePrice(15, 1000, 60, 1.0, 1.0, false);
         expect(withSeason / withoutSeason).toBeCloseTo(mult, 10);
     });
 
@@ -809,18 +814,79 @@ describe('economy parity: season sale price (ECON-02)', () => {
         for (const [, quantity, expectedVolumeBonus] of cases) {
             for (const season of Object.values(REF_SEASONS)) {
                 const seasonMult = getSeasonSaleMultiplier(season);
-                const withSeason = refWholesalePrice(15, quantity, 60, 1.0, seasonMult);
-                const neutral = refWholesalePrice(15, quantity, 60, 1.0, 1.0);
+                const withSeason = refWholesalePrice(15, quantity, 60, 1.0, seasonMult, false);
+                const neutral = refWholesalePrice(15, quantity, 60, 1.0, 1.0, false);
                 // The ratio between a seasoned and unseasoned price at the same
                 // quantity is exactly the season multiplier -- the volume bonus
                 // that produced expectedVolumeBonus cancels out of the ratio,
                 // proving the threshold fired identically in both cases.
                 expect(withSeason / neutral).toBeCloseTo(seasonMult, 10);
                 // Sanity: the volume bonus itself is unaffected by season.
-                const bare = refWholesalePrice(15, quantity, 0, 1.0, 1.0) / (15 * 0.7);
+                const bare = refWholesalePrice(15, quantity, 0, 1.0, 1.0, false) / (15 * 0.7);
                 expect(bare).toBeCloseTo(expectedVolumeBonus, 10);
             }
         }
+    });
+});
+
+describe('economy parity: processing facility wholesale bonus (UX-05)', () => {
+    const SEASON_MULTS = Object.values(REF_SEASONS).map((s) => getSeasonSaleMultiplier(s));
+
+    it('owning a ProcessingFacility pays exactly 1.15x, all else equal', () => {
+        const without = refWholesalePrice(15, 1000, 60, 1.0, 1.0, false);
+        const withIt = refWholesalePrice(15, 1000, 60, 1.0, 1.0, true);
+        expect(withIt / without).toBeCloseTo(1.15, 10);
+    });
+
+    it.each([0.9, 1.15, 1.0, 0.75])('the 1.15 ratio is unchanged under a season multiplier of %s (the two terms compose)', (seasonMult) => {
+        const without = refWholesalePrice(15, 1000, 60, 0.8, seasonMult, false);
+        const withIt = refWholesalePrice(15, 1000, 60, 0.8, seasonMult, true);
+        expect(withIt / without).toBeCloseTo(1.15, 10);
+    });
+
+    it('the volume-bonus thresholds still fire at the same quantities, with the bonus on and off', () => {
+        const cases: Array<[number, number]> = [
+            [10_001, 1.05],
+            [10_000, 1.02],
+            [5_001, 1.02],
+            [5_000, 1.0],
+        ];
+        for (const [quantity, expectedVolumeBonus] of cases) {
+            for (const flag of [false, true]) {
+                const bare = refWholesalePrice(15, quantity, 0, 1.0, 1.0, flag) / (15 * 0.7 * (flag ? 1.15 : 1.0));
+                expect(bare).toBeCloseTo(expectedVolumeBonus, 10);
+            }
+        }
+    });
+
+    it('without a ProcessingFacility the price is bit-for-bit the pre-change price', () => {
+        // The pre-change formula, written out. x * 1.0 === x exactly in IEEE 754,
+        // so the trailing processingBonus of 1.0 must not move a single bit.
+        const preChange = (base: number, qty: number, quality: number, sat: number, season: number) =>
+            base * 0.7 * (qty > 10000 ? 1.05 : qty > 5000 ? 1.02 : 1.0) * (1.0 + (quality / 100.0 * 0.1)) * sat * season;
+        for (const qty of [1, 1000, 5_000, 5_001, 10_000, 10_001, 50_000]) {
+            for (const seasonMult of SEASON_MULTS) {
+                expect(refWholesalePrice(15, qty, 60, 0.8, seasonMult, false)).toBe(preChange(15, qty, 60, 0.8, seasonMult));
+            }
+        }
+    });
+
+    it('gameLogic.ts calculateWholesalePrice (what SellModal calls) equals the Motoko transcription over a grid', () => {
+        let compared = 0;
+        for (const qty of [1, 1000, 5_000, 5_001, 10_000, 10_001, 50_000]) {
+            for (const quality of [0, 50, 60, 100]) {
+                for (const sat of [0.5, 0.8, 1.0]) {
+                    for (const seasonMult of SEASON_MULTS) {
+                        for (const flag of [false, true]) {
+                            expect(calculateWholesalePrice(15, qty, quality, sat, seasonMult, flag))
+                                .toBeCloseTo(refWholesalePrice(15, qty, quality, sat, seasonMult, flag), 10);
+                            compared++;
+                        }
+                    }
+                }
+            }
+        }
+        expect(compared).toBe(7 * 4 * 3 * 4 * 2);
     });
 });
 

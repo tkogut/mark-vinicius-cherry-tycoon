@@ -1407,12 +1407,19 @@ actor CherryTycoon {
         } else {
           // Phase 8.0: Apply Flood Factor to Wholesale
           // If selling wholesale, the base price is now influenced by the global stableSpotPrice.
+          // UX-05: derived from the caller's own farm record, never from a parameter of
+          // sellCherries -- a caller-supplied flag would be free money (the ECON-09 class).
+          let hasProcessingFacility = switch (Array.find<Types.Infrastructure>(farm.infrastructure, func(i) { i.infraType == #ProcessingFacility })) {
+            case (?_) { true };
+            case null { false };
+          };
           let basePrice = GameLogic.calculateWholesalePrice(
             stableSpotPrice,
             quantity,
             60, // average quality
             saturationMult,
-            GameLogic.getSeasonSaleMultiplier(farm.currentSeason)
+            GameLogic.getSeasonSaleMultiplier(farm.currentSeason),
+            hasProcessingFacility
           );
           let totalFloatRevenue = basePrice * marketMult * Float.fromInt(quantity);
           let computedRevenue = Int.abs(Float.toInt(totalFloatRevenue));

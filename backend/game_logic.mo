@@ -213,13 +213,14 @@ module {
     finalPrice
   };
 
-  // Wholesale price: Base × 0.7 × VolumeDiscount × Saturation × Season
+  // Wholesale price: Base × 0.7 × VolumeDiscount × Saturation × Season × ProcessingFacility
   public func calculateWholesalePrice(
     basePrice: Nat,
     quantity: Nat,
     quality: Nat,
     saturationMultiplier: Float, // New: 0.8 to 1.0
-    seasonMultiplier: Float // ECON-02: same trailing-term convention as calculateRetailPrice; pre-existing volumeBonus thresholds untouched
+    seasonMultiplier: Float, // ECON-02: same trailing-term convention as calculateRetailPrice; pre-existing volumeBonus thresholds untouched
+    hasProcessingFacility: Bool // UX-05 (D-05): +15% for an owner of #ProcessingFacility. Trailing term, after seasonMultiplier (the convention ECON-02 set); multiplication is commutative, so the ordering is documentation, not arithmetic. The caller derives it from the caller's own farm, never from an argument.
   ) : Float {
     let wholesaleMultiplier = 0.7;
 
@@ -231,7 +232,10 @@ module {
     // Small quality bonus for wholesale
     let qualityBonus = 1.0 + (Float.fromInt(quality) / 100.0 * 0.1); // up to +10%
 
-    let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier * seasonMultiplier;
+    // UX-05: the Marketplace card promises "+15% wholesale price" for the 100,000 PLN building.
+    let processingBonus = if (hasProcessingFacility) { 1.15 } else { 1.0 };
+
+    let finalPrice = Float.fromInt(basePrice) * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier * seasonMultiplier * processingBonus;
     finalPrice
   };
 

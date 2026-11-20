@@ -53,6 +53,28 @@ export const getSeasonSaleMultiplier = (season: Season): number => {
     return 1.0;
 };
 
+// Mirrors `GameLogic.calculateWholesalePrice` in game_logic.mo (UX-05, D-05):
+// same arguments in the same order, same arithmetic, including the trailing
+// +15% for an owner of #ProcessingFacility. `SellModal.tsx` calls this for its
+// wholesale preview, and `economyParity.test.ts` compares it to an independent
+// transcription of the Motoko source over a grid, so the number the player
+// reads is the function that is tested. Returns the unit price before the
+// market multiplier, which the caller applies afterwards (as main.mo does).
+export const calculateWholesalePrice = (
+    basePrice: number,
+    quantity: number,
+    quality: number,
+    saturationMultiplier: number,
+    seasonMultiplier: number,
+    hasProcessingFacility: boolean,
+): number => {
+    const wholesaleMultiplier = 0.7;
+    const volumeBonus = quantity > 10000 ? 1.05 : quantity > 5000 ? 1.02 : 1.0;
+    const qualityBonus = 1.0 + (quality / 100.0 * 0.1);
+    const processingBonus = hasProcessingFacility ? 1.15 : 1.0;
+    return basePrice * wholesaleMultiplier * volumeBonus * qualityBonus * saturationMultiplier * seasonMultiplier * processingBonus;
+};
+
 // pH modifier
 export const getPhModifier = (pH: number): number => {
     if (pH >= 6.0 && pH <= 7.0) return 1.0;

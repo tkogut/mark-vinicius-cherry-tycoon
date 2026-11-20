@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Coins, TrendingUp, Truck, Store, MapPin, Calendar, Users, AlertTriangle, Leaf, Flame} from "lucide-react";
 import { useMarketPrices } from '@/hooks/useMarketPrices';
 import { useFarm } from '@/hooks/useFarm';
-import { getSeasonSaleMultiplier } from '@/lib/gameLogic';
+import { getSeasonSaleMultiplier, calculateWholesalePrice } from '@/lib/gameLogic';
 
 interface SellModalProps {
     isOpen: boolean;
@@ -98,10 +98,14 @@ export const SellModal: React.FC<SellModalProps> = ({
             organicMod = hasOrganicCertified ? 1.4 : 1.0;
             finalUnitPrice = basePrice * marketSize * qualityBonus * organicMod * marketMult * seasonMod;
         } else {
-            const wholesaleMultiplier = 0.7;
             volumePenalty = amount > 10000 ? 1.05 : (amount > 5000 ? 1.02 : 1.0);
             qualityBonus = 1.0 + (avgQuality / 100 * 0.1);
-            finalUnitPrice = basePrice * wholesaleMultiplier * volumePenalty * qualityBonus * marketMult * seasonMod;
+            // UX-05 (D-05): an owner of #ProcessingFacility is paid +15% wholesale.
+            // Read from the player's own farm, as main.mo does; the price comes from
+            // the shared gameLogic.ts function that economyParity.test.ts pins
+            // against the Motoko transcription.
+            const hasProcessingFacility = farm.infrastructure.some(i => 'ProcessingFacility' in i.infraType);
+            finalUnitPrice = calculateWholesalePrice(basePrice, amount, avgQuality, marketMult, seasonMod, hasProcessingFacility);
         }
 
         // Ensure floor price 1 PLN/kg

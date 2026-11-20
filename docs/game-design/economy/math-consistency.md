@@ -90,7 +90,9 @@ quality_score = base + soil_bonus + ph_bonus + fertility_bonus + water_bonus + i
 `price = base_retail_price × market_size × quality_bonus × organic_premium × saturation_multiplier × market_multiplier`
 
 **Wholesale Price**:
-`price = base_wholesale_price × 0.7 × volume_bonus × wholesale_quality_bonus × saturation_multiplier × market_multiplier`
+`price = base_wholesale_price × 0.7 × volume_bonus × wholesale_quality_bonus × saturation_multiplier × season_multiplier × processing_bonus × market_multiplier`
+
+`season_multiplier` is ECON-02 (D-03: Spring 0.9 / Summer 1.15 / Autumn 1.0 / Winter 0.75). `processing_bonus` is 1.15 when the player owns `#ProcessingFacility`, else 1.0 (UX-05, D-05), read server-side from the caller's own farm. The retail formula above has not been updated for `season_multiplier` either (ECON-02 left it out); not changed here.
 
 ### Shared Market Saturation logic
 **Formula**: `Price = Clamped_Price * clamp(Demand / (Total_Supply), 0.5, 1.0)`
