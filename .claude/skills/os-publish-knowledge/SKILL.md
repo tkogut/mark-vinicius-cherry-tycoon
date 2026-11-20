@@ -20,7 +20,7 @@ Skill odpowiedzialny za bezpieczną publikację notatek wiedzy inżynieryjnej (`
    - Identyczny plik (SHA-256): pomijany (`IDENTICAL_CONTENT`).
    - Różna treść przy istniejącej nazwie: zgłasza konflikt (`TARGET_EXISTS_WITH_DIFFERENT_CONTENT`), brak nadpisania.
 3. **Fail-Closed & Zero Full-Disk Probing**:
-   - Ścieżka docelowa vaulta pochodzi z: parametru CLI `--dest`, zmiennej `OBSIDIAN_VAULT_PATH` lub domyślnej `/mnt/c/Users/tkogut/Documents/sejf_tk/raw/notes`.
+   - Ścieżka docelowa vaulta pochodzi z: parametru CLI `--dest`, zmiennej `OBSIDIAN_VAULT_PATH` albo wbudowanej wartości domyślnej narzędzia (celowo nieopisanej w tym publicznym repo; ustaw `OBSIDIAN_VAULT_PATH` jawnie).
    - Brak skanowania całego dysku.
 
 ---

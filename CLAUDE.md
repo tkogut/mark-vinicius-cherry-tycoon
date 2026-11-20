@@ -25,6 +25,7 @@ This file is routing and hard rules only. Long-form context lives in `.planning/
 - Changing the shape of **stable state** (`stable var`, the `Farm` record, `Infrastructure`). On ICP a bad upgrade loses player data irreversibly.
 - Touching `.github/workflows/**`, `dfx.json`, or anything in the deploy path.
 - Adding a production dependency, to either side.
+- Editing `CLAUDE.md` or `.claude/settings*` (the agent's own instructions and its hook-deny on secrets). Own PR; the owner's merge is the approval.
 - Reducing the scope of what was asked for. Deliver the whole thing under stated assumptions instead, and say what is uncertain.
 
 ## Never
@@ -91,6 +92,7 @@ Match the task here before reading anything else. `→ Section` names a heading 
 | Deployment, CI, environments | `docs/ops/automated-deploy.md` + `docs/ops/environment.md`. **Ask First.** |
 | Security posture, hardening backlog | `docs/security/security-standards.md` + `docs/security/security-backlog.md` |
 | Manual QA before showing the user | `docs/qa/qa-checklist.md` |
+| A lesson whose rule is a stub in LESSONS.md (full story, package lists) | `docs/lessons-archive.md` |
 | Closing a milestone/phase; sending progress to the owner's second brain | `docs/second-brain/README.md` |
 | Game rules / lore questions | `docs/game-design/GDD-ONE-PAGER.md`, then `Mark_Vinicius_V1.md` (the original concept doc — it outranks later code-only audits, which mis-triaged football clubs once) |
 

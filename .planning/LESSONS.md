@@ -118,15 +118,11 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 
 ### A jsdom component test cannot see a click bubble into a sibling handler
 
-**Was:** shipped 03-07 Task 2's orchard radial-menu fertilizer picker on the strength of `fertilizerPicker.test.tsx` alone (11/11 passing) plus a code-diff review, and reported it done.
-**Actually:** in the real browser the picker opened and then instantly closed on the same click. `ImperialOrchard.tsx`'s outer container has `onClick={handleBackgroundClick}`, which unconditionally clears `selectedParcel` whenever a click reaches it; every other radial action's own handler already calls the same clear synchronously, so the redundant bubbled call was invisible. Fertilize's button intentionally left `onClick` `undefined` so Radix's `DropdownMenuTrigger` could open the menu instead — but the native click still bubbled past Radix, up the real DOM tree, into that backdrop handler, in the same tick. The unit test could not have caught this: it renders `FertilizerTypeMenu` standalone or through `ParcelCard`, never nested inside `ImperialOrchard`'s own backdrop `onClick`, so the handler this bug depends on simply is not present in that DOM tree. Only a real click, in a real DOM, through the real component's full render tree, reproduced it.
-**Rule:** a jsdom test proves the *component under test* behaves correctly in isolation; it cannot prove the component's *events* behave correctly once nested inside a parent with its own event handlers on an ancestor. Any interactive control added inside an existing container that already has a click/pointer handler on a wrapping element needs a same-session e2e or manual real-browser check of that exact nesting — the plan's own "verify on a deployed build" task step exists for exactly this, do not treat it as a formality once the unit suite is green.
+**Rule:** a jsdom test proves a component in isolation, not its events once it is nested under an ancestor with its own click/pointer handler. Any control added inside such a container needs a real-browser check of that exact nesting before it is called done, even when the unit suite is green. Full story (a picker that closed itself on open): `docs/lessons-archive.md`.
 
 ### Playwright's shared library gap is fixable per-session without root
 
-**Was:** repeated `./validate.sh full`'s e2e gate failing on this machine with `libnspr4.so: cannot open shared object file`, across three separate plans (03-01, 03-05, this one), each time recording it as a pre-existing, out-of-scope, sudo-gated environment gap and moving on.
-**Actually:** `apt-get download <pkg>` (unlike `apt-get install`) does not require root — it only fetches the `.deb` into the working directory. `dpkg-deb -x <pkg>.deb <dir>` extracts a `.deb`'s contents without installing it system-wide, also without root. Doing this for the ~15 shared libraries `chrome-headless-shell`/`chromium` need (`ldd <binary> | grep 'not found'` names them all, in waves — extracting one batch reveals the next missing library) and pointing `LD_LIBRARY_PATH` at the extraction directory made the full 38-spec (now 47) Playwright suite pass, including the `test:e2e` npm script and `./validate.sh full`'s e2e gate.
-**Rule:** before recording a missing-`.so` Playwright failure as an unfixable sudo-gated environment gap, try `apt-get download` + `dpkg-deb -x` + `LD_LIBRARY_PATH` first — it costs under a minute and needs no privileges. The extraction lives outside the repo (a scratch/tmp directory) and does not persist across sessions, so this must be redone each session that needs the e2e gate; it is still faster than treating the gate as permanently out of reach. Packages needed as of this session (Ubuntu 22.04/jammy): `libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libxkbcommon0 libasound2 libatspi2.0-0 libxrender1 libwayland-server0 libxcb-randr0 libxi6` (`libcups2`/`libpango-1.0-0`/`libcairo2` were also fetched but turned out unneeded by `ldd`'s "not found" list — harmless to include, not required).
+**Rule:** before recording a missing-`.so` Playwright failure as an unfixable sudo-gated gap, try `apt-get download` + `dpkg-deb -x` + `LD_LIBRARY_PATH` (no root, under a minute; the extraction lives outside the repo and must be redone each session). The `ldd | grep 'not found'` workflow and the package list: `docs/lessons-archive.md`.
 
 ### Grep is worse than a test at finding every instance
 
@@ -153,6 +149,7 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Was:** quoted "Track B's error count is now 6" in a commit message, reusing `validate.sh`'s Track-B report, which pipes `head -5` for readability.
 **Actually:** the full `moc --check` output (no `head`) had 8 lines, not 6 — the script's own truncation cut off the pre-existing `M0072 baseCapacity` error, and I repeated the truncated count as if it were the total.
 **Rule:** when a number is going into a commit message, re-run the underlying command *without* whatever truncation a convenience wrapper applies (`head`, `tail`, a summary line) and count from that. Same family as "re-derive a number before repeating it" below, but the trap here is trusting a tool's own display truncation rather than a manual back-of-envelope estimate.
+**Again, 2026-11-20:** reported "`moc 0.16.3` compiles `main.mo` with only warnings" after reading the first 5 lines of its output; the full output was exit 1 with 9 type errors (`M0219`). Read the exit code and count with `grep -c` over the whole output, never a `head`.
 
 ### Re-derive a number before repeating it
 
@@ -216,3 +213,21 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** the full suite with `CI=1` (retries 2, 1 worker) reproduced it in 2 of 5 runs, hidden as a green run with a "flaky" entry: `Element is not visible` on a click right after `toBeVisible()` passed, because the orchard re-renders its tile canvases after mount. A first fix that only added the visibility wait changed nothing.
 **Rule:** reproduce with the full suite in the CI configuration and count "flaky", not only failures. Do not click an element a render can replace; click by coordinates and retry until the effect is visible. Judge the fix by run counts (10 of 10 clean vs 2 of 5) and say it is not a proof.
 
+
+### A rule that marks content "untrusted" must not name a path the harness loads as instructions
+
+**Was:** drafted a precedence rule that called skills under `.claude/skills/ic-*` untrusted data.
+**Actually:** `.claude/skills/` is where Claude Code discovers skills and loads them as instructions, so the rule contradicted the mechanism it was meant to contain; a reviewer caught it.
+**Rule:** before choosing where reference material lives, check where the harness discovers files. Untrusted reference text goes under `docs/`, never in a scanned skills directory.
+
+### Count a pattern before calling it a single precedent
+
+**Was:** said "Backlog" in the traceability table had one precedent (DEPLOY-01).
+**Actually:** `grep -c Backlog .planning/REQUIREMENTS.md` gives 9 rows; it is a convention, not an exception.
+**Rule:** run the count before saying how often something occurs, and quote the number.
+
+### Run `gh pr list` before asking where a branch should merge
+
+**Was:** asked where to merge a worktree branch and merged it locally into another PR's branch.
+**Actually:** the branch already had its own open PR (#16); the merge would have given PR #15 two unrelated reasons, and was undone with `git reset` (with consent) before anything was pushed.
+**Rule:** list the open PRs, and check whether the branch already has one, before offering merge targets.
