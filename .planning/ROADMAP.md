@@ -292,8 +292,8 @@ Plans:
 
 - [x] 09-00: UX-06/07/08 delivered ad hoc from live screenshot review — `9be8318` (Geometric Brass canvas) → `4c3a111` (worker/machine ground-margin), plus `f804c72` (Branch Pruner end-to-end) and `f61ad9e` (Marketplace building sprites). ~25 commits, no plan file.
 - [x] 09-01: UX-06 tree-canopy replacement — historical, already executed (`9be8318`). Not part of the 2026-09-18 planning run.
-- [ ] 09-02-PLAN.md (wave 1) — UX-05: real +15% ProcessingFacility wholesale bonus, backend formula + SellModal mirror + parity oracle + live-replica proof
-- [ ] 09-03-PLAN.md (wave 1) — UX-04: explicit guest/sign-in state in the sidebar's running-costs box, replacing the silent fabricated `0 PLN`
+- [x] 09-02-PLAN.md (wave 1) — UX-05: real +15% ProcessingFacility wholesale bonus, backend formula + SellModal mirror + parity oracle + live-replica proof
+- [x] 09-03-PLAN.md (wave 1) — UX-04: explicit guest/sign-in state in the sidebar's running-costs box, replacing the silent fabricated `0 PLN`
 - [ ] 09-04-PLAN.md (wave 1) — UX-03: Bar Meter / Metric Badge primitives, `MainDashboard` → Action Dock, D-11's dead dial and dead auction button, app-wide gauge ratchet
 - [ ] 09-06-PLAN.md (wave 1) — UX-09: extract the building-sprite resolver to `lib/buildingSprites.ts` and pin every path to a real asset
 
