@@ -15,6 +15,8 @@ const badgeVariants = cva(
                 destructive:
                     "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
                 outline: "text-foreground",
+                // UX-03: the Metric Badge surface (09-UI-SPEC.md, Component Contract C).
+                brass: "border-brass/40 bg-charcoal-light text-foreground",
             },
         },
         defaultVariants: {
