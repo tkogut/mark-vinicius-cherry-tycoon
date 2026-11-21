@@ -2,6 +2,7 @@ import React from 'react';
 import { Coins, Zap, PieChart, AlertTriangle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useStability } from '@/hooks/useFarm';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 interface RunningCostsProps {
@@ -11,13 +12,36 @@ interface RunningCostsProps {
 }
 
 export const RunningCosts: React.FC<RunningCostsProps> = ({ ownedInfrastructure, parcels, onOpenFinancialReport }) => {
-    const { data: stability, isLoading } = useStability();
+    const { backendActor, isAuthenticated } = useAuth();
+    const { data: stability, isLoading, isError } = useStability();
+
+    // Guest first, before any read of the query. useStability() is disabled
+    // without an actor, and a disabled query reports `isLoading: false` with
+    // `data: undefined`, which used to fall through to a fabricated "0 PLN".
+    // This is the same condition as the hook's `enabled`, and it also keeps a
+    // `['stability']` cache entry left by a previous session from rendering
+    // after logout.
+    if (!backendActor || !isAuthenticated) {
+        return (
+            <div className="mt-4 p-4 text-center rounded-xl border border-dashed border-slate-800 text-slate-500 text-sm">
+                Sign in to see your farm's running costs.
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (
             <div className="mt-4 bg-slate-800/40 rounded-xl p-4 border border-slate-700/30 animate-pulse">
                 <div className="h-4 w-24 mb-3 bg-slate-700 rounded" />
                 <div className="h-8 w-full bg-slate-700 rounded" />
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div className="mt-4 p-4 text-center rounded-xl border border-dashed border-red-900/60 text-red-400/80 text-sm">
+                Could not load your running costs. They refresh every 30 seconds, so try again shortly.
             </div>
         );
     }

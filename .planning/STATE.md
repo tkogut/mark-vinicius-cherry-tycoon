@@ -5,9 +5,9 @@ milestone_name: Playable Release — V1 Parity
 current_phase: 09
 current_phase_name: ux-ui-deep-overhaul
 status: planned
-stopped_at: Phase 9 re-sequenced, PR 0 (#15) merged 2026-11-07 — NO PLAN EXECUTED YET; next is 09-02
-last_updated: "2026-11-20T00:00:00.000Z"
-last_activity: 2026-11-20
+stopped_at: 09-02 (UX-05) and ECON-13 merged (#21, #22); 09-03 (UX-04) built 2026-11-21, awaiting the owner's browser check and merge; next is 09-06
+last_updated: "2026-11-21T00:00:00.000Z"
+last_activity: 2026-11-21
 last_activity_desc: PR 0 (#15), the second-brain docs (#16, #18) and the e2e runner pin (#17) merged; owner confirmed the +15% wholesale bonus for 09-02; STATE refreshed
 progress:
   total_phases: 13
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 9 — UX/UI Deep Overhaul
-Plan: 0 of 9 new plans executed (09-02 through 09-10; `09-01` is a historical record of already-shipped Aug-2026 work, not part of this run)
+Plan: 2 of 9 new plans built (09-02 merged as #21; 09-03 built, awaiting the owner's checkpoint and merge; 09-04 through 09-10 not started; `09-01` is a historical record of already-shipped Aug-2026 work, not part of this run)
 Status: **Planned, verified on 2026-09-18, and re-checked on 2026-10-23.** Nothing in this phase has been built; only planning artifacts exist. The 2026-10-23 review found that four plans (09-02, 09-04/09-07, 09-08, 09-10) had picked up defects since they were written, and 09-09 needs a smaller update; PR 0 (#15, merged 2026-11-07) amended the plan text before any code runs.
 Last activity: 2026-10-23 — independent readiness review against master; decisions Q1–Q4 taken (see Session Continuity); execution re-sequenced to one PR per plan.
 
@@ -156,8 +156,8 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 
 ## Session Continuity
 
-Last session: 2026-11-20
-Stopped at: Phase 9 re-checked and re-sequenced. PR 0 merged as #15 on 2026-11-07. **No plan has been executed.** Next: item 1, plan 09-02.
+Last session: 2026-11-21
+Stopped at: 09-02 merged (#21), ECON-13 (#22) and the concurrency fix (#23) merged, QUAL-15 and the `validate.sh` base-dir fix (#24, #25) merged. 09-03 built on `feat/09-03-running-costs-guest`; the live-browser checkpoint (Task 2) is the owner's. Next: item 2's other half, plan 09-06.
 
 **Do not run `/gsd-execute-phase 9` as one unattended run.** Execute the items below one at a time, each on its own branch from a freshly fetched master, each ending in a PR that **the user merges** (every merge to master auto-deploys Playground; no standing merge permission has been given).
 
@@ -168,6 +168,8 @@ Stopped at: Phase 9 re-checked and re-sequenced. PR 0 merged as #15 on 2026-11-0
 - **#15** (2026-11-07): PR 0, the amended Phase 9 plans and the 2026-10-23 STATE.
 - **#17**: the e2e job is pinned to `ubuntu-24.04`. `ubuntu-latest` had become `ubuntu-26.04`, which Playwright 1.60 cannot install chromium on (support arrived in 1.61); the nightly run was red from at least 2026-11-01 and is green again (checked 2026-11-20). Bumping `@playwright/test` to >= 1.61 and dropping the pin is open and not scheduled.
 - **#16, #18**: the owner's second-brain digests (`docs/second-brain/`, the `os-publish-knowledge` skill in `.claude/skills/`) and the CLAUDE.md rules for them. `.claude/skills/` now exists in the repo.
+
+- **#19, #20, #21, #22, #23** (2026-11-20/21): skills and STATE hygiene, 09-02 (UX-05), ECON-13, and the backend concurrency fix. **#24, #25**: QUAL-15 backlog entry; `validate.sh` takes moc's base library from the active dfx. The dfx 0.30 spike (`spike/dfx-0.30`, not for merge, note `.planning/spikes/002-dfx-0.30-migration.md`) found that no source compiles under both toolchains and that the classic-to-EOP upgrade needs an explicit irreversible flag; a reviewer subagent recommended deferring the migration until a trigger (first long-lived canister or mainnet decision, a CI failure on 0.24.3, or Phase 9 closing).
 
 ### Decisions taken on 2026-11-20
 - **09-02:** the owner confirmed the **+15% ProcessingFacility wholesale bonus**, in answer to a direct question ("Tak"). This replaces the indirect trail (D-05 in `09-CONTEXT.md`, and the 2026-10-23 decision taken by delegation); no balance number changes.
@@ -185,8 +187,8 @@ The user delegated these to an independent Opus review in their own words ("zdec
 | # | Branch | Contents | Stop |
 |---|---|---|---|
 | 0 | `docs/phase9-replan` | this file + amended plan text for 09-02, 09-04, 09-07, 09-08, 09-09, 09-10 | **done, #15 merged 2026-11-07** |
-| 1 | 09-02 | +15% wholesale, shared `calculateWholesalePrice`, replica proof | **built 2026-11-20, awaiting the user's merge** |
-| 2 | 09-03 + 09-06 | running-costs states; sprite resolver | **09-03 human checkpoint**, then user merges |
+| 1 | 09-02 | +15% wholesale, shared `calculateWholesalePrice`, replica proof | **done, #21 merged 2026-11-20** |
+| 2 | 09-03 + 09-06 | running-costs states; sprite resolver | 09-03 **built 2026-11-21, awaiting the owner's browser checkpoint**, then merge; 09-06 not started |
 | 3 | 09-04 | Action Dock, Bar Meter / Metric Badge, `maxStorageCapacity` | user merges |
 | 4 | 09-07 | bid-modal meters, `EmeraldGauge` deleted | user merges |
 | 5 | 09-05 | orchard lighting, particle layer | user merges |
