@@ -69,8 +69,11 @@ declarations() {
 motoko() {
     local moc base rc=0 errors
     moc="$(dfx cache show)/moc"
-    base="$(ls -d "$HOME"/.cache/dfinity/versions/*/base 2>/dev/null | head -1)"
+    # base library of the SAME dfx version as moc. Globbing the cache and taking
+    # the first match picked whichever version sorted first, not the active one.
+    base="$(dfx cache show)/base"
     [[ -x "$moc" ]] || { echo "moc not found — is dfx installed?"; return 1; }
+    [[ -d "$base" ]] || { echo "base library not found at $base"; return 1; }
 
     # Capture, then inspect. Do NOT pipe moc into grep inside an `if`: under
     # `set -o pipefail` the pipeline reports moc's exit code, not grep's, so the
