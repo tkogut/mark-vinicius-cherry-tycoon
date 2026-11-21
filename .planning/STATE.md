@@ -189,7 +189,7 @@ The user delegated these to an independent Opus review in their own words ("zdec
 | 0 | `docs/phase9-replan` | this file + amended plan text for 09-02, 09-04, 09-07, 09-08, 09-09, 09-10 | **done, #15 merged 2026-11-07** |
 | 1 | 09-02 | +15% wholesale, shared `calculateWholesalePrice`, replica proof | **done, #21 merged 2026-11-20** |
 | 2 | 09-03 + 09-06 | running-costs states; sprite resolver | **09-03 done (#26, live-checked on Playground)**; 09-06 **done (#27)** |
-| 3 | 09-04 | Action Dock, Bar Meter / Metric Badge, `maxStorageCapacity` | user merges |
+| 3 | 09-04 | Action Dock, Bar Meter / Metric Badge, `maxStorageCapacity` | **built 2026-11-21 (#28), awaiting Playground check and merge** |
 | 4 | 09-07 | bid-modal meters, `EmeraldGauge` deleted | user merges |
 | 5 | 09-05 | orchard lighting, particle layer | user merges |
 | 6 | 09-08 | machine phases | user merges |
