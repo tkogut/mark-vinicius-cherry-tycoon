@@ -21,6 +21,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AlertCircle, ShoppingCart, CheckCircle2 } from 'lucide-react';
 import { isActionAllowed, SeasonPhase, PHASE_LABELS } from '@/config/phaseConstants';
 import { drawModernTractor, drawPrecisionSprayer, drawMechanicalShaker, drawBranchPruner } from './orchardMachines';
+import { BuildingSprite } from './BuildingSprite';
+import type { BuildingSpriteType } from '@/lib/buildingSprites';
 
 const MACHINE_THUMBNAIL_DRAW_FNS: Record<string, (ctx: CanvasRenderingContext2D, seed: number) => void> = {
     tractor: drawModernTractor,
@@ -42,52 +44,6 @@ const MachineThumbnail: React.FC<{ machineType: string }> = ({ machineType }) =>
         if (drawFn) drawFn(ctx, 0);
     }, [machineType]);
     return <canvas ref={canvasRef} width={200} height={200} style={{ width: '100%', height: '100%' }} />;
-};
-
-// Building types with a seasonal raster sprite set — extracted+cleaned from
-// AI-generated reference sheets (see tmp/extracted-buildings/), one per
-// season, transparent background, served from
-// frontend/public/assets/buildings/<folder>/<season>.png.
-//
-// Cold Storage and Warehouse have TWO art sets (an "l1" and a visibly bigger,
-// more detailed "l2"/upgraded set) — real Infrastructure.level is 1-5, but we
-// only have art for two tiers so far, so level >= 2 shows the l2 set and
-// everything else (including not-yet-purchased, level 0) shows l1. Processing
-// Plant and Social Facilities only have one art set so far; adding an l2 set
-// later just means adding a second entry to LEVELED_BUILDING_FOLDERS below.
-type BuildingSpriteType = 'coldStorage' | 'warehouse' | 'processingPlant' | 'socialFacilities';
-
-const LEVELED_BUILDING_FOLDERS: Partial<Record<BuildingSpriteType, { l1: string; l2: string }>> = {
-    coldStorage: { l1: 'cold-storage-l1', l2: 'cold-storage-l2' },
-    warehouse: { l1: 'warehouse-l1', l2: 'warehouse-l2' },
-};
-const SINGLE_TIER_BUILDING_FOLDERS: Partial<Record<BuildingSpriteType, string>> = {
-    processingPlant: 'processing-plant',
-    socialFacilities: 'social-facilities',
-};
-
-function buildingSpriteFolder(buildingType: BuildingSpriteType, level: number): string {
-    const leveled = LEVELED_BUILDING_FOLDERS[buildingType];
-    if (leveled) return level >= 2 ? leveled.l2 : leveled.l1;
-    return SINGLE_TIER_BUILDING_FOLDERS[buildingType] ?? '';
-}
-
-const BUILDING_SPRITE_SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
-type BuildingSpriteSeason = typeof BUILDING_SPRITE_SEASONS[number];
-
-/** Extracts the season key ("Spring"/"Summer"/...) from a backend season variant object like `{ Spring: null }`, lowercased to match the sprite filenames. Falls back to 'spring' if unrecognized. */
-function seasonKeyFromBackend(season: any): BuildingSpriteSeason {
-    const raw = season && typeof season === 'object' ? Object.keys(season)[0] : season;
-    const lower = String(raw || '').toLowerCase();
-    return (BUILDING_SPRITE_SEASONS as readonly string[]).includes(lower) ? (lower as BuildingSpriteSeason) : 'spring';
-}
-
-/** Real seasonal (and, for buildings with more than one art tier, level-aware) raster sprite — same pre-rendered art in every season the game recognizes, swapped by an <img> src change rather than redrawn. */
-const BuildingSprite: React.FC<{ buildingType: BuildingSpriteType; season: any; level: number }> = ({ buildingType, season, level }) => {
-    const seasonKey = seasonKeyFromBackend(season);
-    const folder = buildingSpriteFolder(buildingType, level);
-    const src = `/assets/buildings/${folder}/${seasonKey}.png`;
-    return <img src={src} alt="" className="w-full h-full object-contain" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }} />;
 };
 
 interface InfrastructureItem {
