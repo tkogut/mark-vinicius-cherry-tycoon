@@ -97,7 +97,7 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : IDL.Vec(AuctionContract),
     'Err' : GameError,
   });
-  const Province__1 = IDL.Variant({
+  const Province = IDL.Variant({
     'Swietokrzyskie' : IDL.Null,
     'Warminsko_Mazurskie' : IDL.Null,
     'Podlaskie' : IDL.Null,
@@ -123,7 +123,7 @@ export const idlFactory = ({ IDL }) => {
   const Region = IDL.Record({
     'laborCostMultiplier' : IDL.Float64,
     'marketSize' : IDL.Float64,
-    'province' : Province__1,
+    'province' : Province,
     'commune' : IDL.Text,
     'communeType' : CommuneType,
     'county' : IDL.Text,
@@ -257,14 +257,7 @@ export const idlFactory = ({ IDL }) => {
     'seasonsCompleted' : IDL.Nat,
     'totalRevenue' : IDL.Nat,
   });
-  const Inventory__1 = IDL.Record({
-    'fertilizers' : IDL.Nat,
-    'pesticides' : IDL.Nat,
-    'organicCherries' : IDL.Nat,
-    'cherries' : IDL.Nat,
-    'organicTreatments' : IDL.Nat,
-  });
-  const GameResult_10 = IDL.Variant({ 'Ok' : Inventory__1, 'Err' : GameError });
+  const GameResult_10 = IDL.Variant({ 'Ok' : Inventory, 'Err' : GameError });
   const MarketPrice = IDL.Record({
     'organicPremium' : IDL.Float64,
     'retailBasePrice' : IDL.Nat,
@@ -287,7 +280,7 @@ export const idlFactory = ({ IDL }) => {
     'Waterlogged' : IDL.Null,
     'SandyClay' : IDL.Null,
   });
-  const CherryParcel__1 = IDL.Record({
+  const CherryParcel = IDL.Record({
     'id' : IDL.Text,
     'pH' : IDL.Float64,
     'region' : Region,
@@ -307,10 +300,7 @@ export const idlFactory = ({ IDL }) => {
     'plantedTrees' : IDL.Nat,
     'treeAge' : IDL.Nat,
   });
-  const GameResult_7 = IDL.Variant({
-    'Ok' : CherryParcel__1,
-    'Err' : GameError,
-  });
+  const GameResult_7 = IDL.Variant({ 'Ok' : CherryParcel, 'Err' : GameError });
   const LaborType = IDL.Variant({
     'City' : IDL.Null,
     'Village' : IDL.Null,
@@ -340,29 +330,9 @@ export const idlFactory = ({ IDL }) => {
     'pesticidePrice' : IDL.Nat,
     'organicTreatmentPrice' : IDL.Nat,
   });
-  const CherryParcel = IDL.Record({
-    'id' : IDL.Text,
-    'pH' : IDL.Float64,
-    'region' : Region,
-    'lastFertilized' : IDL.Nat,
-    'soilType' : SoilType,
-    'organicConversionSeason' : IDL.Nat,
-    'isOrganic' : IDL.Bool,
-    'ownerId' : IDL.Text,
-    'waterLevel' : IDL.Float64,
-    'fertility' : IDL.Float64,
-    'quality' : IDL.Nat,
-    'permeability' : IDL.Float64,
-    'size' : IDL.Float64,
-    'lastHarvest' : IDL.Nat,
-    'organicCertified' : IDL.Bool,
-    'humidity' : IDL.Float64,
-    'plantedTrees' : IDL.Nat,
-    'treeAge' : IDL.Nat,
-  });
   const ParcelEconomics = IDL.Record({
     'revenue' : IDL.Nat,
-    'province' : Province__1,
+    'province' : Province,
     'costs' : IDL.Nat,
     'parcelId' : IDL.Text,
     'yield' : IDL.Nat,
@@ -392,7 +362,7 @@ export const idlFactory = ({ IDL }) => {
     'wholesaleRevenue' : IDL.Nat,
     'maintenanceCosts' : IDL.Nat,
     'certificationCosts' : IDL.Nat,
-    'bestPerformingProvince' : IDL.Opt(Province__1),
+    'bestPerformingProvince' : IDL.Opt(Province),
     'year' : IDL.Nat,
     'totalCosts' : IDL.Nat,
     'totalHarvested' : IDL.Nat,
@@ -409,7 +379,7 @@ export const idlFactory = ({ IDL }) => {
     'retailRevenue' : IDL.Nat,
     'netProfit' : IDL.Int,
   });
-  const Statistics__1 = IDL.Record({
+  const Statistics = IDL.Record({
     'bestYearlyProfit' : IDL.Nat,
     'totalCosts' : IDL.Nat,
     'totalHarvested' : IDL.Nat,
@@ -442,20 +412,9 @@ export const idlFactory = ({ IDL }) => {
     'weather' : IDL.Opt(WeatherEvent),
     'parcels' : IDL.Vec(CherryParcel),
     'lastActive' : IDL.Nat,
-    'statistics' : Statistics__1,
+    'statistics' : Statistics,
   });
   const GameResult_6 = IDL.Variant({ 'Ok' : PlayerFarm, 'Err' : GameError });
-  const Statistics = IDL.Record({
-    'bestYearlyProfit' : IDL.Nat,
-    'totalCosts' : IDL.Nat,
-    'totalHarvested' : IDL.Nat,
-    'totalSold' : IDL.Nat,
-    'averageYieldPerHa' : IDL.Float64,
-    'seasonsPlayed' : IDL.Nat,
-    'seasonalReports' : IDL.Vec(SeasonReport),
-    'totalRevenue' : IDL.Nat,
-    'yearlyReports' : IDL.Vec(YearlyReport),
-  });
   const GameResult_5 = IDL.Variant({ 'Ok' : Statistics, 'Err' : GameError });
   const GameResult_4 = IDL.Variant({
     'Ok' : IDL.Vec(IDL.Text),
@@ -486,24 +445,6 @@ export const idlFactory = ({ IDL }) => {
   const GameResult_2 = IDL.Variant({
     'Ok' : ForecastReport,
     'Err' : GameError,
-  });
-  const Province = IDL.Variant({
-    'Swietokrzyskie' : IDL.Null,
-    'Warminsko_Mazurskie' : IDL.Null,
-    'Podlaskie' : IDL.Null,
-    'Kujawsko_Pomorskie' : IDL.Null,
-    'Malopolskie' : IDL.Null,
-    'Lubelskie' : IDL.Null,
-    'Lodzkie' : IDL.Null,
-    'Wielkopolskie' : IDL.Null,
-    'Mazowieckie' : IDL.Null,
-    'Opolskie' : IDL.Null,
-    'Pomorskie' : IDL.Null,
-    'Podkarpackie' : IDL.Null,
-    'Slaskie' : IDL.Null,
-    'Lubuskie' : IDL.Null,
-    'Zachodniopomorskie' : IDL.Null,
-    'Dolnoslaskie' : IDL.Null,
   });
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),

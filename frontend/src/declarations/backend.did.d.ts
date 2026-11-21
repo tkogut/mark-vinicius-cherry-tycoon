@@ -84,26 +84,6 @@ export interface CherryParcel {
   'plantedTrees' : bigint,
   'treeAge' : bigint,
 }
-export interface CherryParcel__1 {
-  'id' : string,
-  'pH' : number,
-  'region' : Region,
-  'lastFertilized' : bigint,
-  'soilType' : SoilType,
-  'organicConversionSeason' : bigint,
-  'isOrganic' : boolean,
-  'ownerId' : string,
-  'waterLevel' : number,
-  'fertility' : number,
-  'quality' : bigint,
-  'permeability' : number,
-  'size' : number,
-  'lastHarvest' : bigint,
-  'organicCertified' : boolean,
-  'humidity' : number,
-  'plantedTrees' : bigint,
-  'treeAge' : bigint,
-}
 export type CommuneType = { 'Urban' : null } |
   { 'Rural' : null } |
   { 'Mixed' : null };
@@ -183,7 +163,7 @@ export type GameResult = { 'Ok' : string } |
   { 'Err' : GameError };
 export type GameResult_1 = { 'Ok' : bigint } |
   { 'Err' : GameError };
-export type GameResult_10 = { 'Ok' : Inventory__1 } |
+export type GameResult_10 = { 'Ok' : Inventory } |
   { 'Err' : GameError };
 export type GameResult_11 = { 'Ok' : FarmOverview } |
   { 'Err' : GameError };
@@ -215,7 +195,7 @@ export type GameResult_5 = { 'Ok' : Statistics } |
   { 'Err' : GameError };
 export type GameResult_6 = { 'Ok' : PlayerFarm } |
   { 'Err' : GameError };
-export type GameResult_7 = { 'Ok' : CherryParcel__1 } |
+export type GameResult_7 = { 'Ok' : CherryParcel } |
   { 'Err' : GameError };
 export type GameResult_8 = {
     'Ok' : { 'contracts' : Array<AuctionContract>, 'spotPrice' : bigint }
@@ -263,13 +243,6 @@ export interface Inventory {
   'cherries' : bigint,
   'organicTreatments' : bigint,
 }
-export interface Inventory__1 {
-  'fertilizers' : bigint,
-  'pesticides' : bigint,
-  'organicCherries' : bigint,
-  'cherries' : bigint,
-  'organicTreatments' : bigint,
-}
 export type LaborType = { 'City' : null } |
   { 'Village' : null } |
   { 'Emergency' : null } |
@@ -294,7 +267,7 @@ export interface MarketPrice {
 }
 export interface ParcelEconomics {
   'revenue' : bigint,
-  'province' : Province__1,
+  'province' : Province,
   'costs' : bigint,
   'parcelId' : string,
   'yield' : bigint,
@@ -322,7 +295,7 @@ export interface PlayerFarm {
   'weather' : [] | [WeatherEvent],
   'parcels' : Array<CherryParcel>,
   'lastActive' : bigint,
-  'statistics' : Statistics__1,
+  'statistics' : Statistics,
 }
 export type PrestigeScore = bigint;
 export type Province = { 'Swietokrzyskie' : null } |
@@ -341,26 +314,10 @@ export type Province = { 'Swietokrzyskie' : null } |
   { 'Lubuskie' : null } |
   { 'Zachodniopomorskie' : null } |
   { 'Dolnoslaskie' : null };
-export type Province__1 = { 'Swietokrzyskie' : null } |
-  { 'Warminsko_Mazurskie' : null } |
-  { 'Podlaskie' : null } |
-  { 'Kujawsko_Pomorskie' : null } |
-  { 'Malopolskie' : null } |
-  { 'Lubelskie' : null } |
-  { 'Lodzkie' : null } |
-  { 'Wielkopolskie' : null } |
-  { 'Mazowieckie' : null } |
-  { 'Opolskie' : null } |
-  { 'Pomorskie' : null } |
-  { 'Podkarpackie' : null } |
-  { 'Slaskie' : null } |
-  { 'Lubuskie' : null } |
-  { 'Zachodniopomorskie' : null } |
-  { 'Dolnoslaskie' : null };
 export interface Region {
   'laborCostMultiplier' : number,
   'marketSize' : number,
-  'province' : Province__1,
+  'province' : Province,
   'commune' : string,
   'communeType' : CommuneType,
   'county' : string,
@@ -415,17 +372,6 @@ export interface Statistics {
   'totalRevenue' : bigint,
   'yearlyReports' : Array<YearlyReport>,
 }
-export interface Statistics__1 {
-  'bestYearlyProfit' : bigint,
-  'totalCosts' : bigint,
-  'totalHarvested' : bigint,
-  'totalSold' : bigint,
-  'averageYieldPerHa' : number,
-  'seasonsPlayed' : bigint,
-  'seasonalReports' : Array<SeasonReport>,
-  'totalRevenue' : bigint,
-  'yearlyReports' : Array<YearlyReport>,
-}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -448,7 +394,7 @@ export interface YearlyReport {
   'wholesaleRevenue' : bigint,
   'maintenanceCosts' : bigint,
   'certificationCosts' : bigint,
-  'bestPerformingProvince' : [] | [Province__1],
+  'bestPerformingProvince' : [] | [Province],
   'year' : bigint,
   'totalCosts' : bigint,
   'totalHarvested' : bigint,

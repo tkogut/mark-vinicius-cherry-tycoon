@@ -10,7 +10,8 @@
           "ts",
           "did"
         ]
-      }
+      },
+      "args": "--enhanced-orthogonal-persistence"
     },
     "frontend": {
       "type": "assets",

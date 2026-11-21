@@ -28,7 +28,7 @@ import AuctionLogic "auction_logic";
 import RiskLogic "risk_logic";
 import SportsLogic "sports_logic";
 
-actor CherryTycoon {
+persistent actor CherryTycoon {
   
   
   // Type aliases
@@ -52,7 +52,7 @@ actor CherryTycoon {
   type ParcelEconomics = Types.ParcelEconomics;
 
   // Authorization system
-  let accessControlState = AccessControl.initState();
+  transient let accessControlState = AccessControl.initState();
 
   public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
     await MixinAuthorization._initializeAccessControlWithSecret(accessControlState, caller, userSecret);
@@ -75,10 +75,10 @@ actor CherryTycoon {
   // ============================================================================
 
   // Global game state
-  var globalSeasonNumber : Nat = 1;
-  var baseRetailPrice : Nat = 15; // PLN per kg
-  var baseWholesalePrice : Nat = 10; // PLN per kg
-  var topPlayersCache : [Types.LeaderboardEntry] = []; // Phase 6.1 Scalability Cache
+  transient var globalSeasonNumber : Nat = 1;
+  transient var baseRetailPrice : Nat = 15; // PLN per kg
+  transient var baseWholesalePrice : Nat = 10; // PLN per kg
+  transient var topPlayersCache : [Types.LeaderboardEntry] = []; // Phase 6.1 Scalability Cache
 
   // Stable storage for upgrades (Traditional Motoko paradigm)
   stable var stablePlayerFarms : [(Principal, PlayerFarm)] = [];
@@ -155,12 +155,12 @@ actor CherryTycoon {
 
   // Market Saturation (Phase 4)
   // Map: RegionName -> (TotalKilogramsSold, LastUpdateTimestamp)
-  var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
+  transient var regionalMarketSaturation = HashMap.HashMap<Text, (Nat, Int)>(
     16, Text.equal, Text.hash
   );
 
   // AI Competitor Map (Persistent State)
-  var aiCompetitors = HashMap.HashMap<Text, Types.AICompetitor>(10, Text.equal, Text.hash);
+  transient var aiCompetitors = HashMap.HashMap<Text, Types.AICompetitor>(10, Text.equal, Text.hash);
 
   // Initialize AI competitors on clean install
   for (d in [CompetitorLogic.AI_MAREK, CompetitorLogic.AI_KASIA, CompetitorLogic.AI_HANS].vals()) {
@@ -168,7 +168,7 @@ actor CherryTycoon {
   };
 
   // Core game data (Players and Farms)
-  private var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
+  private transient var playerFarms = HashMap.HashMap<Principal, PlayerFarm>(
     10,
     Principal.equal,
     Principal.hash
@@ -2993,7 +2993,7 @@ actor CherryTycoon {
   // Scalability: Updates topPlayersCache. Guarded by SEC-021: skips refresh if playerFarms > 500
   // to avoid exceeding the ICP instruction limit (soft DOS protection).
   // TODO SEC-021: Replace with pagination or WASM-level streaming for production scale.
-  let LEADERBOARD_MAX_PLAYERS : Nat = 500;
+  transient let LEADERBOARD_MAX_PLAYERS : Nat = 500;
   func _refreshLeaderboardCache() {
     // SEC-021: Instruction-limit guard — do not iterate if player count is too large
     if (playerFarms.size() > LEADERBOARD_MAX_PLAYERS) {
