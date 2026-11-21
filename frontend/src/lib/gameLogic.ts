@@ -473,3 +473,11 @@ export const applySpoilage = (kg: bigint, percent: number): bigint => {
     const spoiled = (kg * BigInt(percent)) / 100n;
     return kg >= spoiled ? kg - spoiled : 0n;
 };
+
+/**
+ * Warehouse capacity in kg for a given warehouse level. A frontend convention
+ * with no backend counterpart: the canister has no storage-capacity concept.
+ * The orchard silo and the Action Dock's Reserves meter both read it, so for
+ * the same stock they agree.
+ */
+export const maxStorageCapacity = (warehouseLevel: number): number => (warehouseLevel + 1) * 10000;
