@@ -121,3 +121,35 @@ describe('ECON-05: exactly one spoilage system exists', () => {
         expect(declarations[0]).toMatch(/^backend\/storage_logic\.mo:/);
     });
 });
+
+// ============================================================================
+// Suspension points in Track A -- no private `async` helpers
+// ============================================================================
+//
+// In Motoko a plain `await` is a commit point: the actor can run other
+// messages from the same caller before the continuation resumes. A private
+// helper declared `: async` that does nothing asynchronous (pure arithmetic)
+// still creates that point at every `await` of it, so any state read before the
+// call can be stale after it. Two such helpers existed (`checkBankruptcyRisk`
+// and `_advanceSeasonInternal`) and were made synchronous.
+//
+// This pins the shape: backend/main.mo declares no private function as `: async`.
+// If a future helper really must be asynchronous (an inter-canister call), it
+// should be a conscious choice: add it to ALLOWED below with the reason, and
+// re-read the state after the `await` instead of writing back a copy taken before.
+
+describe('backend/main.mo has no needless suspension points', () => {
+    const mainSource = readFileSync(join(BACKEND_DIR, 'main.mo'), 'utf8');
+    const ALLOWED = new Set<string>([]);
+
+    it('declares no private func as `: async`, apart from the allowlist', () => {
+        const declared = [...mainSource.matchAll(/private func\s+(\w+)\s*\([^)]*\)\s*:\s*async\b/g)].map((m) => m[1]);
+        const unexpected = declared.filter((name) => !ALLOWED.has(name));
+        expect(unexpected, `private async helper(s) in backend/main.mo: ${unexpected.join(', ')}`).toEqual([]);
+    });
+
+    it('does not await the two helpers that used to be async', () => {
+        expect(mainSource).not.toMatch(/await\s+checkBankruptcyRisk/);
+        expect(mainSource).not.toMatch(/await\s+_advanceSeasonInternal/);
+    });
+});

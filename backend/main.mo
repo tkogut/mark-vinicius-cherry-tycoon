@@ -806,7 +806,7 @@ actor CherryTycoon {
             let operationalShare = 50;
             
             // Check for bankruptcy risk
-            switch (await checkBankruptcyRisk(farm, waterCost)) {
+            switch (checkBankruptcyRisk(farm, waterCost)) {
               case (#Err(e)) { return #Err(e) };
               case (#Ok(())) {};
             };
@@ -967,7 +967,7 @@ actor CherryTycoon {
             let operationalShare = fertilizerCost.operations;
             let totalCost = laborShare + operationalShare;
 
-            switch (await checkBankruptcyRisk(farm, totalCost)) {
+            switch (checkBankruptcyRisk(farm, totalCost)) {
               case (#Err(e)) { return #Err(e) };
               case (#Ok(())) {};
             };
@@ -1041,7 +1041,7 @@ actor CherryTycoon {
             let conversionCost = 5000; // PLN initial fee
             
             // Check for bankruptcy risk
-            switch (await checkBankruptcyRisk(farm, conversionCost)) {
+            switch (checkBankruptcyRisk(farm, conversionCost)) {
               case (#Err(e)) { return #Err(e) };
               case (#Ok(())) {};
             };
@@ -1256,7 +1256,7 @@ actor CherryTycoon {
         let totalCost = quantity * costPerTree;
         
         // Check for bankruptcy risk
-        switch (await checkBankruptcyRisk(farm, totalCost)) {
+        switch (checkBankruptcyRisk(farm, totalCost)) {
           case (#Err(e)) { return #Err(e) };
           case (#Ok(())) {};
         };
@@ -1536,7 +1536,7 @@ actor CherryTycoon {
     caller: Principal,
     nextPhase: Types.SeasonPhase,
     nextSeason: Types.Season
-  ) : async GameResult<Text, GameError> {
+  ) : GameResult<Text, GameError> { // synchronous on purpose: no inner await, see checkBankruptcyRisk
     
     // Check for organic parcels and update certification status
     var anyOrganicCount = 0;
@@ -1793,7 +1793,7 @@ actor CherryTycoon {
             };
 
             if (nextSeason != farm.currentSeason) {
-                return await _advanceSeasonInternal(updatedFarm, caller, nextPhase, nextSeason);
+                return _advanceSeasonInternal(updatedFarm, caller, nextPhase, nextSeason);
             };
 
             // Phase 8.0: Global Auction Resolution
@@ -2289,7 +2289,7 @@ actor CherryTycoon {
         let cost = GameLogic.getInfrastructureCost(infraType);
         
         // Check for bankruptcy risk
-        switch (await checkBankruptcyRisk(farm, cost)) {
+        switch (checkBankruptcyRisk(farm, cost)) {
           case (#Err(e)) { return #Err(e) };
           case (#Ok(())) {};
         };
@@ -2388,7 +2388,7 @@ actor CherryTycoon {
         for (i in Iter.range(1, currentLevel)) { costMultiplier *= 1.15 };
         let cost = Int.abs(Float.toInt(10_000.0 * costMultiplier));
         
-        switch (await checkBankruptcyRisk(farm, cost)) {
+        switch (checkBankruptcyRisk(farm, cost)) {
           case (#Err(e)) { return #Err(e) };
           case (#Ok(())) {};
         };
@@ -2449,7 +2449,10 @@ actor CherryTycoon {
   // ============================================================================
 
   // Helper: Check if an expenditure leads to bankruptcy risk
-  private func checkBankruptcyRisk(farm: PlayerFarm, expenditure: Nat) : async GameResult<(), GameError> {
+  // Synchronous on purpose: it is pure arithmetic. Declared `async` it created a commit point at every
+  // `await`, between reading the farm and writing it back, where other calls from the same player could
+  // run and have their effects overwritten. Do not make it async again (backendHygiene.test.ts).
+  private func checkBankruptcyRisk(farm: PlayerFarm, expenditure: Nat) : GameResult<(), GameError> {
     if (farm.cash < expenditure) {
       return #Err(#InsufficientFunds { required = expenditure; available = farm.cash });
     };
@@ -2520,7 +2523,7 @@ actor CherryTycoon {
         let cost = Int.abs(Float.toInt(size * 60000.0));
         
         // Check for bankruptcy risk
-        switch (await checkBankruptcyRisk(farm, cost)) {
+        switch (checkBankruptcyRisk(farm, cost)) {
           case (#Err(e)) { return #Err(e) };
           case (#Ok(())) {};
         };
@@ -2595,7 +2598,7 @@ actor CherryTycoon {
       case (?farm) {
         
         // Check for bankruptcy risk
-        switch (await checkBankruptcyRisk(farm, price)) {
+        switch (checkBankruptcyRisk(farm, price)) {
           case (#Err(e)) { return #Err(e) };
           case (#Ok(())) {};
         };
