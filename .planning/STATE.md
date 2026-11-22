@@ -5,7 +5,7 @@ milestone_name: Playable Release — V1 Parity
 current_phase: 09
 current_phase_name: ux-ui-deep-overhaul
 status: planned
-stopped_at: 09-02 (#21) and 09-03 (#26) merged; ECON-13 (#22) and the concurrency fix (#23) merged; 09-06 (UX-09 resolver extraction) built 2026-11-21, awaiting the owner's merge; next is 09-04
+stopped_at: 09-02 (#21), 09-03 (#26), 09-06 (#27) merged; 09-04 (Action Dock) built 2026-11-21, awaiting Playground check and the owner's merge; next is 09-07
 last_updated: "2026-11-21T00:00:00.000Z"
 last_activity: 2026-11-21
 last_activity_desc: PR 0 (#15), the second-brain docs (#16, #18) and the e2e runner pin (#17) merged; owner confirmed the +15% wholesale bonus for 09-02; STATE refreshed
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-29)
 ## Current Position
 
 Phase: 9 — UX/UI Deep Overhaul
-Plan: 3 of 9 new plans built (09-02 merged as #21; 09-03 merged as #26; 09-06 built, awaiting merge; 09-04, 09-05, 09-07..09-10 not started; `09-01` is a historical record of already-shipped Aug-2026 work, not part of this run)
+Plan: 4 of 9 new plans built (09-02 merged as #21; 09-03 as #26; 09-06 as #27; 09-04 built, awaiting merge; 09-05, 09-07..09-10 not started; `09-01` is a historical record of already-shipped Aug-2026 work, not part of this run)
 Status: **Planned, verified on 2026-09-18, and re-checked on 2026-10-23.** Nothing in this phase has been built; only planning artifacts exist. The 2026-10-23 review found that four plans (09-02, 09-04/09-07, 09-08, 09-10) had picked up defects since they were written, and 09-09 needs a smaller update; PR 0 (#15, merged 2026-11-07) amended the plan text before any code runs.
 Last activity: 2026-10-23 — independent readiness review against master; decisions Q1–Q4 taken (see Session Continuity); execution re-sequenced to one PR per plan.
 
@@ -157,7 +157,7 @@ Note: Sports Patron is **no longer deferred** — promoted to active Phase 2 per
 ## Session Continuity
 
 Last session: 2026-11-21
-Stopped at: 09-02 (#21) and 09-03 (#26) merged, 09-06 built on `feat/09-06-building-sprites` (PR awaiting the owner's merge). Next: 09-04 (Action Dock, Bar Meter / Metric Badge).
+Stopped at: 09-02, 09-03, 09-06 merged; 09-04 built on `feat/09-04-action-dock` (PR awaiting Playground check and the owner's merge). Next: 09-07 (BidModal gauges; flips the tube-gauge ratchet).
 
 **Do not run `/gsd-execute-phase 9` as one unattended run.** Execute the items below one at a time, each on its own branch from a freshly fetched master, each ending in a PR that **the user merges** (every merge to master auto-deploys Playground; no standing merge permission has been given).
 
@@ -188,8 +188,8 @@ The user delegated these to an independent Opus review in their own words ("zdec
 |---|---|---|---|
 | 0 | `docs/phase9-replan` | this file + amended plan text for 09-02, 09-04, 09-07, 09-08, 09-09, 09-10 | **done, #15 merged 2026-11-07** |
 | 1 | 09-02 | +15% wholesale, shared `calculateWholesalePrice`, replica proof | **done, #21 merged 2026-11-20** |
-| 2 | 09-03 + 09-06 | running-costs states; sprite resolver | **09-03 done (#26, live-checked on Playground)**; 09-06 **built 2026-11-21, awaiting the owner's merge** |
-| 3 | 09-04 | Action Dock, Bar Meter / Metric Badge, `maxStorageCapacity` | user merges |
+| 2 | 09-03 + 09-06 | running-costs states; sprite resolver | **09-03 done (#26, live-checked on Playground)**; 09-06 **done (#27)** |
+| 3 | 09-04 | Action Dock, Bar Meter / Metric Badge, `maxStorageCapacity` | **built 2026-11-21 (#28), awaiting Playground check and merge** |
 | 4 | 09-07 | bid-modal meters, `EmeraldGauge` deleted | user merges |
 | 5 | 09-05 | orchard lighting, particle layer | user merges |
 | 6 | 09-08 | machine phases | user merges |

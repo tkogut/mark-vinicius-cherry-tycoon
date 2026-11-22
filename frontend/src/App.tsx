@@ -12,7 +12,7 @@ import { SellModal } from '@/components/farm/modals/SellModal';
 import { CompetitorsPanel } from "@/components/social/CompetitorsPanel";
 import { RankingsPanel } from "@/components/social/RankingsPanel";
 import { SportsCenter } from "@/components/sports/SportsCenter";
-import { MainDashboard } from "@/components/farm/MainDashboard";
+import { ActionDock } from "@/components/farm/ActionDock";
 import { ImperialOrchard } from "@/components/farm/ImperialOrchard";
 const Marketplace = React.lazy(() => import('@/components/farm/Marketplace').then(module => ({ default: module.Marketplace })));
 import { InvestmentsDashboard } from "@/components/farm/InvestmentsDashboard";
@@ -31,7 +31,7 @@ import { FarmStatsModal } from "@/components/farm/modals/FarmStatsModal"
 import { HiringModal } from "@/components/farm/HiringModal"
 import { useInstallPrompt } from "@/utils/pwa"
 import { useToast } from "@/components/ui/use-toast"
-import { calculateYieldBreakdown, getUpkeepDrift, FERTILIZER_TYPES } from "@/lib/gameLogic"
+import { calculateYieldBreakdown, getUpkeepDrift, FERTILIZER_TYPES, maxStorageCapacity } from "@/lib/gameLogic"
 import { PhaseIndicator } from "@/components/season/PhaseIndicator"
 import { WeatherEventModal, WeatherEventType } from "@/components/season/WeatherEventModal"
 import { WeatherOverlay } from "@/components/season/WeatherOverlay"
@@ -161,7 +161,7 @@ function AppContent() {
         return infra ? Number(infra.level) : 0;
     };
     const warehouseLevel = getInfraLevel('Warehouse');
-    const maxCapacity = (warehouseLevel + 1) * 10000;
+    const maxCapacity = maxStorageCapacity(warehouseLevel);
 
     // Wired to real purchased-machinery state 2026-08-03 (previously
     // hardcoded `hasHarvesters: false`, so the orchard never showed any
@@ -821,7 +821,14 @@ function AppContent() {
                                         </div>
 
                                         <div className={cn("flex-grow min-h-0", "md:pt-0 pt-8")}>
-                                            <MainDashboard />
+                                            <ActionDock
+                                                cash={farm ? Number(farm.cash) : null}
+                                                phase={farm ? (currentPhase as SeasonPhase) : null}
+                                                cherries={stats.regularCherries}
+                                                organicCherries={stats.organicCherries}
+                                                warehouseLevel={warehouseLevel}
+                                                onOpenAuction={() => setActiveTab('pool')}
+                                            />
                                         </div>
                                     </div>
                                 </div>

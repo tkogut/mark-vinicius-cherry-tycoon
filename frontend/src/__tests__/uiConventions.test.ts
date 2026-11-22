@@ -291,3 +291,62 @@ describe('ECON-07: AI archetype names have one canonical scheme', () => {
         }
     });
 });
+
+describe('UX-03: circular gauges exist only as input controls (D-04)', () => {
+    const DIAL_FILE = resolve(SRC, 'components/ui/ImperialDial.tsx');
+    const TUBE_FILE = resolve(SRC, 'components/ui/EmeraldGauge.tsx');
+
+    /** `file:line` for every JSX element `<Tag ... />` / `<Tag ...>` outside comments. */
+    function usages(tag: string): { file: string; line: number; text: string }[] {
+        const out: { file: string; line: number; text: string }[] = [];
+        for (const file of FILES) {
+            if (file === DIAL_FILE || file === TUBE_FILE) continue;
+            const src = withoutComments(readFileSync(file, 'utf8'));
+            for (const m of src.matchAll(new RegExp(`<${tag}\\b[\\s\\S]*?/?>`, 'g'))) {
+                const line = src.slice(0, m.index).split('\n').length;
+                out.push({ file: `${relative(SRC, file)}:${line}`, line, text: m[0] });
+            }
+        }
+        return out;
+    }
+
+    it('the dial is imported by exactly one file', () => {
+        const importers = FILES.filter((f) => f !== DIAL_FILE)
+            .filter((f) => /import\s*\{[^}]*\bImperialDial\b[^}]*\}\s*from/.test(withoutComments(readFileSync(f, 'utf8'))))
+            .map((f) => relative(SRC, f));
+        expect(importers).toEqual(['components/pools/BidModal.tsx']);
+    });
+
+    it('every dial element passes onChange, so it is an input and never a passive readout', () => {
+        const dials = usages('ImperialDial');
+        expect(dials.length, 'the legitimate input use must still exist').toBeGreaterThan(0);
+        const passive = dials.filter((d) => !/\bonChange\s*=/.test(d.text)).map((d) => d.file);
+        expect(passive, 'passive dial usage (no onChange): a stat is a BarMeter or a MetricBadge').toEqual([]);
+    });
+
+    // Flips live in plan 09-07, which migrates the three bid-modal gauges. `it.fails`
+    // keeps the detection exercised today (it must find BidModal) and turns red the
+    // moment the last tube gauge is gone, so the flip cannot be forgotten.
+    it.fails('no vertical tube gauge is rendered anywhere (BidModal migrates in plan 09-07)', () => {
+        expect(usages('EmeraldGauge').map((u) => u.file)).toEqual([]);
+    });
+
+    it('anti-deletion: the dial component still exists and still exports itself', () => {
+        const src = readFileSync(DIAL_FILE, 'utf8');
+        expect(src).toMatch(/export const ImperialDial\b/);
+        // The input use is the reason it survives; the dial must still accept onChange.
+        expect(src).toMatch(/onChange/);
+    });
+
+    it('no component draws a conic-gradient ring or a dashed-stroke gauge outside the dial itself', () => {
+        const offenders: string[] = [];
+        for (const file of FILES) {
+            if (file === DIAL_FILE) continue;
+            const src = withoutComments(readFileSync(file, 'utf8'));
+            if (/conic-gradient/.test(src)) offenders.push(`${relative(SRC, file)} (conic-gradient)`);
+            // PriceChart's recharts grid line is a dashed stroke too; a gauge is a <circle>.
+            if (/<circle\b[^>]*strokeDasharray/.test(src)) offenders.push(`${relative(SRC, file)} (circle strokeDasharray)`);
+        }
+        expect(offenders).toEqual([]);
+    });
+});

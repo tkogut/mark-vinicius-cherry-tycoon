@@ -77,3 +77,29 @@ export const isActionAllowed = (phase: SeasonPhase | string, action: GameAction)
     const allowedActions = PHASE_ACTION_GATING[phaseKey as SeasonPhase] || [];
     return allowedActions.includes(action);
 };
+
+/**
+ * The phase cycle in the backend's own order. Transcribed from the
+ * `advancePhase` switch in backend/main.mo (the `nextPhase` match,
+ * currently lines 1769-1780); `actionDock.test.tsx` re-reads that switch off
+ * disk and compares, so a drift fails the build instead of making the
+ * phase-cycle meter lie about where the season is.
+ */
+export const PHASE_ORDER: readonly SeasonPhase[] = [
+    'Hiring',
+    'Procurement',
+    'Investment',
+    'Growth',
+    'Harvest',
+    'Market',
+    'Storage',
+    'CutAndPrune',
+    'Maintenance',
+    'Planning',
+];
+
+/** Position of `phase` in the cycle, 0-1: the first phase is 1/10, the last 10/10. Unknown phase: 0. */
+export const phaseCycleProgress = (phase: SeasonPhase | string | null | undefined): number => {
+    const i = PHASE_ORDER.indexOf(phase as SeasonPhase);
+    return i < 0 ? 0 : (i + 1) / PHASE_ORDER.length;
+};
