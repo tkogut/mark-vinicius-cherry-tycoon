@@ -292,7 +292,7 @@ actor CherryTycoon {
         organicCherries = 0;
         fertilizers = 10;
         pesticides = 5;
-        organicTreatments = 0;
+        organicTreatments = 10;
       };
       statistics = {
         totalHarvested = 0;
@@ -906,8 +906,14 @@ actor CherryTycoon {
           return #Err(#InvalidOperation("Invalid fertilizer type. Must be 'OrganicCompatible', 'SyntheticStandard', or 'SyntheticIntensive'"));
         };
 
-        // Check if has fertilizers
-        if (farm.inventory.fertilizers == 0) {
+        // ECON-15: OrganicCompatible consumes an organic treatment, the synthetic
+        // types consume a fertilizer. Before this, `organicTreatments` was sold in
+        // the market and never read, so buying it did nothing.
+        if (GameLogic.consumesOrganicTreatment(fertilizerType)) {
+          if (farm.inventory.organicTreatments == 0) {
+            return #Err(#InvalidOperation("No organic treatments in inventory"));
+          };
+        } else if (farm.inventory.fertilizers == 0) {
           return #Err(#InvalidOperation("No fertilizers in inventory"));
         };
 
@@ -956,9 +962,16 @@ actor CherryTycoon {
               }
             );
 
-            let updatedInventory = {
-              farm.inventory with
-              fertilizers = Int.abs((farm.inventory.fertilizers : Int) - (1 : Int));
+            let updatedInventory = if (GameLogic.consumesOrganicTreatment(fertilizerType)) {
+              {
+                farm.inventory with
+                organicTreatments = Int.abs((farm.inventory.organicTreatments : Int) - (1 : Int));
+              }
+            } else {
+              {
+                farm.inventory with
+                fertilizers = Int.abs((farm.inventory.fertilizers : Int) - (1 : Int));
+              }
             };
 
             // Check for bankruptcy risk (Labor + Fertilizer)

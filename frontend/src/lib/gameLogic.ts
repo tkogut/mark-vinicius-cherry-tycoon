@@ -289,7 +289,7 @@ export const getFertilizerTypeModifier = (fertilizerType: string): number => {
 // Fertilizer cost and organic rule (ECON-REBALANCE). Mirrors
 // `GameLogic.getFertilizerCost` / `isSyntheticFertilizer` in game_logic.mo and
 // the two guards in main.mo's `fertilizeParcel`. Every application consumes one
-// inventory unit whatever the type; the types differ in cash, so Intensive's
+// inventory unit (which one: see `consumesOrganicTreatment`); the types differ in cash, so Intensive's
 // +5% yield is paid for (500 -> 800 PLN) instead of free.
 export const FERTILIZER_COSTS: Record<FertilizerType, { laborCost: number; operationalCost: number }> = {
     OrganicCompatible: { laborCost: 390, operationalCost: 260 },  // 650
@@ -302,6 +302,12 @@ export const getFertilizerCost = (type: FertilizerType): number =>
 
 export const isSyntheticFertilizer = (type: string): boolean =>
     type === 'SyntheticStandard' || type === 'SyntheticIntensive';
+
+// ECON-15. Mirrors `GameLogic.consumesOrganicTreatment`: an OrganicCompatible
+// application consumes one `organicTreatments`, the synthetic types consume one
+// `fertilizers`. Before ECON-15 the treatment was sold and never read.
+export const consumesOrganicTreatment = (type: string): boolean =>
+    type === 'OrganicCompatible';
 
 export const FERTILIZER_BLOCK_ORGANIC = 'Not allowed on organic parcels';
 export const FERTILIZER_BLOCK_SEASON = 'Already fertilized this season';

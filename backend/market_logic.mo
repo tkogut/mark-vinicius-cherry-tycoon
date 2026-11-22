@@ -30,7 +30,9 @@ module MarketLogic {
       // Offset the seed slightly for different inputs so prices don't fluctuate identically
       fertilizerPrice = calculatePrice(50, year, randomSeed);
       pesticidePrice = calculatePrice(120, year, randomSeed + 7);
-      organicTreatmentPrice = calculatePrice(200, year, randomSeed + 13);
+      // ECON-15: priced like fertilizer (50), because an organic application now
+      // consumes a treatment instead of a fertilizer; the net unit cost is unchanged.
+      organicTreatmentPrice = calculatePrice(50, year, randomSeed + 13);
     };
   };
 
