@@ -31,11 +31,11 @@ export const BarMeter: React.FC<BarMeterProps> = ({ label, value, scale, valueTe
     return (
         <div className={cn('w-full', className)} data-bar-meter={scale} data-tone={tone}>
             <div className="flex items-baseline justify-between gap-2 text-xs leading-tight">
-                <span className="uppercase tracking-wide text-slate-400">{label}</span>
-                {valueText && <span className="tabular-nums text-foreground">{valueText}</span>}
+                <span className="min-w-0 truncate uppercase tracking-wide text-slate-400">{label}</span>
+                {valueText && <span className="shrink-0 whitespace-nowrap tabular-nums text-foreground">{valueText}</span>}
             </div>
             <Progress
-                className="mt-1 h-2 bg-charcoal-light"
+                className="mt-1 h-2 border border-brass/30 bg-charcoal-dark"
                 indicatorClassName={FILL[tone]}
                 value={clamped}
                 role="progressbar"

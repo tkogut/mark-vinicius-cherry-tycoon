@@ -30,6 +30,12 @@ Format: `### <short rule>` / **Was:** what I believed / **Actually:** what was t
 **Actually:** true, but I had not run it. When I finally did (`moc --check`), it gave the specific errors — `duplicate field name activeInsurance` at line 261, contract type errors at 1591 — which are what actually make a fix plannable. And re-checking surfaced something bigger the notes never had: `deploy-mainnet.yml` deploys `backend_mainnet`, a canister that is not in `dfx.json` at all.
 **Rule:** when a claim is load-bearing for a decision, re-verify it and say you did. State recorded-but-unverified claims as recorded.
 
+### A passing component test does not show a bar you can see (09-04)
+
+**Was:** the Bar Meter and its 22 tests were green, so the dock looked finished.
+**Actually:** in the browser every track was invisible at 0% fill: the track token (`charcoal-light`) was the same colour as the panel it sat on. Tests assert `aria-valuenow`, never contrast. A second look at 768 px found the "Diagnostics" title and the Reserves caption clipped.
+**Rule:** any new visual primitive gets one look in a real browser at 0%, at a full value, and at 768 px before the PR is called ready. A bounded meter's track needs its own outline or a surface it contrasts with.
+
 ## Tooling traps
 
 ### Python text mode silently normalises CRLF — never scan line endings with it

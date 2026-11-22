@@ -54,11 +54,11 @@ export const ActionDock: React.FC<ActionDockProps> = ({
             <div className="god-ray-45"></div>
             <RotatingGears className="opacity-20 translate-y-20" />
 
-            <div className="mahogany-plate brass-rim w-full h-full z-10 shadow-2xl flex items-center justify-between gap-2 px-2 md:px-6">
+            <div className="mahogany-plate brass-rim w-full h-full z-10 shadow-2xl grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-2 md:px-4 xl:px-6">
                 {/* LEFT: Treasury (open-ended) and where the season is in its cycle (bounded) */}
-                <div className="flex-1 min-w-0 max-w-xs">
+                <div className="min-w-0 max-w-xs">
                     <div className="bg-charcoal-light border border-brass/40 rounded-xl p-2 flex flex-col gap-2">
-                        <h3 className="hull-header text-base font-semibold text-center">Diagnostics</h3>
+                        <h3 className="hull-header hidden text-base font-semibold text-center xl:block">Diagnostics</h3>
                         <MetricBadge
                             icon={<Coins />}
                             label="Treasury"
@@ -76,7 +76,7 @@ export const ActionDock: React.FC<ActionDockProps> = ({
                 {/* CENTER: the one call to action */}
                 <div className="flex items-center justify-center px-2 z-10">
                     <Button
-                        className="bg-[var(--brass-primary)] hover:bg-brass-light text-black font-semibold border border-brass-light px-4 min-h-[44px] md:min-h-0 md:h-9 text-xs uppercase tracking-wide rounded-lg"
+                        className="bg-[var(--brass-primary)] hover:bg-brass-light text-black font-semibold border border-brass-light px-3 xl:px-4 min-h-[44px] md:min-h-0 md:h-9 text-[11px] xl:text-xs uppercase tracking-wide rounded-lg"
                         onClick={onOpenAuction}
                     >
                         View Market Auction
@@ -84,13 +84,13 @@ export const ActionDock: React.FC<ActionDockProps> = ({
                 </div>
 
                 {/* RIGHT: Reserves (bounded by the warehouse), Organic (open-ended) */}
-                <div className="flex-1 min-w-0 max-w-xs">
+                <div className="min-w-0 max-w-xs">
                     <div className="bg-charcoal-light border border-brass/40 rounded-xl p-2 flex flex-col gap-2">
                         <BarMeter
                             label="Reserves"
                             value={storageFill}
                             scale="storage"
-                            valueText={`${formatKg(totalStock)} of ${formatKg(capacity)}`}
+                            valueText={`${formatKg(totalStock)} / ${formatKg(capacity)}`}
                         />
                         <MetricBadge icon={<Leaf />} label="Organic" value={organicCherries} unit="kg" />
                     </div>

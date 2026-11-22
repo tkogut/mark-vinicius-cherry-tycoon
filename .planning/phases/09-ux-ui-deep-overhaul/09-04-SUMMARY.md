@@ -43,7 +43,13 @@ date: 2026-11-21
 - `onOpenAuction` removed in `App.tsx`: `tsc` TS2741 (required prop).
 - `./validate.sh full` green: unit, lint 180 warnings / 0 errors, typecheck, build, 61 e2e, declarations. (One earlier run was killed, exit 137, and rerun clean.)
 
+## Browser check (2026-11-22, local build of the branch in Chromium, guest mode)
+- Playground first: the 09-04 deploy was dead by the time I opened it (lease ~20 min, 503); redeployed. Screenshots of that canister timed out three times; a deploy of `master` screenshotted fine in the same browser, so the cause was not the environment. The same branch built and served locally renders and screenshots fine, so I did not find what froze the Playground tab and cannot call it explained.
+- Found by looking, fixed in the same PR: (1) Bar Meter tracks were invisible at 0% (track colour = panel colour): now `bg-charcoal-dark` with a `border-brass/30` outline; (2) at 768 px the "Diagnostics" title and the Reserves caption were clipped: dock is now `grid-cols-[1fr_auto_1fr]`, heading shown from `xl`, labels truncate, `used / capacity` caption on one line. At 768 px nothing overlaps; "Reserves" and "No active phase" truncate with an ellipsis.
+- 375 px: the dock sits in the collapsed 25vh drawer and is clipped vertically, as the old dock was; the expanded drawer was not looked at. The build badge overlaps the mobile bottom nav at 375 px (pre-existing, not the dock) and sits on the dock's bottom-right border at 768 px without covering a control.
+- Seen only with no farm (Treasury dash, no active phase, 0 kg). Filled meters, tones and the signed-in dock were not seen in a browser.
+
 ## Not verified
-- Not seen in a browser yet: layout at 375 px and 768 px, and that the build badge (bottom-right) does not cover the right-hand zone. The plan marks this a backstop item.
+- A signed-in dock with real values and non-zero fills; the expanded mobile drawer; a Playground run of the final commit.
 - No test clicks the real `App` tab switch; `App.tsx` wiring is pinned by a source-text assertion plus the typecheck.
 - `Number(farm.cash)` loses precision above 2^53; the old dock did the same.
