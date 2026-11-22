@@ -125,6 +125,7 @@ type SaleQuote =
    hasOrganicCertified: bool;
    hasProcessingFacility: bool;
    marketMultiplier: float64;
+   marketScaleKg: nat;
    pricePerKg: float64;
    quantity: nat;
    revenue: nat;

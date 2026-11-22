@@ -47,15 +47,20 @@ import {
     isSyntheticFertilizer,
     consumesOrganicTreatment,
     entropyForSeason,
-    getAITotalSupply,
-    getSeasonDemandKg,
-    computeMarketMultiplier,
+    marketAISupplyKg,
+    marketBaselineKg,
+    marketDemandKg,
+    marketScaleFor,
     marketMultiplierFor,
     integratedMarketMultiplier,
+    calculateRetailPrice,
     AI_SEEDS,
     AI_CAPACITY_KG,
-    GLOBAL_BASELINE_KG,
     PRICE_FLOOR_MULT,
+    PRICE_CEILING_MULT,
+    MARKET_K_MIN,
+    MARKET_K_INIT,
+    DEMAND_UNITS,
     getFertilizerBlock,
     FERTILIZER_BLOCK_ORGANIC,
     FERTILIZER_BLOCK_SEASON,
@@ -1222,145 +1227,193 @@ describe('economy parity: fertilizer cost and organic rule (ECON-REBALANCE)', ()
     });
 });
 
-describe('economy parity: shared market multiplier (ECON-21 PR0)', () => {
-    // Transcription of competitor_logic.mo: entropyForSeason, simulateAITurn,
-    // getAITotalSupply, getSeasonDemand, computeMarketMultiplier. Written out
-    // independently with BigInt, so it does not share a line with the mirror.
+describe('economy parity: a market that scales with the player (ECON-21)', () => {
+    // Independent transcription of competitor_logic.mo (BigInt, no shared line with the mirror):
+    // entropyForSeason, aiSupplyKgFor / marketAISupplyKg, marketDemandKg, marketBaselineKg and
+    // integratedMarketMultiplier, as written on 2026-11-22.
     const M = 4294967296n;
     const txEntropy = (n: bigint) => (n * 2654435761n + 12345n) % 1000000000n;
-    const txAI = (idSeed: bigint, capacity: number, factor: number, entropy: bigint) => {
-        if (factor === 0) return 0;
-        const mixed = (entropy + idSeed * 31n) % M;
-        const next = (1664525n * mixed + 1013904223n) % M;
-        const roll = Number(next) / Number(M);
-        const eff = (0.65 + roll * 0.70) * factor;
-        const clamped = eff < 0.60 ? 0.60 : eff > 1.30 ? 1.30 : eff;
-        return Math.trunc(capacity * clamped);
-    };
     const FACTOR = { Spring: 0, Summer: 1.15, Autumn: 0.8, Winter: 0 } as const;
     const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'] as const;
+    const D_UNITS = { Spring: 0.795, Summer: 0.707, Autumn: 0.59, Winter: 0.474 } as const;
     const seasonOf = (k: (typeof SEASONS)[number]) => ({ [k]: null }) as never;
-
-    it('mirrors the season-seeded AI draw for 40 consecutive season numbers', () => {
-        for (let n = 1; n <= 40; n++) {
-            const k = SEASONS[(n - 1) % 4];
-            const e = txEntropy(BigInt(n));
-            expect(entropyForSeason(n)).toBe(Number(e));
-            const expected =
-                txAI(42n, 45000, FACTOR[k], e) + txAI(137n, 18000, FACTOR[k], e) + txAI(999n, 70000, FACTOR[k], e);
-            expect(getAITotalSupply(seasonOf(k), entropyForSeason(n))).toBe(expected);
-        }
-    });
-
-    // Observed on a live local replica on 2026-11-22 (PR0): quoteSale's aiSupplyKg
-    // for a farm walked through seasonNumber 1..9. This ties the mirror to the
-    // canister, not only to a transcription of it.
-    it('reproduces the AI supply the canister reported (replica-observed)', () => {
-        const observed: Array<[number, (typeof SEASONS)[number], number]> = [
-            [1, 'Spring', 0], [2, 'Summer', 162_100], [3, 'Autumn', 97_372], [4, 'Winter', 0],
-            [6, 'Summer', 152_770], [7, 'Autumn', 114_626],
-        ];
-        for (const [n, k, kg] of observed) {
-            expect(getAITotalSupply(seasonOf(k), entropyForSeason(n)), `season ${n} ${k}`).toBe(kg);
-        }
-    });
-
-    it('reproduces the multipliers the canister reported (replica-observed)', () => {
-        // quoteSale at s = 0 (ECON-21 PR1: the average over the sale). Winter, seasonNumber 4:
-        // 0.7 t / 3.5 t / 7 t -> 0.983 / 0.922 / 0.857.
-        expect(marketMultiplierFor(seasonOf('Winter'), 4, 700)).toBeCloseTo(0.983, 3);
-        expect(marketMultiplierFor(seasonOf('Winter'), 4, 3500)).toBeCloseTo(0.922, 3);
-        expect(marketMultiplierFor(seasonOf('Winter'), 4, 7000)).toBeCloseTo(0.857, 3);
-        // Same farm, 600 kg already sold this season, a 10 kg quote: 0.9706 (s = 0 gives 0.9998).
-        expect(marketMultiplierFor(seasonOf('Winter'), 4, 10, 600)).toBeCloseTo(0.970638, 5);
-        expect(marketMultiplierFor(seasonOf('Winter'), 4, 10, 0)).toBeCloseTo(0.999750, 5);
-        // Spring is capped at 1.0, Summer and Autumn sit at the 0.5 floor for any player volume.
-        for (const q of [700, 3500, 7000]) {
-            expect(marketMultiplierFor(seasonOf('Spring'), 1, q)).toBe(1.0);
-            expect(marketMultiplierFor(seasonOf('Summer'), 2, q)).toBe(0.5);
-            expect(marketMultiplierFor(seasonOf('Autumn'), 3, q)).toBe(0.5);
-        }
-    });
-
-    it('keeps the old single-quote multiplier as the curve itself (PR0 replica values, Winter 4)', () => {
-        const ai = getAITotalSupply(seasonOf('Winter'), entropyForSeason(4));
-        const demand = getSeasonDemandKg(seasonOf('Winter'));
-        expect(computeMarketMultiplier(700, ai, demand)).toBeCloseTo(0.966, 3);
-        expect(computeMarketMultiplier(3500, ai, demand)).toBeCloseTo(0.851, 3);
-        expect(computeMarketMultiplier(7000, ai, demand)).toBeCloseTo(0.741, 3);
-    });
-
-    // Independent check of the closed form: a midpoint Riemann sum of the clamped
-    // marginal multiplier over (soldBefore, soldBefore + q].
-    const riemann = (soldBefore: number, q: number, ai: number, demand: number) => {
+    const txAI = (idSeed: bigint, cap: number, k: (typeof SEASONS)[number], n: number, K: number) => {
+        if (FACTOR[k] === 0) return 0;
+        const mixed = (txEntropy(BigInt(n)) + idSeed * 31n) % M;
+        const roll = Number((1664525n * mixed + 1013904223n) % M) / Number(M);
+        return Math.trunc(0.6 * K * FACTOR[k] * (cap / 133000) * (0.8 + roll * 0.4));
+    };
+    const txAITotal = (k: (typeof SEASONS)[number], n: number, K: number) =>
+        txAI(42n, 45000, k, n, K) + txAI(137n, 18000, k, n, K) + txAI(999n, 70000, k, n, K);
+    const txDemand = (k: (typeof SEASONS)[number], K: number) => Math.trunc(D_UNITS[k] * 7000 * Math.pow(K / 7000, 0.75));
+    const txBase = (K: number) => Math.trunc(0.25 * K);
+    const riemann = (sold: number, q: number, ai: number, base: number, demand: number) => {
         const n = 200_000;
         let sum = 0;
         for (let i = 0; i < n; i++) {
-            const x = soldBefore + ((i + 0.5) * q) / n;
-            sum += Math.min(1.0, Math.max(0.5, demand / (ai + GLOBAL_BASELINE_KG + x)));
+            const x = sold + ((i + 0.5) * q) / n;
+            sum += Math.min(1.2, Math.max(0.5, demand / (ai + base + x)));
         }
         return sum / n;
     };
 
-    it('integrates the marginal multiplier: closed form equals numeric integration (ECON-21 PR1)', () => {
-        const cases: Array<[number, number, number, number]> = [
-            [0, 7000, 0, 20_000], [600, 700, 0, 20_000], [0, 20_000, 0, 30_000], [9_000, 5_000, 0, 30_000],
-            [0, 7000, 97_372, 50_000], [0, 50_000, 0, 20_000], [30_000, 1_000, 0, 20_000], [0, 1, 162_100, 80_000],
+    it('mirrors the AI supply, baseline and demand for 40 season numbers and six market scales', () => {
+        for (const K of [5_000, 7_000, 10_000, 20_000, 50_000, 200_000]) {
+            for (let n = 1; n <= 40; n++) {
+                const k = SEASONS[(n - 1) % 4];
+                expect(entropyForSeason(n)).toBe(Number(txEntropy(BigInt(n))));
+                expect(marketAISupplyKg(seasonOf(k), n, K), `ai ${k} n=${n} K=${K}`).toBe(txAITotal(k, n, K));
+                expect(marketDemandKg(seasonOf(k), K), `demand ${k} K=${K}`).toBe(txDemand(k, K));
+                expect(marketBaselineKg(K)).toBe(txBase(K));
+            }
+        }
+    });
+
+    // Observed on a live local replica on 2026-11-22 (PR2): quoteSale for a fresh farm (K = 7,000)
+    // walked through seasonNumber 1..9. Ties the mirror to the canister, not only to a transcription.
+    it('reproduces what the canister reported for a fresh farm (replica-observed)', () => {
+        const observed: Array<{ n: number; k: (typeof SEASONS)[number]; ai: number; demand: number; mult: [number, number, number] }> = [
+            { n: 1, k: 'Spring', ai: 0, demand: 5565, mult: [1.2, 1.1872, 0.9997] },
+            { n: 2, k: 'Summer', ai: 5242, demand: 4949, mult: [0.6746, 0.5763, 0.5382] },
+            { n: 3, k: 'Autumn', ai: 3164, demand: 4130, mult: [0.7857, 0.6348, 0.5674] },
+            { n: 4, k: 'Winter', ai: 0, demand: 3318, mult: [1.2, 0.9558, 0.74] },
+            { n: 6, k: 'Summer', ai: 4887, demand: 4949, mult: [0.7089, 0.5993, 0.5496] },
+            { n: 7, k: 'Autumn', ai: 3505, demand: 4130, mult: [0.7378, 0.6044, 0.5522] },
         ];
-        for (const [sold, q, ai, demand] of cases) {
-            expect(integratedMarketMultiplier(sold, q, ai, demand), `${sold}+${q} ai=${ai} d=${demand}`)
-                .toBeCloseTo(riemann(sold, q, ai, demand), 4);
+        for (const o of observed) {
+            const season = seasonOf(o.k);
+            expect(marketAISupplyKg(season, o.n, MARKET_K_INIT), `ai n=${o.n}`).toBe(o.ai);
+            expect(marketDemandKg(season, MARKET_K_INIT), `demand n=${o.n}`).toBe(o.demand);
+            expect(marketBaselineKg(MARKET_K_INIT)).toBe(1750);
+            [700, 3500, 7000].forEach((q, i) => {
+                expect(marketMultiplierFor(season, o.n, q), `mult n=${o.n} q=${q}`).toBeCloseTo(o.mult[i], 3);
+            });
+        }
+    });
+
+    it('takes the market scale from the latest harvest, floored at 5,000 and 7,000 before the first one', () => {
+        expect(marketScaleFor(null)).toBe(MARKET_K_INIT);
+        expect(marketScaleFor(0)).toBe(MARKET_K_MIN);
+        expect(marketScaleFor(4_999)).toBe(MARKET_K_MIN);
+        expect(marketScaleFor(6_365)).toBe(6_365); // the harvest the replica reported
+        expect(marketScaleFor(80_000)).toBe(80_000);
+    });
+
+    it('integrates the marginal multiplier: closed form equals numeric integration', () => {
+        const cases: Array<[number, number, number, number, number]> = [
+            [0, 7000, 0, 1750, 3318], [600, 700, 0, 1750, 3318], [0, 7000, 5242, 1750, 4949],
+            [0, 20_000, 0, 1750, 5565], [9_000, 5_000, 0, 1750, 5565], [0, 50_000, 3164, 1750, 4130], [30_000, 1_000, 0, 1750, 3318],
+        ];
+        for (const [sold, q, ai, base, demand] of cases) {
+            expect(integratedMarketMultiplier(sold, q, ai, base, demand), `${sold}+${q}`).toBeCloseTo(riemann(sold, q, ai, base, demand), 4);
         }
     });
 
     it('cannot be beaten by splitting: 70 sales of 100 kg pay the same as one of 7,000 kg', () => {
-        for (const [ai, demand] of [[0, 20_000], [0, 30_000], [97_372, 50_000], [162_100, 80_000]] as const) {
-            const dump = 7000 * integratedMarketMultiplier(0, 7000, ai, demand);
+        for (const k of SEASONS) {
+            const ai = txAITotal(k, 6, 7000), base = txBase(7000), demand = txDemand(k, 7000);
+            const dump = 7000 * integratedMarketMultiplier(0, 7000, ai, base, demand);
             let split = 0;
-            for (let i = 0; i < 70; i++) split += 100 * integratedMarketMultiplier(i * 100, 100, ai, demand);
+            for (let i = 0; i < 70; i++) split += 100 * integratedMarketMultiplier(i * 100, 100, ai, base, demand);
             expect(split).toBeCloseTo(dump, 6);
         }
     });
 
-    it('never leaves [floor, 1.0] and never rises with more volume', () => {
-        let last = 1.0;
-        for (let q = 100; q <= 200_000; q += 1_900) {
-            const m = integratedMarketMultiplier(0, q, 0, 20_000);
-            expect(m).toBeGreaterThanOrEqual(PRICE_FLOOR_MULT);
-            expect(m).toBeLessThanOrEqual(1.0);
-            expect(m).toBeLessThanOrEqual(last + 1e-12);
-            last = m;
+    // The acceptance gates of plan 003 that can be checked without a canister. Gates 3-5 and the
+    // replica prices are in the commit message and the plan file.
+    it('gate 1: dumping the whole crop (q = K) stays within +-20% of the price before ECON-21', () => {
+        // "Before" = the PR0 replica values at 7 t: Spring 1.0, Summer 0.5, Autumn 0.5, Winter 0.741.
+        const before = { Spring: 1.0, Summer: 0.5, Autumn: 0.5, Winter: 0.741 } as const;
+        for (const k of SEASONS) {
+            for (let n = 1; n <= 40; n++) {
+                if (SEASONS[(n - 1) % 4] !== k) continue;
+                const m = marketMultiplierFor(seasonOf(k), n, 7000);
+                expect(m, `${k} n=${n}`).toBeGreaterThanOrEqual(0.8 * before[k] - 1e-9);
+                expect(m, `${k} n=${n}`).toBeLessThanOrEqual(1.2 * before[k] + 1e-9);
+            }
         }
     });
 
-    it('is fixed within a season: the same season number always gives the same multiplier', () => {
-        const a = marketMultiplierFor(seasonOf('Summer'), 6, 5000);
-        for (let i = 0; i < 5; i++) expect(marketMultiplierFor(seasonOf('Summer'), 6, 5000)).toBe(a);
+    it('gate 1 holds at the extremes of the AI draw too (all three AIs at -20% and +20%)', () => {
+        const before = { Summer: 0.5, Autumn: 0.5 } as const;
+        for (const k of ['Summer', 'Autumn'] as const) {
+            for (const f of [0.8, 1.2]) {
+                const ai = Math.trunc(0.6 * 7000 * FACTOR[k] * f);
+                const m = integratedMarketMultiplier(0, 7000, ai, txBase(7000), txDemand(k, 7000));
+                expect(m, `${k} draw ${f}`).toBeLessThanOrEqual(1.2 * before[k] + 1e-9);
+                expect(m).toBeGreaterThanOrEqual(0.8 * before[k] - 1e-9);
+            }
+        }
     });
 
-    it('clamps to [0.5, 1.0]', () => {
-        expect(computeMarketMultiplier(0, 0, 1_000_000)).toBe(1.0);
-        expect(computeMarketMultiplier(10_000_000, 133_000, 20_000)).toBe(PRICE_FLOOR_MULT);
+    it('gate 2: an even four-season split of the crop is at most +40% over the same split before ECON-21', () => {
+        const seasonMult = { Spring: 0.9, Summer: 1.15, Autumn: 1.0, Winter: 0.75 } as const;
+        // Before: each 1,750 kg quarter sold on its own, endpoint multiplier of the old curve.
+        const beforeMult = {
+            Spring: Math.min(1, 30000 / (1750 + 20000)), Summer: 0.5, Autumn: 0.5, Winter: Math.min(1, 20000 / (1750 + 20000)),
+        } as const;
+        let now = 0, before = 0;
+        for (const k of SEASONS) {
+            now += 0.25 * marketMultiplierFor(seasonOf(k), SEASONS.indexOf(k) + 1, 1750) * seasonMult[k];
+            before += 0.25 * beforeMult[k] * seasonMult[k];
+        }
+        expect(now / before).toBeLessThanOrEqual(1.4);
+        expect(now / before).toBeGreaterThan(1.0);
+    });
+
+    it('gate 6: the multiplier stays inside [0.5, 1.2] and never rises with volume, for K from 5 to 200 t', () => {
+        for (const K of [5_000, 7_000, 10_000, 20_000, 50_000, 200_000]) {
+            for (const k of SEASONS) {
+                let last = PRICE_CEILING_MULT;
+                for (const frac of [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5]) {
+                    const m = marketMultiplierFor(seasonOf(k), 3, Math.max(1, Math.trunc(K * frac)), 0, K);
+                    expect(m).toBeGreaterThanOrEqual(PRICE_FLOOR_MULT - 1e-12);
+                    expect(m).toBeLessThanOrEqual(PRICE_CEILING_MULT + 1e-12);
+                    expect(m).toBeLessThanOrEqual(last + 1e-12);
+                    last = m;
+                }
+            }
+        }
+    });
+
+    it('lets a bigger farm meet resistance: the dump price falls as K grows (sublinear demand)', () => {
+        const at = (K: number) => marketMultiplierFor(seasonOf('Spring'), 1, K, 0, K);
+        expect(at(7_000)).toBeGreaterThan(at(20_000));
+        expect(at(20_000)).toBeGreaterThan(at(50_000));
+        expect(at(50_000)).toBeGreaterThan(at(200_000));
+    });
+
+    it('mirrors calculateRetailPrice (unit price before the market multiplier)', () => {
+        // main.mo replica, Autumn, quality 77: retail 1,000 kg paid 7.385 PLN/kg at multiplier 0.5 before ECON-21.
+        expect(calculateRetailPrice(15, 0.8, 77, false, 1.0, 1.0) * 0.5).toBeCloseTo(7.386, 2);
+        expect(calculateRetailPrice(15, 0.8, 77, true, 1.0, 1.0)).toBeCloseTo(calculateRetailPrice(15, 0.8, 77, false, 1.0, 1.0) * 1.4, 10);
     });
 
     it('keeps the constants in step with competitor_logic.mo', () => {
         const mo = readFileSync(resolve(REPO_ROOT, 'backend/competitor_logic.mo'), 'utf8');
+        const us = (n: number) => n.toLocaleString('en-US').replace(/,/g, '_');
         for (const needle of [
             `MAREK_SEED : Nat = ${AI_SEEDS.marek};`,
             `KASIA_SEED  : Nat = ${AI_SEEDS.kasia};`,
             `HANS_SEED   : Nat = ${AI_SEEDS.hans};`,
-            `GLOBAL_BASELINE_KG : Nat  = ${GLOBAL_BASELINE_KG.toLocaleString('en-US').replace(/,/g, '_')};`,
             `PRICE_FLOOR_MULT : Float  = ${PRICE_FLOOR_MULT.toFixed(2)};`,
+            `PRICE_CEILING_MULT : Float = ${PRICE_CEILING_MULT.toFixed(1)};`,
+            `MARKET_K_MIN : Nat = ${us(MARKET_K_MIN)};`,
+            `MARKET_K_INIT : Nat = ${us(MARKET_K_INIT)};`,
+            'AI_SCALE_SHARE : Float = 0.6;',
+            'BASELINE_SCALE_SHARE : Float = 0.25;',
+            'DEMAND_EXPONENT : Float = 0.75;',
+            'DEMAND_REFERENCE_KG : Float = 7_000.0;',
             'seasonNumber * 2_654_435_761 + 12_345) % 1_000_000_000',
-            `case (#Spring) { ${getSeasonDemandKg(seasonOf('Spring')).toLocaleString('en-US').replace(/,/g, '_')} }`,
-            `case (#Summer) { ${getSeasonDemandKg(seasonOf('Summer')).toLocaleString('en-US').replace(/,/g, '_')} }`,
-            `case (#Autumn) { ${getSeasonDemandKg(seasonOf('Autumn')).toLocaleString('en-US').replace(/,/g, '_')} }`,
-            `case (#Winter) { ${getSeasonDemandKg(seasonOf('Winter')).toLocaleString('en-US').replace(/,/g, '_')} }`,
+            `case (#Spring) { ${DEMAND_UNITS.Spring} };`,
+            `case (#Summer) { ${DEMAND_UNITS.Summer} };`,
+            `case (#Autumn) { ${DEMAND_UNITS.Autumn} };`,
+            `case (#Winter) { ${DEMAND_UNITS.Winter} };`,
         ]) {
             expect(mo, `competitor_logic.mo should contain: ${needle}`).toContain(needle);
         }
         for (const cap of Object.values(AI_CAPACITY_KG)) {
-            expect(mo).toContain(`productionCapacity = ${cap.toLocaleString('en-US').replace(/,/g, '_')};`);
+            expect(mo).toContain(`productionCapacity = ${us(cap)};`);
         }
     });
 });

@@ -110,20 +110,36 @@ export const calculateWholesalePrice = (
 
 // pH modifier
 // ---------------------------------------------------------------------------
-// Shared market multiplier (ECON-21 PR0). Mirrors competitor_logic.mo:
-// `entropyForSeason`, `simulateAITurn`, `getAITotalSupply`, `getSeasonDemand`
-// and `computeMarketMultiplier`. The Sell modal used to hardcode the AI supply
-// (133k / 106.4k) while the canister drew it at random on every call; both now
-// use the same season-seeded draw. economyParity.test.ts pins this against a
-// transcription and against values observed on a live replica.
+// Market that scales with the player (ECON-21 PR0..PR2). Mirrors
+// competitor_logic.mo: `entropyForSeason`, `demandUnitsFor`, `marketDemandKg`,
+// `marketBaselineKg`, `aiSupplyKgFor`, `marketAISupplyKg` and
+// `integratedMarketMultiplier`. The plan and the constants' provenance are in
+// .planning/spikes/003-responsive-market-plan.md; economyParity.test.ts pins this
+// against an independent transcription, against values observed on a live replica
+// and against the constants on disk.
+//
+//   K  = the player's market scale in kg (largest of 5,000 and the latest harvest;
+//        7,000 before the first harvest)
+//   A  = AI supply     = 0.6 * K * seasonFactor * sum(w_i * draw_i), draw_i in [0.8, 1.2]
+//   B  = baseline      = 0.25 * K
+//   D  = season demand = d_season * 7000 * (K / 7000)^0.75
+//   m(x) = clamp(D / (A + B + x), 0.5, 1.2) over the player's cumulative kg x this
+//          season; a sale pays the AVERAGE of m over (sold, sold + quantity].
 // ---------------------------------------------------------------------------
 const LCG_A = 1664525;
 const LCG_C = 1013904223;
 const LCG_M = 4294967296; // 2^32; LCG_A * seed stays below 2^53, so Number is exact
 export const AI_SEEDS = { marek: 42, kasia: 137, hans: 999 } as const;
 export const AI_CAPACITY_KG = { marek: 45_000, kasia: 18_000, hans: 70_000 } as const;
-export const GLOBAL_BASELINE_KG = 20_000;
 export const PRICE_FLOOR_MULT = 0.5;
+export const PRICE_CEILING_MULT = 1.2;
+export const MARKET_K_MIN = 5_000;
+export const MARKET_K_INIT = 7_000;
+export const AI_SCALE_SHARE = 0.6;
+export const BASELINE_SCALE_SHARE = 0.25;
+export const DEMAND_EXPONENT = 0.75;
+export const DEMAND_REFERENCE_KG = 7_000;
+export const DEMAND_UNITS = { Spring: 0.795, Summer: 0.707, Autumn: 0.59, Winter: 0.474 } as const;
 
 export const entropyForSeason = (seasonNumber: number): number =>
     (seasonNumber * 2_654_435_761 + 12_345) % 1_000_000_000;
@@ -131,45 +147,51 @@ export const entropyForSeason = (seasonNumber: number): number =>
 const seasonKeyOf = (season: Season): 'Spring' | 'Summer' | 'Autumn' | 'Winter' =>
     Object.keys(season)[0] as 'Spring' | 'Summer' | 'Autumn' | 'Winter';
 
-export const simulateAITurn = (idSeed: number, capacity: number, season: Season, entropy: number): number => {
-    const seasonMultiplier = { Spring: 0.0, Summer: 1.15, Autumn: 0.8, Winter: 0.0 }[seasonKeyOf(season)];
-    if (seasonMultiplier === 0.0) return 0;
-    const mixedSeed = (entropy + idSeed * 31) % LCG_M;
-    const newSeed = (LCG_A * mixedSeed + LCG_C) % LCG_M;
-    const roll = newSeed / LCG_M;
-    const effective = (0.65 + roll * 0.70) * seasonMultiplier;
-    const clamped = Math.min(1.30, Math.max(0.60, effective));
-    return Math.abs(Math.trunc(capacity * clamped));
+/** The player's market scale from the kg of their latest harvest (null before the first one). */
+export const marketScaleFor = (latestHarvestKg: number | null): number =>
+    latestHarvestKg === null ? MARKET_K_INIT : Math.max(MARKET_K_MIN, latestHarvestKg);
+
+export const marketDemandKg = (season: Season, k: number): number =>
+    Math.trunc(DEMAND_UNITS[seasonKeyOf(season)] * DEMAND_REFERENCE_KG * Math.pow(k / DEMAND_REFERENCE_KG, DEMAND_EXPONENT));
+
+export const marketBaselineKg = (k: number): number => Math.trunc(BASELINE_SCALE_SHARE * k);
+
+const AI_SEASON_FACTOR = { Spring: 0.0, Summer: 1.15, Autumn: 0.8, Winter: 0.0 } as const;
+
+/** One AI's announced kg this season for market scale k. Spring and Winter: 0. */
+export const aiSupplyKgFor = (idSeed: number, capacityShare: number, season: Season, seasonNumber: number, k: number): number => {
+    const factor = AI_SEASON_FACTOR[seasonKeyOf(season)];
+    if (factor === 0.0) return 0;
+    const mixedSeed = (entropyForSeason(seasonNumber) + idSeed * 31) % LCG_M;
+    const roll = ((LCG_A * mixedSeed + LCG_C) % LCG_M) / LCG_M;
+    const draw = 0.8 + roll * 0.4;
+    return Math.trunc(AI_SCALE_SHARE * k * factor * capacityShare * draw);
 };
 
-export const getAITotalSupply = (season: Season, entropy: number): number =>
-    simulateAITurn(AI_SEEDS.marek, AI_CAPACITY_KG.marek, season, entropy) +
-    simulateAITurn(AI_SEEDS.kasia, AI_CAPACITY_KG.kasia, season, entropy) +
-    simulateAITurn(AI_SEEDS.hans, AI_CAPACITY_KG.hans, season, entropy);
-
-export const getSeasonDemandKg = (season: Season): number =>
-    ({ Spring: 30_000, Summer: 80_000, Autumn: 50_000, Winter: 20_000 }[seasonKeyOf(season)]);
-
-export const computeMarketMultiplier = (playerSupplyKg: number, aiTotalKg: number, seasonDemandKg: number): number => {
-    const raw = seasonDemandKg / (playerSupplyKg + aiTotalKg + GLOBAL_BASELINE_KG);
-    const capped = raw > 1.0 ? 1.0 : raw;
-    return capped < PRICE_FLOOR_MULT ? PRICE_FLOOR_MULT : capped;
+export const marketAISupplyKg = (season: Season, seasonNumber: number, k: number): number => {
+    const total = AI_CAPACITY_KG.marek + AI_CAPACITY_KG.kasia + AI_CAPACITY_KG.hans;
+    return (
+        aiSupplyKgFor(AI_SEEDS.marek, AI_CAPACITY_KG.marek / total, season, seasonNumber, k) +
+        aiSupplyKgFor(AI_SEEDS.kasia, AI_CAPACITY_KG.kasia / total, season, seasonNumber, k) +
+        aiSupplyKgFor(AI_SEEDS.hans, AI_CAPACITY_KG.hans / total, season, seasonNumber, k)
+    );
 };
 
 /**
- * Mirrors `integratedMarketMultiplier` in competitor_logic.mo (ECON-21 PR1): the
- * sale pays the AVERAGE of the marginal multiplier
- *   m(x) = clamp(seasonDemand / (aiTotal + baseline + x), floor, 1.0)
- * over the player's cumulative kg this season, from `soldBefore` to
- * `soldBefore + quantity`. Additive, so splitting a sale cannot beat dumping it.
+ * Mirrors `integratedMarketMultiplier`: the sale pays the average of the marginal
+ * multiplier over the player's cumulative kg this season. Additive, so splitting
+ * a sale cannot beat dumping it. Closed form: flat at the ends, D * ln(...) in the middle.
  */
-export const integratedMarketMultiplier = (soldBefore: number, quantity: number, aiTotalKg: number, seasonDemandKg: number): number => {
-    if (quantity === 0) return computeMarketMultiplier(soldBefore, aiTotalKg, seasonDemandKg);
-    const d = seasonDemandKg;
-    const s0 = aiTotalKg + GLOBAL_BASELINE_KG;
+export const integratedMarketMultiplier = (soldBefore: number, quantity: number, aiKg: number, baselineKg: number, demandKg: number): number => {
+    const d = demandKg;
+    const s0 = aiKg + baselineKg;
     const lo = PRICE_FLOOR_MULT;
-    const hi = 1.0;
+    const hi = PRICE_CEILING_MULT;
     const a = soldBefore;
+    if (quantity === 0) {
+        const raw = d / (s0 + a);
+        return raw > hi ? hi : raw < lo ? lo : raw;
+    }
     const b = soldBefore + quantity;
     const x1 = d / hi - s0;
     const x2 = d / lo - s0;
@@ -182,8 +204,19 @@ export const integratedMarketMultiplier = (soldBefore: number, quantity: number,
 };
 
 /** What the canister's quoteSale reports for the market multiplier, minus regional saturation. */
-export const marketMultiplierFor = (season: Season, seasonNumber: number, quantityKg: number, soldBeforeKg = 0): number =>
-    integratedMarketMultiplier(soldBeforeKg, quantityKg, getAITotalSupply(season, entropyForSeason(seasonNumber)), getSeasonDemandKg(season));
+export const marketMultiplierFor = (season: Season, seasonNumber: number, quantityKg: number, soldBeforeKg = 0, k = MARKET_K_INIT): number =>
+    integratedMarketMultiplier(soldBeforeKg, quantityKg, marketAISupplyKg(season, seasonNumber, k), marketBaselineKg(k), marketDemandKg(season, k));
+
+// Initial base prices in main.mo (`baseRetailPrice`, `stableSpotPrice`), used where there is no canister (guest mode).
+export const BASE_RETAIL_PRICE = 15;
+export const BASE_SPOT_PRICE = 10;
+
+/** Mirrors `GameLogic.calculateRetailPrice` (unit price before the market multiplier). */
+export const calculateRetailPrice = (
+    basePrice: number, marketSize: number, quality: number, isOrganic: boolean, saturationMultiplier: number, seasonMultiplier: number,
+): number =>
+    basePrice * marketSize * (1.0 + (quality / 100.0 * 0.3)) * (isOrganic ? 1.4 : 1.0) * saturationMultiplier * seasonMultiplier;
+
 
 export const getPhModifier = (pH: number): number => {
     if (pH >= 6.0 && pH <= 7.0) return 1.0;

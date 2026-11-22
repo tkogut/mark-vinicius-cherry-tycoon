@@ -519,6 +519,7 @@ export const idlFactory = ({ IDL }) => {
     'baselineKg' : IDL.Nat,
     'averageQuality' : IDL.Nat,
     'quantity' : IDL.Nat,
+    'marketScaleKg' : IDL.Nat,
     'saturationMultiplier' : IDL.Float64,
   });
   const GameResult_2 = IDL.Variant({ 'Ok' : SaleQuote, 'Err' : GameError });

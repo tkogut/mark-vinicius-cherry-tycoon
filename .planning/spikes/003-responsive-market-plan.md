@@ -61,3 +61,18 @@ Done: additive `stable var stableSeasonSales` (player -> (season number, kg)) wi
 Balance effect: only where the old curve is not at its floor or cap. Summer and Autumn (floor 0.5) and Spring (cap 1.0 up to 10 t) are unchanged. Winter pays more for a large sale: a 7 t dump moves from 0.741 to 0.857 (+15.7%, inside gate 1's +20%).
 
 Replica (local): Winter retail, 7 t, one sale 66,497 PLN versus 70 sales of 100 kg 65,374 (-1.7%, the regional saturation each piece adds); Autumn 51,701 versus 50,775. Guard broken (counter never written): the Winter split pays 75,991 (+14.3% over the dump). `s` survived an upgrade (`--upgrade-unchanged`): 600 kg before, 600 kg after; with the `preupgrade` line commented out it came back 0.
+
+## PR2 result (2026-11-22, branch `feat/econ-21-pr2-model`, stacked on PR1): the model is live
+Done: `K` per player from the latest harvest (additive `stable var stableMarketScale`, written by `harvestCherries`, floor 5,000, 7,000 before the first harvest); AI supply `0.6 x K x seasonFactor x sum(w_i x draw_i)` with a per-AI draw in [0.8, 1.2] seeded by the season number; baseline `0.25 K`; demand `d_season x 7000 x (K/7000)^0.75`; marginal multiplier clamped to **[0.5, 1.2]**; the sale pays the average over the player's cumulative kg (PR1). `SaleQuote` gains `marketScaleKg` and its `baselineKg` is now real. `gameLogic.ts` mirrors all of it; guest mode is priced by the same functions (no more flat 15 PLN/kg; ECON-23 closed). The old `getAITotalSupply` / `getSeasonDemand` / `computeMarketMultiplier` stay in `competitor_logic.mo` because `main_mainnet.mo` (Track B) and the auction code still call them.
+
+**Constants as tuned (the sweep, `sweep.py` in the PR description; unmeasured before):** `d_season` Spring 0.795, Summer 0.707, Autumn 0.59, Winter 0.474; AI share 0.6; baseline 0.25; exponent 0.75; floor 0.5; ceiling 1.2. The first Summer/Autumn values (0.77 / 0.632) put the dump at 0.633 when all three AIs draw -20%, over gate 1's 0.6; they were lowered until the worst draw sat at 0.595.
+
+**Gate results.**
+1. Dump of q = K = 7 t, price per kg on the replica, before (master) -> now: Spring 13.3 -> 13.6 (+2%), Summer 8.5 -> 9.4 (+10%), Autumn 7.4 -> 8.4 (+13.5%), Winter 8.2 -> 8.2 (0%). Inside +-20%, also at the extreme AI draws (unit test).
+2. Even four-season split vs the same split before: 1.31 by hand and 1.34 with the Python sweep (which used the Winter 7 t value as its baseline, a little conservative); limit 1.40. Clarification of the gate text: the baseline is the *same split* priced by the old curve, not the Autumn dump.
+3. 70 x 100 kg vs one 7,000 kg on the replica: Spring 93,816 vs 95,305, Summer 64,448 vs 65,554, Autumn 57,713 vs 58,672, Winter 56,551 vs 57,387 (-1.3% to -1.7%, the regional saturation each piece adds). Never above the dump.
+4. Fresh player, K = 7,000: AI supply Summer 5,242 and Autumn 3,164 kg (> 0); `m(0)` Spring/Winter 1.2, Summer 0.76, Autumn 0.82 (never above 1.2).
+5. `K` after a harvest of 5,934 kg is 5,934 before and after `--upgrade-unchanged`. Harvest not recorded (mutation) -> K stays 7,000 after a 4,995 kg harvest; `preupgrade` line removed (mutation) -> K 9,450 before, 7,000 after.
+6. Unit test: [0.5, 1.2] and non-increasing in volume for K in {5, 7, 10, 20, 50, 200} t, all four seasons; a bigger K meets resistance (the dump price falls as K grows). The multipliers in the replica quote agree with the Python model to 0.0002.
+
+Not verified: Playground/browser (the Sell modal's new numbers were not looked at), wholesale at scale, the +15% Processing Facility under the new curve, the Harvest Bulletin (follow-up).

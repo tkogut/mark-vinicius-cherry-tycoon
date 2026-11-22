@@ -382,6 +382,7 @@ export interface SaleQuote {
   'baselineKg' : bigint,
   'averageQuality' : bigint,
   'quantity' : bigint,
+  'marketScaleKg' : bigint,
   'saturationMultiplier' : number,
 }
 export type Season = { 'Winter' : null } |
