@@ -109,6 +109,57 @@ export const calculateWholesalePrice = (
 };
 
 // pH modifier
+// ---------------------------------------------------------------------------
+// Shared market multiplier (ECON-21 PR0). Mirrors competitor_logic.mo:
+// `entropyForSeason`, `simulateAITurn`, `getAITotalSupply`, `getSeasonDemand`
+// and `computeMarketMultiplier`. The Sell modal used to hardcode the AI supply
+// (133k / 106.4k) while the canister drew it at random on every call; both now
+// use the same season-seeded draw. economyParity.test.ts pins this against a
+// transcription and against values observed on a live replica.
+// ---------------------------------------------------------------------------
+const LCG_A = 1664525;
+const LCG_C = 1013904223;
+const LCG_M = 4294967296; // 2^32; LCG_A * seed stays below 2^53, so Number is exact
+export const AI_SEEDS = { marek: 42, kasia: 137, hans: 999 } as const;
+export const AI_CAPACITY_KG = { marek: 45_000, kasia: 18_000, hans: 70_000 } as const;
+export const GLOBAL_BASELINE_KG = 20_000;
+export const PRICE_FLOOR_MULT = 0.5;
+
+export const entropyForSeason = (seasonNumber: number): number =>
+    (seasonNumber * 2_654_435_761 + 12_345) % 1_000_000_000;
+
+const seasonKeyOf = (season: Season): 'Spring' | 'Summer' | 'Autumn' | 'Winter' =>
+    Object.keys(season)[0] as 'Spring' | 'Summer' | 'Autumn' | 'Winter';
+
+export const simulateAITurn = (idSeed: number, capacity: number, season: Season, entropy: number): number => {
+    const seasonMultiplier = { Spring: 0.0, Summer: 1.15, Autumn: 0.8, Winter: 0.0 }[seasonKeyOf(season)];
+    if (seasonMultiplier === 0.0) return 0;
+    const mixedSeed = (entropy + idSeed * 31) % LCG_M;
+    const newSeed = (LCG_A * mixedSeed + LCG_C) % LCG_M;
+    const roll = newSeed / LCG_M;
+    const effective = (0.65 + roll * 0.70) * seasonMultiplier;
+    const clamped = Math.min(1.30, Math.max(0.60, effective));
+    return Math.abs(Math.trunc(capacity * clamped));
+};
+
+export const getAITotalSupply = (season: Season, entropy: number): number =>
+    simulateAITurn(AI_SEEDS.marek, AI_CAPACITY_KG.marek, season, entropy) +
+    simulateAITurn(AI_SEEDS.kasia, AI_CAPACITY_KG.kasia, season, entropy) +
+    simulateAITurn(AI_SEEDS.hans, AI_CAPACITY_KG.hans, season, entropy);
+
+export const getSeasonDemandKg = (season: Season): number =>
+    ({ Spring: 30_000, Summer: 80_000, Autumn: 50_000, Winter: 20_000 }[seasonKeyOf(season)]);
+
+export const computeMarketMultiplier = (playerSupplyKg: number, aiTotalKg: number, seasonDemandKg: number): number => {
+    const raw = seasonDemandKg / (playerSupplyKg + aiTotalKg + GLOBAL_BASELINE_KG);
+    const capped = raw > 1.0 ? 1.0 : raw;
+    return capped < PRICE_FLOOR_MULT ? PRICE_FLOOR_MULT : capped;
+};
+
+/** What the canister's quoteSale reports for the market multiplier, minus regional saturation. */
+export const marketMultiplierFor = (season: Season, seasonNumber: number, quantityKg: number): number =>
+    computeMarketMultiplier(quantityKg, getAITotalSupply(season, entropyForSeason(seasonNumber)), getSeasonDemandKg(season));
+
 export const getPhModifier = (pH: number): number => {
     if (pH >= 6.0 && pH <= 7.0) return 1.0;
     if (pH >= 5.5 && pH < 6.0) return 0.9;

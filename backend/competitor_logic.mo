@@ -225,6 +225,15 @@ module {
   // SEC: Bounded to exactly 3 iterations (no loop over unknown collection).
   // ============================================================================
 
+  // ECON-21 PR0: the AI draw for a season. A pure function of the farm's season
+  // number, so it is fixed for the whole season and a quote matches the sale.
+  // (It was Time.now() % 1e9, re-rolled on every call.) The multiplier is the
+  // Knuth multiplicative-hash constant, spreading consecutive seasons across the
+  // LCG's range.
+  public func entropyForSeason(seasonNumber: Nat) : Nat {
+    (seasonNumber * 2_654_435_761 + 12_345) % 1_000_000_000
+  };
+
   public func getAITotalSupply(season: Types.Season, entropy: Nat) : Nat {
     let marekKg = simulateAITurn(MAREK_SEED, AI_MAREK.productionCapacity, season, entropy);
     let kasiaKg = simulateAITurn(KASIA_SEED, AI_KASIA.productionCapacity, season, entropy);

@@ -34,11 +34,11 @@ export const idlFactory = ({ IDL }) => {
     'activeUntilSeason' : IDL.Nat,
     'payout' : IDL.Nat,
   });
-  const GameResult_17 = IDL.Variant({
+  const GameResult_18 = IDL.Variant({
     'Ok' : InsurancePolicy,
     'Err' : GameError,
   });
-  const GameResult_16 = IDL.Variant({
+  const GameResult_17 = IDL.Variant({
     'Ok' : IDL.Record({
       'available' : IDL.Nat,
       'isRisky' : IDL.Bool,
@@ -57,7 +57,7 @@ export const idlFactory = ({ IDL }) => {
     'contractId' : IDL.Text,
     'volumeCommittedKg' : IDL.Nat,
   });
-  const GameResult_15 = IDL.Variant({ 'Ok' : IDL.Vec(Bid), 'Err' : GameError });
+  const GameResult_16 = IDL.Variant({ 'Ok' : IDL.Vec(Bid), 'Err' : GameError });
   const Weather = IDL.Variant({
     'Sunny' : IDL.Null,
     'PestOutbreak' : IDL.Null,
@@ -93,7 +93,7 @@ export const idlFactory = ({ IDL }) => {
     'winnerBidPLN' : IDL.Opt(IDL.Nat),
     'requiredVolumeKg' : IDL.Nat,
   });
-  const GameResult_14 = IDL.Variant({
+  const GameResult_15 = IDL.Variant({
     'Ok' : IDL.Vec(AuctionContract),
     'Err' : GameError,
   });
@@ -148,7 +148,7 @@ export const idlFactory = ({ IDL }) => {
     'ticketRevenue' : IDL.Nat,
     'ownershipPercent' : IDL.Nat,
   });
-  const GameResult_13 = IDL.Variant({
+  const GameResult_14 = IDL.Variant({
     'Ok' : IDL.Vec(FootballClub),
     'Err' : GameError,
   });
@@ -194,7 +194,7 @@ export const idlFactory = ({ IDL }) => {
     'totalRevenue' : IDL.Nat,
     'county' : IDL.Text,
   });
-  const GameResult_12 = IDL.Variant({
+  const GameResult_13 = IDL.Variant({
     'Ok' : IDL.Vec(AICompetitor),
     'Err' : GameError,
   });
@@ -247,7 +247,7 @@ export const idlFactory = ({ IDL }) => {
     'lastAuctionResolutionSeason' : IDL.Nat,
     'weather' : IDL.Opt(WeatherEvent),
   });
-  const GameResult_11 = IDL.Variant({ 'Ok' : FarmOverview, 'Err' : GameError });
+  const GameResult_12 = IDL.Variant({ 'Ok' : FarmOverview, 'Err' : GameError });
   const PrestigeScore = IDL.Nat;
   const LeaderboardEntry = IDL.Record({
     'id' : IDL.Text,
@@ -264,7 +264,7 @@ export const idlFactory = ({ IDL }) => {
     'cherries' : IDL.Nat,
     'organicTreatments' : IDL.Nat,
   });
-  const GameResult_10 = IDL.Variant({ 'Ok' : Inventory__1, 'Err' : GameError });
+  const GameResult_11 = IDL.Variant({ 'Ok' : Inventory__1, 'Err' : GameError });
   const MarketPrice = IDL.Record({
     'organicPremium' : IDL.Float64,
     'retailBasePrice' : IDL.Nat,
@@ -273,8 +273,8 @@ export const idlFactory = ({ IDL }) => {
     'wholesaleBasePrice' : IDL.Nat,
     'qualityBonus' : IDL.Float64,
   });
-  const GameResult_9 = IDL.Variant({ 'Ok' : MarketPrice, 'Err' : GameError });
-  const GameResult_8 = IDL.Variant({
+  const GameResult_10 = IDL.Variant({ 'Ok' : MarketPrice, 'Err' : GameError });
+  const GameResult_9 = IDL.Variant({
     'Ok' : IDL.Record({
       'contracts' : IDL.Vec(AuctionContract),
       'spotPrice' : IDL.Nat,
@@ -307,7 +307,7 @@ export const idlFactory = ({ IDL }) => {
     'plantedTrees' : IDL.Nat,
     'treeAge' : IDL.Nat,
   });
-  const GameResult_7 = IDL.Variant({
+  const GameResult_8 = IDL.Variant({
     'Ok' : CherryParcel__1,
     'Err' : GameError,
   });
@@ -444,7 +444,7 @@ export const idlFactory = ({ IDL }) => {
     'lastActive' : IDL.Nat,
     'statistics' : Statistics__1,
   });
-  const GameResult_6 = IDL.Variant({ 'Ok' : PlayerFarm, 'Err' : GameError });
+  const GameResult_7 = IDL.Variant({ 'Ok' : PlayerFarm, 'Err' : GameError });
   const Statistics = IDL.Record({
     'bestYearlyProfit' : IDL.Nat,
     'totalCosts' : IDL.Nat,
@@ -456,8 +456,8 @@ export const idlFactory = ({ IDL }) => {
     'totalRevenue' : IDL.Nat,
     'yearlyReports' : IDL.Vec(YearlyReport),
   });
-  const GameResult_5 = IDL.Variant({ 'Ok' : Statistics, 'Err' : GameError });
-  const GameResult_4 = IDL.Variant({
+  const GameResult_6 = IDL.Variant({ 'Ok' : Statistics, 'Err' : GameError });
+  const GameResult_5 = IDL.Variant({
     'Ok' : IDL.Vec(IDL.Text),
     'Err' : GameError,
   });
@@ -469,7 +469,7 @@ export const idlFactory = ({ IDL }) => {
     'totalRevenue' : IDL.Nat,
     'buyerName' : IDL.Text,
   });
-  const GameResult_3 = IDL.Variant({
+  const GameResult_4 = IDL.Variant({
     'Ok' : ForwardContractResult,
     'Err' : GameError,
   });
@@ -483,7 +483,7 @@ export const idlFactory = ({ IDL }) => {
     'priceRangeMin' : IDL.Nat,
     'weatherWarning' : IDL.Text,
   });
-  const GameResult_2 = IDL.Variant({
+  const GameResult_3 = IDL.Variant({
     'Ok' : ForecastReport,
     'Err' : GameError,
   });
@@ -505,6 +505,22 @@ export const idlFactory = ({ IDL }) => {
     'Zachodniopomorskie' : IDL.Null,
     'Dolnoslaskie' : IDL.Null,
   });
+  const SaleQuote = IDL.Record({
+    'saleType' : IDL.Text,
+    'hasProcessingFacility' : IDL.Bool,
+    'revenue' : IDL.Nat,
+    'seasonDemandKg' : IDL.Nat,
+    'seasonMultiplier' : IDL.Float64,
+    'hasOrganicCertified' : IDL.Bool,
+    'pricePerKg' : IDL.Float64,
+    'marketMultiplier' : IDL.Float64,
+    'aiSupplyKg' : IDL.Nat,
+    'baselineKg' : IDL.Nat,
+    'averageQuality' : IDL.Nat,
+    'quantity' : IDL.Nat,
+    'saturationMultiplier' : IDL.Float64,
+  });
+  const GameResult_2 = IDL.Variant({ 'Ok' : SaleQuote, 'Err' : GameError });
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'advancePhase' : IDL.Func([], [GameResult], []),
@@ -515,14 +531,14 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'buyClubShares' : IDL.Func([IDL.Text, IDL.Nat], [GameResult], []),
-    'buyInsurance' : IDL.Func([InsuranceType], [GameResult_17], []),
+    'buyInsurance' : IDL.Func([InsuranceType], [GameResult_18], []),
     'buyParcel' : IDL.Func([IDL.Text, IDL.Nat], [GameResult], []),
-    'checkStability' : IDL.Func([], [GameResult_16], ['query']),
+    'checkStability' : IDL.Func([], [GameResult_17], ['query']),
     'commitPreSeasonFuture' : IDL.Func([IDL.Text, IDL.Nat], [GameResult], []),
     'cutAndPrune' : IDL.Func([IDL.Text], [GameResult], []),
     'debugClearBidsAndContracts' : IDL.Func([], [GameResult], []),
     'debugClearMarket' : IDL.Func([], [GameResult], []),
-    'debugGetBids' : IDL.Func([], [GameResult_15], ['query']),
+    'debugGetBids' : IDL.Func([], [GameResult_16], ['query']),
     'debugResetPlayer' : IDL.Func([], [GameResult], []),
     'debugSetAIInventory' : IDL.Func([IDL.Text, IDL.Nat], [GameResult], []),
     'debugSetInventory' : IDL.Func([IDL.Nat, IDL.Nat], [GameResult], []),
@@ -532,8 +548,8 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'fertilizeParcel' : IDL.Func([IDL.Text, IDL.Text], [GameResult], []),
-    'getActiveContracts' : IDL.Func([], [GameResult_14], ['query']),
-    'getAvailableFootballClubs' : IDL.Func([], [GameResult_13], ['query']),
+    'getActiveContracts' : IDL.Func([], [GameResult_15], ['query']),
+    'getAvailableFootballClubs' : IDL.Func([], [GameResult_14], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCashBalance' : IDL.Func([], [GameResult_1], ['query']),
     'getCompetitorSummaries' : IDL.Func(
@@ -541,23 +557,23 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(AICompetitorSummary)],
         ['query'],
       ),
-    'getCompetitorsDetail' : IDL.Func([], [GameResult_12], ['query']),
-    'getFarmOverview' : IDL.Func([], [GameResult_11], ['query']),
+    'getCompetitorsDetail' : IDL.Func([], [GameResult_13], ['query']),
+    'getFarmOverview' : IDL.Func([], [GameResult_12], ['query']),
     'getGlobalLeaderboard' : IDL.Func(
         [],
         [IDL.Vec(LeaderboardEntry)],
         ['query'],
       ),
     'getGlobalSeason' : IDL.Func([], [IDL.Nat], ['query']),
-    'getInventory' : IDL.Func([], [GameResult_10], ['query']),
-    'getMarketPrices' : IDL.Func([], [GameResult_9], ['query']),
-    'getMarketState' : IDL.Func([], [GameResult_8], ['query']),
-    'getParcelDetails' : IDL.Func([IDL.Text], [GameResult_7], ['query']),
-    'getPlayerFarm' : IDL.Func([], [GameResult_6], ['query']),
+    'getInventory' : IDL.Func([], [GameResult_11], ['query']),
+    'getMarketPrices' : IDL.Func([], [GameResult_10], ['query']),
+    'getMarketState' : IDL.Func([], [GameResult_9], ['query']),
+    'getParcelDetails' : IDL.Func([IDL.Text], [GameResult_8], ['query']),
+    'getPlayerFarm' : IDL.Func([], [GameResult_7], ['query']),
     'getPlayerRank' : IDL.Func([IDL.Principal], [IDL.Opt(IDL.Nat)], ['query']),
-    'getPlayerStats' : IDL.Func([], [GameResult_5], ['query']),
+    'getPlayerStats' : IDL.Func([], [GameResult_6], ['query']),
     'getTotalPlayers' : IDL.Func([], [IDL.Nat], ['query']),
-    'getYearlyInsights' : IDL.Func([], [GameResult_4], ['query']),
+    'getYearlyInsights' : IDL.Func([], [GameResult_5], ['query']),
     'harvestCherries' : IDL.Func([IDL.Text], [GameResult_1], []),
     'hireLabor' : IDL.Func([IDL.Text], [GameResult], []),
     'initializePlayer' : IDL.Func([IDL.Text, IDL.Text], [GameResult], []),
@@ -565,14 +581,15 @@ export const idlFactory = ({ IDL }) => {
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'negotiateForwardContract' : IDL.Func(
         [IDL.Text, IDL.Nat],
-        [GameResult_3],
+        [GameResult_4],
         [],
       ),
     'plantTrees' : IDL.Func([IDL.Text, IDL.Nat], [GameResult], []),
     'purchaseCropInsurance' : IDL.Func([], [GameResult], []),
-    'purchaseMarketForecast' : IDL.Func([], [GameResult_2], []),
+    'purchaseMarketForecast' : IDL.Func([], [GameResult_3], []),
     'purchaseParcel' : IDL.Func([Province, IDL.Float64], [GameResult], []),
     'purchaseSupplies' : IDL.Func([IDL.Text, IDL.Nat], [GameResult], []),
+    'quoteSale' : IDL.Func([IDL.Nat, IDL.Text], [GameResult_2], ['query']),
     'resolveSeasonAuctions' : IDL.Func([], [GameResult], []),
     'sellCherries' : IDL.Func([IDL.Nat, IDL.Text], [GameResult_1], []),
     'startOrganicConversion' : IDL.Func([IDL.Text], [GameResult], []),
