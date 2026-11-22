@@ -41,7 +41,7 @@ export function ProcurementModal({ onPurchased, onClose }: ProcurementModalProps
         {
             id: "organicTreatment",
             name: "Organic Treatment",
-            description: "Victorian botanic brew. Certified safe.",
+            description: "Required for organic fertilizing. Certified safe.",
             price: Number(market.organicTreatmentPrice),
             icon: Leaf,
             color: "text-emerald-500",

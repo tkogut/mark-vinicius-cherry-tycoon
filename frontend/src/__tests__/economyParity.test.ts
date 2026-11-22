@@ -45,6 +45,7 @@ import {
     FERTILIZER_COSTS,
     getFertilizerCost,
     isSyntheticFertilizer,
+    consumesOrganicTreatment,
     getFertilizerBlock,
     FERTILIZER_BLOCK_ORGANIC,
     FERTILIZER_BLOCK_SEASON,
@@ -1175,6 +1176,17 @@ describe('economy parity: fertilizer cost and organic rule (ECON-REBALANCE)', ()
                 expect(getFertilizerCost(type)).toBeGreaterThan(getFertilizerCost('SyntheticStandard'));
             }
         }
+    });
+
+    // ECON-15: transcription of GameLogic.consumesOrganicTreatment and of the
+    // guard/decrement in main.mo's fertilizeParcel. The synthetic types draw
+    // `fertilizers`, OrganicCompatible draws `organicTreatments`, and
+    // organicTreatmentPrice is 50 (the fertilizer price) so the unit cost holds.
+    it('consumes an organic treatment only for OrganicCompatible (ECON-15)', () => {
+        expect(consumesOrganicTreatment('OrganicCompatible')).toBe(true);
+        expect(consumesOrganicTreatment('SyntheticStandard')).toBe(false);
+        expect(consumesOrganicTreatment('SyntheticIntensive')).toBe(false);
+        expect(consumesOrganicTreatment('organiccompatible')).toBe(false);
     });
 
     it('treats exactly SyntheticStandard and SyntheticIntensive as synthetic', () => {

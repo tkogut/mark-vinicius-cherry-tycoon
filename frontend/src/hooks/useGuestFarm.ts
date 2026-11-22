@@ -10,6 +10,7 @@ import {
     getFertilizerBlock,
     getFertilizerCost,
     type FertilizerType,
+    consumesOrganicTreatment,
 } from '@/lib/gameLogic';
 import { useQueryClient } from '@tanstack/react-query';
 import { FARM_QUERY_KEY } from '@/hooks/useFarm';
@@ -60,13 +61,13 @@ const createInitialGuestFarm = (): PlayerFarm => ({
         organicCherries: 0n,
         fertilizers: 10n,
         pesticides: 5n,
-        organicTreatments: 0n,
+        organicTreatments: 10n,
     },
     hiredLabor: [],
     inputMarket: {
         fertilizerPrice: 50n,
         pesticidePrice: 120n,
-        organicTreatmentPrice: 200n,
+        organicTreatmentPrice: 50n,
         year: 1n,
     },
     debt: 0n,
@@ -198,7 +199,11 @@ export function useGuestFarm() {
         const type = fertilizerType as FertilizerType;
         const current = localFarm?.parcels.find(p => p.id === parcelId);
         if (!localFarm || !current) throw new Error("Parcel not found");
-        if (localFarm.inventory.fertilizers <= 0n) throw new Error("No fertilizers in inventory");
+        if (consumesOrganicTreatment(type)) {
+            if (localFarm.inventory.organicTreatments <= 0n) throw new Error("No organic treatments in inventory");
+        } else if (localFarm.inventory.fertilizers <= 0n) {
+            throw new Error("No fertilizers in inventory");
+        }
         const block = getFertilizerBlock(type, {
             organic: current.isOrganic || current.organicCertified,
             fertilizedThisSeason: current.lastFertilized === localFarm.seasonNumber,
@@ -213,7 +218,9 @@ export function useGuestFarm() {
                 fertility: Math.min(1.0, p.fertility + 0.1),
                 lastFertilized: f.seasonNumber,
             }),
-            inventory: { ...f.inventory, fertilizers: f.inventory.fertilizers - 1n },
+            inventory: consumesOrganicTreatment(type)
+                ? { ...f.inventory, organicTreatments: f.inventory.organicTreatments - 1n }
+                : { ...f.inventory, fertilizers: f.inventory.fertilizers - 1n },
             cash: f.cash >= cost ? f.cash - cost : 0n,
         }));
         return "Fertilized";

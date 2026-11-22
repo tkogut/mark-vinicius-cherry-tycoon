@@ -100,8 +100,8 @@ module {
     }
   };
 
-  // Fertilizer cost and organic rule (ECON-REBALANCE). Every application still
-  // consumes exactly one `inventory.fertilizers` unit; the types differ in the
+  // Fertilizer cost and organic rule (ECON-REBALANCE). Every application consumes
+  // exactly one inventory unit (see `consumesOrganicTreatment`); the types differ in the
   // cash charged (labour + operations), so the +5% of SyntheticIntensive is paid
   // for instead of free:
   //
@@ -114,6 +114,13 @@ module {
   // Mirrored by FERTILIZER_COSTS in frontend/src/lib/gameLogic.ts.
   public func isSyntheticFertilizer(fertilizerType: Text) : Bool {
     fertilizerType == "SyntheticStandard" or fertilizerType == "SyntheticIntensive"
+  };
+
+  // ECON-15: which inventory unit an application consumes. OrganicCompatible
+  // takes an `organicTreatments`; the synthetic types take a `fertilizers`.
+  // Mirrored by `consumesOrganicTreatment` in frontend/src/lib/gameLogic.ts.
+  public func consumesOrganicTreatment(fertilizerType: Text) : Bool {
+    fertilizerType == "OrganicCompatible"
   };
 
   public func getFertilizerCost(fertilizerType: Text) : { labor: Nat; operations: Nat } {
