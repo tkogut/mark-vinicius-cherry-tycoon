@@ -36,3 +36,19 @@ Spreadsheet preview (unmeasured, K = 7 t, q = K sold in one season, today's mult
 
 ## Where the consilium disagreed and how it was settled
 Ceiling 1.0 vs 1.5: settled at 1.2 (Spring today is 1.8x Autumn already; 1.5 would make storing dominant). AI lag: dropped (needs history and a feedback loop; K is already frozen between harvests). Linear vs sublinear demand: sublinear (linear makes prices scale-invariant). Wholesale: same multiplier, price-neutral within gate 1. One unit system for all seasons: adopted. Not verified by anyone: the exact `d_season`, `0.6`, `0.25` and the clamp values; the sweep tunes them inside the gates, and the final numbers are written back here.
+
+## PR0 result (2026-11-22, branch `feat/econ-21-pr0-quote-sale`)
+Done: the AI draw is seeded by `seasonNumber` (`entropyForSeason`); `computeSaleQuote` in `main.mo` is the one place a sale is priced, used by `sellCherries` and by the new additive query `quoteSale(quantity, saleType)` (`Types.SaleQuote`); `gameLogic.ts` mirrors the AI draw and the multiplier; the Sell modal no longer hardcodes the AI supply. No balance number changed except that the AI draw is now fixed per season instead of re-rolled per call.
+
+Replica observation of today's market multiplier (retail, farm walked through seasonNumber 1..9; AI supply is now identical on every call):
+
+| Season (seasonNumber) | AI supply kg | Demand kg | mult at 0.7 t / 3.5 t / 7 t |
+|---|---|---|---|
+| Spring (1, 5, 9) | 0 | 30,000 | 1.000 / 1.000 / 1.000 |
+| Summer (2) | 162,100 | 80,000 | 0.500 / 0.500 / 0.500 |
+| Summer (6) | 152,770 | 80,000 | 0.500 / 0.500 / 0.500 |
+| Autumn (3) | 97,372 | 50,000 | 0.500 / 0.500 / 0.500 |
+| Autumn (7) | 114,626 | 50,000 | 0.500 / 0.500 / 0.500 |
+| Winter (4, 8) | 0 | 20,000 | 0.966 / 0.851 / 0.741 |
+
+`quoteSale` equalled the `sellCherries` payout on every sale tried (retail 1,000 kg: 7,385 and 7,385; wholesale 3,750 and 3,750), three consecutive quotes in a season returned the same multiplier, and the second sale of 1,000 kg paid 1% less through the existing regional saturation (7,385 then 7,312). These are the "today" values that gate 1 of this plan compares against.

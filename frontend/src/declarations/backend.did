@@ -117,6 +117,22 @@ type Season =
    Summer;
    Winter;
  };
+type SaleQuote = 
+ record {
+   aiSupplyKg: nat;
+   averageQuality: nat;
+   baselineKg: nat;
+   hasOrganicCertified: bool;
+   hasProcessingFacility: bool;
+   marketMultiplier: float64;
+   pricePerKg: float64;
+   quantity: nat;
+   revenue: nat;
+   saleType: text;
+   saturationMultiplier: float64;
+   seasonDemandKg: nat;
+   seasonMultiplier: float64;
+ };
 type Region = 
  record {
    commune: text;
@@ -291,52 +307,52 @@ type Infrastructure =
 type GameResult_9 = 
  variant {
    Err: GameError;
-   Ok: MarketPrice;
- };
-type GameResult_8 = 
- variant {
-   Err: GameError;
    Ok: record {
          contracts: vec AuctionContract;
          spotPrice: nat;
        };
  };
-type GameResult_7 = 
+type GameResult_8 = 
  variant {
    Err: GameError;
    Ok: CherryParcel__1;
  };
-type GameResult_6 = 
+type GameResult_7 = 
  variant {
    Err: GameError;
    Ok: PlayerFarm;
  };
-type GameResult_5 = 
+type GameResult_6 = 
  variant {
    Err: GameError;
    Ok: Statistics;
  };
-type GameResult_4 = 
+type GameResult_5 = 
  variant {
    Err: GameError;
    Ok: vec text;
  };
-type GameResult_3 = 
+type GameResult_4 = 
  variant {
    Err: GameError;
    Ok: ForwardContractResult;
  };
-type GameResult_2 = 
+type GameResult_3 = 
  variant {
    Err: GameError;
    Ok: ForecastReport;
  };
-type GameResult_17 = 
+type GameResult_2 = 
+ variant {
+   Err: GameError;
+   Ok: SaleQuote;
+ };
+type GameResult_18 = 
  variant {
    Err: GameError;
    Ok: InsurancePolicy;
  };
-type GameResult_16 = 
+type GameResult_17 = 
  variant {
    Err: GameError;
    Ok: record {
@@ -345,35 +361,40 @@ type GameResult_16 =
          isRisky: bool;
        };
  };
-type GameResult_15 = 
+type GameResult_16 = 
  variant {
    Err: GameError;
    Ok: vec Bid;
  };
-type GameResult_14 = 
+type GameResult_15 = 
  variant {
    Err: GameError;
    Ok: vec AuctionContract;
  };
-type GameResult_13 = 
+type GameResult_14 = 
  variant {
    Err: GameError;
    Ok: vec FootballClub;
  };
-type GameResult_12 = 
+type GameResult_13 = 
  variant {
    Err: GameError;
    Ok: vec AICompetitor;
  };
-type GameResult_11 = 
+type GameResult_12 = 
  variant {
    Err: GameError;
    Ok: FarmOverview;
  };
-type GameResult_10 = 
+type GameResult_11 = 
  variant {
    Err: GameError;
    Ok: Inventory__1;
+ };
+type GameResult_10 = 
+ variant {
+   Err: GameError;
+   Ok: MarketPrice;
  };
 type GameResult_1 = 
  variant {
@@ -597,48 +618,49 @@ service : {
   assignCallerUserRole: (principal, UserRole) -> ();
   assignParcelToPlayer: (text, principal) -> (GameResult);
   buyClubShares: (text, nat) -> (GameResult);
-  buyInsurance: (InsuranceType) -> (GameResult_17);
+  buyInsurance: (InsuranceType) -> (GameResult_18);
   buyParcel: (text, nat) -> (GameResult);
-  checkStability: () -> (GameResult_16) query;
+  checkStability: () -> (GameResult_17) query;
   commitPreSeasonFuture: (text, nat) -> (GameResult);
   cutAndPrune: (text) -> (GameResult);
   debugClearBidsAndContracts: () -> (GameResult);
   debugClearMarket: () -> (GameResult);
-  debugGetBids: () -> (GameResult_15) query;
+  debugGetBids: () -> (GameResult_16) query;
   debugResetPlayer: () -> (GameResult);
   debugSetAIInventory: (text, nat) -> (GameResult);
   debugSetInventory: (nat, nat) -> (GameResult);
   debugSetWeather: (Weather, float64, bool) -> (GameResult);
   fertilizeParcel: (text, text) -> (GameResult);
-  getActiveContracts: () -> (GameResult_14) query;
-  getAvailableFootballClubs: () -> (GameResult_13) query;
+  getActiveContracts: () -> (GameResult_15) query;
+  getAvailableFootballClubs: () -> (GameResult_14) query;
   getCallerUserRole: () -> (UserRole) query;
   getCashBalance: () -> (GameResult_1) query;
   getCompetitorSummaries: () -> (vec AICompetitorSummary) query;
-  getCompetitorsDetail: () -> (GameResult_12) query;
-  getFarmOverview: () -> (GameResult_11) query;
+  getCompetitorsDetail: () -> (GameResult_13) query;
+  getFarmOverview: () -> (GameResult_12) query;
   getGlobalLeaderboard: () -> (vec LeaderboardEntry) query;
   getGlobalSeason: () -> (nat) query;
-  getInventory: () -> (GameResult_10) query;
-  getMarketPrices: () -> (GameResult_9) query;
-  getMarketState: () -> (GameResult_8) query;
-  getParcelDetails: (text) -> (GameResult_7) query;
-  getPlayerFarm: () -> (GameResult_6) query;
+  getInventory: () -> (GameResult_11) query;
+  getMarketPrices: () -> (GameResult_10) query;
+  getMarketState: () -> (GameResult_9) query;
+  getParcelDetails: (text) -> (GameResult_8) query;
+  getPlayerFarm: () -> (GameResult_7) query;
   getPlayerRank: (principal) -> (opt nat) query;
-  getPlayerStats: () -> (GameResult_5) query;
+  getPlayerStats: () -> (GameResult_6) query;
   getTotalPlayers: () -> (nat) query;
-  getYearlyInsights: () -> (GameResult_4) query;
+  getYearlyInsights: () -> (GameResult_5) query;
   harvestCherries: (text) -> (GameResult_1);
   hireLabor: (text) -> (GameResult);
   initializePlayer: (text, text) -> (GameResult);
   inspectAndRepair: () -> (GameResult);
   isCallerAdmin: () -> (bool) query;
-  negotiateForwardContract: (text, nat) -> (GameResult_3);
+  negotiateForwardContract: (text, nat) -> (GameResult_4);
   plantTrees: (text, nat) -> (GameResult);
   purchaseCropInsurance: () -> (GameResult);
-  purchaseMarketForecast: () -> (GameResult_2);
+  purchaseMarketForecast: () -> (GameResult_3);
   purchaseParcel: (Province, float64) -> (GameResult);
   purchaseSupplies: (text, nat) -> (GameResult);
+  quoteSale: (nat, text) -> (GameResult_2) query;
   resolveSeasonAuctions: () -> (GameResult);
   sellCherries: (nat, text) -> (GameResult_1);
   startOrganicConversion: (text) -> (GameResult);

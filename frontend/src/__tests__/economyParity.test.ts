@@ -46,6 +46,15 @@ import {
     getFertilizerCost,
     isSyntheticFertilizer,
     consumesOrganicTreatment,
+    entropyForSeason,
+    getAITotalSupply,
+    getSeasonDemandKg,
+    computeMarketMultiplier,
+    marketMultiplierFor,
+    AI_SEEDS,
+    AI_CAPACITY_KG,
+    GLOBAL_BASELINE_KG,
+    PRICE_FLOOR_MULT,
     getFertilizerBlock,
     FERTILIZER_BLOCK_ORGANIC,
     FERTILIZER_BLOCK_SEASON,
@@ -1208,6 +1217,94 @@ describe('economy parity: fertilizer cost and organic rule (ECON-REBALANCE)', ()
     it('refuses every type once the parcel has been fertilized this season', () => {
         for (const type of FERTILIZER_TYPES) {
             expect(getFertilizerBlock(type, { organic: false, fertilizedThisSeason: true })).toBe(FERTILIZER_BLOCK_SEASON);
+        }
+    });
+});
+
+describe('economy parity: shared market multiplier (ECON-21 PR0)', () => {
+    // Transcription of competitor_logic.mo: entropyForSeason, simulateAITurn,
+    // getAITotalSupply, getSeasonDemand, computeMarketMultiplier. Written out
+    // independently with BigInt, so it does not share a line with the mirror.
+    const M = 4294967296n;
+    const txEntropy = (n: bigint) => (n * 2654435761n + 12345n) % 1000000000n;
+    const txAI = (idSeed: bigint, capacity: number, factor: number, entropy: bigint) => {
+        if (factor === 0) return 0;
+        const mixed = (entropy + idSeed * 31n) % M;
+        const next = (1664525n * mixed + 1013904223n) % M;
+        const roll = Number(next) / Number(M);
+        const eff = (0.65 + roll * 0.70) * factor;
+        const clamped = eff < 0.60 ? 0.60 : eff > 1.30 ? 1.30 : eff;
+        return Math.trunc(capacity * clamped);
+    };
+    const FACTOR = { Spring: 0, Summer: 1.15, Autumn: 0.8, Winter: 0 } as const;
+    const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'] as const;
+    const seasonOf = (k: (typeof SEASONS)[number]) => ({ [k]: null }) as never;
+
+    it('mirrors the season-seeded AI draw for 40 consecutive season numbers', () => {
+        for (let n = 1; n <= 40; n++) {
+            const k = SEASONS[(n - 1) % 4];
+            const e = txEntropy(BigInt(n));
+            expect(entropyForSeason(n)).toBe(Number(e));
+            const expected =
+                txAI(42n, 45000, FACTOR[k], e) + txAI(137n, 18000, FACTOR[k], e) + txAI(999n, 70000, FACTOR[k], e);
+            expect(getAITotalSupply(seasonOf(k), entropyForSeason(n))).toBe(expected);
+        }
+    });
+
+    // Observed on a live local replica on 2026-11-22 (PR0): quoteSale's aiSupplyKg
+    // for a farm walked through seasonNumber 1..9. This ties the mirror to the
+    // canister, not only to a transcription of it.
+    it('reproduces the AI supply the canister reported (replica-observed)', () => {
+        const observed: Array<[number, (typeof SEASONS)[number], number]> = [
+            [1, 'Spring', 0], [2, 'Summer', 162_100], [3, 'Autumn', 97_372], [4, 'Winter', 0],
+            [6, 'Summer', 152_770], [7, 'Autumn', 114_626],
+        ];
+        for (const [n, k, kg] of observed) {
+            expect(getAITotalSupply(seasonOf(k), entropyForSeason(n)), `season ${n} ${k}`).toBe(kg);
+        }
+    });
+
+    it('reproduces the multipliers the canister reported (replica-observed)', () => {
+        // Winter (seasonNumber 4): 0.7 t / 3.5 t / 7 t -> 0.966 / 0.851 / 0.741.
+        expect(marketMultiplierFor(seasonOf('Winter'), 4, 700)).toBeCloseTo(0.966, 3);
+        expect(marketMultiplierFor(seasonOf('Winter'), 4, 3500)).toBeCloseTo(0.851, 3);
+        expect(marketMultiplierFor(seasonOf('Winter'), 4, 7000)).toBeCloseTo(0.741, 3);
+        // Spring is capped at 1.0, Summer and Autumn sit at the 0.5 floor for any player volume.
+        for (const q of [700, 3500, 7000]) {
+            expect(marketMultiplierFor(seasonOf('Spring'), 1, q)).toBe(1.0);
+            expect(marketMultiplierFor(seasonOf('Summer'), 2, q)).toBe(0.5);
+            expect(marketMultiplierFor(seasonOf('Autumn'), 3, q)).toBe(0.5);
+        }
+    });
+
+    it('is fixed within a season: the same season number always gives the same multiplier', () => {
+        const a = marketMultiplierFor(seasonOf('Summer'), 6, 5000);
+        for (let i = 0; i < 5; i++) expect(marketMultiplierFor(seasonOf('Summer'), 6, 5000)).toBe(a);
+    });
+
+    it('clamps to [0.5, 1.0]', () => {
+        expect(computeMarketMultiplier(0, 0, 1_000_000)).toBe(1.0);
+        expect(computeMarketMultiplier(10_000_000, 133_000, 20_000)).toBe(PRICE_FLOOR_MULT);
+    });
+
+    it('keeps the constants in step with competitor_logic.mo', () => {
+        const mo = readFileSync(resolve(REPO_ROOT, 'backend/competitor_logic.mo'), 'utf8');
+        for (const needle of [
+            `MAREK_SEED : Nat = ${AI_SEEDS.marek};`,
+            `KASIA_SEED  : Nat = ${AI_SEEDS.kasia};`,
+            `HANS_SEED   : Nat = ${AI_SEEDS.hans};`,
+            `GLOBAL_BASELINE_KG : Nat  = ${GLOBAL_BASELINE_KG.toLocaleString('en-US').replace(/,/g, '_')};`,
+            `PRICE_FLOOR_MULT : Float  = ${PRICE_FLOOR_MULT.toFixed(2)};`,
+            'seasonNumber * 2_654_435_761 + 12_345) % 1_000_000_000',
+            `case (#Spring) { ${getSeasonDemandKg(seasonOf('Spring')).toLocaleString('en-US').replace(/,/g, '_')} }`,
+            `case (#Summer) { ${getSeasonDemandKg(seasonOf('Summer')).toLocaleString('en-US').replace(/,/g, '_')} }`,
+            `case (#Autumn) { ${getSeasonDemandKg(seasonOf('Autumn')).toLocaleString('en-US').replace(/,/g, '_')} }`,
+            `case (#Winter) { ${getSeasonDemandKg(seasonOf('Winter')).toLocaleString('en-US').replace(/,/g, '_')} }`,
+        ]) {
+            expect(mo, `competitor_logic.mo should contain: ${needle}`).toContain(needle);
+        }
+        for (const cap of Object.values(AI_CAPACITY_KG)) {
+            expect(mo).toContain(`productionCapacity = ${cap.toLocaleString('en-US').replace(/,/g, '_')};`);
         }
     });
 });

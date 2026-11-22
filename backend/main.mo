@@ -1346,25 +1346,11 @@ actor CherryTycoon {
   // ECONOMIC SYSTEM
   // ============================================================================
 
-  // Sell cherries
-  public shared({ caller }) func sellCherries(
-    quantity: Nat,
-    saleType: Text
-  ) : async GameResult<Nat, GameError> {
-    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
-    // SEC-007: Validate saleType
-    if (saleType != "retail" and saleType != "wholesale") {
-      return #Err(#InvalidOperation("Invalid sale type: " # saleType # ". Must be 'retail' or 'wholesale'"));
-    };
-    switch (playerFarms.get(caller)) {
-      case null { return #Err(#NotFound("Player not found")) };
-      case (?farm) {
-
-        let totalAvailable = farm.inventory.cherries + farm.inventory.organicCherries;
-        if (totalAvailable < quantity) {
-          return #Err(#InvalidOperation("Insufficient cherries in inventory. Total available: " # Nat.toText(totalAvailable)));
-        };
-
+  // ECON-21 PR0: the one place a sale is priced. sellCherries pays it, quoteSale
+  // reports it, so a quote can never differ from the payout. No balance change:
+  // the arithmetic is the block that used to sit inside sellCherries; only the AI
+  // draw is now seeded by the season instead of Time.now().
+  private func computeSaleQuote(farm: PlayerFarm, quantity: Nat, saleType: Text) : { quote: Types.SaleQuote; regionKey: Text } {
         // Determine Region (Use first parcel's region as primary market)
         let regionName = if (farm.parcels.size() > 0) {
           farm.parcels[0].region.province
@@ -1379,7 +1365,9 @@ actor CherryTycoon {
 
         // Phase 5.2: Shared market supply — AI competitors affect pricing
         // SEC: entropy is Nat (Int.abs applied), bounded (3 AIs only)
-        let marketEntropy = Int.abs(Time.now()) % 1_000_000_000;
+        // ECON-21 PR0: seeded by the season, not by Time.now(). It used to be re-rolled on
+        // every call, so no quote could match the sale and a price lottery ran inside a season.
+        let marketEntropy = CompetitorLogic.entropyForSeason(farm.seasonNumber);
         let aiSupplyKg = CompetitorLogic.getAITotalSupply(farm.currentSeason, marketEntropy);
         let seasonDemand = CompetitorLogic.getSeasonDemand(farm.currentSeason);
         // marketMult ∈ [0.50, 1.0] — price floor enforced per SECURITY_DIRECTIVE_V1 §2.5
@@ -1404,6 +1392,8 @@ actor CherryTycoon {
           totalQuality / farm.parcels.size()
         } else { 50 };
 
+        var unitPriceOut : Float = 0.0;
+        var hasProcessingOut = false;
         let revenue = if (saleType == "retail") {
           
           // Apply AI market multiplier on top of saturation
@@ -1417,6 +1407,7 @@ actor CherryTycoon {
           );
           
           // Calculate total float revenue to preserve precision across bulk sales
+          unitPriceOut := basePrice * marketMult;
           let totalFloatRevenue = basePrice * marketMult * Float.fromInt(quantity);
           let computedRevenue = Int.abs(Float.toInt(totalFloatRevenue));
           if (computedRevenue < quantity) quantity else computedRevenue // Floor: 1 PLN/kg
@@ -1429,6 +1420,7 @@ actor CherryTycoon {
             case (?_) { true };
             case null { false };
           };
+          hasProcessingOut := hasProcessingFacility;
           let basePrice = GameLogic.calculateWholesalePrice(
             stableSpotPrice,
             quantity,
@@ -1437,10 +1429,76 @@ actor CherryTycoon {
             GameLogic.getSeasonSaleMultiplier(farm.currentSeason),
             hasProcessingFacility
           );
+          unitPriceOut := basePrice * marketMult;
           let totalFloatRevenue = basePrice * marketMult * Float.fromInt(quantity);
           let computedRevenue = Int.abs(Float.toInt(totalFloatRevenue));
           if (computedRevenue < quantity) quantity else computedRevenue // Floor: 1 PLN/kg
         };
+
+        let seasonMult = GameLogic.getSeasonSaleMultiplier(farm.currentSeason);
+        let pricePerKg = if (quantity > 0) { Float.fromInt(revenue) / Float.fromInt(quantity) } else { unitPriceOut };
+        {
+          regionKey = regionKey;
+          quote = {
+            quantity = quantity;
+            saleType = saleType;
+            revenue = revenue;
+            pricePerKg = pricePerKg;
+            marketMultiplier = marketMult;
+            saturationMultiplier = saturationMult;
+            seasonMultiplier = seasonMult;
+            aiSupplyKg = aiSupplyKg;
+            seasonDemandKg = seasonDemand;
+            baselineKg = 20_000;
+            averageQuality = avgQuality;
+            hasOrganicCertified = hasOrganicCertified;
+            hasProcessingFacility = hasProcessingOut;
+          };
+        }
+  };
+
+  // ECON-21 PR0: read-only exact quote for a prospective sale. Same function as
+  // sellCherries, so it includes the regional saturation the Sell modal cannot see.
+  public shared query({ caller }) func quoteSale(quantity: Nat, saleType: Text) : async GameResult<Types.SaleQuote, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    if (saleType != "retail" and saleType != "wholesale") {
+      return #Err(#InvalidOperation("Invalid sale type: " # saleType # ". Must be 'retail' or 'wholesale'"));
+    };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+        let totalAvailable = farm.inventory.cherries + farm.inventory.organicCherries;
+        if (totalAvailable < quantity) {
+          return #Err(#InvalidOperation("Insufficient cherries in inventory. Total available: " # Nat.toText(totalAvailable)));
+        };
+        #Ok(computeSaleQuote(farm, quantity, saleType).quote)
+      };
+    }
+  };
+
+  // Sell cherries
+  public shared({ caller }) func sellCherries(
+    quantity: Nat,
+    saleType: Text
+  ) : async GameResult<Nat, GameError> {
+    if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
+    // SEC-007: Validate saleType
+    if (saleType != "retail" and saleType != "wholesale") {
+      return #Err(#InvalidOperation("Invalid sale type: " # saleType # ". Must be 'retail' or 'wholesale'"));
+    };
+    switch (playerFarms.get(caller)) {
+      case null { return #Err(#NotFound("Player not found")) };
+      case (?farm) {
+
+        let totalAvailable = farm.inventory.cherries + farm.inventory.organicCherries;
+        if (totalAvailable < quantity) {
+          return #Err(#InvalidOperation("Insufficient cherries in inventory. Total available: " # Nat.toText(totalAvailable)));
+        };
+
+        let sq = computeSaleQuote(farm, quantity, saleType);
+        let regionKey = sq.regionKey;
+        let hasOrganicCertified = sq.quote.hasOrganicCertified;
+        let revenue = sq.quote.revenue;
 
         // Update Market Saturation (add quantity sold to decayed volume)
         let decayedVol = getDecayedVolume(regionKey);

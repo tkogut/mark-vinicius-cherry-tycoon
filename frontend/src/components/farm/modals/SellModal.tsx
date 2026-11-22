@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Coins, TrendingUp, Truck, Store, MapPin, Calendar, Users, AlertTriangle, Leaf, Flame} from "lucide-react";
 import { useMarketPrices } from '@/hooks/useMarketPrices';
 import { useFarm } from '@/hooks/useFarm';
-import { getSeasonSaleMultiplier, calculateWholesalePrice, calculateAverageQualityScore } from '@/lib/gameLogic';
+import { getSeasonSaleMultiplier, calculateWholesalePrice, calculateAverageQualityScore, marketMultiplierFor } from '@/lib/gameLogic';
 
 interface SellModalProps {
     isOpen: boolean;
@@ -50,14 +50,9 @@ export const SellModal: React.FC<SellModalProps> = ({
             ? Number(prices.wholesaleBasePrice)
             : Number(prices.retailBasePrice);
 
-        // 1. Season Modifier (For AI Market Competition)
+        // 1. Season key, for the label below. The AI supply is no longer hardcoded here:
+        //    marketMultiplierFor mirrors the canister, which draws it per season.
         const seasonKey = Object.keys(farm.currentSeason)[0]; // "Spring", "Summer", etc.
-        let seasonDemand = 20000;
-        let aiSupplyKg = 0;
-        if (seasonKey === 'Spring') { seasonDemand = 30000; aiSupplyKg = 0; }
-        if (seasonKey === 'Summer') { seasonDemand = 80000; aiSupplyKg = 133000; } // 45k+18k+70k = 133k base + 15% bonus = ~152k, but let's use 133k base for approx
-        if (seasonKey === 'Autumn') { seasonDemand = 50000; aiSupplyKg = 106400; } // 80% of 133k
-        if (seasonKey === 'Winter') { seasonDemand = 20000; aiSupplyKg = 0; }
 
         const popMod = 1.0;
         let regionName = "Unknown Region";
@@ -77,11 +72,10 @@ export const SellModal: React.FC<SellModalProps> = ({
             try { population = Number(region.population); } catch (e) { population = 50000; }
         }
 
-        // Shared Market Multiplier (Supply/Demand curve)
-        const GLOBAL_BASELINE_KG = 20000;
-        const totalSupply = amount + aiSupplyKg + GLOBAL_BASELINE_KG;
-        const rawMarketMult = seasonDemand / (totalSupply || 1);
-        const marketMult = Math.max(0.5, Math.min(1.0, rawMarketMult)); // Floor 0.5, Cap 1.0
+        // Shared Market Multiplier (Supply/Demand curve): the canister's own formula and
+        // its season-seeded AI draw (ECON-21 PR0). Regional saturation is not available
+        // to the frontend, so this is still an estimate.
+        const marketMult = marketMultiplierFor(farm.currentSeason, Number(farm.seasonNumber), amount);
 
         let finalUnitPrice = basePrice;
         let qualityBonus = 1.0;

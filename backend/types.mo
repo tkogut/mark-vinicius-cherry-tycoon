@@ -430,6 +430,23 @@ module {
     #SeasonalRestriction: Text;
     #AlreadyExists: Text;
   };
+  // ECON-21 PR0: what a sale would pay and why. Returned by quoteSale and built by
+  // the same function sellCherries pays from.
+  public type SaleQuote = {
+    quantity: Nat;
+    saleType: Text;
+    revenue: Nat;
+    pricePerKg: Float;
+    marketMultiplier: Float;
+    saturationMultiplier: Float;
+    seasonMultiplier: Float;
+    aiSupplyKg: Nat;
+    seasonDemandKg: Nat;
+    baselineKg: Nat;
+    averageQuality: Nat;
+    hasOrganicCertified: Bool;
+    hasProcessingFacility: Bool;
+  };
   public type FarmOverview = {
     playerId: Text;
     playerName: Text;

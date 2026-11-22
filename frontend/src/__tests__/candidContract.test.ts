@@ -167,6 +167,7 @@ describe('Candid contract: surface inventory', () => {
             'getFarmOverview',
             'getGlobalLeaderboard',
             'getMarketPrices',
+            'quoteSale',
             'getPlayerRank',
             'checkStability',
         ]) {
