@@ -107,7 +107,14 @@ actor CherryTycoon {
   // season advances and needs no hook in `_advanceSeasonInternal`.
   stable var stableSeasonSales : [(Principal, (Nat, Nat))] = [];
 
+  // ECON-21 PR2 (additive `stable var`): the player's market scale input. Entry:
+  // (player, (season number of the latest harvest, kg harvested in it)). K is the
+  // largest of 5,000 kg and that total, 7,000 before the first harvest. Only harvested
+  // kg count, so buying land or trees cannot inflate it.
+  stable var stableMarketScale : [(Principal, (Nat, Nat))] = [];
+
   system func preupgrade() {
+    stableMarketScale := Iter.toArray(marketScale.entries());
     stableSeasonSales := Iter.toArray(seasonSales.entries());
     stablePlayerFarms := Iter.toArray(playerFarms.entries());
     stableSaturation := Iter.toArray(regionalMarketSaturation.entries());
@@ -119,6 +126,13 @@ actor CherryTycoon {
   };
 
   system func postupgrade() {
+    marketScale := HashMap.fromIter<Principal, (Nat, Nat)>(
+      stableMarketScale.vals(),
+      10,
+      Principal.equal,
+      Principal.hash
+    );
+    stableMarketScale := [];
     seasonSales := HashMap.fromIter<Principal, (Nat, Nat)>(
       stableSeasonSales.vals(),
       10,
@@ -185,6 +199,23 @@ actor CherryTycoon {
 
   // ECON-21 PR1: per-player kg sold this season (see stableSeasonSales).
   var seasonSales = HashMap.HashMap<Principal, (Nat, Nat)>(10, Principal.equal, Principal.hash);
+
+  var marketScale = HashMap.HashMap<Principal, (Nat, Nat)>(10, Principal.equal, Principal.hash);
+
+  private func marketScaleFor(player: Principal) : Nat {
+    switch (marketScale.get(player)) {
+      case (?(_, kg)) { if (kg < CompetitorLogic.MARKET_K_MIN) CompetitorLogic.MARKET_K_MIN else kg };
+      case null { CompetitorLogic.MARKET_K_INIT };
+    }
+  };
+
+  private func recordHarvest(player: Principal, seasonNumber: Nat, kg: Nat) {
+    let total = switch (marketScale.get(player)) {
+      case (?(season, acc)) { if (season == seasonNumber) acc + kg else kg };
+      case null { kg };
+    };
+    marketScale.put(player, (seasonNumber, total));
+  };
 
   private func soldThisSeasonFor(player: Principal, seasonNumber: Nat) : Nat {
     switch (seasonSales.get(player)) {
@@ -530,6 +561,7 @@ actor CherryTycoon {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     let _ = playerFarms.remove(caller);
     seasonSales.delete(caller);
+    marketScale.delete(caller);
     #Ok("Player reset successfully")
   };
 
@@ -801,6 +833,8 @@ actor CherryTycoon {
             };
 
             playerFarms.put(caller, updatedFarm);
+            // ECON-21 PR2: this harvest sets the player's market scale K (only harvested kg count)
+            recordHarvest(caller, farm.seasonNumber, harvestedAmount);
             #Ok(harvestedAmount)
           };
         };
@@ -1377,7 +1411,7 @@ actor CherryTycoon {
   // reports it, so a quote can never differ from the payout. No balance change:
   // the arithmetic is the block that used to sit inside sellCherries; only the AI
   // draw is now seeded by the season instead of Time.now().
-  private func computeSaleQuote(farm: PlayerFarm, quantity: Nat, saleType: Text, soldBefore: Nat) : { quote: Types.SaleQuote; regionKey: Text } {
+  private func computeSaleQuote(farm: PlayerFarm, quantity: Nat, saleType: Text, soldBefore: Nat, marketK: Nat) : { quote: Types.SaleQuote; regionKey: Text } {
         // Determine Region (Use first parcel's region as primary market)
         let regionName = if (farm.parcels.size() > 0) {
           farm.parcels[0].region.province
@@ -1390,17 +1424,15 @@ actor CherryTycoon {
         // Calculate Saturation Multiplier
         let saturationMult = getSaturationMultiplier(regionKey);
 
-        // Phase 5.2: Shared market supply — AI competitors affect pricing
-        // SEC: entropy is Nat (Int.abs applied), bounded (3 AIs only)
-        // ECON-21 PR0: seeded by the season, not by Time.now(). It used to be re-rolled on
-        // every call, so no quote could match the sale and a price lottery ran inside a season.
-        let marketEntropy = CompetitorLogic.entropyForSeason(farm.seasonNumber);
-        let aiSupplyKg = CompetitorLogic.getAITotalSupply(farm.currentSeason, marketEntropy);
-        let seasonDemand = CompetitorLogic.getSeasonDemand(farm.currentSeason);
-        // marketMult ∈ [0.50, 1.0] — price floor enforced per SECURITY_DIRECTIVE_V1 §2.5
-        // ECON-21 PR1: priced along the curve from what this player already sold this
-        // season, so splitting a sale into pieces pays the same as selling it at once.
-        let marketMult = CompetitorLogic.integratedMarketMultiplier(soldBefore, quantity, aiSupplyKg, seasonDemand);
+        // ECON-21 PR2: the market scales with the player. AI supply, baseline and demand are
+        // functions of the player's market scale K and of the farm's season number (the AI
+        // draw is fixed for the season, ECON-21 PR0); the sale is priced along the curve
+        // from what this player already sold this season (PR1). See competitor_logic.mo.
+        let aiSupplyKg = CompetitorLogic.marketAISupplyKg(farm.currentSeason, farm.seasonNumber, marketK);
+        let baselineKg = CompetitorLogic.marketBaselineKg(marketK);
+        let seasonDemand = CompetitorLogic.marketDemandKg(farm.currentSeason, marketK);
+        // marketMult in [0.5, 1.2]: floor per SECURITY_DIRECTIVE_V1 s2.5, ceiling so scarcity is paid.
+        let marketMult = CompetitorLogic.integratedMarketMultiplier(soldBefore, quantity, aiSupplyKg, baselineKg, seasonDemand);
 
         // Check for organic certification (per GDD: if any harvested parcel was organic, or based on inventory)
         // For simplicity, we check if the player has any organic-certified parcels
@@ -1479,7 +1511,8 @@ actor CherryTycoon {
             seasonMultiplier = seasonMult;
             aiSupplyKg = aiSupplyKg;
             seasonDemandKg = seasonDemand;
-            baselineKg = 20_000;
+            baselineKg = baselineKg;
+            marketScaleKg = marketK;
             averageQuality = avgQuality;
             hasOrganicCertified = hasOrganicCertified;
             hasProcessingFacility = hasProcessingOut;
@@ -1501,7 +1534,7 @@ actor CherryTycoon {
         if (totalAvailable < quantity) {
           return #Err(#InvalidOperation("Insufficient cherries in inventory. Total available: " # Nat.toText(totalAvailable)));
         };
-        #Ok(computeSaleQuote(farm, quantity, saleType, soldThisSeasonFor(caller, farm.seasonNumber)).quote)
+        #Ok(computeSaleQuote(farm, quantity, saleType, soldThisSeasonFor(caller, farm.seasonNumber), marketScaleFor(caller)).quote)
       };
     }
   };
@@ -1526,7 +1559,7 @@ actor CherryTycoon {
         };
 
         let soldBefore = soldThisSeasonFor(caller, farm.seasonNumber);
-        let sq = computeSaleQuote(farm, quantity, saleType, soldBefore);
+        let sq = computeSaleQuote(farm, quantity, saleType, soldBefore, marketScaleFor(caller));
         let regionKey = sq.regionKey;
         let hasOrganicCertified = sq.quote.hasOrganicCertified;
         let revenue = sq.quote.revenue;

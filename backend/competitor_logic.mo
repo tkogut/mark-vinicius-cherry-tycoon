@@ -273,32 +273,95 @@ module {
     if (capped < PRICE_FLOOR_MULT) { PRICE_FLOOR_MULT } else { capped }
   };
 
-  // ECON-21 PR1: price of a sale of `quantity` kg, given that this player has
-  // already sold `soldBefore` kg this season. The marginal multiplier is
-  //   m(x) = clamp(seasonDemand / (aiTotal + GLOBAL_BASELINE_KG + x), FLOOR, 1.0)
-  // where x is the player's own cumulative kg this season, and the sale pays the
-  // AVERAGE of m over (soldBefore, soldBefore + quantity]. Because the average of
-  // an integral is additive, selling 70 x 100 kg pays the same as one sale of
-  // 7,000 kg, so splitting a sale no longer beats dumping it. Closed form per
-  // piece: hi*len + D*ln((S0+u2)/(S0+u1)) + lo*len, with the unclamped middle
-  // between x1 = D/hi - S0 and x2 = D/lo - S0.
+  // ============================================================================
+  // ECON-21 PR2: a market that scales with the player (plan 003, consilium decision)
+  //
+  //   K  = the player's market scale in kg (see main.mo marketScaleFor)
+  //   A  = AI supply     = 0.6 * K * seasonFactor * sum(w_i * draw_i)
+  //        draw_i in [0.8, 1.2], one LCG roll per AI seeded by the season number
+  //   B  = baseline      = 0.25 * K
+  //   D  = season demand = d_season * 7000 * (K / 7000)^0.75   (sublinear in K)
+  //   m(x) = clamp(D / (A + B + x), 0.5, 1.2) for the player's cumulative kg x
+  //
+  // d_season (Spring .795 / Summer .707 / Autumn .59 / Winter .474) were tuned by
+  // the sweep in .planning/spikes/003 against the gates; mirrored in gameLogic.ts.
+  // ============================================================================
+
+  public let MARKET_K_MIN : Nat = 5_000;
+  public let MARKET_K_INIT : Nat = 7_000;
+  public let PRICE_CEILING_MULT : Float = 1.2;
+  private let AI_SCALE_SHARE : Float = 0.6;
+  private let BASELINE_SCALE_SHARE : Float = 0.25;
+  private let DEMAND_EXPONENT : Float = 0.75;
+  private let DEMAND_REFERENCE_KG : Float = 7_000.0;
+
+  public func demandUnitsFor(season: Types.Season) : Float {
+    switch (season) {
+      case (#Spring) { 0.795 };
+      case (#Summer) { 0.707 };
+      case (#Autumn) { 0.59 };
+      case (#Winter) { 0.474 };
+    }
+  };
+
+  public func marketDemandKg(season: Types.Season, k: Nat) : Nat {
+    let scaled = demandUnitsFor(season) * DEMAND_REFERENCE_KG
+      * Float.pow(Float.fromInt(k) / DEMAND_REFERENCE_KG, DEMAND_EXPONENT);
+    Int.abs(Float.toInt(scaled))
+  };
+
+  public func marketBaselineKg(k: Nat) : Nat {
+    Int.abs(Float.toInt(BASELINE_SCALE_SHARE * Float.fromInt(k)))
+  };
+
+  // One AI's announced kg this season for market scale k. Spring and Winter: 0.
+  public func aiSupplyKgFor(idSeed: Nat, capacityShare: Float, season: Types.Season, seasonNumber: Nat, k: Nat) : Nat {
+    let factor : Float = switch (season) {
+      case (#Spring) { 0.0 };
+      case (#Summer) { 1.15 };
+      case (#Autumn) { 0.80 };
+      case (#Winter) { 0.0 };
+    };
+    if (factor == 0.0) return 0;
+    let mixedSeed = (entropyForSeason(seasonNumber) + idSeed * 31) % LCG_M;
+    let (_, roll) = lcgNext(mixedSeed);
+    let draw = 0.8 + roll * 0.4;
+    Int.abs(Float.toInt(AI_SCALE_SHARE * Float.fromInt(k) * factor * capacityShare * draw))
+  };
+
+  public func marketAISupplyKg(season: Types.Season, seasonNumber: Nat, k: Nat) : Nat {
+    let total = Float.fromInt(AI_MAREK.productionCapacity + AI_KASIA.productionCapacity + AI_HANS.productionCapacity);
+    aiSupplyKgFor(MAREK_SEED, Float.fromInt(AI_MAREK.productionCapacity) / total, season, seasonNumber, k)
+    + aiSupplyKgFor(KASIA_SEED, Float.fromInt(AI_KASIA.productionCapacity) / total, season, seasonNumber, k)
+    + aiSupplyKgFor(HANS_SEED, Float.fromInt(AI_HANS.productionCapacity) / total, season, seasonNumber, k)
+  };
+
+  // Price of a sale of `quantity` kg given that this player already sold
+  // `soldBefore` kg this season: the AVERAGE of the marginal multiplier over
+  // (soldBefore, soldBefore + quantity]. The average of an integral is additive, so
+  // selling 70 x 100 kg pays the same as one sale of 7,000 kg. Closed form: the
+  // clamped ends are flat (ceiling * len, floor * len), the middle is
+  // D * ln((S0 + u2) / (S0 + u1)) with S0 = aiKg + baselineKg, between
+  // x1 = D / ceiling - S0 and x2 = D / floor - S0.
   public func integratedMarketMultiplier(
     soldBefore  : Nat,
     quantity    : Nat,
-    aiTotalKg   : Nat,
-    seasonDemand: Nat
+    aiKg        : Nat,
+    baselineKg  : Nat,
+    demandKg    : Nat
   ) : Float {
-    if (quantity == 0) {
-      return computeMarketMultiplier(soldBefore, aiTotalKg, seasonDemand);
-    };
-    let d = Float.fromInt(seasonDemand);
-    let s0 = Float.fromInt(aiTotalKg + GLOBAL_BASELINE_KG);
+    let d = Float.fromInt(demandKg);
+    let s0 = Float.fromInt(aiKg + baselineKg);
     let lo = PRICE_FLOOR_MULT;
-    let hi = 1.0;
+    let hi = PRICE_CEILING_MULT;
     let a = Float.fromInt(soldBefore);
+    if (quantity == 0) {
+      let raw = d / (s0 + a);
+      return if (raw > hi) { hi } else if (raw < lo) { lo } else { raw };
+    };
     let b = Float.fromInt(soldBefore + quantity);
-    let x1 = d / hi - s0;          // m(x) >= hi for x <= x1
-    let x2 = d / lo - s0;          // m(x) <= lo for x >= x2
+    let x1 = d / hi - s0;
+    let x2 = d / lo - s0;
     let hiLen = Float.max(0.0, Float.min(b, x1) - a);
     let loLen = Float.max(0.0, b - Float.max(a, x2));
     let midA = Float.max(a, x1);

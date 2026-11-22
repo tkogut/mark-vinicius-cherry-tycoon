@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFarm } from '@/hooks/useFarm';
 import { PlayerFarm, Season, SeasonPhase, WeatherEvent } from '@/declarations/backend.did';
@@ -11,6 +11,14 @@ import {
     getFertilizerCost,
     type FertilizerType,
     consumesOrganicTreatment,
+    marketMultiplierFor,
+    marketScaleFor,
+    calculateRetailPrice,
+    calculateWholesalePrice,
+    calculateAverageQualityScore,
+    getSeasonSaleMultiplier,
+    BASE_RETAIL_PRICE,
+    BASE_SPOT_PRICE,
 } from '@/lib/gameLogic';
 import { useQueryClient } from '@tanstack/react-query';
 import { FARM_QUERY_KEY } from '@/hooks/useFarm';
@@ -226,6 +234,12 @@ export function useGuestFarm() {
         return "Fertilized";
     }, [localFarm, mutateLocal]);
 
+    // ECON-21 PR2: the guest's market scale input and sold-this-season counter. Refs, so they last
+    // for the session; a reload forgets them, which only favours the guest. Regional saturation
+    // is not modelled for guests.
+    const guestSold = useRef<{ season: bigint; kg: number } | null>(null);
+    const guestHarvest = useRef<{ season: bigint; kg: number } | null>(null);
+
     const mockHarvestCherries = useCallback(async (parcelId: string) => {
         let harvestedAmount = 0n;
         mutateLocal(f => {
@@ -242,8 +256,17 @@ export function useGuestFarm() {
             }
             return f;
         });
+        // ECON-21 PR2: the latest harvest sets the guest's market scale, as in the canister.
+        // Outside the updater: a setState updater can run twice and must stay pure.
+        if (localFarm && harvestedAmount > 0n) {
+            const prev = guestHarvest.current;
+            guestHarvest.current = {
+                season: localFarm.seasonNumber,
+                kg: (prev && prev.season === localFarm.seasonNumber ? prev.kg : 0) + Number(harvestedAmount),
+            };
+        }
         return harvestedAmount;
-    }, [mutateLocal]);
+    }, [localFarm, mutateLocal]);
 
     const mockCutAndPrune = useCallback(async (parcelId: string) => {
         mutateLocal(f => {
@@ -289,19 +312,43 @@ export function useGuestFarm() {
         return "Phase advanced";
     }, [mutateLocal]);
 
-    const mockSellCherries = useCallback(async ({ amount }: { amount: number }) => {
-        let revenue = 0n;
+    // Guests are priced by the same functions the canister uses (market scale from the latest
+    // harvest, sold-this-season counter, integrated multiplier). Validated and priced from
+    // `localFarm` BEFORE mutateLocal so the updater stays pure.
+    const mockSellCherries = useCallback(async ({ amount, marketType }: { amount: number; marketType?: 'retail' | 'wholesale' }) => {
+        const quantity = Math.floor(amount);
+        const f0 = localFarm;
+        if (!f0 || quantity <= 0 || f0.inventory.cherries + f0.inventory.organicCherries < BigInt(quantity)) return 0n;
+
+        const soldBefore = guestSold.current && guestSold.current.season === f0.seasonNumber ? guestSold.current.kg : 0;
+        const k = marketScaleFor(guestHarvest.current ? guestHarvest.current.kg : null);
+        const marketMult = marketMultiplierFor(f0.currentSeason, Number(f0.seasonNumber), quantity, soldBefore, k);
+        const quality = calculateAverageQualityScore(f0.parcels, f0.infrastructure);
+        const seasonMult = getSeasonSaleMultiplier(f0.currentSeason);
+        const organicCertified = f0.parcels.some(p => p.organicCertified);
+        const unitPrice = marketType === 'retail'
+            ? calculateRetailPrice(BASE_RETAIL_PRICE, f0.parcels.length > 0 ? Number(f0.parcels[0].region.marketSize) : 0.8, quality, organicCertified, 1.0, seasonMult)
+            : calculateWholesalePrice(BASE_SPOT_PRICE, quantity, quality, 1.0, seasonMult, f0.infrastructure.some(i => 'ProcessingFacility' in i.infraType));
+        const revenue = BigInt(Math.max(quantity, Math.floor(unitPrice * marketMult * quantity))); // floor: 1 PLN/kg, as in main.mo
+
         mutateLocal(f => {
-            const sellAmount = BigInt(amount);
-            if (f.inventory.cherries >= sellAmount) {
-                f.inventory.cherries -= sellAmount;
-                revenue = sellAmount * 15n; // Mock price
-                f.cash += revenue;
+            let remaining = BigInt(quantity);
+            let organic = f.inventory.organicCherries;
+            let regular = f.inventory.cherries;
+            if (organicCertified) {
+                const take = organic >= remaining ? remaining : organic;
+                organic -= take; remaining -= take; regular -= remaining;
+            } else {
+                const take = regular >= remaining ? remaining : regular;
+                regular -= take; remaining -= take; organic -= remaining;
             }
+            f.inventory = { ...f.inventory, cherries: regular, organicCherries: organic };
+            f.cash += revenue;
             return f;
         });
+        guestSold.current = { season: f0.seasonNumber, kg: soldBefore + quantity };
         return revenue;
-    }, [mutateLocal]);
+    }, [localFarm, mutateLocal]);
 
     const mockHireLabor = useCallback(async (laborChoice: string) => {
         let upfrontCost = 0n;

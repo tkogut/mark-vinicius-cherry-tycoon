@@ -439,6 +439,7 @@ module {
     pricePerKg: Float;
     marketMultiplier: Float;
     soldThisSeasonKg: Nat;
+    marketScaleKg: Nat;
     saturationMultiplier: Float;
     seasonMultiplier: Float;
     aiSupplyKg: Nat;
