@@ -273,6 +273,40 @@ module {
     if (capped < PRICE_FLOOR_MULT) { PRICE_FLOOR_MULT } else { capped }
   };
 
+  // ECON-21 PR1: price of a sale of `quantity` kg, given that this player has
+  // already sold `soldBefore` kg this season. The marginal multiplier is
+  //   m(x) = clamp(seasonDemand / (aiTotal + GLOBAL_BASELINE_KG + x), FLOOR, 1.0)
+  // where x is the player's own cumulative kg this season, and the sale pays the
+  // AVERAGE of m over (soldBefore, soldBefore + quantity]. Because the average of
+  // an integral is additive, selling 70 x 100 kg pays the same as one sale of
+  // 7,000 kg, so splitting a sale no longer beats dumping it. Closed form per
+  // piece: hi*len + D*ln((S0+u2)/(S0+u1)) + lo*len, with the unclamped middle
+  // between x1 = D/hi - S0 and x2 = D/lo - S0.
+  public func integratedMarketMultiplier(
+    soldBefore  : Nat,
+    quantity    : Nat,
+    aiTotalKg   : Nat,
+    seasonDemand: Nat
+  ) : Float {
+    if (quantity == 0) {
+      return computeMarketMultiplier(soldBefore, aiTotalKg, seasonDemand);
+    };
+    let d = Float.fromInt(seasonDemand);
+    let s0 = Float.fromInt(aiTotalKg + GLOBAL_BASELINE_KG);
+    let lo = PRICE_FLOOR_MULT;
+    let hi = 1.0;
+    let a = Float.fromInt(soldBefore);
+    let b = Float.fromInt(soldBefore + quantity);
+    let x1 = d / hi - s0;          // m(x) >= hi for x <= x1
+    let x2 = d / lo - s0;          // m(x) <= lo for x >= x2
+    let hiLen = Float.max(0.0, Float.min(b, x1) - a);
+    let loLen = Float.max(0.0, b - Float.max(a, x2));
+    let midA = Float.max(a, x1);
+    let midB = Float.min(b, x2);
+    let mid = if (midB > midA) { d * Float.log((s0 + midB) / (s0 + midA)) } else { 0.0 };
+    (hi * hiLen + mid + lo * loLen) / Float.fromInt(quantity)
+  };
+
   // ============================================================================
   // PUBLIC: GET SEASON DEMAND ESTIMATE
   // Simple lookup — higher demand in Summer (cherry season) and before Winter.

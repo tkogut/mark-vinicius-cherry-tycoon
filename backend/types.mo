@@ -438,6 +438,7 @@ module {
     revenue: Nat;
     pricePerKg: Float;
     marketMultiplier: Float;
+    soldThisSeasonKg: Nat;
     saturationMultiplier: Float;
     seasonMultiplier: Float;
     aiSupplyKg: Nat;
