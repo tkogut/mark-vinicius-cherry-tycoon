@@ -52,3 +52,12 @@ Replica observation of today's market multiplier (retail, farm walked through se
 | Winter (4, 8) | 0 | 20,000 | 0.966 / 0.851 / 0.741 |
 
 `quoteSale` equalled the `sellCherries` payout on every sale tried (retail 1,000 kg: 7,385 and 7,385; wholesale 3,750 and 3,750), three consecutive quotes in a season returned the same multiplier, and the second sale of 1,000 kg paid 1% less through the existing regional saturation (7,385 then 7,312). These are the "today" values that gate 1 of this plan compares against.
+
+## PR1 result (2026-11-22, branch `feat/econ-21-pr1-season-sales`, stacked on PR0)
+**Deviation from the plan, on purpose:** PR1 was written as "`s` feeds the old formula". Pricing a sale at the endpoint multiplier `m(s + q)` with `s` included still lets a player split (the early pieces are priced higher than the endpoint): a spreadsheet check gave about +16% in Winter. So PR1 prices the sale as the **average of the old marginal curve** over `(s, s + q]` (`integratedMarketMultiplier`, closed form), which is additive and ends splitting exactly. The curve itself (floor 0.5, ceiling 1.0, today's constants) is unchanged; the model swap stays in PR2.
+
+Done: additive `stable var stableSeasonSales` (player -> (season number, kg)) with a runtime map; the count applies only while its season number equals the farm's, so it resets itself and needs no hook in the season advance; `sellCherries` and `quoteSale` read it, `sellCherries` writes it (both channels); `SaleQuote.soldThisSeasonKg`; TS mirror `integratedMarketMultiplier`; the Sell modal uses the canister's own quote (`useSaleQuote`) for signed-in players and keeps the estimate for guests.
+
+Balance effect: only where the old curve is not at its floor or cap. Summer and Autumn (floor 0.5) and Spring (cap 1.0 up to 10 t) are unchanged. Winter pays more for a large sale: a 7 t dump moves from 0.741 to 0.857 (+15.7%, inside gate 1's +20%).
+
+Replica (local): Winter retail, 7 t, one sale 66,497 PLN versus 70 sales of 100 kg 65,374 (-1.7%, the regional saturation each piece adds); Autumn 51,701 versus 50,775. Guard broken (counter never written): the Winter split pays 75,991 (+14.3% over the dump). `s` survived an upgrade (`--upgrade-unchanged`): 600 kg before, 600 kg after; with the `preupgrade` line commented out it came back 0.

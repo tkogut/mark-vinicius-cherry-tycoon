@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Coins, TrendingUp, Truck, Store, MapPin, Calendar, Users, AlertTriangle, Leaf, Flame} from "lucide-react";
 import { useMarketPrices } from '@/hooks/useMarketPrices';
 import { useFarm } from '@/hooks/useFarm';
+import { useSaleQuote } from '@/hooks/useSaleQuote';
 import { getSeasonSaleMultiplier, calculateWholesalePrice, calculateAverageQualityScore, marketMultiplierFor } from '@/lib/gameLogic';
 
 interface SellModalProps {
@@ -130,7 +131,12 @@ export const SellModal: React.FC<SellModalProps> = ({
         }
     };
 
-    const estimatedTotal = Math.floor(amount * (pricingFactors?.finalUnitPrice || 0));
+    // ECON-21 PR1: for a signed-in player the canister's own quote replaces the estimate. It
+    // knows the kg already sold this season and the regional saturation; guests keep the estimate.
+    const { data: quote } = useSaleQuote(amount, saleType, isOpen);
+    const unitPrice = quote ? quote.pricePerKg : (pricingFactors?.finalUnitPrice ?? 0);
+    const demandMultiplier = quote ? quote.marketMultiplier : pricingFactors?.demandMultiplier;
+    const estimatedTotal = quote ? Number(quote.revenue) : Math.floor(amount * unitPrice);
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -139,12 +145,12 @@ export const SellModal: React.FC<SellModalProps> = ({
                     <DialogTitle className="flex items-center gap-2 text-2xl font-light">
                         <Coins className="h-6 w-6 text-amber-500" />
                         Market Exchange
-                        {pricingFactors && pricingFactors.demandMultiplier > 1.1 && (
+                        {pricingFactors && demandMultiplier !== undefined && demandMultiplier > 1.1 && (
                             <Badge variant="outline" className="bg-rose-950/30 text-rose-400 border-rose-800 ml-2 animate-pulse">
                                 <Flame className="h-3.5 w-3.5 inline-block mr-1 -mt-0.5" />High Demand
                             </Badge>
                         )}
-                        {pricingFactors && pricingFactors.demandMultiplier < 0.9 && (
+                        {pricingFactors && demandMultiplier !== undefined && demandMultiplier < 0.9 && (
                             <Badge variant="outline" className="bg-amber-950/30 text-amber-500 border-amber-800 ml-2">
                                 <AlertTriangle className="h-3.5 w-3.5 inline-block mr-1 -mt-0.5" />Market Saturated
                             </Badge>
@@ -269,8 +275,8 @@ export const SellModal: React.FC<SellModalProps> = ({
                                             <span className="text-slate-400 flex items-center gap-2">
                                                 <Users className="h-3 w-3 text-blue-400" /> Market Demand
                                             </span>
-                                            <span className={`font-mono ${pricingFactors.demandMultiplier > 1 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                                x{pricingFactors.demandMultiplier.toFixed(2)}
+                                            <span className={`font-mono ${(demandMultiplier ?? 1) > 1 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                                x{(demandMultiplier ?? pricingFactors.demandMultiplier).toFixed(2)}
                                             </span>
                                         </div>
 
@@ -295,7 +301,7 @@ export const SellModal: React.FC<SellModalProps> = ({
                                 <div>
                                     <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Unit Price</span>
                                     <div className="text-3xl font-bold text-white mt-1">
-                                        {pricingFactors?.finalUnitPrice.toFixed(2)} <span className="text-sm font-normal text-slate-400">PLN</span>
+                                        {unitPrice.toFixed(2)} <span className="text-sm font-normal text-slate-400">PLN</span>
                                     </div>
                                     <div className="text-xs text-emerald-500/80 mt-1 flex items-center">
                                         Estimate: excludes regional market saturation

@@ -511,6 +511,7 @@ export const idlFactory = ({ IDL }) => {
     'revenue' : IDL.Nat,
     'seasonDemandKg' : IDL.Nat,
     'seasonMultiplier' : IDL.Float64,
+    'soldThisSeasonKg' : IDL.Nat,
     'hasOrganicCertified' : IDL.Bool,
     'pricePerKg' : IDL.Float64,
     'marketMultiplier' : IDL.Float64,

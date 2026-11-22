@@ -156,9 +156,34 @@ export const computeMarketMultiplier = (playerSupplyKg: number, aiTotalKg: numbe
     return capped < PRICE_FLOOR_MULT ? PRICE_FLOOR_MULT : capped;
 };
 
+/**
+ * Mirrors `integratedMarketMultiplier` in competitor_logic.mo (ECON-21 PR1): the
+ * sale pays the AVERAGE of the marginal multiplier
+ *   m(x) = clamp(seasonDemand / (aiTotal + baseline + x), floor, 1.0)
+ * over the player's cumulative kg this season, from `soldBefore` to
+ * `soldBefore + quantity`. Additive, so splitting a sale cannot beat dumping it.
+ */
+export const integratedMarketMultiplier = (soldBefore: number, quantity: number, aiTotalKg: number, seasonDemandKg: number): number => {
+    if (quantity === 0) return computeMarketMultiplier(soldBefore, aiTotalKg, seasonDemandKg);
+    const d = seasonDemandKg;
+    const s0 = aiTotalKg + GLOBAL_BASELINE_KG;
+    const lo = PRICE_FLOOR_MULT;
+    const hi = 1.0;
+    const a = soldBefore;
+    const b = soldBefore + quantity;
+    const x1 = d / hi - s0;
+    const x2 = d / lo - s0;
+    const hiLen = Math.max(0, Math.min(b, x1) - a);
+    const loLen = Math.max(0, b - Math.max(a, x2));
+    const midA = Math.max(a, x1);
+    const midB = Math.min(b, x2);
+    const mid = midB > midA ? d * Math.log((s0 + midB) / (s0 + midA)) : 0;
+    return (hi * hiLen + mid + lo * loLen) / quantity;
+};
+
 /** What the canister's quoteSale reports for the market multiplier, minus regional saturation. */
-export const marketMultiplierFor = (season: Season, seasonNumber: number, quantityKg: number): number =>
-    computeMarketMultiplier(quantityKg, getAITotalSupply(season, entropyForSeason(seasonNumber)), getSeasonDemandKg(season));
+export const marketMultiplierFor = (season: Season, seasonNumber: number, quantityKg: number, soldBeforeKg = 0): number =>
+    integratedMarketMultiplier(soldBeforeKg, quantityKg, getAITotalSupply(season, entropyForSeason(seasonNumber)), getSeasonDemandKg(season));
 
 export const getPhModifier = (pH: number): number => {
     if (pH >= 6.0 && pH <= 7.0) return 1.0;

@@ -374,6 +374,7 @@ export interface SaleQuote {
   'revenue' : bigint,
   'seasonDemandKg' : bigint,
   'seasonMultiplier' : number,
+  'soldThisSeasonKg' : bigint,
   'hasOrganicCertified' : boolean,
   'pricePerKg' : number,
   'marketMultiplier' : number,

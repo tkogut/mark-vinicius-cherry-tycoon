@@ -132,6 +132,7 @@ type SaleQuote =
    saturationMultiplier: float64;
    seasonDemandKg: nat;
    seasonMultiplier: float64;
+   soldThisSeasonKg: nat;
  };
 type Region = 
  record {

@@ -51,6 +51,7 @@ import {
     getSeasonDemandKg,
     computeMarketMultiplier,
     marketMultiplierFor,
+    integratedMarketMultiplier,
     AI_SEEDS,
     AI_CAPACITY_KG,
     GLOBAL_BASELINE_KG,
@@ -1265,15 +1266,70 @@ describe('economy parity: shared market multiplier (ECON-21 PR0)', () => {
     });
 
     it('reproduces the multipliers the canister reported (replica-observed)', () => {
-        // Winter (seasonNumber 4): 0.7 t / 3.5 t / 7 t -> 0.966 / 0.851 / 0.741.
-        expect(marketMultiplierFor(seasonOf('Winter'), 4, 700)).toBeCloseTo(0.966, 3);
-        expect(marketMultiplierFor(seasonOf('Winter'), 4, 3500)).toBeCloseTo(0.851, 3);
-        expect(marketMultiplierFor(seasonOf('Winter'), 4, 7000)).toBeCloseTo(0.741, 3);
+        // quoteSale at s = 0 (ECON-21 PR1: the average over the sale). Winter, seasonNumber 4:
+        // 0.7 t / 3.5 t / 7 t -> 0.983 / 0.922 / 0.857.
+        expect(marketMultiplierFor(seasonOf('Winter'), 4, 700)).toBeCloseTo(0.983, 3);
+        expect(marketMultiplierFor(seasonOf('Winter'), 4, 3500)).toBeCloseTo(0.922, 3);
+        expect(marketMultiplierFor(seasonOf('Winter'), 4, 7000)).toBeCloseTo(0.857, 3);
+        // Same farm, 600 kg already sold this season, a 10 kg quote: 0.9706 (s = 0 gives 0.9998).
+        expect(marketMultiplierFor(seasonOf('Winter'), 4, 10, 600)).toBeCloseTo(0.970638, 5);
+        expect(marketMultiplierFor(seasonOf('Winter'), 4, 10, 0)).toBeCloseTo(0.999750, 5);
         // Spring is capped at 1.0, Summer and Autumn sit at the 0.5 floor for any player volume.
         for (const q of [700, 3500, 7000]) {
             expect(marketMultiplierFor(seasonOf('Spring'), 1, q)).toBe(1.0);
             expect(marketMultiplierFor(seasonOf('Summer'), 2, q)).toBe(0.5);
             expect(marketMultiplierFor(seasonOf('Autumn'), 3, q)).toBe(0.5);
+        }
+    });
+
+    it('keeps the old single-quote multiplier as the curve itself (PR0 replica values, Winter 4)', () => {
+        const ai = getAITotalSupply(seasonOf('Winter'), entropyForSeason(4));
+        const demand = getSeasonDemandKg(seasonOf('Winter'));
+        expect(computeMarketMultiplier(700, ai, demand)).toBeCloseTo(0.966, 3);
+        expect(computeMarketMultiplier(3500, ai, demand)).toBeCloseTo(0.851, 3);
+        expect(computeMarketMultiplier(7000, ai, demand)).toBeCloseTo(0.741, 3);
+    });
+
+    // Independent check of the closed form: a midpoint Riemann sum of the clamped
+    // marginal multiplier over (soldBefore, soldBefore + q].
+    const riemann = (soldBefore: number, q: number, ai: number, demand: number) => {
+        const n = 200_000;
+        let sum = 0;
+        for (let i = 0; i < n; i++) {
+            const x = soldBefore + ((i + 0.5) * q) / n;
+            sum += Math.min(1.0, Math.max(0.5, demand / (ai + GLOBAL_BASELINE_KG + x)));
+        }
+        return sum / n;
+    };
+
+    it('integrates the marginal multiplier: closed form equals numeric integration (ECON-21 PR1)', () => {
+        const cases: Array<[number, number, number, number]> = [
+            [0, 7000, 0, 20_000], [600, 700, 0, 20_000], [0, 20_000, 0, 30_000], [9_000, 5_000, 0, 30_000],
+            [0, 7000, 97_372, 50_000], [0, 50_000, 0, 20_000], [30_000, 1_000, 0, 20_000], [0, 1, 162_100, 80_000],
+        ];
+        for (const [sold, q, ai, demand] of cases) {
+            expect(integratedMarketMultiplier(sold, q, ai, demand), `${sold}+${q} ai=${ai} d=${demand}`)
+                .toBeCloseTo(riemann(sold, q, ai, demand), 4);
+        }
+    });
+
+    it('cannot be beaten by splitting: 70 sales of 100 kg pay the same as one of 7,000 kg', () => {
+        for (const [ai, demand] of [[0, 20_000], [0, 30_000], [97_372, 50_000], [162_100, 80_000]] as const) {
+            const dump = 7000 * integratedMarketMultiplier(0, 7000, ai, demand);
+            let split = 0;
+            for (let i = 0; i < 70; i++) split += 100 * integratedMarketMultiplier(i * 100, 100, ai, demand);
+            expect(split).toBeCloseTo(dump, 6);
+        }
+    });
+
+    it('never leaves [floor, 1.0] and never rises with more volume', () => {
+        let last = 1.0;
+        for (let q = 100; q <= 200_000; q += 1_900) {
+            const m = integratedMarketMultiplier(0, q, 0, 20_000);
+            expect(m).toBeGreaterThanOrEqual(PRICE_FLOOR_MULT);
+            expect(m).toBeLessThanOrEqual(1.0);
+            expect(m).toBeLessThanOrEqual(last + 1e-12);
+            last = m;
         }
     });
 

@@ -100,7 +100,15 @@ actor CherryTycoon {
   // `fertilizeParcel` call so a parcel never carries more than one entry.
   stable var stableParcelFertilizerTypes : [(Text, Text)] = [];
 
+  // ECON-21 PR1 (additive `stable var`, existing canisters upgrade with an empty
+  // array): kg each player has sold in a season, both channels. Entry:
+  // (player, (seasonNumber the count belongs to, kg)). A count only applies while
+  // its season number equals the farm's current one, so it resets itself when the
+  // season advances and needs no hook in `_advanceSeasonInternal`.
+  stable var stableSeasonSales : [(Principal, (Nat, Nat))] = [];
+
   system func preupgrade() {
+    stableSeasonSales := Iter.toArray(seasonSales.entries());
     stablePlayerFarms := Iter.toArray(playerFarms.entries());
     stableSaturation := Iter.toArray(regionalMarketSaturation.entries());
     stableGlobalSeason := globalSeasonNumber;
@@ -111,6 +119,14 @@ actor CherryTycoon {
   };
 
   system func postupgrade() {
+    seasonSales := HashMap.fromIter<Principal, (Nat, Nat)>(
+      stableSeasonSales.vals(),
+      10,
+      Principal.equal,
+      Principal.hash
+    );
+    stableSeasonSales := [];
+
     playerFarms := HashMap.fromIter<Principal, PlayerFarm>(
       stablePlayerFarms.vals(),
       10,
@@ -165,6 +181,16 @@ actor CherryTycoon {
   // Initialize AI competitors on clean install
   for (d in [CompetitorLogic.AI_MAREK, CompetitorLogic.AI_KASIA, CompetitorLogic.AI_HANS].vals()) {
     aiCompetitors.put(d.id, d);
+  };
+
+  // ECON-21 PR1: per-player kg sold this season (see stableSeasonSales).
+  var seasonSales = HashMap.HashMap<Principal, (Nat, Nat)>(10, Principal.equal, Principal.hash);
+
+  private func soldThisSeasonFor(player: Principal, seasonNumber: Nat) : Nat {
+    switch (seasonSales.get(player)) {
+      case (?(season, kg)) { if (season == seasonNumber) kg else 0 };
+      case null { 0 };
+    }
   };
 
   // Core game data (Players and Farms)
@@ -503,6 +529,7 @@ actor CherryTycoon {
   public shared({ caller }) func debugResetPlayer() : async GameResult<Text, GameError> {
     if (Principal.isAnonymous(caller)) { return #Err(#Unauthorized("Anonymous callers not allowed")) };
     let _ = playerFarms.remove(caller);
+    seasonSales.delete(caller);
     #Ok("Player reset successfully")
   };
 
@@ -1350,7 +1377,7 @@ actor CherryTycoon {
   // reports it, so a quote can never differ from the payout. No balance change:
   // the arithmetic is the block that used to sit inside sellCherries; only the AI
   // draw is now seeded by the season instead of Time.now().
-  private func computeSaleQuote(farm: PlayerFarm, quantity: Nat, saleType: Text) : { quote: Types.SaleQuote; regionKey: Text } {
+  private func computeSaleQuote(farm: PlayerFarm, quantity: Nat, saleType: Text, soldBefore: Nat) : { quote: Types.SaleQuote; regionKey: Text } {
         // Determine Region (Use first parcel's region as primary market)
         let regionName = if (farm.parcels.size() > 0) {
           farm.parcels[0].region.province
@@ -1371,7 +1398,9 @@ actor CherryTycoon {
         let aiSupplyKg = CompetitorLogic.getAITotalSupply(farm.currentSeason, marketEntropy);
         let seasonDemand = CompetitorLogic.getSeasonDemand(farm.currentSeason);
         // marketMult ∈ [0.50, 1.0] — price floor enforced per SECURITY_DIRECTIVE_V1 §2.5
-        let marketMult = CompetitorLogic.computeMarketMultiplier(quantity, aiSupplyKg, seasonDemand);
+        // ECON-21 PR1: priced along the curve from what this player already sold this
+        // season, so splitting a sale into pieces pays the same as selling it at once.
+        let marketMult = CompetitorLogic.integratedMarketMultiplier(soldBefore, quantity, aiSupplyKg, seasonDemand);
 
         // Check for organic certification (per GDD: if any harvested parcel was organic, or based on inventory)
         // For simplicity, we check if the player has any organic-certified parcels
@@ -1445,6 +1474,7 @@ actor CherryTycoon {
             revenue = revenue;
             pricePerKg = pricePerKg;
             marketMultiplier = marketMult;
+            soldThisSeasonKg = soldBefore;
             saturationMultiplier = saturationMult;
             seasonMultiplier = seasonMult;
             aiSupplyKg = aiSupplyKg;
@@ -1471,7 +1501,7 @@ actor CherryTycoon {
         if (totalAvailable < quantity) {
           return #Err(#InvalidOperation("Insufficient cherries in inventory. Total available: " # Nat.toText(totalAvailable)));
         };
-        #Ok(computeSaleQuote(farm, quantity, saleType).quote)
+        #Ok(computeSaleQuote(farm, quantity, saleType, soldThisSeasonFor(caller, farm.seasonNumber)).quote)
       };
     }
   };
@@ -1495,7 +1525,8 @@ actor CherryTycoon {
           return #Err(#InvalidOperation("Insufficient cherries in inventory. Total available: " # Nat.toText(totalAvailable)));
         };
 
-        let sq = computeSaleQuote(farm, quantity, saleType);
+        let soldBefore = soldThisSeasonFor(caller, farm.seasonNumber);
+        let sq = computeSaleQuote(farm, quantity, saleType, soldBefore);
         let regionKey = sq.regionKey;
         let hasOrganicCertified = sq.quote.hasOrganicCertified;
         let revenue = sq.quote.revenue;
@@ -1576,6 +1607,7 @@ actor CherryTycoon {
         };
 
         playerFarms.put(caller, updatedFarm);
+        seasonSales.put(caller, (farm.seasonNumber, soldBefore + quantity));
         #Ok(revenue)
       };
     }
